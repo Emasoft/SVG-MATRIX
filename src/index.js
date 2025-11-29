@@ -7,7 +7,7 @@
  * @module @emasoft/svg-matrix
  *
  * @example
- * import { Decimal, Matrix, Vector, Transforms2D, Transforms3D } from '@emasoft/svg-matrix';
+ * import { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten, BrowserVerify } from '@emasoft/svg-matrix';
  *
  * // Set precision for all operations
  * Decimal.set({ precision: 80 });
@@ -20,6 +20,10 @@
  * // Apply to a point
  * const [x, y] = Transforms2D.applyTransform(M, 1, 0);
  * console.log('Transformed:', x.toString(), y.toString());
+ *
+ * // Verify against browser's native implementation
+ * const result = await BrowserVerify.verifyViewBox(200, 100, '0 0 100 50');
+ * console.log('Matches browser:', result.matches);
  */
 
 import Decimal from 'decimal.js';
@@ -28,5 +32,6 @@ import { Vector } from './vector.js';
 import * as Transforms2D from './transforms2d.js';
 import * as Transforms3D from './transforms3d.js';
 import * as SVGFlatten from './svg-flatten.js';
+import * as BrowserVerify from './browser-verify.js';
 
-export { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten };
+export { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten, BrowserVerify };

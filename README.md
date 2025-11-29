@@ -8,6 +8,8 @@ Arbitrary-precision matrix, vector and affine transformation library for JavaScr
 - **2D transforms** (3x3 homogeneous matrices): translation, rotation, scale, skew, reflection
 - **3D transforms** (4x4 homogeneous matrices): translation, rotation (X/Y/Z axis), scale, reflection
 - **SVG transform flattening**: parse transform attributes, build CTMs, flatten nested hierarchies
+- **Full SVG coordinate system**: viewBox, preserveAspectRatio, unit resolution, nested viewports
+- **Browser verification**: verify calculations against Chrome's native W3C SVG2 implementation
 - **Linear algebra**: LU/QR decomposition, determinant, inverse, solve, matrix exponential
 - **10^77 times better precision** than JavaScript floats for round-trip transforms
 - Works in **Node.js** and **browsers** (via CDN)
@@ -21,7 +23,7 @@ npm install @emasoft/svg-matrix
 ```
 
 ```js
-import { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from '@emasoft/svg-matrix';
+import { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten, BrowserVerify } from '@emasoft/svg-matrix';
 ```
 
 ### CDN (Browser)
@@ -300,6 +302,24 @@ const [x, y, z] = Transforms3D.applyTransform(M, 1, 0, 0);
 | `transformPathData(pathD, ctm)` | Transform path data coordinates |
 | `PRECISION_INFO` | Object with precision comparison data |
 
+### BrowserVerify
+
+| Function / Class | Description |
+|------------------|-------------|
+| `BrowserVerifier` class | Browser session manager for CTM verification |
+| `verifier.init(options?)` | Launch Chromium browser session |
+| `verifier.close()` | Close browser session |
+| `verifier.getBrowserCTM(config)` | Get browser's native getCTM() |
+| `verifier.verifyMatrix(matrix, config, tol?)` | Compare matrix to browser's CTM |
+| `verifier.verifyViewBoxTransform(w, h, vb, par?)` | Verify viewBox transform |
+| `verifier.verifyTransformAttribute(transform)` | Verify transform parsing |
+| `verifier.verifyPointTransform(matrix, x, y, config)` | Verify point transformation |
+| `verifier.runBatch(testCases, tol?)` | Run multiple verifications |
+| `quickVerify(matrix, config, tol?)` | One-off matrix verification |
+| `verifyViewBox(w, h, viewBox, par?)` | One-off viewBox verification |
+| `verifyTransform(transform)` | One-off transform verification |
+| `runStandardTests(options?)` | Run 16-test W3C compliance suite |
+
 ## SVG Transform Flattening
 
 The `SVGFlatten` module provides tools for parsing SVG transform attributes, building CTMs (Current Transform Matrices), and flattening nested transforms with arbitrary precision.
@@ -525,6 +545,128 @@ const bboxTransform = SVGFlatten.objectBoundingBoxTransform(100, 50, 200, 100);
   console.log('Transformed:', point.x.toFixed(6), point.y.toFixed(6));
 </script>
 ```
+
+## Browser Verification
+
+The `BrowserVerify` module uses Playwright to verify coordinate transformations against Chrome's native W3C SVG2 implementation. This is the authoritative way to confirm your calculations are correct.
+
+### Quick Verification
+
+```js
+import { BrowserVerify, SVGFlatten } from '@emasoft/svg-matrix';
+
+// Verify a viewBox transform matches the browser
+const result = await BrowserVerify.verifyViewBox(800, 600, '0 0 400 300', 'xMidYMid meet');
+
+if (result.matches) {
+  console.log('Our formula matches browser implementation');
+} else {
+  console.log('Mismatch! Browser:', result.browserCTM, 'Library:', result.libraryCTM);
+}
+
+// Verify a transform attribute
+const transformResult = await BrowserVerify.verifyTransform('rotate(45) translate(100, 50) scale(2)');
+console.log('Transform matches browser:', transformResult.matches);
+```
+
+### Running the Standard Test Suite
+
+```js
+import { BrowserVerify } from '@emasoft/svg-matrix';
+
+// Run 16 tests covering W3C issue #215 cases and common scenarios
+const { passed, failed, results } = await BrowserVerify.runStandardTests({ verbose: true });
+
+console.log(`Passed: ${passed}, Failed: ${failed}`);
+```
+
+### Using BrowserVerifier for Multiple Tests
+
+For efficiency when running many tests, use the `BrowserVerifier` class to maintain a browser session:
+
+```js
+import { BrowserVerify, SVGFlatten } from '@emasoft/svg-matrix';
+
+const verifier = new BrowserVerify.BrowserVerifier();
+await verifier.init({ headless: true });
+
+try {
+  // Verify multiple viewBox configurations
+  const tests = [
+    { width: 800, height: 600, viewBox: '0 0 400 300', preserveAspectRatio: 'xMidYMid meet' },
+    { width: 1920, height: 1080, viewBox: '0 0 1920 1080' },
+    { width: 200, height: 400, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid slice' },
+  ];
+
+  for (const tc of tests) {
+    const result = await verifier.verifyViewBoxTransform(
+      tc.width, tc.height, tc.viewBox, tc.preserveAspectRatio || 'xMidYMid meet'
+    );
+    console.log(`${tc.viewBox}: ${result.matches ? 'PASS' : 'FAIL'}`);
+  }
+
+  // Verify a custom matrix
+  const ctm = SVGFlatten.parseTransformAttribute('rotate(30) scale(1.5)');
+  const matrixResult = await verifier.verifyMatrix(ctm, {
+    width: 100,
+    height: 100,
+    transform: 'rotate(30) scale(1.5)'
+  });
+  console.log('Matrix matches:', matrixResult.matches);
+
+  // Verify point transformation
+  const pointResult = await verifier.verifyPointTransform(ctm, 10, 20, {
+    width: 100,
+    height: 100,
+    transform: 'rotate(30) scale(1.5)'
+  });
+  console.log('Point transform matches:', pointResult.matches);
+  console.log('Browser point:', pointResult.browserPoint);
+  console.log('Library point:', pointResult.libraryPoint);
+
+} finally {
+  await verifier.close();
+}
+```
+
+### Batch Testing
+
+```js
+import { BrowserVerify } from '@emasoft/svg-matrix';
+
+const verifier = new BrowserVerify.BrowserVerifier();
+await verifier.init();
+
+const testCases = [
+  { name: 'Square scale', width: 200, height: 200, viewBox: '0 0 100 100' },
+  { name: 'Wide viewport', width: 400, height: 200, viewBox: '0 0 100 100' },
+  { name: 'Tall viewport', width: 200, height: 400, viewBox: '0 0 100 100' },
+  { name: 'With offset', width: 300, height: 200, viewBox: '50 50 100 100' },
+];
+
+const { passed, failed, results } = await verifier.runBatch(testCases);
+console.log(`Results: ${passed} passed, ${failed} failed`);
+
+for (const r of results) {
+  if (!r.matches) {
+    console.log(`FAILED: ${r.name}`);
+    console.log('  Browser:', r.browserCTM);
+    console.log('  Library:', r.libraryCTM);
+    console.log('  Differences:', r.differences);
+  }
+}
+
+await verifier.close();
+```
+
+### Why Browser Verification?
+
+1. **Authoritative**: Browsers implement the W3C SVG2 specification. Our library matches their implementation.
+2. **Confidence**: Verify your calculations are correct before using them in production.
+3. **Edge Cases**: Test unusual viewBox/preserveAspectRatio combinations that might reveal bugs.
+4. **Regression Testing**: Ensure library updates don't break compatibility.
+
+The library passes all 28 tests including the [W3C SVG Working Group issue #215](https://github.com/w3c/svgwg/issues/215) cases, confirming correct formula implementation for the viewBox transform.
 
 ## License
 
