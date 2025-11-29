@@ -28,20 +28,6 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Publish to npm (only if NPM_TOKEN secret is set)
-        if: ${{ secrets.NPM_TOKEN != '' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-          npm publish --access public
-
-      - name: Publish skipped (no NPM_TOKEN)
-        if: ${{ secrets.NPM_TOKEN == '' }}
-        run: |
-          echo "NPM_TOKEN not set; skipping npm publish."
-          echo "If you want the workflow to auto-publish, add an NPM_TOKEN secret in repository Settings → Secrets → Actions."
-
       - name: Create GitHub Release (if tag present)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
