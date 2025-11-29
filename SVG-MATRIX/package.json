@@ -1,0 +1,33 @@
+{
+  "name": "svg-matrix",
+  "version": "1.0.0",
+  "description": "Arbitrary-precision matrix, vector and affine transformation library for JavaScript using decimal.js",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test/examples.js",
+    "ci-test": "npm ci && npm test",
+    "prepublishOnly": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Emasoft/SVG-MATRIX.git"
+  },
+  "keywords": [
+    "matrix",
+    "vector",
+    "arbitrary-precision",
+    "decimal",
+    "linear-algebra",
+    "affine",
+    "transform",
+    "svg",
+    "geometry"
+  ],
+  "author": "Emasoft",
+  "license": "MIT",
+  "dependencies": {
+    "decimal.js": "^11.4.3"
+  },
+  "devDependencies": {}
+}

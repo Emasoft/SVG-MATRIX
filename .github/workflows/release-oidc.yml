@@ -1,0 +1,76 @@
+name: Release (OIDC trusted publishing)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Obtain ephemeral npm token via Trusted Publishing OIDC exchange
+        id: get_ephemeral_token
+        env:
+          # NPM_OIDC_TOKEN_URL is the npm token-exchange endpoint that is part of the Trusted Publishing setup
+          # NPM_OIDC_AUDIENCE is the expected audience (also part of Trusted Publishing details)
+          NPM_OIDC_TOKEN_URL: ${{ secrets.NPM_OIDC_TOKEN_URL }}
+          NPM_OIDC_AUDIENCE: ${{ secrets.NPM_OIDC_AUDIENCE }}
+        run: |
+          # Exit if required environment variables are missing
+          if [ -z "${NPM_OIDC_TOKEN_URL}" ] || [ -z "${NPM_OIDC_AUDIENCE}" ]; then
+            echo "Missing NPM_OIDC_TOKEN_URL or NPM_OIDC_AUDIENCE. Please add them to repository Secrets."
+            exit 1
+          fi
+
+          # Run Node script which uses GitHub OIDC to request an ephemeral npm token
+          EPHEMERAL_TOKEN=$(node ./scripts/get-npm-token.js)
+          if [ -z "${EPHEMERAL_TOKEN}" ]; then
+            echo "Failed to obtain ephemeral npm token"
+            exit 1
+          fi
+          # Export token for later steps
+          echo "NPM_EPHEMERAL_TOKEN=${EPHEMERAL_TOKEN}" >> $GITHUB_ENV
+          echo "::set-output name=token::${EPHEMERAL_TOKEN}"
+
+      - name: Publish to npm using ephemeral token
+        if: env.NPM_EPHEMERAL_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_EPHEMERAL_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+          npm publish --access public
+
+      - name: Publish skipped (no ephemeral token)
+        if: env.NPM_EPHEMERAL_TOKEN == ''
+        run: |
+          echo "No ephemeral token available; skipping npm publish. GitHub Release will still be created if this is a tag push."
+
+      - name: Create GitHub Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
