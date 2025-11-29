@@ -41,6 +41,7 @@
   "author": "Emasoft",
   "license": "MIT",
   "dependencies": {
-    "decimal.js": "^10.6.0"
+    "decimal.js": "^10.6.0",
+    "playwright": "^1.57.0"
   }
 }
