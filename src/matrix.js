@@ -1,11 +1,33 @@
 import Decimal from 'decimal.js';
 import { Vector } from './vector.js';
+
+/**
+ * Helper to convert any numeric input to Decimal.
+ * Accepts numbers, strings, or Decimal instances.
+ * @param {number|string|Decimal} x - The value to convert
+ * @returns {Decimal} The Decimal representation
+ */
 const D = x => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
- * Matrix - Decimal-backed matrix class
+ * Matrix - Decimal-backed matrix class for arbitrary-precision matrix operations.
+ *
+ * All numeric inputs are automatically converted to Decimal for high precision.
+ * Supports basic operations (add, sub, mul, transpose), linear algebra
+ * (LU, QR, determinant, inverse, solve), and matrix exponential.
+ *
+ * @example
+ * const M = Matrix.from([[1, 2], [3, 4]]);
+ * const I = Matrix.identity(2);
+ * const product = M.mul(I);
+ * console.log(product.toArrayOfStrings());
  */
 export class Matrix {
+  /**
+   * Create a new Matrix from a 2D array.
+   * @param {Array<Array<number|string|Decimal>>} data - 2D array of matrix elements
+   * @throws {Error} If data is not a non-empty 2D array with consistent row lengths
+   */
   constructor(data) {
     if (!Array.isArray(data) || data.length === 0) throw new Error('Matrix requires non-empty 2D array');
     const cols = data[0].length;
@@ -17,35 +39,82 @@ export class Matrix {
     this.cols = cols;
   }
 
+  /**
+   * Factory method to create a Matrix from a 2D array.
+   * @param {Array<Array<number|string|Decimal>>} arr - 2D array of matrix elements
+   * @returns {Matrix} New Matrix instance
+   */
   static from(arr) {
     return new Matrix(arr);
   }
 
+  /**
+   * Create a matrix of zeros.
+   * @param {number} r - Number of rows
+   * @param {number} c - Number of columns
+   * @returns {Matrix} New r×c zero matrix
+   */
   static zeros(r, c) {
     const out = Array.from({ length: r }, () => Array.from({ length: c }, () => new Decimal(0)));
     return new Matrix(out);
   }
 
+  /**
+   * Create an identity matrix.
+   * @param {number} n - Size of the square identity matrix
+   * @returns {Matrix} New n×n identity matrix
+   */
   static identity(n) {
     const out = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? new Decimal(1) : new Decimal(0))));
     return new Matrix(out);
   }
 
+  /**
+   * Create a deep copy of this matrix.
+   * @returns {Matrix} New Matrix with copied values
+   */
   clone() {
     return new Matrix(this.data.map(r => r.map(v => new Decimal(v))));
   }
 
+  /**
+   * Convert matrix to 2D array of strings.
+   * Preserves full precision of Decimal values.
+   * @returns {string[][]} 2D array of string values
+   */
   toArrayOfStrings() {
     return this.data.map(r => r.map(v => v.toString()));
   }
 
-  // apply matrix to Vector or array: returns Vector
+  /**
+   * Convert matrix to 2D array of JavaScript numbers.
+   * Note: May lose precision for very large or precise values.
+   * @returns {number[][]} 2D array of number values
+   */
+  toNumberArray() {
+    return this.data.map(r => r.map(v => v.toNumber()));
+  }
+
+  /**
+   * Check if this is a square matrix.
+   * @returns {boolean} True if rows equals cols
+   */
+  isSquare() {
+    return this.rows === this.cols;
+  }
+
+  /**
+   * Apply this matrix to a Vector (matrix-vector multiplication).
+   * @param {Vector|Array} vec - Vector or array to multiply
+   * @returns {Vector} Result of M × v
+   * @throws {Error} If dimensions don't match
+   */
   applyToVector(vec) {
     let v;
     if (vec instanceof Vector) v = vec;
     else if (Array.isArray(vec)) v = Vector.from(vec);
     else throw new Error('applyToVector expects Vector or array');
-    if (this.cols !== v.length) throw new Error('shape mismatch');
+    if (this.cols !== v.length) throw new Error('shape mismatch: matrix cols must equal vector length');
     const out = [];
     for (let i = 0; i < this.rows; i++) {
       let sum = new Decimal(0);
@@ -55,10 +124,15 @@ export class Matrix {
     return new Vector(out);
   }
 
-  // elementwise add/sub or scalar
+  /**
+   * Element-wise addition, or scalar addition if other is a number.
+   * @param {Matrix|number|string|Decimal} other - Matrix or scalar to add
+   * @returns {Matrix} New Matrix with sum
+   * @throws {Error} If dimensions mismatch (for Matrix addition)
+   */
   add(other) {
     if (other instanceof Matrix) {
-      if (this.rows !== other.rows || this.cols !== other.cols) throw new Error('shape mismatch');
+      if (this.rows !== other.rows || this.cols !== other.cols) throw new Error('shape mismatch: matrices must have same dimensions');
       return new Matrix(this.data.map((r, i) => r.map((v, j) => v.plus(other.data[i][j]))));
     } else {
       const s = D(other);
@@ -66,9 +140,15 @@ export class Matrix {
     }
   }
 
+  /**
+   * Element-wise subtraction, or scalar subtraction if other is a number.
+   * @param {Matrix|number|string|Decimal} other - Matrix or scalar to subtract
+   * @returns {Matrix} New Matrix with difference
+   * @throws {Error} If dimensions mismatch (for Matrix subtraction)
+   */
   sub(other) {
     if (other instanceof Matrix) {
-      if (this.rows !== other.rows || this.cols !== other.cols) throw new Error('shape mismatch');
+      if (this.rows !== other.rows || this.cols !== other.cols) throw new Error('shape mismatch: matrices must have same dimensions');
       return new Matrix(this.data.map((r, i) => r.map((v, j) => v.minus(other.data[i][j]))));
     } else {
       const s = D(other);
@@ -76,9 +156,15 @@ export class Matrix {
     }
   }
 
+  /**
+   * Matrix multiplication, or scalar multiplication if other is a number.
+   * @param {Matrix|number|string|Decimal} other - Matrix or scalar to multiply
+   * @returns {Matrix} New Matrix with product
+   * @throws {Error} If dimensions don't allow multiplication
+   */
   mul(other) {
     if (other instanceof Matrix) {
-      if (this.cols !== other.rows) throw new Error('shape mismatch');
+      if (this.cols !== other.rows) throw new Error('shape mismatch: A.cols must equal B.rows for matrix multiplication');
       const out = Array.from({ length: this.rows }, () => Array.from({ length: other.cols }, () => new Decimal(0)));
       for (let i = 0; i < this.rows; i++) {
         for (let k = 0; k < this.cols; k++) {
@@ -94,28 +180,94 @@ export class Matrix {
     }
   }
 
+  /**
+   * Scalar division (divide all elements by scalar).
+   * @param {number|string|Decimal} scalar - Scalar to divide by
+   * @returns {Matrix} New Matrix with each element divided
+   * @throws {Error} If scalar is zero
+   */
+  div(scalar) {
+    const s = D(scalar);
+    if (s.isZero()) throw new Error('Cannot divide by zero');
+    return new Matrix(this.data.map(r => r.map(v => v.div(s))));
+  }
+
+  /**
+   * Negate all elements (multiply by -1).
+   * @returns {Matrix} New Matrix with negated elements
+   */
+  negate() {
+    return new Matrix(this.data.map(r => r.map(v => v.negated())));
+  }
+
+  /**
+   * Transpose the matrix (swap rows and columns).
+   * @returns {Matrix} New transposed Matrix
+   */
   transpose() {
     const out = Array.from({ length: this.cols }, (_, i) => Array.from({ length: this.rows }, (_, j) => new Decimal(this.data[j][i])));
     return new Matrix(out);
   }
 
-  // LU decomposition (returns {L, U, P})
+  /**
+   * Compute the trace (sum of diagonal elements).
+   * Only defined for square matrices.
+   * @returns {Decimal} Sum of diagonal elements
+   * @throws {Error} If matrix is not square
+   */
+  trace() {
+    if (!this.isSquare()) throw new Error('Trace only defined for square matrices');
+    let sum = new Decimal(0);
+    for (let i = 0; i < this.rows; i++) {
+      sum = sum.plus(this.data[i][i]);
+    }
+    return sum;
+  }
+
+  /**
+   * Check equality with another matrix within optional tolerance.
+   * @param {Matrix} other - Matrix to compare with
+   * @param {number|string|Decimal} [tolerance=0] - Maximum allowed difference per element
+   * @returns {boolean} True if matrices are equal within tolerance
+   */
+  equals(other, tolerance = 0) {
+    if (!(other instanceof Matrix)) return false;
+    if (this.rows !== other.rows || this.cols !== other.cols) return false;
+    const tol = D(tolerance);
+    for (let i = 0; i < this.rows; i++) {
+      for (let j = 0; j < this.cols; j++) {
+        const diff = this.data[i][j].minus(other.data[i][j]).abs();
+        if (diff.greaterThan(tol)) return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * LU decomposition with partial pivoting.
+   * Returns L (lower triangular), U (upper triangular), and P (permutation matrix)
+   * such that P × A = L × U.
+   * @returns {{L: Matrix, U: Matrix, P: Matrix}} LU decomposition components
+   * @throws {Error} If matrix is not square or is singular
+   */
   lu() {
-    if (this.rows !== this.cols) throw new Error('LU requires square');
+    if (!this.isSquare()) throw new Error('LU decomposition requires square matrix');
     const n = this.rows;
-    const A = this.clone().data.map(r => r.map(v => new Decimal(v)));
+    const A = this.data.map(r => r.map(v => new Decimal(v)));
     const Pvec = Array.from({ length: n }, (_, i) => i);
     const L = Array.from({ length: n }, () => Array.from({ length: n }, () => new Decimal(0)));
     for (let i = 0; i < n; i++) L[i][i] = new Decimal(1);
 
     for (let k = 0; k < n; k++) {
+      // Find pivot
       let pivot = k;
       let maxAbs = A[k][k].abs();
       for (let i = k + 1; i < n; i++) {
         const aabs = A[i][k].abs();
         if (aabs.greaterThan(maxAbs)) { maxAbs = aabs; pivot = i; }
       }
-      if (A[pivot][k].isZero()) throw new Error('Singular matrix in LU');
+      if (A[pivot][k].isZero()) throw new Error('Singular matrix: LU decomposition failed');
+      // Swap rows
       if (pivot !== k) {
         const tmp = A[k]; A[k] = A[pivot]; A[pivot] = tmp;
         const tmpIdx = Pvec[k]; Pvec[k] = Pvec[pivot]; Pvec[pivot] = tmpIdx;
@@ -123,6 +275,7 @@ export class Matrix {
           const t = L[k][j]; L[k][j] = L[pivot][j]; L[pivot][j] = t;
         }
       }
+      // Elimination
       for (let i = k + 1; i < n; i++) {
         const factor = A[i][k].div(A[k][k]);
         L[i][k] = factor;
@@ -136,40 +289,66 @@ export class Matrix {
     return { L: new Matrix(L), U: new Matrix(U), P: P };
   }
 
+  /**
+   * Compute the determinant of a square matrix.
+   * Uses LU decomposition.
+   * @returns {Decimal} The determinant
+   * @throws {Error} If matrix is not square
+   */
   determinant() {
-    if (this.rows !== this.cols) throw new Error('Determinant only for square');
+    if (!this.isSquare()) throw new Error('Determinant only defined for square matrices');
     const n = this.rows;
     const { L, U, P } = this.lu();
     let det = new Decimal(1);
     for (let i = 0; i < n; i++) det = det.mul(U.data[i][i]);
-    // permutation sign
+    // Compute permutation sign
     const perm = [];
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) if (P.data[i][j].equals(1)) perm.push(j);
     }
-    let inv = 0;
-    for (let i = 0; i < perm.length; i++) for (let j = i + 1; j < perm.length; j++) if (perm[i] > perm[j]) inv++;
-    if (inv % 2 === 1) det = det.negated();
+    let inversions = 0;
+    for (let i = 0; i < perm.length; i++) {
+      for (let j = i + 1; j < perm.length; j++) {
+        if (perm[i] > perm[j]) inversions++;
+      }
+    }
+    if (inversions % 2 === 1) det = det.negated();
     return det;
   }
 
+  /**
+   * Compute the inverse of a square matrix.
+   * Uses Gauss-Jordan elimination with partial pivoting.
+   * @returns {Matrix} The inverse matrix
+   * @throws {Error} If matrix is not square or is singular
+   */
   inverse() {
-    if (this.rows !== this.cols) throw new Error('Inverse only for square');
+    if (!this.isSquare()) throw new Error('Inverse only defined for square matrices');
     const n = this.rows;
-    const aug = Array.from({ length: n }, (_, i) => Array.from({ length: 2 * n }, (_, j) => (j < n ? new Decimal(this.data[i][j]) : (j - n === i ? new Decimal(1) : new Decimal(0)))));
+    // Create augmented matrix [A | I]
+    const aug = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: 2 * n }, (_, j) =>
+        (j < n ? new Decimal(this.data[i][j]) : (j - n === i ? new Decimal(1) : new Decimal(0)))
+      )
+    );
+    // Gauss-Jordan elimination
     for (let col = 0; col < n; col++) {
+      // Find pivot
       let pivot = col;
       let maxAbs = aug[col][col].abs();
       for (let r = col + 1; r < n; r++) {
         const aabs = aug[r][col].abs();
         if (aabs.greaterThan(maxAbs)) { maxAbs = aabs; pivot = r; }
       }
-      if (aug[pivot][col].isZero()) throw new Error('Singular matrix');
+      if (aug[pivot][col].isZero()) throw new Error('Singular matrix: inverse does not exist');
+      // Swap rows
       if (pivot !== col) {
         const tmp = aug[col]; aug[col] = aug[pivot]; aug[pivot] = tmp;
       }
+      // Scale pivot row
       const pivval = aug[col][col];
       for (let j = 0; j < 2 * n; j++) aug[col][j] = aug[col][j].div(pivval);
+      // Eliminate column
       for (let r = 0; r < n; r++) {
         if (r === col) continue;
         const factor = aug[r][col];
@@ -177,22 +356,31 @@ export class Matrix {
         for (let j = 0; j < 2 * n; j++) aug[r][j] = aug[r][j].minus(factor.mul(aug[col][j]));
       }
     }
+    // Extract inverse from augmented matrix
     const inv = aug.map(row => row.slice(n));
     return new Matrix(inv);
   }
 
-  // solve Ax = b where b is Vector or array; returns Vector
+  /**
+   * Solve the linear system Ax = b where A is this matrix.
+   * Uses Gaussian elimination with partial pivoting.
+   * @param {Vector|Array} b - Right-hand side vector
+   * @returns {Vector} Solution vector x
+   * @throws {Error} If matrix is not square, dimensions mismatch, or system is singular
+   */
   solve(b) {
     let B;
     if (b instanceof Vector) B = b;
     else if (Array.isArray(b)) B = Vector.from(b);
     else throw new Error('b must be Vector or array');
-    if (this.rows !== this.cols) throw new Error('Solve only implemented for square A');
+    if (!this.isSquare()) throw new Error('solve() only implemented for square matrices');
     const n = this.rows;
-    if (B.length !== n) throw new Error('dimension mismatch');
-    // convert to augmented array
-    const aug = Array.from({ length: n }, (_, i) => Array.from({ length: n + 1 }, (_, j) => new Decimal(j < n ? this.data[i][j] : B.data[i])));
-    // forward elimination
+    if (B.length !== n) throw new Error('dimension mismatch: b length must equal matrix rows');
+    // Create augmented matrix [A | b]
+    const aug = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: n + 1 }, (_, j) => new Decimal(j < n ? this.data[i][j] : B.data[i]))
+    );
+    // Forward elimination
     for (let col = 0; col < n; col++) {
       let pivot = col;
       let maxAbs = aug[col][col].abs();
@@ -200,7 +388,7 @@ export class Matrix {
         const aabs = aug[r][col].abs();
         if (aabs.greaterThan(maxAbs)) { maxAbs = aabs; pivot = r; }
       }
-      if (aug[pivot][col].isZero()) throw new Error('Singular or no unique solution');
+      if (aug[pivot][col].isZero()) throw new Error('Singular matrix: no unique solution');
       if (pivot !== col) { const tmp = aug[col]; aug[col] = aug[pivot]; aug[pivot] = tmp; }
       for (let r = col + 1; r < n; r++) {
         const factor = aug[r][col].div(aug[col][col]);
@@ -208,7 +396,7 @@ export class Matrix {
         for (let j = col; j < n + 1; j++) aug[r][j] = aug[r][j].minus(factor.mul(aug[col][j]));
       }
     }
-    // back substitution
+    // Back substitution
     const x = Array.from({ length: n }, () => new Decimal(0));
     for (let i = n - 1; i >= 0; i--) {
       let sum = new Decimal(0);
@@ -218,46 +406,76 @@ export class Matrix {
     return new Vector(x);
   }
 
-  // QR via Householder (returns {Q, R})
+  /**
+   * QR decomposition via Householder reflections.
+   * Returns Q (orthogonal) and R (upper triangular) such that A = Q × R.
+   * @returns {{Q: Matrix, R: Matrix}} QR decomposition components
+   */
   qr() {
     const m = this.rows, n = this.cols;
-    let A = this.clone().data.map(r => r.map(v => new Decimal(v)));
+    let A = this.data.map(r => r.map(v => new Decimal(v)));
     const Q = Matrix.identity(m).data;
+
     for (let k = 0; k < Math.min(m, n); k++) {
+      // Extract column k below diagonal
       const x = [];
       for (let i = k; i < m; i++) x.push(A[i][k]);
+
+      // Compute norm
       let normx = new Decimal(0);
       for (const xi of x) normx = normx.plus(xi.mul(xi));
       normx = normx.sqrt();
       if (normx.isZero()) continue;
+
+      // Compute Householder vector
       const sign = x[0].isNegative() ? new Decimal(-1) : new Decimal(1);
       const v = x.slice();
       v[0] = v[0].plus(sign.mul(normx));
+
+      // Normalize v
       let vnorm = new Decimal(0);
       for (const vi of v) vnorm = vnorm.plus(vi.mul(vi));
       vnorm = vnorm.sqrt();
       if (vnorm.isZero()) continue;
       for (let i = 0; i < v.length; i++) v[i] = v[i].div(vnorm);
+
+      // Apply Householder reflection to A
       for (let j = k; j < n; j++) {
         let dot = new Decimal(0);
         for (let i = 0; i < v.length; i++) dot = dot.plus(v[i].mul(A[k + i][j]));
         for (let i = 0; i < v.length; i++) A[k + i][j] = A[k + i][j].minus(new Decimal(2).mul(v[i]).mul(dot));
       }
+
+      // Apply Householder reflection to Q
       for (let j = 0; j < m; j++) {
         let dot = new Decimal(0);
         for (let i = 0; i < v.length; i++) dot = dot.plus(v[i].mul(Q[k + i][j]));
         for (let i = 0; i < v.length; i++) Q[k + i][j] = Q[k + i][j].minus(new Decimal(2).mul(v[i]).mul(dot));
       }
     }
-    const R = Array.from({ length: m }, (_, i) => Array.from({ length: n }, (_, j) => (i <= j ? A[i][j] : new Decimal(0))));
+
+    // Extract R (upper triangular part of A)
+    const R = Array.from({ length: m }, (_, i) =>
+      Array.from({ length: n }, (_, j) => (i <= j ? A[i][j] : new Decimal(0)))
+    );
     return { Q: new Matrix(Q).transpose(), R: new Matrix(R) };
   }
 
-  // simple matrix exponential via Taylor + scaling & squaring (practical default)
+  /**
+   * Compute matrix exponential using Taylor series with scaling and squaring.
+   * exp(A) = I + A + A²/2! + A³/3! + ...
+   * @param {Object} [options={}] - Options object
+   * @param {number} [options.maxIter=120] - Maximum Taylor series iterations
+   * @param {string} [options.tolerance='1e-40'] - Convergence tolerance
+   * @returns {Matrix} The matrix exponential exp(A)
+   * @throws {Error} If matrix is not square
+   */
   exp(options = {}) {
     const n = this.rows;
-    if (n !== this.cols) throw new Error('exp requires square matrix');
+    if (!this.isSquare()) throw new Error('Matrix exponential requires square matrix');
     const ident = Matrix.identity(n);
+
+    // Compute infinity norm
     const normInf = (M) => {
       let max = new Decimal(0);
       for (let i = 0; i < M.rows; i++) {
@@ -267,6 +485,8 @@ export class Matrix {
       }
       return max;
     };
+
+    // Scaling: reduce norm below 1 for better convergence
     const maxNorm = normInf(this);
     let s = 0;
     if (maxNorm.greaterThan(new Decimal(1))) {
@@ -275,6 +495,8 @@ export class Matrix {
     }
     let A = this;
     if (s > 0) A = this.mul(new Decimal(1).div(new Decimal(2).pow(s)));
+
+    // Taylor series
     const maxIter = options.maxIter || 120;
     const tol = new Decimal(options.tolerance || '1e-40');
     let term = ident.clone();
@@ -282,11 +504,17 @@ export class Matrix {
     for (let k = 1; k < maxIter; k++) {
       term = term.mul(A).mul(new Decimal(1).div(k));
       result = result.add(term);
-      // smallness check
+      // Check convergence
       let tnorm = new Decimal(0);
-      for (let i = 0; i < term.rows; i++) for (let j = 0; j < term.cols; j++) tnorm = tnorm.plus(term.data[i][j].abs());
+      for (let i = 0; i < term.rows; i++) {
+        for (let j = 0; j < term.cols; j++) {
+          tnorm = tnorm.plus(term.data[i][j].abs());
+        }
+      }
       if (tnorm.lessThan(tol)) break;
     }
+
+    // Squaring: undo the scaling
     for (let i = 0; i < s; i++) result = result.mul(result);
     return result;
   }
