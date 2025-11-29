@@ -427,26 +427,87 @@ assert(backToLocal[0].minus(10).abs().lessThan('1e-70'),
 assert(backToLocal[1].abs().lessThan('1e-70'),
   'SVG inverse CTM: viewport to local y restored (1e-70 precision)');
 
-// Test 3: Deep nesting - 5 levels of transforms (realistic SVG hierarchy)
-// svg > g(translate) > g(rotate) > g(scale) > g(translate) > g(rotate) > element
-// Use high-precision string inputs for exact values
-const level1 = Transforms2D.translation('200', '100');   // svg viewBox offset
-const level2 = Transforms2D.rotate(new Decimal(Math.PI).div(6));  // 30° rotation
-const level3 = Transforms2D.scale('0.5');              // half size
-const level4 = Transforms2D.translation('-20', '-20');   // center offset
-const level5 = Transforms2D.rotate(new Decimal(Math.PI).div(6).negated());  // counter-rotate 30°
+// Test 3: Full SVG hierarchy - 6 levels (viewBox + 5 groups + element transform)
+// Simulates: <svg viewBox="0 0 800 600"><g transform="translate(50,30)">
+//   <g transform="rotate(15)"><g transform="scale(1.2,0.8)">
+//     <g transform="skewX(10)"><g transform="translate(-25,-15) rotate(-7)">
+//       <rect transform="scale(0.9) rotate(3)"/>
+//     </g></g></g></g></g></svg>
+//
+// Each level uses a DIFFERENT transform type to stress-test precision:
 
-const deepCTM = level1.mul(level2).mul(level3).mul(level4).mul(level5);
-const deepLocal = ['40', '40'];
-const deepViewport = Transforms2D.applyTransform(deepCTM, ...deepLocal);
-const deepInverse = deepCTM.inverse();
-const deepBack = Transforms2D.applyTransform(deepInverse, ...deepViewport);
+// Level 0: ViewBox transform (maps viewBox to viewport)
+const viewBoxTransform = Transforms2D.scale('1.5');  // viewport is 1.5x viewBox
 
-// With 80-digit precision and 5 levels, expect < 1e-60 error
-assert(deepBack[0].minus(40).abs().lessThan('1e-60'),
-  'SVG deep nesting: round-trip x preserved (1e-60 precision)');
-assert(deepBack[1].minus(40).abs().lessThan('1e-60'),
-  'SVG deep nesting: round-trip y preserved (1e-60 precision)');
+// Level 1: First group - translation
+const group1 = Transforms2D.translation('50', '30');
+
+// Level 2: Second group - rotation (15 degrees)
+const group2 = Transforms2D.rotate(new Decimal('15').mul(new Decimal(Math.PI)).div('180'));
+
+// Level 3: Third group - non-uniform scale
+const group3 = Transforms2D.scale('1.2', '0.8');
+
+// Level 4: Fourth group - skew (10 degrees along X)
+const skewAngle = new Decimal('10').mul(new Decimal(Math.PI)).div('180');
+const group4 = Transforms2D.skew(Decimal.tan(skewAngle), '0');
+
+// Level 5: Fifth group - combined translate + rotate
+const group5 = Transforms2D.translation('-25', '-15')
+  .mul(Transforms2D.rotate(new Decimal('-7').mul(new Decimal(Math.PI)).div('180')));
+
+// Element transform: scale + rotate on the element itself
+const elementTransform = Transforms2D.scale('0.9')
+  .mul(Transforms2D.rotate(new Decimal('3').mul(new Decimal(Math.PI)).div('180')));
+
+// Build the full CTM (Current Transform Matrix) from outermost to innermost
+// Order: viewBox × group1 × group2 × group3 × group4 × group5 × element
+const fullCTM = viewBoxTransform
+  .mul(group1)
+  .mul(group2)
+  .mul(group3)
+  .mul(group4)
+  .mul(group5)
+  .mul(elementTransform);
+
+// Test point: local coordinates (10, 10) - the problematic case with floats
+const originalX = new Decimal('10');
+const originalY = new Decimal('10');
+
+// Transform: local → viewport
+const viewportCoords = Transforms2D.applyTransform(fullCTM, originalX, originalY);
+
+// Transform: viewport → local (inverse)
+const fullInverseCTM = fullCTM.inverse();
+const recoveredCoords = Transforms2D.applyTransform(fullInverseCTM, ...viewportCoords);
+
+// Calculate the error
+const errorX = recoveredCoords[0].minus(originalX).abs();
+const errorY = recoveredCoords[1].minus(originalY).abs();
+
+// Print detailed results for comparison
+console.log('  --- 6-Level SVG Transform Precision Test ---');
+console.log(`  Original local coords:  (${originalX.toString()}, ${originalY.toString()})`);
+console.log(`  Viewport coords:        (${viewportCoords[0].toFixed(20)}, ${viewportCoords[1].toFixed(20)})`);
+console.log(`  Recovered local coords: (${recoveredCoords[0].toFixed(40)}, ${recoveredCoords[1].toFixed(40)})`);
+console.log(`  Round-trip error X:     ${errorX.toExponential()}`);
+console.log(`  Round-trip error Y:     ${errorY.toExponential()}`);
+console.log(`  Old float error was:    ~0.0143 (returned 9.9857 instead of 10)`);
+console.log(`  Precision improvement:  ${new Decimal('0.0143').div(errorX.plus(errorY).div(2)).toExponential()} times better`);
+
+// With 80-digit precision and 6 levels of mixed transforms, expect < 1e-50 error
+// This is astronomically better than float's 0.0143 error
+assert(errorX.lessThan('1e-50'),
+  'SVG 6-level hierarchy: round-trip x error < 1e-50');
+assert(errorY.lessThan('1e-50'),
+  'SVG 6-level hierarchy: round-trip y error < 1e-50');
+
+// Verify we're WAY better than the old float precision
+const floatError = new Decimal('0.0143');  // old error: 10 - 9.9857
+assert(errorX.lessThan(floatError.div('1e40')),
+  'SVG 6-level: 10^40 times better than float precision for x');
+assert(errorY.lessThan(floatError.div('1e40')),
+  'SVG 6-level: 10^40 times better than float precision for y');
 
 // Test 4: Transform order matters - verify right-to-left multiplication
 // translate(10,0) then rotate(90°) vs rotate(90°) then translate(10,0)
