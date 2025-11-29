@@ -391,6 +391,86 @@ assertClose(pc3Back[0].toNumber(), 1, 1e-10, 'composition 3D inverse: x restored
 assertClose(pc3Back[1].toNumber(), 0, 1e-10, 'composition 3D inverse: y restored');
 assertClose(pc3Back[2].toNumber(), 0, 1e-10, 'composition 3D inverse: z restored');
 
+console.log('\n=== SVG Coordinate Transform Tests ===\n');
+
+// Test 1: Nested SVG group transforms - local to viewport
+// Simulates: <svg><g transform="translate(100,50)"><g transform="rotate(45)"><g transform="scale(2)"><rect/></g></g></g></svg>
+// A point at (10, 0) in local coords should be transformed through the hierarchy
+const svgTranslate = Transforms2D.translation(100, 50);
+const svgRotate = Transforms2D.rotate(Math.PI / 4);  // 45 degrees
+const svgScale = Transforms2D.scale(2);
+
+// CTM (Current Transform Matrix) = outermost × ... × innermost
+// In SVG, transforms apply from innermost to outermost, so we compose: translate × rotate × scale
+const CTM = svgTranslate.mul(svgRotate).mul(svgScale);
+const localPoint = [10, 0];
+const viewportPoint = Transforms2D.applyTransform(CTM, ...localPoint);
+
+// After scale(2): (20, 0)
+// After rotate(45°): (20*cos45, 20*sin45) = (14.14..., 14.14...)
+// After translate(100,50): (114.14..., 64.14...)
+// Use high-precision string comparison (80 decimal places configured)
+const expectedX = new Decimal(100).plus(new Decimal(20).mul(new Decimal(Math.cos(Math.PI/4))));
+const expectedY = new Decimal(50).plus(new Decimal(20).mul(new Decimal(Math.sin(Math.PI/4))));
+assert(viewportPoint[0].minus(expectedX).abs().lessThan('1e-14'),
+  'SVG CTM: local(10,0) to viewport x correct (high precision)');
+assert(viewportPoint[1].minus(expectedY).abs().lessThan('1e-14'),
+  'SVG CTM: local(10,0) to viewport y correct (high precision)');
+
+// Test 2: Viewport to local (inverse CTM) - high precision round-trip
+// Given a point in viewport coords, transform back to local coords
+const inverseCTM = CTM.inverse();
+const backToLocal = Transforms2D.applyTransform(inverseCTM, ...viewportPoint);
+// With 80-digit precision, round-trip error should be < 1e-70
+assert(backToLocal[0].minus(10).abs().lessThan('1e-70'),
+  'SVG inverse CTM: viewport to local x restored (1e-70 precision)');
+assert(backToLocal[1].abs().lessThan('1e-70'),
+  'SVG inverse CTM: viewport to local y restored (1e-70 precision)');
+
+// Test 3: Deep nesting - 5 levels of transforms (realistic SVG hierarchy)
+// svg > g(translate) > g(rotate) > g(scale) > g(translate) > g(rotate) > element
+// Use high-precision string inputs for exact values
+const level1 = Transforms2D.translation('200', '100');   // svg viewBox offset
+const level2 = Transforms2D.rotate(new Decimal(Math.PI).div(6));  // 30° rotation
+const level3 = Transforms2D.scale('0.5');              // half size
+const level4 = Transforms2D.translation('-20', '-20');   // center offset
+const level5 = Transforms2D.rotate(new Decimal(Math.PI).div(6).negated());  // counter-rotate 30°
+
+const deepCTM = level1.mul(level2).mul(level3).mul(level4).mul(level5);
+const deepLocal = ['40', '40'];
+const deepViewport = Transforms2D.applyTransform(deepCTM, ...deepLocal);
+const deepInverse = deepCTM.inverse();
+const deepBack = Transforms2D.applyTransform(deepInverse, ...deepViewport);
+
+// With 80-digit precision and 5 levels, expect < 1e-60 error
+assert(deepBack[0].minus(40).abs().lessThan('1e-60'),
+  'SVG deep nesting: round-trip x preserved (1e-60 precision)');
+assert(deepBack[1].minus(40).abs().lessThan('1e-60'),
+  'SVG deep nesting: round-trip y preserved (1e-60 precision)');
+
+// Test 4: Transform order matters - verify right-to-left multiplication
+// translate(10,0) then rotate(90°) vs rotate(90°) then translate(10,0)
+const T10 = Transforms2D.translation('10', '0');
+const R90 = Transforms2D.rotate(new Decimal(Math.PI).div(2));
+
+// Order 1: rotate first, then translate (T × R means R applies first)
+const order1 = T10.mul(R90);
+const p1 = Transforms2D.applyTransform(order1, '1', '0');
+// (1,0) -> rotate 90° -> (0,1) -> translate(10,0) -> (10, 1)
+assert(p1[0].minus(10).abs().lessThan('1e-14'), 'Transform order: T×R point x = 10 (high precision)');
+assert(p1[1].minus(1).abs().lessThan('1e-14'), 'Transform order: T×R point y = 1 (high precision)');
+
+// Order 2: translate first, then rotate (R × T means T applies first)
+const order2 = R90.mul(T10);
+const p2 = Transforms2D.applyTransform(order2, '1', '0');
+// (1,0) -> translate(10,0) -> (11,0) -> rotate 90° -> (0, 11)
+assert(p2[0].abs().lessThan('1e-14'), 'Transform order: R×T point x = 0 (high precision)');
+assert(p2[1].minus(11).abs().lessThan('1e-14'), 'Transform order: R×T point y = 11 (high precision)');
+
+// Verify the two orders give different results
+assert(p1[0].minus(p2[0]).abs().greaterThan(1),
+  'Transform order matters: T×R ≠ R×T');
+
 console.log('\n=== Summary ===\n');
 console.log(`Passed: ${passed}`);
 console.log(`Failed: ${failed}`);
