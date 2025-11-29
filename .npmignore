@@ -1,0 +1,23 @@
+# Development and CI
+.github/
+scripts/
+test/
+SVG-MATRIX/
+
+# Documentation (dev-only)
+CLAUDE.md
+
+# Build/dev artifacts
+*.tgz
+npm-shrinkwrap.json
+.DS_Store
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test coverage
+coverage/
+.nyc_output/
