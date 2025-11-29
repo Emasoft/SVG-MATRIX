@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node test/examples.js",
+    "test:browser": "node test/browser-verify.mjs",
     "ci-test": "npm ci && npm test",
     "prepublishOnly": "npm test"
   },
@@ -41,7 +42,9 @@
   "author": "Emasoft",
   "license": "MIT",
   "dependencies": {
-    "decimal.js": "^10.6.0",
+    "decimal.js": "^10.6.0"
+  },
+  "devDependencies": {
     "playwright": "^1.57.0"
   }
 }
