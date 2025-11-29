@@ -22,8 +22,22 @@
     "affine",
     "transform",
     "svg",
-    "geometry"
+    "geometry",
+    "esm",
+    "browser",
+    "cdn",
+    "2d",
+    "3d",
+    "rotation",
+    "translation",
+    "homogeneous"
   ],
+  "exports": {
+    ".": {
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    }
+  },
   "author": "Emasoft",
   "license": "MIT",
   "dependencies": {
