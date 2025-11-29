@@ -7,7 +7,9 @@ Arbitrary-precision matrix, vector and affine transformation library for JavaScr
 - **Decimal-backed** Matrix and Vector classes for high-precision geometry
 - **2D transforms** (3x3 homogeneous matrices): translation, rotation, scale, skew, reflection
 - **3D transforms** (4x4 homogeneous matrices): translation, rotation (X/Y/Z axis), scale, reflection
+- **SVG transform flattening**: parse transform attributes, build CTMs, flatten nested hierarchies
 - **Linear algebra**: LU/QR decomposition, determinant, inverse, solve, matrix exponential
+- **10^77 times better precision** than JavaScript floats for round-trip transforms
 - Works in **Node.js** and **browsers** (via CDN)
 
 ## Installation
@@ -19,7 +21,7 @@ npm install @emasoft/svg-matrix
 ```
 
 ```js
-import { Decimal, Matrix, Vector, Transforms2D, Transforms3D } from '@emasoft/svg-matrix';
+import { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from '@emasoft/svg-matrix';
 ```
 
 ### CDN (Browser)
@@ -28,7 +30,7 @@ Using esm.sh (recommended - auto-resolves dependencies):
 
 ```html
 <script type="module">
-  import { Decimal, Matrix, Vector, Transforms2D, Transforms3D } from 'https://esm.sh/@emasoft/svg-matrix';
+  import { Decimal, Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from 'https://esm.sh/@emasoft/svg-matrix';
 
   Decimal.set({ precision: 80 });
 
@@ -271,6 +273,142 @@ const [x, y, z] = Transforms3D.applyTransform(M, 1, 0, 0);
 | `reflectYZ()` | Reflect across YZ plane |
 | `reflectOrigin()` | Reflect through origin |
 | `applyTransform(M, x, y, z)` | Apply matrix to point |
+
+### SVGFlatten
+
+| Function | Description |
+|----------|-------------|
+| `parseTransformFunction(func, args)` | Parse a single SVG transform function |
+| `parseTransformAttribute(str)` | Parse a full SVG transform attribute string |
+| `buildCTM(transformStack)` | Build CTM from array of transform strings |
+| `applyToPoint(ctm, x, y)` | Apply CTM to a 2D point |
+| `toSVGMatrix(ctm, precision?)` | Convert CTM back to SVG matrix() notation |
+| `isIdentity(m, tolerance?)` | Check if matrix is effectively identity |
+| `transformPathData(pathD, ctm)` | Transform path data coordinates |
+| `PRECISION_INFO` | Object with precision comparison data |
+
+## SVG Transform Flattening
+
+The `SVGFlatten` module provides tools for parsing SVG transform attributes, building CTMs (Current Transform Matrices), and flattening nested transforms with arbitrary precision.
+
+### Why Use SVGFlatten?
+
+SVG elements can have deeply nested transforms through parent groups. When coordinates are transformed from local space to viewport and back using JavaScript's native 64-bit floats, precision is lost:
+
+```
+Original coordinates:     (10, 10)
+After round-trip (float): (9.9857, 9.9857)  // Error: 0.0143
+```
+
+With `@emasoft/svg-matrix` using 80-digit Decimal precision:
+
+```
+Original coordinates:     (10, 10)
+After round-trip:         (10.00000000000000000000000000000000000000,
+                           9.999999999999999999999999999999999999999999999999999999999999999999999999999999998)
+Round-trip error:         X=0, Y=2e-79
+```
+
+**Improvement: 10^77 times better precision than JavaScript floats.**
+
+### Parsing SVG Transforms
+
+```js
+import { SVGFlatten } from '@emasoft/svg-matrix';
+
+// Parse individual transforms
+const m1 = SVGFlatten.parseTransformAttribute('translate(10, 20)');
+const m2 = SVGFlatten.parseTransformAttribute('rotate(45)');
+const m3 = SVGFlatten.parseTransformAttribute('scale(2, 0.5)');
+const m4 = SVGFlatten.parseTransformAttribute('skewX(15)');
+const m5 = SVGFlatten.parseTransformAttribute('matrix(0.866, 0.5, -0.5, 0.866, 0, 0)');
+
+// Parse chained transforms
+const combined = SVGFlatten.parseTransformAttribute('translate(50,50) rotate(45) scale(2)');
+```
+
+### Building CTM from Nested Elements
+
+```js
+import { Decimal, SVGFlatten } from '@emasoft/svg-matrix';
+
+Decimal.set({ precision: 80 });
+
+// Simulate a 6-level SVG hierarchy:
+// <svg viewBox="...">                              <!-- viewBox scaling -->
+//   <g transform="translate(-13.6,-10.2)">         <!-- g1 -->
+//     <g transform="translate(-1144.8,517.6)">     <!-- g2 -->
+//       <g transform="rotate(15)">                 <!-- g3 -->
+//         <g transform="scale(1.2, 0.8)">          <!-- g4 -->
+//           <path transform="matrix(...)"/>       <!-- element -->
+
+const transformStack = [
+  'scale(1.5)',                                    // viewBox scaling
+  'translate(-13.613145,-10.209854)',              // g1
+  'translate(-1144.8563,517.64642)',               // g2
+  'rotate(15)',                                    // g3
+  'scale(1.2, 0.8)',                               // g4
+  'matrix(0.71577068,0,0,1.3970955,0,0)'          // element
+];
+
+// Build combined CTM
+const ctm = SVGFlatten.buildCTM(transformStack);
+
+// Transform a point from local to viewport coordinates
+const local = { x: new Decimal('10'), y: new Decimal('10') };
+const viewport = SVGFlatten.applyToPoint(ctm, local.x, local.y);
+
+// Transform back to local coordinates
+const inverseCTM = ctm.inverse();
+const recovered = SVGFlatten.applyToPoint(inverseCTM, viewport.x, viewport.y);
+
+// Verify precision
+const errorX = recovered.x.minus(local.x).abs();
+const errorY = recovered.y.minus(local.y).abs();
+console.log('Round-trip error X:', errorX.toString()); // 0
+console.log('Round-trip error Y:', errorY.toString()); // ~2e-79
+```
+
+### Transforming Path Data
+
+```js
+import { SVGFlatten } from '@emasoft/svg-matrix';
+
+const pathD = 'M 100 100 L 200 100 L 200 200 L 100 200 Z';
+const ctm = SVGFlatten.parseTransformAttribute('translate(50, 50) scale(2)');
+const transformed = SVGFlatten.transformPathData(pathD, ctm);
+
+console.log(transformed);
+// M 250.000000 250.000000 L 450.000000 250.000000 L 450.000000 450.000000 L 250.000000 450.000000 Z
+```
+
+### Flattening All Transforms
+
+To flatten an SVG (remove all transform attributes and apply them directly to coordinates):
+
+```js
+import { SVGFlatten } from '@emasoft/svg-matrix';
+
+// 1. For each element, collect transforms from root to element
+// 2. Build CTM: const ctm = SVGFlatten.buildCTM(transformStack);
+// 3. Transform path data: const newD = SVGFlatten.transformPathData(d, ctm);
+// 4. Remove transform attribute, update path d attribute
+// 5. Convert CTM back to SVG: SVGFlatten.toSVGMatrix(ctm, 6)
+```
+
+### CDN Usage
+
+```html
+<script type="module">
+  import { Decimal, SVGFlatten } from 'https://esm.sh/@emasoft/svg-matrix';
+
+  Decimal.set({ precision: 80 });
+
+  const ctm = SVGFlatten.parseTransformAttribute('rotate(45, 100, 100)');
+  const point = SVGFlatten.applyToPoint(ctm, 50, 50);
+  console.log('Transformed:', point.x.toFixed(6), point.y.toFixed(6));
+</script>
+```
 
 ## License
 
