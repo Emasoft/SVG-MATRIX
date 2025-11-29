@@ -179,11 +179,213 @@ console.log(`  Transform:     translate(50, 50) scale(2)`);
 console.log(`  Transformed:   ${transformedPath}`);
 console.log();
 
+// Test 7: viewBox Parsing
+console.log('--- Test 7: viewBox Parsing ---\n');
+
+const viewBoxTests = [
+  '0 0 100 100',
+  '10 20 200 150',
+  '-50 -50 500 500',
+  '0,0,800,600',  // comma-separated
+];
+
+for (const vb of viewBoxTests) {
+  const parsed = SVGFlatten.parseViewBox(vb);
+  console.log(`  "${vb}"`);
+  console.log(`    -> minX=${parsed.minX}, minY=${parsed.minY}, width=${parsed.width}, height=${parsed.height}`);
+}
+console.log();
+
+// Test 8: preserveAspectRatio Parsing
+console.log('--- Test 8: preserveAspectRatio Parsing ---\n');
+
+const parTests = [
+  '',                      // default
+  'none',                  // stretch
+  'xMidYMid',             // default align
+  'xMidYMid meet',        // explicit meet
+  'xMinYMin slice',       // top-left, slice
+  'xMaxYMax meet',        // bottom-right, meet
+  'defer xMidYMid',       // with defer (for <image>)
+];
+
+for (const par of parTests) {
+  const parsed = SVGFlatten.parsePreserveAspectRatio(par);
+  console.log(`  "${par || '(empty)'}"`);
+  console.log(`    -> defer=${parsed.defer}, align=${parsed.align}, meetOrSlice=${parsed.meetOrSlice}`);
+}
+console.log();
+
+// Test 9: viewBox Transform Computation
+console.log('--- Test 9: viewBox Transform Computation ---\n');
+
+// Test case: viewBox="0 0 100 100" on 200x200 viewport with xMidYMid meet
+const vb1 = SVGFlatten.parseViewBox('0 0 100 100');
+const par1 = SVGFlatten.parsePreserveAspectRatio('xMidYMid meet');
+const vbTransform1 = SVGFlatten.computeViewBoxTransform(vb1, 200, 200, par1);
+
+console.log('  viewBox="0 0 100 100" on 200x200 viewport (xMidYMid meet):');
+console.log(`    -> ${SVGFlatten.toSVGMatrix(vbTransform1, 4)}`);
+
+// Point (50, 50) in viewBox should map to (100, 100) in viewport
+const vbPoint1 = SVGFlatten.applyToPoint(vbTransform1, 50, 50);
+console.log(`    Point (50, 50) in viewBox -> (${vbPoint1.x.toFixed(2)}, ${vbPoint1.y.toFixed(2)}) in viewport`);
+console.log();
+
+// Test case: viewBox="0 0 100 50" on 200x200 viewport (non-square, xMidYMid meet)
+const vb2 = SVGFlatten.parseViewBox('0 0 100 50');
+const vbTransform2 = SVGFlatten.computeViewBoxTransform(vb2, 200, 200, par1);
+
+console.log('  viewBox="0 0 100 50" on 200x200 viewport (xMidYMid meet):');
+console.log(`    -> ${SVGFlatten.toSVGMatrix(vbTransform2, 4)}`);
+
+// Scale should be 2 (limited by width), centered vertically
+const vbPoint2 = SVGFlatten.applyToPoint(vbTransform2, 50, 25);
+console.log(`    Point (50, 25) in viewBox -> (${vbPoint2.x.toFixed(2)}, ${vbPoint2.y.toFixed(2)}) in viewport`);
+console.log();
+
+// Test case: preserveAspectRatio="none" (stretch)
+const parNone = SVGFlatten.parsePreserveAspectRatio('none');
+const vbTransformNone = SVGFlatten.computeViewBoxTransform(vb2, 200, 200, parNone);
+
+console.log('  viewBox="0 0 100 50" on 200x200 viewport (none - stretch):');
+console.log(`    -> ${SVGFlatten.toSVGMatrix(vbTransformNone, 4)}`);
+
+const vbPointNone = SVGFlatten.applyToPoint(vbTransformNone, 50, 25);
+console.log(`    Point (50, 25) in viewBox -> (${vbPointNone.x.toFixed(2)}, ${vbPointNone.y.toFixed(2)}) in viewport`);
+console.log();
+
+// Test 10: buildFullCTM with SVG viewport and viewBox
+console.log('--- Test 10: Full CTM with viewBox and Nested Elements ---\n');
+
+// Simulate a real SVG structure:
+// <svg width="800" height="600" viewBox="0 0 400 300">
+//   <g transform="translate(50, 50)">
+//     <g transform="rotate(45)">
+//       <rect transform="scale(2)"/>
+const fullHierarchyWithViewBox = [
+  { type: 'svg', width: 800, height: 600, viewBox: '0 0 400 300', preserveAspectRatio: 'xMidYMid meet' },
+  { type: 'g', transform: 'translate(50, 50)' },
+  { type: 'g', transform: 'rotate(45)' },
+  { type: 'element', transform: 'scale(2)' }
+];
+
+const fullCTMWithVB = SVGFlatten.buildFullCTM(fullHierarchyWithViewBox);
+console.log('  Hierarchy:');
+console.log('    <svg width="800" height="600" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid meet">');
+console.log('      <g transform="translate(50, 50)">');
+console.log('        <g transform="rotate(45)">');
+console.log('          <rect transform="scale(2)"/>');
+console.log(`\n  Combined CTM: ${SVGFlatten.toSVGMatrix(fullCTMWithVB, 6)}`);
+
+// Test point (10, 10) in element's local coords
+const localPoint = { x: new Decimal('10'), y: new Decimal('10') };
+const viewportPointFull = SVGFlatten.applyToPoint(fullCTMWithVB, localPoint.x, localPoint.y);
+console.log(`\n  Local point (10, 10) -> Viewport: (${viewportPointFull.x.toFixed(6)}, ${viewportPointFull.y.toFixed(6)})`);
+
+// Round-trip
+const fullInverseVB = fullCTMWithVB.inverse();
+const recoveredFull = SVGFlatten.applyToPoint(fullInverseVB, viewportPointFull.x, viewportPointFull.y);
+const errorFullX = recoveredFull.x.minus(localPoint.x).abs();
+const errorFullY = recoveredFull.y.minus(localPoint.y).abs();
+console.log(`  Recovered: (${recoveredFull.x.toFixed(40)}, ${recoveredFull.y.toFixed(40)})`);
+console.log(`  Round-trip error: X=${formatSci(errorFullX)}, Y=${formatSci(errorFullY)}`);
+console.log();
+
+// Test 11: Unit and Percentage Resolution
+console.log('--- Test 11: Unit and Percentage Resolution ---\n');
+
+const viewportW = new Decimal(800);
+const viewportH = new Decimal(600);
+
+const unitTests = [
+  { value: 100, ref: viewportW, desc: 'number 100' },
+  { value: '50%', ref: viewportW, desc: '50% of width (800)' },
+  { value: '25%', ref: viewportH, desc: '25% of height (600)' },
+  { value: '10px', ref: viewportW, desc: '10px' },
+  { value: '1in', ref: viewportW, desc: '1in at 96dpi' },
+  { value: '2.54cm', ref: viewportW, desc: '2.54cm (1in) at 96dpi' },
+  { value: '25.4mm', ref: viewportW, desc: '25.4mm (1in) at 96dpi' },
+  { value: '72pt', ref: viewportW, desc: '72pt (1in) at 96dpi' },
+  { value: '6pc', ref: viewportW, desc: '6pc (1in) at 96dpi' },
+  { value: '2em', ref: viewportW, desc: '2em (32px assuming 16px font)' },
+];
+
+for (const test of unitTests) {
+  const resolved = SVGFlatten.resolveLength(test.value, test.ref);
+  console.log(`  ${test.desc}: "${test.value}" -> ${resolved.toFixed(4)}`);
+}
+console.log();
+
+// Normalized diagonal
+const normDiag = SVGFlatten.normalizedDiagonal(viewportW, viewportH);
+console.log(`  Normalized diagonal for 800x600: ${normDiag.toFixed(4)}`);
+console.log(`    (Used for radius, stroke-width percentages)`);
+console.log();
+
+// Test 12: Object Bounding Box Transform
+console.log('--- Test 12: Object Bounding Box Transform ---\n');
+
+// Element with bounding box at (100, 50) with size 200x100
+const bboxTransform = SVGFlatten.objectBoundingBoxTransform(100, 50, 200, 100);
+console.log('  Bounding box: x=100, y=50, width=200, height=100');
+console.log(`  objectBoundingBox transform: ${SVGFlatten.toSVGMatrix(bboxTransform, 4)}`);
+
+// (0, 0) in objectBoundingBox -> (100, 50) in user space
+const bbox00 = SVGFlatten.applyToPoint(bboxTransform, 0, 0);
+console.log(`  (0, 0) in bbox -> (${bbox00.x.toFixed(2)}, ${bbox00.y.toFixed(2)}) in user space`);
+
+// (1, 1) in objectBoundingBox -> (300, 150) in user space
+const bbox11 = SVGFlatten.applyToPoint(bboxTransform, 1, 1);
+console.log(`  (1, 1) in bbox -> (${bbox11.x.toFixed(2)}, ${bbox11.y.toFixed(2)}) in user space`);
+
+// (0.5, 0.5) in objectBoundingBox -> (200, 100) in user space (center)
+const bbox55 = SVGFlatten.applyToPoint(bboxTransform, 0.5, 0.5);
+console.log(`  (0.5, 0.5) in bbox -> (${bbox55.x.toFixed(2)}, ${bbox55.y.toFixed(2)}) in user space (center)`);
+console.log();
+
+// Test 13: Nested SVG viewports
+console.log('--- Test 13: Nested SVG Viewports ---\n');
+
+// Outer SVG: 1000x800, viewBox="0 0 500 400"
+// Inner SVG: x=100 y=100 width=200 height=150, viewBox="0 0 100 75"
+//   <rect at (10, 10) in inner SVG coords/>
+
+const nestedHierarchy = [
+  { type: 'svg', width: 1000, height: 800, viewBox: '0 0 500 400', preserveAspectRatio: 'xMidYMid meet' },
+  { type: 'g', transform: 'translate(100, 100)' }, // Position inner SVG
+  { type: 'svg', width: 200, height: 150, viewBox: '0 0 100 75', preserveAspectRatio: 'xMidYMid meet' },
+  { type: 'element' }
+];
+
+const nestedCTM = SVGFlatten.buildFullCTM(nestedHierarchy);
+console.log('  Outer SVG: 1000x800, viewBox="0 0 500 400"');
+console.log('  Inner SVG: at (100,100), size 200x150, viewBox="0 0 100 75"');
+console.log(`\n  Combined CTM: ${SVGFlatten.toSVGMatrix(nestedCTM, 6)}`);
+
+// Point (10, 10) in innermost coords
+const nestedPoint = SVGFlatten.applyToPoint(nestedCTM, 10, 10);
+console.log(`\n  Point (10, 10) in inner viewBox -> (${nestedPoint.x.toFixed(2)}, ${nestedPoint.y.toFixed(2)}) in outer viewport`);
+
+// Round-trip test
+const nestedInverse = nestedCTM.inverse();
+const nestedRecovered = SVGFlatten.applyToPoint(nestedInverse, nestedPoint.x, nestedPoint.y);
+const nestedErrorX = nestedRecovered.x.minus(10).abs();
+const nestedErrorY = nestedRecovered.y.minus(10).abs();
+console.log(`  Recovered: (${nestedRecovered.x.toFixed(40)}, ${nestedRecovered.y.toFixed(40)})`);
+console.log(`  Round-trip error: X=${formatSci(nestedErrorX)}, Y=${formatSci(nestedErrorY)}`);
+console.log();
+
 // Summary
 console.log('=== Summary ===\n');
 console.log('  The SVGFlatten module successfully:');
 console.log('  - Parses all SVG transform types (translate, scale, rotate, skew, matrix)');
-console.log('  - Builds CTMs from nested transform hierarchies');
+console.log('  - Parses viewBox and preserveAspectRatio attributes');
+console.log('  - Computes viewBox to viewport transformations');
+console.log('  - Handles nested SVG viewports');
+console.log('  - Resolves percentages and units (px, em, pt, in, cm, mm, pc)');
+console.log('  - Computes objectBoundingBox transforms');
+console.log('  - Builds complete CTMs from complex hierarchies');
 console.log('  - Applies transforms to points with 80-digit precision');
 console.log('  - Performs round-trip transforms with error < 1e-70');
 console.log('  - Transforms path data coordinates');

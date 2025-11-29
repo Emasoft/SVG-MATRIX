@@ -278,6 +278,19 @@ const [x, y, z] = Transforms3D.applyTransform(M, 1, 0, 0);
 
 | Function | Description |
 |----------|-------------|
+| **viewBox & Viewport** | |
+| `parseViewBox(str)` | Parse viewBox attribute "minX minY width height" |
+| `parsePreserveAspectRatio(str)` | Parse preserveAspectRatio (align, meet/slice) |
+| `computeViewBoxTransform(vb, vpW, vpH, par)` | Compute viewBox to viewport matrix |
+| `SVGViewport` class | Represents viewport with viewBox + preserveAspectRatio |
+| `buildFullCTM(hierarchy)` | Build CTM from SVG/group/element hierarchy |
+| **Units & Percentages** | |
+| `resolveLength(value, ref, dpi?)` | Resolve px, %, em, pt, in, cm, mm, pc units |
+| `resolvePercentages(x, y, vpW, vpH)` | Resolve x/y percentages to viewport |
+| `normalizedDiagonal(w, h)` | Compute sqrt(w^2+h^2)/sqrt(2) for percentages |
+| **Object Bounding Box** | |
+| `objectBoundingBoxTransform(x, y, w, h)` | Transform for objectBoundingBox units |
+| **Transform Parsing** | |
 | `parseTransformFunction(func, args)` | Parse a single SVG transform function |
 | `parseTransformAttribute(str)` | Parse a full SVG transform attribute string |
 | `buildCTM(transformStack)` | Build CTM from array of transform strings |
@@ -394,6 +407,109 @@ import { SVGFlatten } from '@emasoft/svg-matrix';
 // 3. Transform path data: const newD = SVGFlatten.transformPathData(d, ctm);
 // 4. Remove transform attribute, update path d attribute
 // 5. Convert CTM back to SVG: SVGFlatten.toSVGMatrix(ctm, 6)
+```
+
+### viewBox and preserveAspectRatio
+
+Per the [SVG 2 specification](https://www.w3.org/TR/SVG2/coords.html), the viewBox establishes a new coordinate system that maps to the viewport:
+
+```js
+import { Decimal, SVGFlatten } from '@emasoft/svg-matrix';
+
+Decimal.set({ precision: 80 });
+
+// Parse viewBox and preserveAspectRatio
+const viewBox = SVGFlatten.parseViewBox('0 0 100 100');
+const par = SVGFlatten.parsePreserveAspectRatio('xMidYMid meet');
+
+// Compute the viewBox-to-viewport transform
+const vbTransform = SVGFlatten.computeViewBoxTransform(viewBox, 800, 600, par);
+
+// Point (50, 50) in viewBox coords maps to viewport
+const point = SVGFlatten.applyToPoint(vbTransform, 50, 50);
+console.log('Viewport coords:', point.x.toFixed(2), point.y.toFixed(2));
+```
+
+### Full CTM with viewBox and Nested Elements
+
+Use `buildFullCTM` for complete SVG hierarchies including viewBox transforms:
+
+```js
+import { Decimal, SVGFlatten } from '@emasoft/svg-matrix';
+
+Decimal.set({ precision: 80 });
+
+// Real SVG structure with viewBox and nested transforms
+const hierarchy = [
+  { type: 'svg', width: 800, height: 600, viewBox: '0 0 400 300', preserveAspectRatio: 'xMidYMid meet' },
+  { type: 'g', transform: 'translate(50, 50)' },
+  { type: 'g', transform: 'rotate(45)' },
+  { type: 'element', transform: 'scale(2)' }
+];
+
+const ctm = SVGFlatten.buildFullCTM(hierarchy);
+const local = { x: new Decimal('10'), y: new Decimal('10') };
+const viewport = SVGFlatten.applyToPoint(ctm, local.x, local.y);
+
+// Round-trip with perfect precision
+const inverse = ctm.inverse();
+const recovered = SVGFlatten.applyToPoint(inverse, viewport.x, viewport.y);
+// Error: X=2e-78, Y=2e-78
+```
+
+### Nested SVG Viewports
+
+Handle deeply nested `<svg>` elements, each with its own viewBox:
+
+```js
+const nestedHierarchy = [
+  { type: 'svg', width: 1000, height: 800, viewBox: '0 0 500 400' },
+  { type: 'g', transform: 'translate(100, 100)' },
+  { type: 'svg', width: 200, height: 150, viewBox: '0 0 100 75' },
+  { type: 'element' }
+];
+
+const ctm = SVGFlatten.buildFullCTM(nestedHierarchy);
+// Point (10, 10) in innermost viewBox -> (240, 240) in outer viewport
+```
+
+### Unit and Percentage Resolution
+
+Resolve SVG length values with units or percentages:
+
+```js
+import { Decimal, SVGFlatten } from '@emasoft/svg-matrix';
+
+const viewportWidth = new Decimal(800);
+
+// Percentages resolve relative to reference size
+SVGFlatten.resolveLength('50%', viewportWidth);   // -> 400
+SVGFlatten.resolveLength('25%', viewportWidth);   // -> 200
+
+// Absolute units (at 96 DPI)
+SVGFlatten.resolveLength('1in', viewportWidth);   // -> 96
+SVGFlatten.resolveLength('2.54cm', viewportWidth);// -> 96 (1 inch)
+SVGFlatten.resolveLength('72pt', viewportWidth);  // -> 96 (1 inch)
+SVGFlatten.resolveLength('6pc', viewportWidth);   // -> 96 (1 inch)
+
+// Font-relative units (assumes 16px base)
+SVGFlatten.resolveLength('2em', viewportWidth);   // -> 32
+
+// Normalized diagonal for non-directional percentages
+const diag = SVGFlatten.normalizedDiagonal(800, 600); // -> 707.1
+```
+
+### Object Bounding Box Transform
+
+For gradients/patterns with `objectBoundingBox` units:
+
+```js
+// Element bounding box: x=100, y=50, width=200, height=100
+const bboxTransform = SVGFlatten.objectBoundingBoxTransform(100, 50, 200, 100);
+
+// (0, 0) in bbox -> (100, 50) in user space
+// (1, 1) in bbox -> (300, 150) in user space
+// (0.5, 0.5) in bbox -> (200, 100) in user space (center)
 ```
 
 ### CDN Usage

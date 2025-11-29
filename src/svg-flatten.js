@@ -14,6 +14,373 @@ import * as Transforms2D from './transforms2d.js';
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
 
+// ============================================================================
+// viewBox and preserveAspectRatio Parsing
+// ============================================================================
+
+/**
+ * Parse an SVG viewBox attribute.
+ *
+ * @param {string} viewBoxStr - viewBox attribute value "minX minY width height"
+ * @returns {{minX: Decimal, minY: Decimal, width: Decimal, height: Decimal}|null}
+ */
+export function parseViewBox(viewBoxStr) {
+  if (!viewBoxStr || viewBoxStr.trim() === '') {
+    return null;
+  }
+
+  const parts = viewBoxStr.trim().split(/[\s,]+/).map(s => new Decimal(s));
+  if (parts.length !== 4) {
+    console.warn(`Invalid viewBox: ${viewBoxStr}`);
+    return null;
+  }
+
+  return {
+    minX: parts[0],
+    minY: parts[1],
+    width: parts[2],
+    height: parts[3]
+  };
+}
+
+/**
+ * Parse an SVG preserveAspectRatio attribute.
+ * Format: "[defer] <align> [<meetOrSlice>]"
+ *
+ * @param {string} parStr - preserveAspectRatio attribute value
+ * @returns {{defer: boolean, align: string, meetOrSlice: string}}
+ */
+export function parsePreserveAspectRatio(parStr) {
+  const result = {
+    defer: false,
+    align: 'xMidYMid',  // default
+    meetOrSlice: 'meet' // default
+  };
+
+  if (!parStr || parStr.trim() === '') {
+    return result;
+  }
+
+  const parts = parStr.trim().split(/\s+/);
+  let idx = 0;
+
+  // Check for 'defer' (only applies to <image>)
+  if (parts[idx] === 'defer') {
+    result.defer = true;
+    idx++;
+  }
+
+  // Alignment value
+  if (parts[idx]) {
+    result.align = parts[idx];
+    idx++;
+  }
+
+  // meetOrSlice
+  if (parts[idx]) {
+    result.meetOrSlice = parts[idx].toLowerCase();
+  }
+
+  return result;
+}
+
+/**
+ * Compute the transformation matrix from viewBox coordinates to viewport.
+ * Implements the SVG 2 algorithm for viewBox + preserveAspectRatio.
+ *
+ * @param {Object} viewBox - Parsed viewBox {minX, minY, width, height}
+ * @param {number|Decimal} viewportWidth - Viewport width in pixels
+ * @param {number|Decimal} viewportHeight - Viewport height in pixels
+ * @param {Object} par - Parsed preserveAspectRatio {align, meetOrSlice}
+ * @returns {Matrix} 3x3 transformation matrix
+ */
+export function computeViewBoxTransform(viewBox, viewportWidth, viewportHeight, par = null) {
+  const D = x => new Decimal(x);
+
+  if (!viewBox) {
+    return Matrix.identity(3);
+  }
+
+  const vbX = viewBox.minX;
+  const vbY = viewBox.minY;
+  const vbW = viewBox.width;
+  const vbH = viewBox.height;
+  const vpW = D(viewportWidth);
+  const vpH = D(viewportHeight);
+
+  // Default preserveAspectRatio
+  if (!par) {
+    par = { align: 'xMidYMid', meetOrSlice: 'meet' };
+  }
+
+  // Handle 'none' - stretch to fill
+  if (par.align === 'none') {
+    const scaleX = vpW.div(vbW);
+    const scaleY = vpH.div(vbH);
+    // translate(-minX, -minY) then scale
+    const translateM = Transforms2D.translation(vbX.neg(), vbY.neg());
+    const scaleM = Transforms2D.scale(scaleX, scaleY);
+    return scaleM.mul(translateM);
+  }
+
+  // Compute uniform scale factor
+  let scaleX = vpW.div(vbW);
+  let scaleY = vpH.div(vbH);
+  let scale;
+
+  if (par.meetOrSlice === 'slice') {
+    // Use larger scale (content may overflow)
+    scale = Decimal.max(scaleX, scaleY);
+  } else {
+    // 'meet' - use smaller scale (content fits entirely)
+    scale = Decimal.min(scaleX, scaleY);
+  }
+
+  // Compute translation for alignment
+  const scaledW = vbW.mul(scale);
+  const scaledH = vbH.mul(scale);
+
+  let translateX = D(0);
+  let translateY = D(0);
+
+  // Parse alignment string (e.g., 'xMidYMid', 'xMinYMax')
+  const align = par.align;
+
+  // X alignment
+  if (align.includes('xMid')) {
+    translateX = vpW.minus(scaledW).div(2);
+  } else if (align.includes('xMax')) {
+    translateX = vpW.minus(scaledW);
+  }
+  // xMin is default (translateX = 0)
+
+  // Y alignment
+  if (align.includes('YMid')) {
+    translateY = vpH.minus(scaledH).div(2);
+  } else if (align.includes('YMax')) {
+    translateY = vpH.minus(scaledH);
+  }
+  // YMin is default (translateY = 0)
+
+  // Build the transform: translate(translateX, translateY) scale(scale) translate(-minX, -minY)
+  // Applied right-to-left: first translate by -minX,-minY, then scale, then translate for alignment
+  const translateMinM = Transforms2D.translation(vbX.neg(), vbY.neg());
+  const scaleM = Transforms2D.scale(scale, scale);
+  const translateAlignM = Transforms2D.translation(translateX, translateY);
+
+  return translateAlignM.mul(scaleM).mul(translateMinM);
+}
+
+/**
+ * Represents an SVG viewport with its coordinate system parameters.
+ * Used for building the full CTM through nested viewports.
+ */
+export class SVGViewport {
+  /**
+   * @param {number|Decimal} width - Viewport width
+   * @param {number|Decimal} height - Viewport height
+   * @param {string|null} viewBox - viewBox attribute value
+   * @param {string|null} preserveAspectRatio - preserveAspectRatio attribute value
+   * @param {string|null} transform - transform attribute value
+   */
+  constructor(width, height, viewBox = null, preserveAspectRatio = null, transform = null) {
+    this.width = new Decimal(width);
+    this.height = new Decimal(height);
+    this.viewBox = viewBox ? parseViewBox(viewBox) : null;
+    this.preserveAspectRatio = parsePreserveAspectRatio(preserveAspectRatio);
+    this.transform = transform;
+  }
+
+  /**
+   * Compute the transformation matrix for this viewport.
+   * @returns {Matrix} 3x3 transformation matrix
+   */
+  getTransformMatrix() {
+    let result = Matrix.identity(3);
+
+    // Apply viewBox transform first (if present)
+    if (this.viewBox) {
+      const vbTransform = computeViewBoxTransform(
+        this.viewBox,
+        this.width,
+        this.height,
+        this.preserveAspectRatio
+      );
+      result = result.mul(vbTransform);
+    }
+
+    // Then apply the transform attribute (if present)
+    if (this.transform) {
+      const transformMatrix = parseTransformAttribute(this.transform);
+      result = result.mul(transformMatrix);
+    }
+
+    return result;
+  }
+}
+
+/**
+ * Build the complete CTM including viewports, viewBox transforms, and element transforms.
+ *
+ * @param {Array} hierarchy - Array of objects describing the hierarchy from root to element.
+ *   Each object can be:
+ *   - {type: 'svg', width, height, viewBox?, preserveAspectRatio?, transform?}
+ *   - {type: 'g', transform?}
+ *   - {type: 'element', transform?}
+ *   Or simply a transform string for backwards compatibility
+ * @returns {Matrix} Combined CTM as 3x3 matrix
+ */
+export function buildFullCTM(hierarchy) {
+  let ctm = Matrix.identity(3);
+
+  for (const item of hierarchy) {
+    if (typeof item === 'string') {
+      // Backwards compatibility: treat string as transform attribute
+      if (item) {
+        const matrix = parseTransformAttribute(item);
+        ctm = ctm.mul(matrix);
+      }
+    } else if (item.type === 'svg') {
+      // SVG viewport with potential viewBox
+      const viewport = new SVGViewport(
+        item.width,
+        item.height,
+        item.viewBox || null,
+        item.preserveAspectRatio || null,
+        item.transform || null
+      );
+      ctm = ctm.mul(viewport.getTransformMatrix());
+    } else if (item.type === 'g' || item.type === 'element') {
+      // Group or element with optional transform
+      if (item.transform) {
+        const matrix = parseTransformAttribute(item.transform);
+        ctm = ctm.mul(matrix);
+      }
+    }
+  }
+
+  return ctm;
+}
+
+// ============================================================================
+// Unit and Percentage Resolution
+// ============================================================================
+
+/**
+ * Resolve a length value that may include units or percentages.
+ *
+ * @param {string|number} value - Length value (e.g., "50%", "10px", "5em", 100)
+ * @param {Decimal} referenceSize - Reference size for percentage resolution
+ * @param {number} [dpi=96] - DPI for absolute unit conversion
+ * @returns {Decimal} Resolved length in user units (px)
+ */
+export function resolveLength(value, referenceSize, dpi = 96) {
+  const D = x => new Decimal(x);
+
+  if (typeof value === 'number') {
+    return D(value);
+  }
+
+  const str = String(value).trim();
+
+  // Percentage
+  if (str.endsWith('%')) {
+    const pct = D(str.slice(0, -1));
+    return pct.div(100).mul(referenceSize);
+  }
+
+  // Extract numeric value and unit
+  const match = str.match(/^([+-]?[\d.]+(?:e[+-]?\d+)?)(.*)?$/i);
+  if (!match) {
+    return D(0);
+  }
+
+  const num = D(match[1]);
+  const unit = (match[2] || '').toLowerCase().trim();
+
+  // Convert to user units (px)
+  switch (unit) {
+    case '':
+    case 'px':
+      return num;
+    case 'em':
+      return num.mul(16); // Assume 16px font-size
+    case 'rem':
+      return num.mul(16);
+    case 'pt':
+      return num.mul(dpi).div(72);
+    case 'pc':
+      return num.mul(dpi).div(6);
+    case 'in':
+      return num.mul(dpi);
+    case 'cm':
+      return num.mul(dpi).div(2.54);
+    case 'mm':
+      return num.mul(dpi).div(25.4);
+    default:
+      return num; // Unknown unit, treat as px
+  }
+}
+
+/**
+ * Resolve percentage values for x/width (relative to viewport width)
+ * and y/height (relative to viewport height).
+ *
+ * @param {string|number} xOrWidth - X coordinate or width value
+ * @param {string|number} yOrHeight - Y coordinate or height value
+ * @param {Decimal} viewportWidth - Viewport width for reference
+ * @param {Decimal} viewportHeight - Viewport height for reference
+ * @returns {{x: Decimal, y: Decimal}} Resolved coordinates
+ */
+export function resolvePercentages(xOrWidth, yOrHeight, viewportWidth, viewportHeight) {
+  return {
+    x: resolveLength(xOrWidth, viewportWidth),
+    y: resolveLength(yOrHeight, viewportHeight)
+  };
+}
+
+/**
+ * Compute the normalized diagonal for resolving percentages that
+ * aren't clearly x or y oriented (per SVG spec).
+ * Formula: sqrt(width^2 + height^2) / sqrt(2)
+ *
+ * @param {Decimal} width - Viewport width
+ * @param {Decimal} height - Viewport height
+ * @returns {Decimal} Normalized diagonal
+ */
+export function normalizedDiagonal(width, height) {
+  const w = new Decimal(width);
+  const h = new Decimal(height);
+  const sqrt2 = Decimal.sqrt(2);
+  return Decimal.sqrt(w.mul(w).plus(h.mul(h))).div(sqrt2);
+}
+
+// ============================================================================
+// Object Bounding Box Transform
+// ============================================================================
+
+/**
+ * Create a transformation matrix for objectBoundingBox coordinates.
+ * Maps (0,0) to (bboxX, bboxY) and (1,1) to (bboxX+bboxW, bboxY+bboxH).
+ *
+ * @param {number|Decimal} bboxX - Bounding box X
+ * @param {number|Decimal} bboxY - Bounding box Y
+ * @param {number|Decimal} bboxWidth - Bounding box width
+ * @param {number|Decimal} bboxHeight - Bounding box height
+ * @returns {Matrix} 3x3 transformation matrix
+ */
+export function objectBoundingBoxTransform(bboxX, bboxY, bboxWidth, bboxHeight) {
+  const D = x => new Decimal(x);
+  // Transform: scale(bboxWidth, bboxHeight) then translate(bboxX, bboxY)
+  const scaleM = Transforms2D.scale(bboxWidth, bboxHeight);
+  const translateM = Transforms2D.translation(bboxX, bboxY);
+  return translateM.mul(scaleM);
+}
+
+// ============================================================================
+// Transform Parsing (existing code)
+// ============================================================================
+
 /**
  * Parse a single SVG transform function and return a 3x3 matrix.
  * Supports: translate, scale, rotate, skewX, skewY, matrix
@@ -324,6 +691,19 @@ export const PRECISION_INFO = {
 };
 
 export default {
+  // viewBox and preserveAspectRatio
+  parseViewBox,
+  parsePreserveAspectRatio,
+  computeViewBoxTransform,
+  SVGViewport,
+  buildFullCTM,
+  // Unit resolution
+  resolveLength,
+  resolvePercentages,
+  normalizedDiagonal,
+  // Object bounding box
+  objectBoundingBoxTransform,
+  // Transform parsing
   parseTransformFunction,
   parseTransformAttribute,
   buildCTM,
