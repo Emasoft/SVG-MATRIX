@@ -103,6 +103,7 @@ const DEFAULT_CONFIG = {
   recursive: false,
   overwrite: false,
   dryRun: false,
+  showCommandHelp: false,     // Track if --help was requested for a specific command
   // Full flatten options - all enabled by default for TRUE flattening
   transformOnly: false,       // If true, skip all resolvers (legacy behavior)
   resolveClipPaths: true,     // Apply clipPath boolean intersection
@@ -499,79 +500,279 @@ function removeShapeAttrs(attrs, attrsToRemove) {
 // COMMANDS
 // ============================================================================
 
+// ============================================================================
+// ENHANCED CLI HELP SYSTEM
+// ============================================================================
+
+// Box drawing helpers
+const supportsUnicode = () => {
+  if (process.platform === 'win32') {
+    return !!(process.env.WT_SESSION || process.env.CHCP === '65001' ||
+              process.env.ConEmuANSI === 'ON' || process.env.TERM_PROGRAM);
+  }
+  return true;
+};
+
+const B = supportsUnicode()
+  ? { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', dot: '•', arr: '→' }
+  : { tl: '+', tr: '+', bl: '+', br: '+', h: '-', v: '|', dot: '*', arr: '->' };
+
+function stripAnsi(s) {
+  return s.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+function boxLine(content, width = 70) {
+  const visible = stripAnsi(content).length;
+  const padding = Math.max(0, width - visible - 2);
+  return `${colors.cyan}${B.v}${colors.reset} ${content}${' '.repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+}
+
+function boxHeader(title, width = 70) {
+  const hr = B.h.repeat(width);
+  const visible = stripAnsi(title).length;
+  const padding = Math.max(0, width - visible - 2);
+  return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${title}${colors.reset}${' '.repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+}
+
+function boxDivider(width = 70) {
+  return `${colors.cyan}${B.v}${B.h.repeat(width)}${B.v}${colors.reset}`;
+}
+
 function showHelp() {
+  const W = 72;
+  const hr = B.h.repeat(W);
+
   console.log(`
-${colors.cyan}${colors.bright}@emasoft/svg-matrix${colors.reset} v${VERSION}
-High-precision SVG matrix and transformation CLI
+${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
+${boxLine(`${colors.bright}@emasoft/svg-matrix${colors.reset} v${VERSION}`, W)}
+${boxLine(`${colors.dim}Arbitrary-precision SVG transforms with decimal.js${colors.reset}`, W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('USAGE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix <command> [options] <input> [-o <output>]`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('COMMANDS', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}flatten${colors.reset}     TRUE flatten: resolve ALL transform dependencies`, W)}
+${boxLine(`              ${colors.dim}Bakes transforms, applies clipPaths, expands use/markers${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}convert${colors.reset}     Convert shapes (rect, circle, ellipse, line) to paths`, W)}
+${boxLine(`              ${colors.dim}Preserves all style attributes${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}normalize${colors.reset}   Convert all paths to absolute cubic Bezier curves`, W)}
+${boxLine(`              ${colors.dim}Ideal for animation and path morphing${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}info${colors.reset}        Show SVG file information and element counts`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}help${colors.reset}        Show this help (or: svg-matrix <command> --help)`, W)}
+${boxLine(`  ${colors.green}version${colors.reset}     Show version number`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('GLOBAL OPTIONS', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}-o, --output <path>${colors.reset}     Output file or directory`, W)}
+${boxLine(`  ${colors.dim}-l, --list <file>${colors.reset}       Read input files from text file`, W)}
+${boxLine(`  ${colors.dim}-r, --recursive${colors.reset}         Process directories recursively`, W)}
+${boxLine(`  ${colors.dim}-p, --precision <n>${colors.reset}     Decimal precision (default: 6, max: 50)`, W)}
+${boxLine(`  ${colors.dim}-f, --force${colors.reset}             Overwrite existing output files`, W)}
+${boxLine(`  ${colors.dim}-n, --dry-run${colors.reset}           Show what would be done`, W)}
+${boxLine(`  ${colors.dim}-q, --quiet${colors.reset}             Suppress all output except errors`, W)}
+${boxLine(`  ${colors.dim}-v, --verbose${colors.reset}           Enable verbose/debug output`, W)}
+${boxLine(`  ${colors.dim}--log-file <path>${colors.reset}       Write log to file`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('FLATTEN OPTIONS', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}--transform-only${colors.reset}        Only flatten transforms (skip resolvers)`, W)}
+${boxLine(`  ${colors.dim}--no-clip-paths${colors.reset}         Skip clipPath boolean operations`, W)}
+${boxLine(`  ${colors.dim}--no-masks${colors.reset}              Skip mask to clip conversion`, W)}
+${boxLine(`  ${colors.dim}--no-use${colors.reset}                Skip use/symbol expansion`, W)}
+${boxLine(`  ${colors.dim}--no-markers${colors.reset}            Skip marker instantiation`, W)}
+${boxLine(`  ${colors.dim}--no-patterns${colors.reset}           Skip pattern expansion`, W)}
+${boxLine(`  ${colors.dim}--no-gradients${colors.reset}          Skip gradient transform baking`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('PRECISION OPTIONS', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}--clip-segments <n>${colors.reset}     Polygon samples for clipping (default: 64)`, W)}
+${boxLine(`                          ${colors.dim}64=balanced, 128=high, 256=very high${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}--bezier-arcs <n>${colors.reset}       Bezier arcs for curves (default: 8)`, W)}
+${boxLine(`                          ${colors.dim}Must be multiple of 4. Error rates:${colors.reset}`, W)}
+${boxLine(`                          ${colors.dim}8: 0.0004%, 16: 0.000007%, 64: 0.00000001%${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}--e2e-tolerance <exp>${colors.reset}   Verification tolerance (default: 1e-10)`, W)}
+${boxLine(`                          ${colors.dim}Examples: 1e-8, 1e-10, 1e-12, 1e-14${colors.reset}`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.yellow}${B.dot} Mathematical verification is ALWAYS enabled${colors.reset}`, W)}
+${boxLine(`  ${colors.yellow}${B.dot} Precision is non-negotiable in this library${colors.reset}`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('EXAMPLES', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o output.svg`, W)}
+${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} ./svgs/ -o ./out/ --transform-only`, W)}
+${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} --list files.txt -o ./out/ --no-patterns`, W)}
+${boxLine(`  ${colors.green}svg-matrix convert${colors.reset} input.svg -o output.svg -p 10`, W)}
+${boxLine(`  ${colors.green}svg-matrix info${colors.reset} input.svg`, W)}
+${boxLine('', W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxHeader('JAVASCRIPT API', W)}
+${boxLine('', W)}
+${boxLine(`  import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix'`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}${B.dot} Matrix${colors.reset}        Arbitrary-precision matrix operations`, W)}
+${boxLine(`  ${colors.green}${B.dot} Vector${colors.reset}        High-precision vector math`, W)}
+${boxLine(`  ${colors.green}${B.dot} Transforms2D${colors.reset}  rotate, scale, translate, skew, reflect`, W)}
+${boxLine(`  ${colors.green}${B.dot} Transforms3D${colors.reset}  3D affine transformations`, W)}
+${boxLine('', W)}
+${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 
-${colors.bright}USAGE:${colors.reset}
-  svg-matrix <command> [options] <input> [-o <output>]
-
-${colors.bright}COMMANDS:${colors.reset}
-  flatten     TRUE flatten: resolve ALL transform dependencies
-              - Bakes transform attributes into coordinates
-              - Applies clipPath boolean operations
-              - Converts masks to clipped geometry
-              - Expands use/symbol references inline
-              - Instantiates markers as path geometry
-              - Expands pattern fills to tiled geometry
-              - Bakes gradientTransform into coordinates
-  convert     Convert shapes (rect, circle, etc.) to paths
-  normalize   Convert paths to absolute cubic Bezier curves
-  info        Show SVG file information
-  help        Show this help message
-  version     Show version number
-
-${colors.bright}OPTIONS:${colors.reset}
-  -o, --output <path>     Output file or directory
-  -l, --list <file>       Read input files from text file
-  -r, --recursive         Process directories recursively
-  -p, --precision <n>     Decimal precision (default: 6)
-  -f, --force             Overwrite existing output files
-  -n, --dry-run           Show what would be done
-  -q, --quiet             Suppress all output except errors
-  -v, --verbose           Enable verbose/debug output
-  --log-file <path>       Write log to file
-  -h, --help              Show help
-
-${colors.bright}FLATTEN OPTIONS:${colors.reset}
-  --transform-only        Only flatten transforms (skip resolvers)
-  --no-clip-paths         Skip clipPath boolean operations
-  --no-masks              Skip mask to clip conversion
-  --no-use                Skip use/symbol expansion
-  --no-markers            Skip marker instantiation
-  --no-patterns           Skip pattern expansion
-  --no-gradients          Skip gradient transform baking
-
-${colors.bright}E2E VERIFICATION OPTIONS:${colors.reset}
-  --clip-segments <n>     Polygon samples for clipping (default: 64)
-                          Higher = better curve approximation, tighter tolerance
-                          Recommended: 64 (balanced), 128 (high), 256 (very high)
-  --bezier-arcs <n>       Bezier arcs for circles/ellipses (default: 8)
-                          Must be multiple of 4. Multiples of 8 are optimal (π/4).
-                          8: ~0.0004% error (π/4 optimal base)
-                          16: ~0.000007% error (high precision)
-                          32: ~0.0000004% error, 64: ~0.00000001% error
-  --e2e-tolerance <exp>   E2E verification tolerance exponent (default: 1e-10)
-                          Examples: 1e-8, 1e-10, 1e-12, 1e-14
-                          Tighter tolerance requires more clip-segments
-
-  ${colors.dim}Note: Mathematical verification is ALWAYS enabled.${colors.reset}
-  ${colors.dim}Precision is non-negotiable in this library.${colors.reset}
-
-${colors.bright}EXAMPLES:${colors.reset}
-  svg-matrix flatten input.svg -o output.svg
-  svg-matrix flatten ./svgs/ -o ./output/ --transform-only
-  svg-matrix flatten --list files.txt -o ./output/ --no-patterns
-  svg-matrix convert input.svg -o output.svg --precision 10
-  svg-matrix info input.svg
-
-${colors.bright}FILE LIST FORMAT:${colors.reset}
-  One path per line. Lines starting with # are comments.
-
-${colors.bright}DOCUMENTATION:${colors.reset}
-  https://github.com/Emasoft/SVG-MATRIX#readme
+  ${colors.cyan}Docs:${colors.reset} https://github.com/Emasoft/SVG-MATRIX#readme
 `);
+}
+
+function showCommandHelp(command) {
+  const W = 72;
+  const hr = B.h.repeat(W);
+
+  const commandHelp = {
+    flatten: `
+${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
+${boxLine(`${colors.bright}svg-matrix flatten${colors.reset} - TRUE SVG Flattening`, W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxLine(`Resolves ALL transform dependencies to produce a "flat" SVG where`, W)}
+${boxLine(`every coordinate is in the root coordinate system.`, W)}
+${boxLine('', W)}
+${boxHeader('WHAT IT DOES', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Bakes transform attributes into path coordinates`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Applies clipPath as boolean intersection operations`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts masks to equivalent clipped geometry`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands <use> and <symbol> references inline`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Instantiates markers as actual path geometry`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands pattern fills to tiled geometry`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Bakes gradientTransform into gradient coordinates`, W)}
+${boxLine('', W)}
+${boxHeader('USAGE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix flatten <input> [options]`, W)}
+${boxLine('', W)}
+${boxHeader('EXAMPLES', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}# Full flatten (all resolvers enabled)${colors.reset}`, W)}
+${boxLine(`  svg-matrix flatten input.svg -o output.svg`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}# Transform-only mode (legacy, faster)${colors.reset}`, W)}
+${boxLine(`  svg-matrix flatten input.svg -o out.svg --transform-only`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}# High-precision mode for complex curves${colors.reset}`, W)}
+${boxLine(`  svg-matrix flatten in.svg -o out.svg --clip-segments 128`, W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.dim}# Skip specific resolvers${colors.reset}`, W)}
+${boxLine(`  svg-matrix flatten in.svg -o out.svg --no-patterns --no-markers`, W)}
+${boxLine('', W)}
+${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
+`,
+    convert: `
+${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
+${boxLine(`${colors.bright}svg-matrix convert${colors.reset} - Shape to Path Conversion`, W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxLine(`Converts all basic shapes to <path> elements while preserving`, W)}
+${boxLine(`all style and presentation attributes.`, W)}
+${boxLine('', W)}
+${boxHeader('SUPPORTED SHAPES', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}${B.dot} rect${colors.reset}       ${B.arr} path (with optional rounded corners)`, W)}
+${boxLine(`  ${colors.green}${B.dot} circle${colors.reset}     ${B.arr} path (4 cubic Bezier arcs)`, W)}
+${boxLine(`  ${colors.green}${B.dot} ellipse${colors.reset}    ${B.arr} path (4 cubic Bezier arcs)`, W)}
+${boxLine(`  ${colors.green}${B.dot} line${colors.reset}       ${B.arr} path (M...L command)`, W)}
+${boxLine(`  ${colors.green}${B.dot} polygon${colors.reset}    ${B.arr} path (closed polyline)`, W)}
+${boxLine(`  ${colors.green}${B.dot} polyline${colors.reset}   ${B.arr} path (open polyline)`, W)}
+${boxLine('', W)}
+${boxHeader('USAGE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix convert <input> -o <output> [-p <precision>]`, W)}
+${boxLine('', W)}
+${boxHeader('EXAMPLE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix convert shapes.svg -o paths.svg --precision 8`, W)}
+${boxLine('', W)}
+${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
+`,
+    normalize: `
+${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
+${boxLine(`${colors.bright}svg-matrix normalize${colors.reset} - Path Normalization`, W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxLine(`Converts all path commands to absolute cubic Bezier curves.`, W)}
+${boxLine(`Ideal for path morphing, animation, and consistent processing.`, W)}
+${boxLine('', W)}
+${boxHeader('WHAT IT DOES', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts relative commands (m,l,c,s,q,t,a) to absolute`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts all curves to cubic Beziers (C commands)`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands shorthand (S,T) to full curves`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts arcs (A) to cubic Bezier approximations`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts lines (L,H,V) to degenerate cubics`, W)}
+${boxLine('', W)}
+${boxHeader('OUTPUT FORMAT', W)}
+${boxLine('', W)}
+${boxLine(`  All paths become: M x y C x1 y1 x2 y2 x y C ... Z`, W)}
+${boxLine('', W)}
+${boxHeader('USAGE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix normalize <input> -o <output>`, W)}
+${boxLine('', W)}
+${boxHeader('EXAMPLE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix normalize complex.svg -o normalized.svg`, W)}
+${boxLine('', W)}
+${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
+`,
+    info: `
+${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
+${boxLine(`${colors.bright}svg-matrix info${colors.reset} - SVG File Information`, W)}
+${boxDivider(W)}
+${boxLine('', W)}
+${boxLine(`Displays detailed information about an SVG file including`, W)}
+${boxLine(`dimensions, element counts, and structure analysis.`, W)}
+${boxLine('', W)}
+${boxHeader('INFORMATION SHOWN', W)}
+${boxLine('', W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} File path and size`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Dimensions (viewBox, width, height)`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Element counts (paths, shapes, groups)`, W)}
+${boxLine(`  ${colors.green}${B.dot}${colors.reset} Transform attribute count`, W)}
+${boxLine('', W)}
+${boxHeader('USAGE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix info <input>`, W)}
+${boxLine(`  svg-matrix info <folder> -r    ${colors.dim}# recursive${colors.reset}`, W)}
+${boxLine('', W)}
+${boxHeader('EXAMPLE', W)}
+${boxLine('', W)}
+${boxLine(`  svg-matrix info logo.svg`, W)}
+${boxLine('', W)}
+${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
+`
+  };
+
+  if (commandHelp[command]) {
+    console.log(commandHelp[command]);
+  } else {
+    showHelp();
+  }
 }
 
 function showVersion() { console.log(`@emasoft/svg-matrix v${VERSION}`); }
@@ -1002,7 +1203,14 @@ function parseArgs(args) {
       case '-q': case '--quiet': cfg.quiet = true; break;
       case '-v': case '--verbose': cfg.verbose = true; break;
       case '--log-file': cfg.logFile = args[++i]; break;
-      case '-h': case '--help': cfg.command = 'help'; break;
+      case '-h': case '--help':
+        // If a command is already set (not 'help'), show command-specific help
+        if (cfg.command !== 'help' && ['flatten', 'convert', 'normalize', 'info'].includes(cfg.command)) {
+          cfg.showCommandHelp = true;
+        } else {
+          cfg.command = 'help';
+        }
+        break;
       case '--version': cfg.command = 'version'; break;
       // Full flatten pipeline options
       case '--transform-only': cfg.transformOnly = true; break;
@@ -1095,6 +1303,12 @@ async function main() {
     if (args.length === 0) { showHelp(); process.exit(CONSTANTS.EXIT_SUCCESS); }
 
     config = parseArgs(args);
+
+    // Handle command-specific help (e.g., `svg-matrix flatten --help`)
+    if (config.showCommandHelp) {
+      showCommandHelp(config.command);
+      process.exit(CONSTANTS.EXIT_SUCCESS);
+    }
 
     if (config.logFile) {
       try {

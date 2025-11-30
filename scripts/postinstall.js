@@ -137,10 +137,10 @@ ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot} Transforms3D${c.reset}  3D af
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.13:${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.16:${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Enhanced CLI help: svg-matrix <command> --help`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} High-precision Bezier circle/ellipse approximation`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} E2E verification for clip-path operations`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Configurable: --clip-segments, --bezier-arcs, --e2e-tolerance`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} E2E verification always enabled for precision`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.bl}${hr}${B.br}${c.reset}
 

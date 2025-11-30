@@ -1,6 +1,6 @@
 {
   "name": "@emasoft/svg-matrix",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Arbitrary-precision matrix, vector and affine transformation library for JavaScript using decimal.js",
   "type": "module",
   "main": "src/index.js",
