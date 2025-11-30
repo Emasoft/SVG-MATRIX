@@ -62,13 +62,157 @@ npm install @emasoft/svg-matrix
 import { Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from '@emasoft/svg-matrix';
 ```
 
-### CDN
+### Browser Usage (CDN)
+
+You can use this library directly in a web browser without installing anything. Just add a `<script>` tag to your HTML file.
+
+**What is a CDN?** A CDN (Content Delivery Network) hosts the library files so you can load them directly in your browser. No `npm install` needed!
+
+#### Option 1: esm.sh (Recommended)
+
+Best for modern browsers. Automatically handles dependencies.
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SVG Matrix Example</title>
+</head>
+<body>
+  <script type="module">
+    // Import the modules you need
+    import { Matrix, Vector, Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix';
+
+    // Now you can use them!
+    const rotation = Transforms2D.rotate(Math.PI / 4);  // 45 degrees
+    const [x, y] = Transforms2D.applyTransform(rotation, 10, 0);
+
+    console.log(`Point (10, 0) rotated 45 degrees = (${x}, ${y})`);
+  </script>
+</body>
+</html>
+```
+
+#### Option 2: unpkg
+
+Another reliable CDN option.
 
 ```html
 <script type="module">
-  import { Matrix, Vector, Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix';
+  import { SVGFlatten, GeometryToPath } from 'https://unpkg.com/@emasoft/svg-matrix/src/index.js';
+
+  // Convert a circle to a path
+  const pathData = GeometryToPath.circleToPathData(100, 100, 50);
+  console.log(pathData);
 </script>
 ```
+
+#### Option 3: jsDelivr
+
+Popular CDN with good caching.
+
+```html
+<script type="module">
+  import { Matrix, Vector } from 'https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/src/index.js';
+
+  const v = Vector.from([1, 2, 3]);
+  const w = Vector.from([4, 5, 6]);
+  console.log('Dot product:', v.dot(w).toString());
+</script>
+```
+
+#### Pin to a Specific Version
+
+To avoid breaking changes, pin to a specific version:
+
+```html
+<!-- esm.sh with version -->
+<script type="module">
+  import { Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix@1.0.7';
+</script>
+
+<!-- unpkg with version -->
+<script type="module">
+  import { Matrix } from 'https://unpkg.com/@emasoft/svg-matrix@1.0.7/src/index.js';
+</script>
+
+<!-- jsDelivr with version -->
+<script type="module">
+  import { Vector } from 'https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix@1.0.7/src/index.js';
+</script>
+```
+
+#### Complete Working Example
+
+Save this as `example.html` and open it in your browser:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SVG Matrix - Complete Example</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    svg { border: 1px solid #ccc; }
+    pre { background: #f5f5f5; padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>SVG Matrix Demo</h1>
+
+  <h2>Original Circle</h2>
+  <svg width="200" height="200">
+    <circle id="original" cx="100" cy="100" r="40" fill="blue" opacity="0.5"/>
+  </svg>
+
+  <h2>Transformed (rotate 45 + scale 1.5)</h2>
+  <svg width="200" height="200">
+    <path id="transformed" fill="red" opacity="0.5"/>
+  </svg>
+
+  <h2>Generated Path Data</h2>
+  <pre id="output"></pre>
+
+  <script type="module">
+    import {
+      Transforms2D,
+      GeometryToPath,
+      SVGFlatten
+    } from 'https://esm.sh/@emasoft/svg-matrix';
+
+    // Step 1: Convert circle to path
+    const circlePath = GeometryToPath.circleToPathData(100, 100, 40);
+
+    // Step 2: Create a combined transform (rotate 45 degrees, then scale 1.5x)
+    const transform = Transforms2D.scale(1.5)
+      .mul(Transforms2D.rotate(Math.PI / 4));
+
+    // Step 3: Apply transform to the path
+    const transformedPath = SVGFlatten.transformPathData(circlePath, transform);
+
+    // Step 4: Display the result
+    document.getElementById('transformed').setAttribute('d', transformedPath);
+    document.getElementById('output').textContent = transformedPath;
+  </script>
+</body>
+</html>
+```
+
+#### Troubleshooting
+
+**"Cannot use import statement outside a module"**
+Make sure you have `type="module"` in your script tag:
+```html
+<script type="module">  <!-- This is required! -->
+```
+
+**CORS errors when opening HTML file directly**
+Some browsers block CDN imports when opening files with `file://`. Solutions:
+1. Use a local server: `npx serve .` or `python -m http.server`
+2. Or use a code playground like CodePen, JSFiddle, or StackBlitz
+
+**Want to use with older browsers?**
+This library requires ES modules (modern browsers). For IE11 or very old browsers, you'll need a bundler like Webpack or Rollup.
 
 ## CLI
 
