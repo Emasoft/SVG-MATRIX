@@ -56,41 +56,88 @@ node test/benchmark-precision.js
 
 ### Node.js (Local Installation)
 
-**Step 1: Install the package**
+**What does "local installation" mean?** It means downloading the library to your computer so you can use it in your Node.js projects. This is what most developers do.
+
+#### Step 1: Install the package
+
+Open your terminal and run:
 
 ```bash
 npm install @emasoft/svg-matrix
 ```
 
-**Step 2: Import what you need**
+This downloads the library into a folder called `node_modules` in your project.
 
-You can import specific modules (recommended - smaller bundle):
+#### Step 2: Create a JavaScript file
+
+Create a new file called `example.js` in your project folder.
+
+#### Step 3: Import what you need
+
+There are two ways to import the library:
+
+**Way 1: Pick only what you need (recommended)**
+
+This is like ordering specific items from a menu:
 
 ```js
+// example.js
+
+// Import only the modules you need
 import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
 
-const rotation = Transforms2D.rotate(Math.PI / 4);
-console.log(rotation);
+// Now you can use them directly
+const v = Vector.from([1, 2, 3]);
+const rotation = Transforms2D.rotate(Math.PI / 4);  // 45 degrees
+
+console.log('Vector:', v.toNumberArray());
+console.log('Rotation matrix created!');
 ```
 
-Or import everything as a single namespace:
+**Way 2: Import everything at once**
+
+This is like getting the entire toolbox:
 
 ```js
+// example.js
+
+// Import EVERYTHING as one big object called "SVGMatrix"
 import * as SVGMatrix from '@emasoft/svg-matrix';
 
-// Now use SVGMatrix.ModuleName
+// Now use SVGMatrix.ModuleName to access each tool
 const v = SVGMatrix.Vector.from([1, 2, 3]);
 const m = SVGMatrix.Matrix.identity(3);
 const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
 const pathData = SVGMatrix.GeometryToPath.circleToPathData(100, 100, 50);
+
+// See everything that's available:
+console.log('Available modules:', Object.keys(SVGMatrix));
 ```
 
-**Complete Node.js Example**
+**What's inside the toolbox?** When you import everything, you get:
+- `SVGMatrix.Matrix` - For matrix math
+- `SVGMatrix.Vector` - For vector math
+- `SVGMatrix.Transforms2D` - For 2D rotations, translations, scaling
+- `SVGMatrix.Transforms3D` - For 3D transformations
+- `SVGMatrix.SVGFlatten` - For flattening SVG transforms
+- `SVGMatrix.GeometryToPath` - For converting shapes to paths
+- `SVGMatrix.PolygonClip` - For polygon boolean operations
+- ...and many more!
 
-Save this as `example.js` and run with `node example.js`:
+#### Step 4: Run your code
+
+```bash
+node example.js
+```
+
+#### Complete Working Example
+
+Save this as `my-first-example.js`:
 
 ```js
-// example.js
+// my-first-example.js
+// A complete example showing the main features
+
 import {
   Matrix,
   Vector,
@@ -99,46 +146,72 @@ import {
   SVGFlatten
 } from '@emasoft/svg-matrix';
 
-// 1. Vector operations
+console.log('=== Vector Example ===');
 const v = Vector.from([1, 2, 3]);
 const w = Vector.from([4, 5, 6]);
-console.log('Dot product:', v.dot(w).toString());
-console.log('Cross product:', v.cross(w).toNumberArray());
+console.log('Vector v:', v.toNumberArray());
+console.log('Vector w:', w.toNumberArray());
+console.log('Dot product (v · w):', v.dot(w).toString());
 
-// 2. Matrix operations
+console.log('\n=== Matrix Example ===');
 const A = Matrix.from([[1, 2], [3, 4]]);
+console.log('Matrix A:', A.toNumberArray());
 console.log('Determinant:', A.determinant().toString());
-console.log('Inverse:', A.inverse().toNumberArray());
 
-// 3. 2D Transforms
-const transform = Transforms2D.translation(100, 50)
+console.log('\n=== Transform Example ===');
+// Create a transform: move 100 right, rotate 45°, scale 2x
+const transform = Transforms2D.translation(100, 0)
   .mul(Transforms2D.rotate(Math.PI / 4))
   .mul(Transforms2D.scale(2));
 
-const [x, y] = Transforms2D.applyTransform(transform, 10, 10);
-console.log(`Transformed point: (${x}, ${y})`);
+// Apply to a point
+const [x, y] = Transforms2D.applyTransform(transform, 10, 0);
+console.log(`Point (10, 0) after transform: (${x.toFixed(2)}, ${y.toFixed(2)})`);
 
-// 4. SVG path transformation
+console.log('\n=== SVG Path Example ===');
+// Convert a circle to a path
 const circlePath = GeometryToPath.circleToPathData(0, 0, 50);
-const transformedPath = SVGFlatten.transformPathData(circlePath, transform);
-console.log('Transformed circle path:', transformedPath);
+console.log('Circle as path:', circlePath.substring(0, 50) + '...');
+
+console.log('\nDone! Everything works!');
 ```
 
-**Using with CommonJS (require)**
+Run it:
+```bash
+node my-first-example.js
+```
 
-This library uses ES modules. If you need CommonJS:
+#### Troubleshooting
+
+**"Cannot use import statement outside a module"**
+
+Add `"type": "module"` to your `package.json`:
+
+```json
+{
+  "name": "my-project",
+  "type": "module"
+}
+```
+
+Or rename your file from `.js` to `.mjs`.
+
+**Using older Node.js syntax (require)?**
+
+This library uses modern ES modules. If you have old code using `require()`:
 
 ```js
-// Option 1: Dynamic import (recommended)
+// OLD WAY (doesn't work directly)
+// const { Matrix } = require('@emasoft/svg-matrix');  // ❌ Error!
+
+// NEW WAY (use dynamic import)
 async function main() {
   const { Matrix, Vector } = await import('@emasoft/svg-matrix');
+
   const v = Vector.from([1, 2, 3]);
   console.log(v.norm().toString());
 }
 main();
-
-// Option 2: Add "type": "module" to your package.json
-// Then you can use import statements directly
 ```
 
 ### Browser Usage (CDN)
@@ -200,24 +273,42 @@ Popular CDN with good caching.
 </script>
 ```
 
-#### Import Everything as a Namespace
+#### Import Everything at Once
 
-If you want all modules under one name:
+**What if I don't know what I need yet?** You can import the entire library as one big object. This is like getting the whole toolbox instead of picking individual tools.
 
 ```html
 <script type="module">
-  // Import everything as "SVGMatrix"
+  // Import EVERYTHING as one object called "SVGMatrix"
+  // The "* as" means "everything as"
   import * as SVGMatrix from 'https://esm.sh/@emasoft/svg-matrix';
 
-  // Now use SVGMatrix.ModuleName
+  // Now use SVGMatrix.ModuleName to access each tool
   const v = SVGMatrix.Vector.from([1, 2, 3]);
   const m = SVGMatrix.Matrix.identity(3);
   const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
   const [x, y] = SVGMatrix.Transforms2D.applyTransform(rotation, 10, 0);
 
-  console.log('All modules available:', Object.keys(SVGMatrix));
+  // See everything that's available:
+  console.log('All modules:', Object.keys(SVGMatrix));
+  // Output: ['Matrix', 'Vector', 'Transforms2D', 'Transforms3D', 'SVGFlatten', ...]
 </script>
 ```
+
+**What's inside?** Here's everything you get:
+
+| Module | What it does |
+|--------|--------------|
+| `SVGMatrix.Matrix` | Matrix math (multiply, inverse, determinant) |
+| `SVGMatrix.Vector` | Vector math (add, dot product, cross product) |
+| `SVGMatrix.Transforms2D` | 2D transforms (rotate, scale, translate) |
+| `SVGMatrix.Transforms3D` | 3D transforms (rotate around axes) |
+| `SVGMatrix.SVGFlatten` | Flatten SVG transforms into paths |
+| `SVGMatrix.GeometryToPath` | Convert shapes (circle, rect) to paths |
+| `SVGMatrix.PolygonClip` | Boolean operations on polygons |
+| `SVGMatrix.ClipPathResolver` | Resolve SVG clipPath elements |
+| `SVGMatrix.BrowserVerify` | Verify against browser's SVG engine |
+| `SVGMatrix.Logger` | Control library logging |
 
 #### Pin to a Specific Version
 
