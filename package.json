@@ -9,7 +9,8 @@
     "test:browser": "node test/browser-verify.mjs",
     "test:playwright": "node test/playwright-diagnose.js",
     "ci-test": "npm ci && npm test",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "postinstall": "node scripts/postinstall.js || true"
   },
   "repository": {
     "type": "git",
@@ -42,11 +43,20 @@
   },
   "author": "Emasoft",
   "license": "MIT",
+  "homepage": "https://github.com/Emasoft/SVG-MATRIX#readme",
+  "bugs": {
+    "url": "https://github.com/Emasoft/SVG-MATRIX/issues"
+  },
+  "bin": {
+    "svg-matrix": "./bin/svg-matrix.js"
+  },
   "engines": {
     "node": ">=24.0.0"
   },
   "files": [
     "src/",
+    "bin/",
+    "scripts/",
     "LICENSE",
     "README.md"
   ],

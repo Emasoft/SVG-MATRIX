@@ -43,12 +43,13 @@ import * as UseSymbolResolver from './use-symbol-resolver.js';
 import * as MarkerResolver from './marker-resolver.js';
 import * as MeshGradient from './mesh-gradient.js';
 import * as TextToPath from './text-to-path.js';
+import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
 /**
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.5';
+export const VERSION = '1.0.6';
 
 /**
  * Default precision for path output (decimal places)
@@ -82,6 +83,12 @@ export { SVGFlatten, BrowserVerify };
 export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
 export { MeshGradient, TextToPath };
+
+// ============================================================================
+// LOGGING: Configurable logging control
+// ============================================================================
+
+export { Logger, LogLevel, setLogLevel, enableFileLogging, disableFileLogging };
 
 // ============================================================================
 // CONVENIENCE FUNCTIONS: Quick access to common operations
@@ -408,6 +415,13 @@ export default {
   MarkerResolver,
   MeshGradient,
   TextToPath,
+
+  // Logging
+  Logger,
+  LogLevel,
+  setLogLevel,
+  enableFileLogging,
+  disableFileLogging,
 
   // Convenience functions
   translate2D,

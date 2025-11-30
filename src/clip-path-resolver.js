@@ -41,6 +41,7 @@ import {
   parseTransformAttribute,
   transformPathData
 } from './svg-flatten.js';
+import { Logger } from './logger.js';
 
 // Alias for cleaner code
 const parseTransform = parseTransformAttribute;
@@ -732,7 +733,7 @@ export function polygonToPathData(polygon, precision = 6) {
 export function resolveNestedClipPath(clipPathDef, defsMap, targetElement, ctm = null, visited = new Set(), options = {}) {
   const clipId = clipPathDef.id;
   if (clipId && visited.has(clipId)) {
-    console.warn(`Circular clipPath reference detected: ${clipId}`);
+    Logger.warn(`Circular clipPath reference detected: ${clipId}`);
     return [];
   }
   if (clipId) visited.add(clipId);

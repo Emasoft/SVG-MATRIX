@@ -31,6 +31,11 @@ High-precision matrix, vector, and SVG transformation library for JavaScript. Bu
 - Text-to-path conversion with font support
 - Browser verification against Chrome's native W3C SVG2 implementation
 
+## Requirements
+
+- **Node.js 24.0.0** or higher (ES modules, modern JavaScript features)
+- **Playwright** (optional) - for browser verification features
+
 ## Precision
 
 | Scenario | Float Error | This Library | Improvement |
@@ -63,6 +68,58 @@ import { Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from '@emasoft
 <script type="module">
   import { Matrix, Vector, Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix';
 </script>
+```
+
+## CLI
+
+The library includes a command-line interface for batch processing SVG files.
+
+```bash
+# Process single file
+svg-matrix flatten input.svg -o output.svg
+
+# Batch process folder
+svg-matrix flatten ./svgs/ -o ./output/
+
+# Process files from list
+svg-matrix flatten --list files.txt -o ./output/
+
+# Convert shapes to paths
+svg-matrix convert input.svg -o output.svg
+
+# Normalize paths to cubic Beziers
+svg-matrix normalize input.svg -o output.svg
+
+# Show SVG file info
+svg-matrix info input.svg
+
+# Show help
+svg-matrix help
+```
+
+### CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <path>` | Output file or directory |
+| `-l, --list <file>` | Read input files from text file |
+| `-r, --recursive` | Process directories recursively |
+| `-p, --precision <n>` | Decimal precision (default: 6) |
+| `-f, --force` | Overwrite existing files |
+| `-n, --dry-run` | Show what would be done |
+| `-q, --quiet` | Suppress all output except errors |
+| `-v, --verbose` | Enable verbose/debug output |
+| `--log-file <path>` | Write log to file |
+
+### File List Format
+
+Create a text file with one path per line:
+
+```
+# This is a comment
+./folder1/file1.svg
+./folder2/file2.svg
+./entire-folder/
 ```
 
 ## Quick Start
@@ -445,6 +502,34 @@ import {
   // Constants
   getKappa
 } from '@emasoft/svg-matrix';
+```
+
+### Logging
+
+Control library logging output:
+
+```js
+import { Logger, LogLevel, setLogLevel, enableFileLogging } from '@emasoft/svg-matrix';
+
+// Suppress all logging
+setLogLevel(LogLevel.SILENT);
+
+// Enable only errors
+setLogLevel(LogLevel.ERROR);
+
+// Enable warnings and errors (default)
+setLogLevel(LogLevel.WARN);
+
+// Enable all logging including debug
+setLogLevel(LogLevel.DEBUG);
+
+// Write logs to file
+enableFileLogging('/path/to/log.txt');
+
+// Direct Logger access
+Logger.level = LogLevel.INFO;
+Logger.warn('Custom warning');
+Logger.debug('Debug info');
 ```
 
 ## License
