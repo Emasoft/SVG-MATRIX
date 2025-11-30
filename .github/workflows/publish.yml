@@ -30,5 +30,21 @@ jobs:
       - name: Verify npm version (should be >= 11.5.1)
         run: npm --version
 
+      - name: Validate version sync (all version numbers must match)
+        run: node scripts/version-sync.js --check
+
+      - name: Validate tag matches package.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          TAG_VERSION="${GIT_REF#refs/tags/v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
       - name: Publish to npm (using OIDC trusted publishing)
         run: npm publish --access public
