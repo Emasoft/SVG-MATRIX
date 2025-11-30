@@ -5,15 +5,16 @@
  * SVG path conversion, and 2D/3D affine transformations using Decimal.js.
  *
  * @module @emasoft/svg-matrix
- * @version 1.0.6
+ * @version 1.0.11
  * @license MIT
  *
  * @example
  * // ES Module import
  * import { Decimal, Matrix, Vector, Transforms2D, GeometryToPath } from '@emasoft/svg-matrix';
  *
- * // Set global precision (default is 20, max is 1e9)
- * Decimal.set({ precision: 80 });
+ * // Precision is already set to 80 by default (max is 1e9)
+ * // You can increase it further if needed:
+ * // Decimal.set({ precision: 200 });
  *
  * // Create and compose 2D transforms
  * const M = Transforms2D.translation(2, 3)
@@ -45,11 +46,16 @@ import * as MeshGradient from './mesh-gradient.js';
 import * as TextToPath from './text-to-path.js';
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
+// Set high-precision default (80 significant digits) on module load
+// This is the same precision used internally by all svg-matrix modules
+// Users can increase further with setPrecision() or Decimal.set() - max is 1e9
+Decimal.set({ precision: 80 });
+
 /**
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.10';
+export const VERSION = '1.0.11';
 
 /**
  * Default precision for path output (decimal places)
