@@ -68,6 +68,26 @@ npm install @emasoft/svg-matrix
 
 This downloads the library into a folder called `node_modules` in your project.
 
+#### Upgrading to the Latest Version
+
+To update to the latest version:
+
+```bash
+npm update @emasoft/svg-matrix
+```
+
+Or to install a specific version:
+
+```bash
+npm install @emasoft/svg-matrix@latest
+```
+
+To check your current version:
+
+```bash
+npm list @emasoft/svg-matrix
+```
+
 #### Step 2: Create a JavaScript file
 
 Create a new file called `example.js` in your project folder.
@@ -408,6 +428,15 @@ This library requires ES modules (modern browsers). For IE11 or very old browser
 The library includes a command-line interface for batch processing SVG files.
 
 ```bash
+# Show help
+svg-matrix --help
+
+# Show command-specific help
+svg-matrix flatten --help
+
+# Show version
+svg-matrix --version
+
 # Process single file
 svg-matrix flatten input.svg -o output.svg
 
@@ -425,9 +454,6 @@ svg-matrix normalize input.svg -o output.svg
 
 # Show SVG file info
 svg-matrix info input.svg
-
-# Show help
-svg-matrix help
 ```
 
 ### CLI Options
