@@ -49,7 +49,7 @@ import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFil
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.8';
+export const VERSION = '1.0.9';
 
 /**
  * Default precision for path output (decimal places)
