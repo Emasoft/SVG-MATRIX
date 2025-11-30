@@ -5,7 +5,7 @@
  * SVG path conversion, and 2D/3D affine transformations using Decimal.js.
  *
  * @module @emasoft/svg-matrix
- * @version 1.0.11
+ * @version 1.0.12
  * @license MIT
  *
  * @example
@@ -44,6 +44,8 @@ import * as UseSymbolResolver from './use-symbol-resolver.js';
 import * as MarkerResolver from './marker-resolver.js';
 import * as MeshGradient from './mesh-gradient.js';
 import * as TextToPath from './text-to-path.js';
+import * as SVGParser from './svg-parser.js';
+import * as FlattenPipeline from './flatten-pipeline.js';
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
 // Set high-precision default (80 significant digits) on module load
@@ -55,7 +57,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.11';
+export const VERSION = '1.0.12';
 
 /**
  * Default precision for path output (decimal places)
@@ -89,6 +91,7 @@ export { SVGFlatten, BrowserVerify };
 export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
 export { MeshGradient, TextToPath };
+export { SVGParser, FlattenPipeline };
 
 // ============================================================================
 // LOGGING: Configurable logging control
@@ -421,6 +424,8 @@ export default {
   MarkerResolver,
   MeshGradient,
   TextToPath,
+  SVGParser,
+  FlattenPipeline,
 
   // Logging
   Logger,

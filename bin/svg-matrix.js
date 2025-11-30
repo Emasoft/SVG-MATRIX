@@ -20,6 +20,7 @@ import { join, dirname, basename, extname, resolve, isAbsolute } from 'path';
 // Import library modules
 import * as SVGFlatten from '../src/svg-flatten.js';
 import * as GeometryToPath from '../src/geometry-to-path.js';
+import * as FlattenPipeline from '../src/flatten-pipeline.js';
 import { VERSION } from '../src/index.js';
 
 // ============================================================================
@@ -81,6 +82,13 @@ let currentOutputFile = null; // Track for cleanup on interrupt
  * @property {boolean} recursive - Process folders recursively
  * @property {boolean} overwrite - Overwrite existing files
  * @property {boolean} dryRun - Show what would be done without doing it
+ * @property {boolean} transformOnly - Only flatten transforms (legacy mode)
+ * @property {boolean} resolveClipPaths - Apply clipPath boolean operations
+ * @property {boolean} resolveMasks - Convert masks to clipped geometry
+ * @property {boolean} resolveUse - Expand use/symbol references
+ * @property {boolean} resolveMarkers - Expand marker references
+ * @property {boolean} resolvePatterns - Expand pattern fills
+ * @property {boolean} bakeGradients - Bake gradientTransform into coordinates
  */
 
 const DEFAULT_CONFIG = {
@@ -95,6 +103,14 @@ const DEFAULT_CONFIG = {
   recursive: false,
   overwrite: false,
   dryRun: false,
+  // Full flatten options - all enabled by default for TRUE flattening
+  transformOnly: false,       // If true, skip all resolvers (legacy behavior)
+  resolveClipPaths: true,     // Apply clipPath boolean intersection
+  resolveMasks: true,         // Convert masks to clipped geometry
+  resolveUse: true,           // Expand use/symbol elements inline
+  resolveMarkers: true,       // Instantiate markers as path geometry
+  resolvePatterns: true,      // Expand pattern fills to tiled geometry
+  bakeGradients: true,        // Bake gradientTransform into gradient coords
 };
 
 /** @type {CLIConfig} */
@@ -487,7 +503,14 @@ ${colors.bright}USAGE:${colors.reset}
   svg-matrix <command> [options] <input> [-o <output>]
 
 ${colors.bright}COMMANDS:${colors.reset}
-  flatten     Flatten SVG transforms into path data
+  flatten     TRUE flatten: resolve ALL transform dependencies
+              - Bakes transform attributes into coordinates
+              - Applies clipPath boolean operations
+              - Converts masks to clipped geometry
+              - Expands use/symbol references inline
+              - Instantiates markers as path geometry
+              - Expands pattern fills to tiled geometry
+              - Bakes gradientTransform into coordinates
   convert     Convert shapes (rect, circle, etc.) to paths
   normalize   Convert paths to absolute cubic Bezier curves
   info        Show SVG file information
@@ -506,10 +529,19 @@ ${colors.bright}OPTIONS:${colors.reset}
   --log-file <path>       Write log to file
   -h, --help              Show help
 
+${colors.bright}FLATTEN OPTIONS:${colors.reset}
+  --transform-only        Only flatten transforms (skip resolvers)
+  --no-clip-paths         Skip clipPath boolean operations
+  --no-masks              Skip mask to clip conversion
+  --no-use                Skip use/symbol expansion
+  --no-markers            Skip marker instantiation
+  --no-patterns           Skip pattern expansion
+  --no-gradients          Skip gradient transform baking
+
 ${colors.bright}EXAMPLES:${colors.reset}
   svg-matrix flatten input.svg -o output.svg
-  svg-matrix flatten ./svgs/ -o ./output/
-  svg-matrix flatten --list files.txt -o ./output/
+  svg-matrix flatten ./svgs/ -o ./output/ --transform-only
+  svg-matrix flatten --list files.txt -o ./output/ --no-patterns
   svg-matrix convert input.svg -o output.svg --precision 10
   svg-matrix info input.svg
 
@@ -563,8 +595,19 @@ function replacePathD(attrs, newD) {
 }
 
 /**
- * Flatten transforms in SVG content by baking transforms into path data.
- * Handles: path elements, shape elements (converted to paths), and nested groups.
+ * Flatten SVG completely - no transform dependencies remain.
+ *
+ * TRUE flattening resolves ALL transform-dependent elements:
+ * - Bakes transform attributes into path coordinates
+ * - Applies clipPath boolean operations
+ * - Converts masks to clipped geometry
+ * - Expands use/symbol references inline
+ * - Instantiates markers as path geometry
+ * - Expands pattern fills to tiled geometry
+ * - Bakes gradientTransform into gradient coordinates
+ *
+ * Use --transform-only flag for legacy behavior (transforms only).
+ *
  * @param {string} inputPath - Input file path
  * @param {string} outputPath - Output file path
  * @returns {boolean} True if successful
@@ -572,145 +615,59 @@ function replacePathD(attrs, newD) {
 function processFlatten(inputPath, outputPath) {
   try {
     logDebug(`Processing: ${inputPath}`);
-    let result = readFileSync(inputPath, 'utf8');
-    let transformCount = 0;
-    let pathCount = 0;
-    let shapeCount = 0;
+    const svgContent = readFileSync(inputPath, 'utf8');
 
-    // Step 1: Flatten transforms on path elements
-    // Note: regex captures attrs without the closing /> or >
-    result = result.replace(/<path\s+([^>]*?)\s*\/?>/gi, (match, attrs) => {
-      const transform = extractTransform(attrs);
-      const pathD = extractPathD(attrs);
-
-      if (!transform || !pathD) {
-        return match; // No transform or no path data, skip
-      }
-
-      try {
-        // Parse the transform and build CTM
-        const ctm = SVGFlatten.parseTransformAttribute(transform);
-        // Transform the path data
-        const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
-        // Remove transform and update path data
-        const newAttrs = removeTransform(replacePathD(attrs, transformedD));
-        transformCount++;
-        pathCount++;
-        logDebug(`Flattened path transform: ${transform}`);
-        return `<path ${newAttrs.trim()}${match.endsWith('/>') ? '/>' : '>'}`;
-      } catch (e) {
-        logWarn(`Failed to flatten path: ${e.message}`);
-        return match;
-      }
-    });
-
-    // Step 2: Convert shapes with transforms to flattened paths
-    const shapeTypes = ['rect', 'circle', 'ellipse', 'line', 'polygon', 'polyline'];
-
-    for (const shapeType of shapeTypes) {
-      const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, 'gi');
-
-      result = result.replace(shapeRegex, (match, attrs) => {
-        const transform = extractTransform(attrs);
-        if (!transform) {
-          return match; // No transform, skip
-        }
-
-        try {
-          // Extract shape attributes and convert to path using helper
-          const pathD = extractShapeAsPath(shapeType, attrs, config.precision);
-
-          if (!pathD) {
-            return match; // Couldn't convert to path
-          }
-
-          // Parse the transform and build CTM
-          const ctm = SVGFlatten.parseTransformAttribute(transform);
-          // Transform the path data
-          const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
-          // Build new path element, preserving style attributes
-          const attrsToRemove = getShapeSpecificAttrs(shapeType);
-          const styleAttrs = removeShapeAttrs(removeTransform(attrs), attrsToRemove);
-          transformCount++;
-          shapeCount++;
-          logDebug(`Flattened ${shapeType} transform: ${transform}`);
-          return `<path d="${transformedD}"${styleAttrs ? ' ' + styleAttrs : ''}/>`;
-        } catch (e) {
-          logWarn(`Failed to flatten ${shapeType}: ${e.message}`);
-          return match;
-        }
-      });
+    // Use legacy transform-only mode if requested
+    if (config.transformOnly) {
+      return processFlattenLegacy(inputPath, outputPath, svgContent);
     }
 
-    // Step 3: Handle group transforms by propagating to children
-    // This is a simplified approach - for full support, we'd need DOM parsing
-    // For now, we handle the case where a <g> has a transform and contains paths/shapes
-    let groupIterations = 0;
+    // Build pipeline options from config
+    const pipelineOptions = {
+      precision: config.precision,
+      curveSegments: 20,
+      resolveUse: config.resolveUse,
+      resolveMarkers: config.resolveMarkers,
+      resolvePatterns: config.resolvePatterns,
+      resolveMasks: config.resolveMasks,
+      resolveClipPaths: config.resolveClipPaths,
+      flattenTransforms: true, // Always flatten transforms
+      bakeGradients: config.bakeGradients,
+      removeUnusedDefs: true,
+    };
 
-    while (groupIterations < CONSTANTS.MAX_GROUP_ITERATIONS) {
-      const beforeResult = result;
+    // Run the full flatten pipeline
+    const { svg: flattenedSvg, stats } = FlattenPipeline.flattenSVG(svgContent, pipelineOptions);
 
-      // Find groups with transforms
-      result = result.replace(
-        /<g([^>]*transform\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/g>/gi,
-        (match, gAttrs, groupTransform, content) => {
-          try {
-            const groupCtm = SVGFlatten.parseTransformAttribute(groupTransform);
-            let modifiedContent = content;
-            let childrenModified = false;
+    // Report statistics
+    const parts = [];
+    if (stats.transformsFlattened > 0) parts.push(`${stats.transformsFlattened} transforms`);
+    if (stats.useResolved > 0) parts.push(`${stats.useResolved} use`);
+    if (stats.markersResolved > 0) parts.push(`${stats.markersResolved} markers`);
+    if (stats.patternsResolved > 0) parts.push(`${stats.patternsResolved} patterns`);
+    if (stats.masksResolved > 0) parts.push(`${stats.masksResolved} masks`);
+    if (stats.clipPathsApplied > 0) parts.push(`${stats.clipPathsApplied} clipPaths`);
+    if (stats.gradientsProcessed > 0) parts.push(`${stats.gradientsProcessed} gradients`);
 
-            // Apply group transform to child paths
-            modifiedContent = modifiedContent.replace(/<path\s+([^>]*?)\s*\/?>/gi, (pathMatch, pathAttrs) => {
-              const pathD = extractPathD(pathAttrs);
-              if (!pathD) return pathMatch;
-
-              try {
-                const childTransform = extractTransform(pathAttrs);
-                let combinedCtm = groupCtm;
-
-                // If child has its own transform, compose them
-                if (childTransform) {
-                  const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
-                  combinedCtm = groupCtm.mul(childCtm);
-                }
-
-                const transformedD = SVGFlatten.transformPathData(pathD, combinedCtm, { precision: config.precision });
-                const newAttrs = removeTransform(replacePathD(pathAttrs, transformedD));
-                childrenModified = true;
-                transformCount++;
-                return `<path ${newAttrs.trim()}${pathMatch.endsWith('/>') ? '/>' : '>'}`;
-              } catch (e) {
-                logWarn(`Failed to apply group transform to path: ${e.message}`);
-                return pathMatch;
-              }
-            });
-
-            if (childrenModified) {
-              // Remove transform from group
-              const newGAttrs = removeTransform(gAttrs);
-              logDebug(`Propagated group transform to children: ${groupTransform}`);
-              return `<g${newGAttrs}>${modifiedContent}</g>`;
-            }
-            return match;
-          } catch (e) {
-            logWarn(`Failed to process group: ${e.message}`);
-            return match;
-          }
-        }
-      );
-
-      // Check if anything changed
-      if (result === beforeResult) {
-        break;
-      }
-      groupIterations++;
+    if (parts.length > 0) {
+      logInfo(`Flattened: ${parts.join(', ')}`);
+    } else {
+      logInfo('No transform dependencies found');
     }
 
-    logInfo(`Flattened ${transformCount} transforms (${pathCount} paths, ${shapeCount} shapes)`);
+    // Report any errors
+    if (stats.errors.length > 0) {
+      for (const err of stats.errors.slice(0, 5)) {
+        logWarn(err);
+      }
+      if (stats.errors.length > 5) {
+        logWarn(`...and ${stats.errors.length - 5} more errors`);
+      }
+    }
 
     if (!config.dryRun) {
       ensureDir(dirname(outputPath));
-      writeFileSync(outputPath, result, 'utf8');
+      writeFileSync(outputPath, flattenedSvg, 'utf8');
     }
     logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
     return true;
@@ -718,6 +675,140 @@ function processFlatten(inputPath, outputPath) {
     logError(`Failed: ${inputPath}: ${error.message}`);
     return false;
   }
+}
+
+/**
+ * Legacy flatten mode - only bakes transform attributes into coordinates.
+ * Does NOT resolve clipPaths, masks, use, markers, patterns, or gradients.
+ * Use this when you only need transform flattening without boolean operations.
+ * @private
+ */
+function processFlattenLegacy(inputPath, outputPath, svgContent) {
+  let result = svgContent;
+  let transformCount = 0;
+  let pathCount = 0;
+  let shapeCount = 0;
+
+  // Step 1: Flatten transforms on path elements
+  result = result.replace(/<path\s+([^>]*?)\s*\/?>/gi, (match, attrs) => {
+    const transform = extractTransform(attrs);
+    const pathD = extractPathD(attrs);
+
+    if (!transform || !pathD) {
+      return match;
+    }
+
+    try {
+      const ctm = SVGFlatten.parseTransformAttribute(transform);
+      const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
+      const newAttrs = removeTransform(replacePathD(attrs, transformedD));
+      transformCount++;
+      pathCount++;
+      logDebug(`Flattened path transform: ${transform}`);
+      return `<path ${newAttrs.trim()}${match.endsWith('/>') ? '/>' : '>'}`;
+    } catch (e) {
+      logWarn(`Failed to flatten path: ${e.message}`);
+      return match;
+    }
+  });
+
+  // Step 2: Convert shapes with transforms to flattened paths
+  const shapeTypes = ['rect', 'circle', 'ellipse', 'line', 'polygon', 'polyline'];
+
+  for (const shapeType of shapeTypes) {
+    const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, 'gi');
+
+    result = result.replace(shapeRegex, (match, attrs) => {
+      const transform = extractTransform(attrs);
+      if (!transform) {
+        return match;
+      }
+
+      try {
+        const pathD = extractShapeAsPath(shapeType, attrs, config.precision);
+        if (!pathD) {
+          return match;
+        }
+
+        const ctm = SVGFlatten.parseTransformAttribute(transform);
+        const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
+        const attrsToRemove = getShapeSpecificAttrs(shapeType);
+        const styleAttrs = removeShapeAttrs(removeTransform(attrs), attrsToRemove);
+        transformCount++;
+        shapeCount++;
+        logDebug(`Flattened ${shapeType} transform: ${transform}`);
+        return `<path d="${transformedD}"${styleAttrs ? ' ' + styleAttrs : ''}/>`;
+      } catch (e) {
+        logWarn(`Failed to flatten ${shapeType}: ${e.message}`);
+        return match;
+      }
+    });
+  }
+
+  // Step 3: Handle group transforms
+  let groupIterations = 0;
+  while (groupIterations < CONSTANTS.MAX_GROUP_ITERATIONS) {
+    const beforeResult = result;
+
+    result = result.replace(
+      /<g([^>]*transform\s*=\s*["']([^"']+)["'][^>]*)>([\s\S]*?)<\/g>/gi,
+      (match, gAttrs, groupTransform, content) => {
+        try {
+          const groupCtm = SVGFlatten.parseTransformAttribute(groupTransform);
+          let modifiedContent = content;
+          let childrenModified = false;
+
+          modifiedContent = modifiedContent.replace(/<path\s+([^>]*?)\s*\/?>/gi, (pathMatch, pathAttrs) => {
+            const pathD = extractPathD(pathAttrs);
+            if (!pathD) return pathMatch;
+
+            try {
+              const childTransform = extractTransform(pathAttrs);
+              let combinedCtm = groupCtm;
+
+              if (childTransform) {
+                const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
+                combinedCtm = groupCtm.mul(childCtm);
+              }
+
+              const transformedD = SVGFlatten.transformPathData(pathD, combinedCtm, { precision: config.precision });
+              const newAttrs = removeTransform(replacePathD(pathAttrs, transformedD));
+              childrenModified = true;
+              transformCount++;
+              return `<path ${newAttrs.trim()}${pathMatch.endsWith('/>') ? '/>' : '>'}`;
+            } catch (e) {
+              logWarn(`Failed to apply group transform to path: ${e.message}`);
+              return pathMatch;
+            }
+          });
+
+          if (childrenModified) {
+            const newGAttrs = removeTransform(gAttrs);
+            logDebug(`Propagated group transform to children: ${groupTransform}`);
+            return `<g${newGAttrs}>${modifiedContent}</g>`;
+          }
+          return match;
+        } catch (e) {
+          logWarn(`Failed to process group: ${e.message}`);
+          return match;
+        }
+      }
+    );
+
+    if (result === beforeResult) {
+      break;
+    }
+    groupIterations++;
+  }
+
+  logInfo(`Flattened ${transformCount} transforms (${pathCount} paths, ${shapeCount} shapes) [legacy mode]`);
+
+  if (!config.dryRun) {
+    ensureDir(dirname(outputPath));
+    writeFileSync(outputPath, result, 'utf8');
+  }
+  logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
+  return true;
 }
 
 function processConvert(inputPath, outputPath) {
@@ -845,6 +936,14 @@ function parseArgs(args) {
       case '--log-file': cfg.logFile = args[++i]; break;
       case '-h': case '--help': cfg.command = 'help'; break;
       case '--version': cfg.command = 'version'; break;
+      // Full flatten pipeline options
+      case '--transform-only': cfg.transformOnly = true; break;
+      case '--no-clip-paths': cfg.resolveClipPaths = false; break;
+      case '--no-masks': cfg.resolveMasks = false; break;
+      case '--no-use': cfg.resolveUse = false; break;
+      case '--no-markers': cfg.resolveMarkers = false; break;
+      case '--no-patterns': cfg.resolvePatterns = false; break;
+      case '--no-gradients': cfg.bakeGradients = false; break;
       default:
         if (arg.startsWith('-')) { logError(`Unknown option: ${arg}`); process.exit(CONSTANTS.EXIT_ERROR); }
         if (['flatten', 'convert', 'normalize', 'info', 'help', 'version'].includes(arg) && cfg.command === 'help') {
