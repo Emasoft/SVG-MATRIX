@@ -98,7 +98,7 @@ function showWelcome() {
     ? { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', dot: '•' }
     : { tl: '+', tr: '+', bl: '+', br: '+', h: '-', v: '|', dot: '*' };
 
-  const W = 66;
+  const W = 70;
   const hr = B.h.repeat(W);
   const R = (s) => pad(s, W);
 
@@ -137,7 +137,7 @@ ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot} Transforms3D${c.reset}  3D af
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.17:${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.18:${c.reset}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Enhanced CLI help: svg-matrix <command> --help`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} High-precision Bezier circle/ellipse approximation`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} E2E verification always enabled for precision`)}${c.cyan}${B.v}${c.reset}

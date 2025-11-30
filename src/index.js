@@ -5,7 +5,7 @@
  * SVG path conversion, and 2D/3D affine transformations using Decimal.js.
  *
  * @module @emasoft/svg-matrix
- * @version 1.0.17
+ * @version 1.0.18
  * @license MIT
  *
  * @example
@@ -58,7 +58,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.17';
+export const VERSION = '1.0.18';
 
 /**
  * Default precision for path output (decimal places)
