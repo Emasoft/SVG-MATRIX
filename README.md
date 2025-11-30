@@ -54,12 +54,91 @@ node test/benchmark-precision.js
 
 ## Installation
 
+### Node.js (Local Installation)
+
+**Step 1: Install the package**
+
 ```bash
 npm install @emasoft/svg-matrix
 ```
 
+**Step 2: Import what you need**
+
+You can import specific modules (recommended - smaller bundle):
+
 ```js
-import { Matrix, Vector, Transforms2D, Transforms3D, SVGFlatten } from '@emasoft/svg-matrix';
+import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
+
+const rotation = Transforms2D.rotate(Math.PI / 4);
+console.log(rotation);
+```
+
+Or import everything as a single namespace:
+
+```js
+import * as SVGMatrix from '@emasoft/svg-matrix';
+
+// Now use SVGMatrix.ModuleName
+const v = SVGMatrix.Vector.from([1, 2, 3]);
+const m = SVGMatrix.Matrix.identity(3);
+const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
+const pathData = SVGMatrix.GeometryToPath.circleToPathData(100, 100, 50);
+```
+
+**Complete Node.js Example**
+
+Save this as `example.js` and run with `node example.js`:
+
+```js
+// example.js
+import {
+  Matrix,
+  Vector,
+  Transforms2D,
+  GeometryToPath,
+  SVGFlatten
+} from '@emasoft/svg-matrix';
+
+// 1. Vector operations
+const v = Vector.from([1, 2, 3]);
+const w = Vector.from([4, 5, 6]);
+console.log('Dot product:', v.dot(w).toString());
+console.log('Cross product:', v.cross(w).toNumberArray());
+
+// 2. Matrix operations
+const A = Matrix.from([[1, 2], [3, 4]]);
+console.log('Determinant:', A.determinant().toString());
+console.log('Inverse:', A.inverse().toNumberArray());
+
+// 3. 2D Transforms
+const transform = Transforms2D.translation(100, 50)
+  .mul(Transforms2D.rotate(Math.PI / 4))
+  .mul(Transforms2D.scale(2));
+
+const [x, y] = Transforms2D.applyTransform(transform, 10, 10);
+console.log(`Transformed point: (${x}, ${y})`);
+
+// 4. SVG path transformation
+const circlePath = GeometryToPath.circleToPathData(0, 0, 50);
+const transformedPath = SVGFlatten.transformPathData(circlePath, transform);
+console.log('Transformed circle path:', transformedPath);
+```
+
+**Using with CommonJS (require)**
+
+This library uses ES modules. If you need CommonJS:
+
+```js
+// Option 1: Dynamic import (recommended)
+async function main() {
+  const { Matrix, Vector } = await import('@emasoft/svg-matrix');
+  const v = Vector.from([1, 2, 3]);
+  console.log(v.norm().toString());
+}
+main();
+
+// Option 2: Add "type": "module" to your package.json
+// Then you can use import statements directly
 ```
 
 ### Browser Usage (CDN)
@@ -118,6 +197,25 @@ Popular CDN with good caching.
   const v = Vector.from([1, 2, 3]);
   const w = Vector.from([4, 5, 6]);
   console.log('Dot product:', v.dot(w).toString());
+</script>
+```
+
+#### Import Everything as a Namespace
+
+If you want all modules under one name:
+
+```html
+<script type="module">
+  // Import everything as "SVGMatrix"
+  import * as SVGMatrix from 'https://esm.sh/@emasoft/svg-matrix';
+
+  // Now use SVGMatrix.ModuleName
+  const v = SVGMatrix.Vector.from([1, 2, 3]);
+  const m = SVGMatrix.Matrix.identity(3);
+  const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
+  const [x, y] = SVGMatrix.Transforms2D.applyTransform(rotation, 10, 0);
+
+  console.log('All modules available:', Object.keys(SVGMatrix));
 </script>
 ```
 
