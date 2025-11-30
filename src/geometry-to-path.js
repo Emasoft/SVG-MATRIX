@@ -11,7 +11,8 @@ export function getKappa() {
 }
 
 function formatNumber(value, precision = 6) {
-  return value.toDecimalPlaces(precision).toString();
+  // Use toFixed to preserve trailing zeros for consistent output formatting
+  return value.toFixed(precision);
 }
 
 export function circleToPathData(cx, cy, r, precision = 6) {
@@ -163,14 +164,57 @@ export function pathToAbsolute(pathData) {
 }
 
 export function transformArcParams(rx, ry, xAxisRotation, largeArc, sweep, endX, endY, matrix) {
+  const rxD = D(rx), ryD = D(ry), rotD = D(xAxisRotation);
   const endXD = D(endX), endYD = D(endY);
+
+  // Transform the endpoint
   const endPoint = Matrix.from([[endXD], [endYD], [new Decimal(1)]]);
   const transformedEnd = matrix.mul(endPoint);
   const newEndX = transformedEnd.data[0][0].div(transformedEnd.data[2][0]);
   const newEndY = transformedEnd.data[1][0].div(transformedEnd.data[2][0]);
-  const det = matrix.data[0][0].mul(matrix.data[1][1]).minus(matrix.data[0][1].mul(matrix.data[1][0]));
+
+  // Extract the 2x2 linear part of the affine transformation
+  const a = matrix.data[0][0], b = matrix.data[0][1];
+  const c = matrix.data[1][0], d = matrix.data[1][1];
+
+  // Calculate determinant to check for reflection (flips sweep direction)
+  const det = a.mul(d).minus(b.mul(c));
   const newSweep = det.isNegative() ? (sweep === 1 ? 0 : 1) : sweep;
-  return [D(rx), D(ry), D(xAxisRotation), largeArc, newSweep, newEndX, newEndY];
+
+  // Transform ellipse radii by applying the 2x2 linear transformation
+  // For an ellipse with rotation, we need to compute the transformed ellipse parameters
+  // Convert rotation to radians
+  const rotRad = rotD.mul(new Decimal(Math.PI)).div(180);
+  const cosRot = Decimal.cos(rotRad), sinRot = Decimal.sin(rotRad);
+
+  // Unit ellipse basis vectors (before xAxisRotation)
+  // The ellipse can be parameterized as: [rx*cos(t)*cos(rot) - ry*sin(t)*sin(rot), rx*cos(t)*sin(rot) + ry*sin(t)*cos(rot)]
+  // We transform the two principal axis vectors and compute new radii from them
+
+  // Vector along major axis (rotated rx direction)
+  const v1x = rxD.mul(cosRot);
+  const v1y = rxD.mul(sinRot);
+
+  // Vector along minor axis (rotated ry direction, perpendicular to major)
+  const v2x = ryD.mul(sinRot).neg();
+  const v2y = ryD.mul(cosRot);
+
+  // Apply linear transformation to these vectors
+  const t1x = a.mul(v1x).plus(b.mul(v1y));
+  const t1y = c.mul(v1x).plus(d.mul(v1y));
+  const t2x = a.mul(v2x).plus(b.mul(v2y));
+  const t2y = c.mul(v2x).plus(d.mul(v2y));
+
+  // Compute the lengths of transformed vectors (approximate new radii)
+  // For a general affine transform, this gives the scale applied to each axis
+  const newRx = Decimal.sqrt(t1x.mul(t1x).plus(t1y.mul(t1y)));
+  const newRy = Decimal.sqrt(t2x.mul(t2x).plus(t2y.mul(t2y)));
+
+  // Compute new rotation angle from the transformed major axis
+  const newRotRad = Decimal.atan2(t1y, t1x);
+  const newRot = newRotRad.mul(180).div(new Decimal(Math.PI));
+
+  return [newRx, newRy, newRot, largeArc, newSweep, newEndX, newEndY];
 }
 
 export function transformPathData(pathData, matrix, precision = 6) {

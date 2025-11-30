@@ -1,0 +1,1589 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SVG Box Lab</title>
+  <style>
+    :root{
+      --bg:#0b1020; --panel:rgba(255,255,255,.06); --panel2:rgba(255,255,255,.03);
+      --text:rgba(255,255,255,.92); --muted:rgba(255,255,255,.65); --border:rgba(255,255,255,.12);
+      --warn:#ffb020; --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      --sans:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif;
+    }
+    html,body{
+      height:100%; margin:0;
+      background:
+        radial-gradient(1300px 600px at 20% 0%, rgba(255,45,45,0.09), transparent 55%),
+        radial-gradient(900px 500px at 90% 10%, rgba(0,163,255,0.10), transparent 50%),
+        var(--bg);
+      color:var(--text); font-family:var(--sans);
+    }
+
+    /* allow page to grow vertically for glossary */
+    .page{ min-height: 165vh; display:flex; flex-direction:column; gap:10px; padding:12px; box-sizing:border-box; }
+
+    .topbar{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:16px;padding:10px 12px;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);backdrop-filter:blur(10px)
+    }
+    .topbar-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;align-items:start}
+    .block h2{
+      margin:0 0 6px 0;font-size:13px;font-weight:700;letter-spacing:.3px;
+      color:rgba(255,255,255,.92); display:flex; align-items:center; gap:8px;
+    }
+    .kv{font-family:var(--mono);font-size:12px;white-space:pre;line-height:1.35;color:rgba(255,255,255,.88)}
+    .muted{color:var(--muted)}
+
+    .layout{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0; flex: 1;}
+    .pane{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:16px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.25);
+      min-height:0;display:flex;flex-direction:column;backdrop-filter:blur(10px)
+    }
+    .pane-header{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .pane-header .title{font-size:13px;font-weight:700;letter-spacing:.2px}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{
+      appearance:none;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--text);
+      border-radius:999px;padding:7px 10px;font-size:12px;cursor:pointer;
+      transition:transform .05s ease, background .15s ease, border-color .15s ease;user-select:none
+    }
+    button:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.22)}
+    button:active{transform:translateY(1px)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    textarea{
+      flex:1;width:100%;resize:none;border:none;outline:none;background:transparent;
+      color:rgba(255,255,255,.90);font-family:var(--mono);font-size:12px;line-height:1.45;
+      padding:12px;box-sizing:border-box;min-height:0;white-space:pre;tab-size:2
+    }
+
+    .controls{
+      padding:10px 12px;border-bottom:1px solid var(--border);
+      display:grid;grid-template-columns:1.2fr 1fr;gap:10px;align-items:start
+    }
+    .group{
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;padding:10px;background:rgba(0,0,0,.18)
+    }
+    .gtitle{font-size:12px;font-weight:700;margin:0 0 8px 0;color:rgba(255,255,255,.85); display:flex; gap:8px; align-items:center}
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    label.chk{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;user-select:none}
+    input[type="checkbox"], input[type="radio"]{accent-color:#8bdcff}
+    .select{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+    select{
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--text);
+      border-radius:10px;padding:6px 8px;font-size:12px;outline:none;max-width:100%
+    }
+
+    .warning{padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;color:rgba(255,255,255,.88);display:none}
+    .warning.show{display:block}
+    .warning b{color:var(--warn)}
+
+    .right-inner{position:relative;flex:1;min-height:0;background:rgba(0,0,0,.20)}
+    #viewport{position:relative; height:100%;}
+    #bitmapCanvas, #overlayCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; z-index:1}
+    #overlayCanvas{pointer-events:none; z-index:2}
+    #measureHost{position:absolute; inset:0; opacity:0; pointer-events:none; overflow:visible; z-index:0;}
+
+    #navWrap{
+      z-index: 3;
+      position:absolute; top:10px; right:10px;
+      width:180px; height:120px;
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      background:rgba(0,0,0,.35);
+      box-shadow:0 10px 22px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+      overflow:hidden;
+      display:none;
+      user-select:none;
+      touch-action:none;
+    }
+    #navCanvas{width:100%; height:100%; display:block}
+    .navLabel{
+      position:absolute; left:8px; bottom:6px;
+      font-size:11px; color:rgba(255,255,255,.75);
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.12);
+      padding:2px 6px; border-radius:999px;
+      pointer-events:none;
+    }
+
+    .chip{display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18); padding:3px 8px; border-radius:999px; font-size:12px; color:rgba(255,255,255,.85);
+      font-family: var(--mono); letter-spacing: 0.3px;
+    }
+    .swatch{width:10px; height:10px; border-radius:3px; border:1px solid rgba(255,255,255,.25)}
+    .red{background: rgba(255,45,45,.9)}
+    .blue{background: rgba(0,163,255,.9)}
+    .yell{background: rgba(255,212,0,.95)}
+    .mage{background: rgba(255,0,255,.85)}
+
+    /* tooltip */
+    .tip{
+      position:relative; display:inline-flex; align-items:center; justify-content:center;
+      width:18px;height:18px;border-radius:99px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.85);
+      font-size:12px; font-weight:800;
+      cursor:help; user-select:none;
+    }
+    .tip::after{
+      content: attr(data-tip);
+      position:absolute;
+      left:50%; top:120%;
+      transform: translateX(-50%);
+      width: min(320px, 70vw);
+      background: rgba(0,0,0,.75);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.92);
+      padding: 8px 10px;
+      border-radius: 12px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.35);
+      font-family: var(--sans);
+      font-size: 12px;
+      line-height: 1.35;
+      opacity:0; pointer-events:none;
+      transition: opacity .12s ease, transform .12s ease;
+    }
+    .tip:hover::after{ opacity:1; transform: translateX(-50%) translateY(0px); }
+
+    /* glossary */
+    .glossary{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg,var(--panel),var(--panel2));
+      border-radius:16px;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
+      padding:12px;
+    }
+    .glossary h3{margin:0 0 10px 0; font-size:14px; letter-spacing:.2px}
+    .grid{
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap:10px 12px;
+      align-items:start;
+    }
+    .gkey{display:flex; align-items:center; gap:10px}
+    .gval{color:rgba(255,255,255,.84); font-size:12px; line-height:1.45}
+    .small{color:var(--muted); font-size:12px; line-height:1.45}
+    @media (max-width: 980px){
+      .layout{grid-template-columns:1fr}
+      .topbar-grid{grid-template-columns:1fr}
+      .controls{grid-template-columns:1fr}
+      #navWrap{
+      z-index: 3;width:160px;height:110px}
+      .grid{grid-template-columns: 1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="topbar-grid">
+        <div class="block">
+          <h2><span class="chip"><span class="swatch red"></span>BBOX</span></h2>
+          <div id="bboxText" class="kv muted">—</div>
+        </div>
+        <div class="block">
+          <h2><span class="chip"><span class="swatch blue"></span>BCRR</span></h2>
+          <div id="bcrText" class="kv muted">—</div>
+        </div>
+        <div class="block">
+          <h2>Mode</h2>
+          <div id="modeText" class="kv muted">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT -->
+      <section class="pane">
+        <div class="pane-header">
+          <div class="title">SVG source (live)</div>
+          <div class="toolbar">
+            <button id="btnPaste" type="button">Paste</button>
+            <button id="btnCopySel" type="button">Copy selection</button>
+            <button id="btnSelectAll" type="button">Select all</button>
+            <button id="btnCopyAll" type="button">Copy all</button>
+            <button id="btnReset" type="button">Reset</button>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="group">
+            <div class="gtitle">
+              .getBBox() options
+              <span class="tip" data-tip="These map directly to getBBox({fill, stroke, markers, clipped}). Browsers may ignore or throw depending on implementation.">i</span>
+            </div>
+            <div class="row">
+              <label class="chk"><input id="optFill" type="checkbox"> fill</label>
+              <label class="chk"><input id="optStroke" type="checkbox" checked> stroke</label>
+              <label class="chk"><input id="optMarkers" type="checkbox" checked> markers</label>
+              <label class="chk"><input id="optClipped" type="checkbox" checked> clipped</label>
+            </div>
+
+            <div class="gtitle" style="margin-top:10px">
+              Snap
+              <span class="tip" data-tip="CONS = conservative floor/ceil + ≥1px outward. ALPH = alpha-aware snapping: expands until perimeter pixels are fully empty in an element-only raster mask. ALPH requires origin-clean canvas; cross-origin images/fonts can taint it and disable pixel readback & PNG export.">i</span>
+            </div>
+            <div class="row">
+              <select id="snapSelect">
+                <option value="CONS">CONS</option>
+                <option value="ALPH">ALPH</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="group">
+            <div class="gtitle">
+              View / Zoom
+              <span class="tip" data-tip="Zoom/pan scales only the rendered bitmap. Measurements are computed from the live SVG and do not change with zoom.">i</span>
+            </div>
+
+            <div class="row">
+              <label class="chk"><input id="modeNormal" name="mode" type="radio" checked> Normal</label>
+              <label class="chk"><input id="modeFit" name="mode" type="radio"> Fit-all</label>
+              <span class="tip" data-tip="Fit-all: computes a content bbox (FITB) and uses it temporarily as the viewBox so the whole drawing becomes visible. FITB is computed from browser APIs (union of transformed getBBox results + fallback).">i</span>
+            </div>
+
+            <div class="gtitle" style="margin-top:10px">
+              Overlays
+              <span class="tip" data-tip="Toggle overlay visibility only. Measurements always run. Note: in meet/slice, VBOX maps to the inner content area (letterbox margins are outside it).">i</span>
+            </div>
+            <div class="row" style="margin-top:6px">
+              <label class="chk"><input id="showBBox" type="checkbox" checked> <span class="chip"><span class="swatch red"></span>BBOX</span></label>
+              <label class="chk"><input id="showBcr" type="checkbox" checked> <span class="chip"><span class="swatch blue"></span>BCRR</span></label>
+              <label class="chk"><input id="showViewBox" type="checkbox" checked> <span class="chip"><span class="swatch yell"></span>VBOX</span></label>
+              <label class="chk"><input id="showFitBox" type="checkbox" checked> <span class="chip"><span class="swatch mage"></span>FITB</span></label>
+            
+              <span style="flex-basis:100%; height:0"></span>
+              <label class="chk"><input id="overlayFill" type="checkbox"> fill overlays</label>
+              <span class="select">border:</span>
+              <select id="borderSelect">
+                <option value="1" selected>1px</option>
+                <option value="4">4px</option>
+              </select></div>
+
+            <div class="row" style="margin-top:10px">
+              <span class="select">Zoom:</span>
+              <select id="zoomSelect">
+                <option value="1">1×</option>
+                <option value="2">2×</option>
+                <option value="3">3×</option>
+                <option value="4">4×</option>
+                <option value="5">5×</option>
+              </select>
+
+              <!-- Export (bitmap). Crops use the *measured* rectangle extents, not affected by zoom/pan. -->
+              <button id="btnSavePng" type="button">Full PNG</button>
+              <button id="btnSaveBboxPng" type="button">BBOX PNG</button>
+              <button id="btnSaveBcrPng" type="button">BCRR PNG</button>
+              <button id="btnSaveVboxPng" type="button">VBOX PNG</button>
+              <button id="btnSaveFitbPng" type="button">FITB PNG</button>
+
+              <label class="chk" style="margin-left:4px">
+                <input id="includeRects" type="checkbox">
+                include active rectangles
+              </label>
+
+              <span class="tip" data-tip="Exports are from the base (unzoomed) bitmap. If checked, the currently active overlays are burned into the PNG. Cropped exports (BBOX/BCRR/VBOX/FITB) still work even if that overlay is hidden. Exports & ALPH snapping can fail if canvas is tainted by cross-origin images/fonts.">i</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="warning" class="warning"><b>Warning:</b> <span id="warningText"></span></div>
+        <textarea id="editor" spellcheck="false"></textarea>
+      </section>
+
+      <!-- RIGHT -->
+      <section class="pane">
+        <div class="pane-header">
+          <div class="title">Bitmap preview + overlays</div>
+          <div class="select">
+            <span>Target:</span>
+            <select id="measureSelect"></select>
+          </div>
+        </div>
+
+        <div class="right-inner" id="viewport">
+          <canvas id="bitmapCanvas"></canvas>
+          <canvas id="overlayCanvas"></canvas>
+
+          <div id="navWrap">
+            <canvas id="navCanvas"></canvas>
+            <div class="navLabel">navigator</div>
+          </div>
+          <!-- Hidden live SVG for measurements (laid out exactly over the preview area). -->
+          <div id="measureHost"></div>
+
+        </div>
+      </section>
+    </div>
+    <!-- Glossary / infobox: ONLY place with full names -->
+    <div class="glossary">
+      <h3>Glossary (reference colors + full names)</h3>
+      <div class="grid">
+        <div class="gkey">
+          <span class="chip"><span class="swatch red"></span>BBOX</span>
+        </div>
+        <div class="gval">
+          <b>SVGGraphicsElement.getBBox([options])</b> — smallest rectangle in the element’s SVG user coordinate system. Options can include <code>fill</code>, <code>stroke</code>, <code>markers</code>, <code>clipped</code> (browser support varies).
+        </div>
+
+        <div class="gkey">
+          <span class="chip"><span class="swatch blue"></span>BCRR</span>
+        </div>
+        <div class="gval">
+          <b>Element.getBoundingClientRect()</b> — a DOMRect in CSS pixels, relative to the viewport.
+        </div>
+
+        <div class="gkey">
+          <span class="chip"><span class="swatch yell"></span>VBOX</span>
+        </div>
+        <div class="gval">
+          <b>Original <code>viewBox</code> window</b> — the rectangle the SVG’s viewBox defines in its own coordinate system; shown overlayed to visualize what portion is visible in normal mode.
+        </div>
+
+        <div class="gkey">
+          <span class="chip"><span class="swatch mage"></span>FITB</span>
+        </div>
+        <div class="gval">
+          <b>Fit-all content bbox</b> — bbox computed from “all drawing content” (wrapped into a group) and used as a temporary viewBox when Fit-all mode is on.
+        </div>
+
+        <div class="gkey"><span class="small">Canvas notes</span></div>
+        <div class="gval small">
+          If you draw cross-origin resources without CORS approval, the canvas becomes tainted and reading/exporting pixels is blocked (affects Save PNG and ALPH snapping).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_SVG = `<!-- Try external images/fonts to observe browser behavior; export may fail if canvas taints. -->
+<svg id="root" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 200 140" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff2d2d"/>
+      <stop offset="1" stop-color="#ffd400"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#00a3ff"/>
+    </marker>
+    <clipPath id="clip">
+      <circle cx="120" cy="70" r="40"/>
+    </clipPath>
+    <filter id="shadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="black" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="200" height="140" fill="#00001a"/>
+
+  <g id="subject" filter="url(#shadow)">
+    <rect x="20" y="20" width="160" height="100" rx="10"
+          fill="url(#grad)" stroke="#ffffff" stroke-opacity="0.7" stroke-width="10" />
+    <line x1="20" y1="45" x2="240" y2="45"
+          stroke="#00a3ff" stroke-width="4" marker-end="url(#arrow)"/>
+    <g clip-path="url(#clip)">
+      <text x="30" y="110" fill="white" font-size="22" font-family="system-ui, sans-serif">BBox vs BCR</text>
+      <circle cx="120" cy="70" r="55" fill="none" stroke="#ffffff" stroke-width="8" opacity="0.5"/>
+    </g>
+  </g>
+</svg>`;
+
+    // UI
+    const editor = document.getElementById('editor');
+    const measureHost = document.getElementById('measureHost');
+
+    const bboxText = document.getElementById('bboxText');
+    const bcrText  = document.getElementById('bcrText');
+    const modeText = document.getElementById('modeText');
+
+    const warning = document.getElementById('warning');
+    const warningText = document.getElementById('warningText');
+
+    const measureSelect = document.getElementById('measureSelect');
+
+    const btnPaste = document.getElementById('btnPaste');
+    const btnCopySel = document.getElementById('btnCopySel');
+    const btnSelectAll = document.getElementById('btnSelectAll');
+    const btnCopyAll = document.getElementById('btnCopyAll');
+    const btnReset = document.getElementById('btnReset');
+    const btnSavePng = document.getElementById('btnSavePng');
+    const btnSaveBboxPng = document.getElementById('btnSaveBboxPng');
+    const btnSaveBcrPng = document.getElementById('btnSaveBcrPng');
+    const btnSaveVboxPng = document.getElementById('btnSaveVboxPng');
+    const btnSaveFitbPng = document.getElementById('btnSaveFitbPng');
+const optFill = document.getElementById('optFill');
+    const optStroke = document.getElementById('optStroke');
+    const optMarkers = document.getElementById('optMarkers');
+    const optClipped = document.getElementById('optClipped');
+
+    const modeNormal = document.getElementById('modeNormal');
+    const modeFit = document.getElementById('modeFit');
+
+    const showBBox = document.getElementById('showBBox');
+    const showBcr = document.getElementById('showBcr');
+
+    const showViewBox = document.getElementById('showViewBox');
+    const showFitBox = document.getElementById('showFitBox');
+
+    const includeRects = document.getElementById('includeRects');
+
+// Overlay drawing options (visual only; never affect measurements)
+const overlayFill = document.getElementById('overlayFill');
+const borderSelect = document.getElementById('borderSelect');
+const zoomSelect = document.getElementById('zoomSelect');
+    const snapSelect = document.getElementById('snapSelect');
+
+    const viewport = document.getElementById('viewport');
+    const bitmapCanvas = document.getElementById('bitmapCanvas');
+    const overlayCanvas = document.getElementById('overlayCanvas');
+
+    const navWrap = document.getElementById('navWrap');
+    const navCanvas = document.getElementById('navCanvas');
+
+    // State
+    let currentSvg = null;
+    let lastGoodSource = DEFAULT_SVG;
+
+    let meta = {
+      originalViewBoxStr: null,
+      originalViewBox: null, // {x,y,width,height}
+      originalPAR: null,
+      fitGroupId: '__fit_all__',
+      fitBBox: null,
+      activeViewBoxStr: null
+    };
+
+    // Base bitmap canvas (unzoomed)
+    const baseCanvas = document.createElement('canvas');
+    const baseCtx = baseCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Optional mask for ALPH snap
+    const maskCanvas = document.createElement('canvas');
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    let maskDirty = true;
+    let maskTainted = false;
+
+    // zoom & pan in CSS pixels of base bitmap
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+
+    let navDragging = false;
+
+    // render control
+    let svgDirty = true;
+    let pendingRasterId = 0;
+    let lastRasterOk = false;
+
+    // Most recent overlay rectangles:
+    // - base-space: CSS px relative to the preview viewport (unzoomed)
+    // - view-space: what is actually drawn on screen after bitmap zoom/pan
+    let lastOverlaysBase = {};
+    let lastOverlaysView = {};
+
+    // Fit-all cache: FITB should depend only on SVG content, not on the selected element.
+    let fitCache = { dirty: true, box: null, err: null };
+
+    // Track applied viewBox/PAR so we can trigger re-raster when view mode changes.
+    let appliedView = { viewBox: null, par: null };
+function fmt(n) { return Number.isFinite(n) ? (Math.round(n * 100) / 100).toFixed(2) : '—'; }
+
+    function showWarning(msg) { warning.classList.add('show'); warningText.textContent = msg; }
+    function hideWarning() { warning.classList.remove('show'); warningText.textContent = ''; }
+
+    function parseViewBox(str) {
+      if (!str) return null;
+      const parts = str.trim().split(/[\\s,]+/).map(Number);
+      if (parts.length !== 4 || parts.some(n => !Number.isFinite(n))) return null;
+      return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+    }
+
+    function sanitizeSvg(svgEl) {
+      svgEl.querySelectorAll('script').forEach(s => s.remove());
+      svgEl.querySelectorAll('*').forEach(el => {
+        [...el.attributes].forEach(a => { if (/^on/i.test(a.name)) el.removeAttribute(a.name); });
+      });
+      return svgEl;
+    }
+
+    function parseSvgOrNull(source) {
+      const text = source.trim();
+      const wrapped = /<svg[\\s>]/i.test(text)
+        ? text
+        : `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">${text}</svg>`;
+
+      const doc = new DOMParser().parseFromString(wrapped, 'image/svg+xml');
+      const parserError = doc.getElementsByTagName('parsererror')[0];
+      if (parserError) {
+        const msg = (parserError.textContent || 'Invalid SVG/XML').trim().slice(0, 260);
+        return { ok: false, error: msg || 'Invalid SVG/XML', svg: null };
+      }
+
+      const svg = doc.documentElement;
+      if (!svg || svg.nodeName.toLowerCase() !== 'svg') {
+        return { ok: false, error: 'Parsed content is not an <svg> root.', svg: null };
+      }
+
+      sanitizeSvg(svg);
+
+      if (!svg.getAttribute('width')) svg.setAttribute('width', '100%');
+      if (!svg.getAttribute('height')) svg.setAttribute('height', '100%');
+
+      return { ok: true, error: null, svg };
+    }
+
+    function prepareFitAll(svg) {
+      svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+      const g = svg.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('id', meta.fitGroupId);
+
+      const children = [...svg.childNodes];
+      for (const node of children) {
+        if (node.nodeType === 1 && node.nodeName.toLowerCase() === 'defs') continue;
+        g.appendChild(node);
+      }
+      svg.appendChild(g);
+    }
+
+    function rebuildMeasureList() {
+      measureSelect.innerHTML = '';
+      const optRoot = document.createElement('option');
+      optRoot.value = '__root__';
+      optRoot.textContent = 'SVG root';
+      measureSelect.appendChild(optRoot);
+
+      if (!currentSvg) return;
+
+      const ids = new Set();
+      currentSvg.querySelectorAll('[id]').forEach(el => ids.add(el.id));
+      [...ids].sort((a,b)=>a.localeCompare(b)).forEach(id=>{
+        const o = document.createElement('option');
+        o.value = id;
+        o.textContent = `#${id}`;
+        measureSelect.appendChild(o);
+      });
+
+      // Default: measure the SVG root.
+      measureSelect.value = '__root__';
+    }
+
+    function renderLiveSvgFromEditor(source) {
+      const result = parseSvgOrNull(source);
+      if (!result.ok) { showWarning(result.error || 'Invalid SVG/XML'); return; }
+      hideWarning();
+
+      measureHost.innerHTML = '';
+      const imported = document.importNode(result.svg, true);
+
+      meta.originalViewBoxStr = imported.getAttribute('viewBox');
+      meta.originalViewBox = parseViewBox(meta.originalViewBoxStr);
+      meta.originalPAR = imported.getAttribute('preserveAspectRatio');
+
+      // Always build the hidden fit-group so FITB can be computed consistently.
+      prepareFitAll(imported);
+
+      measureHost.appendChild(imported);
+      currentSvg = measureHost.querySelector('svg');
+      lastGoodSource = source;
+
+      rebuildMeasureList();
+      fitCache.dirty = true;
+      svgDirty = true;
+      maskDirty = true;
+    }
+
+    function bboxOptions() {
+      return {
+        fill: !!optFill.checked,
+        stroke: !!optStroke.checked,
+        markers: !!optMarkers.checked,
+        clipped: !!optClipped.checked
+      };
+    }
+
+
+    // FITB options are intentionally independent from the BBOX option UI.
+    // Fit-all is meant to show the *whole drawing* consistently while you change the target element.
+    function fitBBoxOptionsFixed() {
+      return { fill: true, stroke: true, markers: true, clipped: true };
+    }
+
+    function computeFitAllBox(svgRoot) {
+      // Compute FITB in *root user units* (viewBox units).
+      //
+      // Key point: el.getCTM() / root.getCTM() can be implementation-specific for the outermost <svg>.
+      // For more consistent mapping, we use getScreenCTM():
+      //   element user -> screen (via el.getScreenCTM)
+      //   screen -> root user (via inverse(root.getScreenCTM))
+      //
+      // Because FIT-all itself changes viewBox, we temporarily restore the authored NORMAL view while computing.
+
+      const opts = fitBBoxOptionsFixed();
+
+      function bboxLocal(el) {
+        let r = callGetBBox(el, opts);
+        if (!r.ok || !r.box) r = callGetBBox(el, null);
+        if (!r.ok || !r.box) return null;
+        if (!(r.box.width > 0 && r.box.height > 0)) return null;
+        return r.box;
+      }
+
+      function addAABB(union, aabb) {
+        if (!aabb) return union;
+        if (!union) return { ...aabb };
+        const x0 = Math.min(union.x, aabb.x);
+        const y0 = Math.min(union.y, aabb.y);
+        const x1 = Math.max(union.x + union.w, aabb.x + aabb.w);
+        const y1 = Math.max(union.y + union.h, aabb.y + aabb.h);
+        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+
+      const prevVB = svgRoot.getAttribute('viewBox');
+      const prevPAR = svgRoot.getAttribute('preserveAspectRatio');
+
+      try {
+        // Restore authored NORMAL view for mapping correctness.
+        if (meta.originalViewBoxStr == null) svgRoot.removeAttribute('viewBox');
+        else svgRoot.setAttribute('viewBox', meta.originalViewBoxStr);
+
+        if (meta.originalPAR == null) svgRoot.removeAttribute('preserveAspectRatio');
+        else svgRoot.setAttribute('preserveAspectRatio', meta.originalPAR);
+
+        const rootS = svgRoot.getScreenCTM ? svgRoot.getScreenCTM() : null;
+        let invRootS = null;
+        try { invRootS = rootS ? rootS.inverse() : null; } catch { invRootS = null; }
+
+        function toRootUser(el, box) {
+          const ms = el.getScreenCTM ? el.getScreenCTM() : null;
+          if (!ms || !invRootS) return null;
+
+          const pts = [
+            new DOMPoint(box.x, box.y),
+            new DOMPoint(box.x + box.width, box.y),
+            new DOMPoint(box.x + box.width, box.y + box.height),
+            new DOMPoint(box.x, box.y + box.height)
+          ].map(p => p.matrixTransform(ms).matrixTransform(invRootS));
+
+          const xs = pts.map(p => p.x);
+          const ys = pts.map(p => p.y);
+          const left = Math.min(...xs);
+          const right = Math.max(...xs);
+          const top = Math.min(...ys);
+          const bottom = Math.max(...ys);
+          return { x: left, y: top, w: right - left, h: bottom - top };
+        }
+
+        // Union all drawable elements (skip <defs> and common resource containers).
+        let union = null;
+        const all = svgRoot.querySelectorAll('*');
+        for (const el of all) {
+          if (el === svgRoot) continue;
+          const tag = el.tagName ? el.tagName.toLowerCase() : '';
+
+          if (tag === 'defs' || tag === 'clippath' || tag === 'mask' || tag === 'pattern' || tag === 'lineargradient' || tag === 'radialgradient') continue;
+          if (tag === 'style' || tag === 'script' || tag === 'metadata' || tag === 'title' || tag === 'desc') continue;
+
+          if (!el.getBBox) continue;
+
+          const b = bboxLocal(el);
+          if (!b) continue;
+
+          const aabb = toRootUser(el, b);
+          if (!aabb) continue;
+
+          union = addAABB(union, aabb);
+        }
+
+        if (union && union.w > 0 && union.h > 0) {
+          return { ok: true, box: { x: union.x, y: union.y, width: union.w, height: union.h }, error: null };
+        }
+
+        // Fallback: measure fit group (everything except <defs>) or root directly in user units.
+        const g = svgRoot.querySelector('#' + meta.fitGroupId);
+        const target = g || svgRoot;
+
+        let r = callGetBBox(target, opts);
+        if (!r.ok || !r.box) r = callGetBBox(target, null);
+        if (!r.ok || !r.box) return { ok: false, box: null, error: r.error || 'getBBox failed' };
+        if (!(r.box.width > 0 && r.box.height > 0)) return { ok: false, box: null, error: 'empty bbox' };
+
+        return { ok: true, box: r.box, error: null };
+      } finally {
+        // Restore whatever view was active.
+        if (prevVB == null) svgRoot.removeAttribute('viewBox'); else svgRoot.setAttribute('viewBox', prevVB);
+        if (prevPAR == null) svgRoot.removeAttribute('preserveAspectRatio'); else svgRoot.setAttribute('preserveAspectRatio', prevPAR);
+      }
+    }
+
+      function addAABB(union, aabb) {
+        if (!aabb) return union;
+        if (!union) return { ...aabb };
+        const x0 = Math.min(union.x, aabb.x);
+        const y0 = Math.min(union.y, aabb.y);
+        const x1 = Math.max(union.x + union.w, aabb.x + aabb.w);
+        const y1 = Math.max(union.y + union.h, aabb.y + aabb.h);
+        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+
+      const prevVB = svgRoot.getAttribute('viewBox');
+      const prevPAR = svgRoot.getAttribute('preserveAspectRatio');
+
+      // Ensure we restore even if something throws.
+      try {
+        if (meta.originalViewBoxStr == null) svgRoot.removeAttribute('viewBox');
+        else svgRoot.setAttribute('viewBox', meta.originalViewBoxStr);
+
+        if (meta.originalPAR == null) svgRoot.removeAttribute('preserveAspectRatio');
+        else svgRoot.setAttribute('preserveAspectRatio', meta.originalPAR);
+
+        const rootCTM = svgRoot.getCTM ? svgRoot.getCTM() : null;
+        let invRoot = null;
+        try { invRoot = rootCTM ? rootCTM.inverse() : null; } catch { invRoot = null; }
+
+        function toRootUser(el, box) {
+          const m = el.getCTM ? el.getCTM() : null;
+          if (!m || !invRoot) return null;
+
+          const pts = [
+            new DOMPoint(box.x, box.y),
+            new DOMPoint(box.x + box.width, box.y),
+            new DOMPoint(box.x + box.width, box.y + box.height),
+            new DOMPoint(box.x, box.y + box.height)
+          ].map(p => p.matrixTransform(m).matrixTransform(invRoot));
+
+          const xs = pts.map(p => p.x);
+          const ys = pts.map(p => p.y);
+          const left = Math.min(...xs);
+          const right = Math.max(...xs);
+          const top = Math.min(...ys);
+          const bottom = Math.max(...ys);
+          return { x: left, y: top, w: right - left, h: bottom - top };
+        }
+
+        // Union all drawable elements (skip <defs> and common resource containers).
+        let union = null;
+        const all = svgRoot.querySelectorAll('*');
+        for (const el of all) {
+          if (el === svgRoot) continue;
+          const tag = el.tagName ? el.tagName.toLowerCase() : '';
+
+          if (tag === 'defs' || tag === 'clippath' || tag === 'mask' || tag === 'pattern' || tag === 'lineargradient' || tag === 'radialgradient') continue;
+          if (tag === 'style' || tag === 'script' || tag === 'metadata' || tag === 'title' || tag === 'desc') continue;
+
+          if (!el.getBBox) continue;
+
+          const b = bboxLocal(el);
+          if (!b) continue;
+
+          const aabb = toRootUser(el, b);
+          if (!aabb) continue;
+
+          union = addAABB(union, aabb);
+        }
+
+        if (union && union.w > 0 && union.h > 0) {
+          return { ok: true, box: { x: union.x, y: union.y, width: union.w, height: union.h }, error: null };
+        }
+
+        // Fallback: measure the fit group (everything except <defs>) or root directly in user units.
+        const g = svgRoot.querySelector('#' + meta.fitGroupId);
+        const target = g || svgRoot;
+
+        let r = callGetBBox(target, opts);
+        if (!r.ok || !r.box) r = callGetBBox(target, null);
+        if (!r.ok || !r.box) return { ok: false, box: null, error: r.error || 'getBBox failed' };
+        if (!(r.box.width > 0 && r.box.height > 0)) return { ok: false, box: null, error: 'empty bbox' };
+
+        return { ok: true, box: r.box, error: null };
+      } finally {
+        // Restore previous state
+        if (prevVB == null) svgRoot.removeAttribute('viewBox'); else svgRoot.setAttribute('viewBox', prevVB);
+        if (prevPAR == null) svgRoot.removeAttribute('preserveAspectRatio'); else svgRoot.setAttribute('preserveAspectRatio', prevPAR);
+      }
+    }
+
+    function callGetBBox(el, maybeOptions) {
+      try {
+        return { ok: true, box: (maybeOptions ? el.getBBox(maybeOptions) : el.getBBox()), error: null };
+      } catch (e) {
+        return { ok: false, box: null, error: String(e && e.message ? e.message : e) };
+      }
+    }
+
+    function getMeasuredElement() {
+      if (!currentSvg) return null;
+      const v = measureSelect.value;
+      if (v === '__root__') return currentSvg;
+      try {
+        const esc = window.CSS?.escape ? CSS.escape(v) : v.replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+        return currentSvg.querySelector('#' + esc);
+      } catch { return null; }
+    }
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = viewport.getBoundingClientRect();
+      const cssW = Math.max(1, Math.round(r.width));
+      const cssH = Math.max(1, Math.round(r.height));
+
+      for (const c of [bitmapCanvas, overlayCanvas]) {
+        c.width = Math.floor(cssW * dpr);
+        c.height = Math.floor(cssH * dpr);
+        c.style.width = cssW + 'px';
+        c.style.height = cssH + 'px';
+      }
+
+      baseCanvas.width = Math.floor(cssW * dpr);
+      baseCanvas.height = Math.floor(cssH * dpr);
+
+      maskCanvas.width = baseCanvas.width;
+      maskCanvas.height = baseCanvas.height;
+
+      navCanvas.width = Math.floor(navWrap.clientWidth * dpr);
+      navCanvas.height = Math.floor(navWrap.clientHeight * dpr);
+
+      svgDirty = true;
+      maskDirty = true;
+    }
+
+    function clampPan() {
+      const r = viewport.getBoundingClientRect();
+      const baseW = Math.max(1, Math.round(r.width));
+      const baseH = Math.max(1, Math.round(r.height));
+      const viewW = baseW / zoom;
+      const viewH = baseH / zoom;
+      panX = Math.max(0, Math.min(panX, baseW - viewW));
+      panY = Math.max(0, Math.min(panY, baseH - viewH));
+    }
+
+    function setZoom(newZoom) {
+      zoom = newZoom;
+      if (zoom <= 1) { zoom = 1; panX = 0; panY = 0; }
+      clampPan();
+      navWrap.style.display = (zoom > 1) ? 'block' : 'none';
+    }
+
+    // IMPORTANT: rasterization-only serialization.
+    // The preview you see is a bitmap rendered via: SVG text -> <img> -> canvas.drawImage().
+    // When an SVG is used as an *image*, percent width/height can produce ambiguous intrinsic sizing.
+    // So we clone the SVG and set explicit pixel width/height equal to the preview area.
+    // This keeps preserveAspectRatio (meet/slice) behaving as expected *in the bitmap*.
+    function serializeSvgNodeForRaster(svgNode) {
+      const r = viewport.getBoundingClientRect();
+      const cssW = Math.max(1, Math.round(r.width));
+      const cssH = Math.max(1, Math.round(r.height));
+
+      const clone = svgNode.cloneNode(true);
+      clone.setAttribute('width', String(cssW));
+      clone.setAttribute('height', String(cssH));
+      if (!clone.getAttribute('xmlns')) clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      return new XMLSerializer().serializeToString(clone);
+    }
+
+    function serializeCurrentSvg() {
+      // used for base bitmap rasterization (full SVG)
+      return serializeSvgNodeForRaster(currentSvg);
+    }
+
+    function rasterizeSvgTo(ctx, canvas, svgText, onOk, onErr) {
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); onOk(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); onErr(); };
+      img.src = url;
+    }
+
+    function rasterizeSvgToBaseCanvas() {
+      if (!currentSvg) return;
+      const id = ++pendingRasterId;
+
+      const svgText = serializeCurrentSvg();
+      rasterizeSvgTo(baseCtx, baseCanvas, svgText,
+        (img) => {
+          if (id !== pendingRasterId) return;
+          const dpr = window.devicePixelRatio || 1;
+
+          baseCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          baseCtx.clearRect(0, 0, baseCanvas.width / dpr, baseCanvas.height / dpr);
+          baseCtx.drawImage(img, 0, 0, baseCanvas.width / dpr, baseCanvas.height / dpr);
+
+          lastRasterOk = true;
+          svgDirty = false;
+          maskDirty = true;
+        },
+        () => {
+          if (id !== pendingRasterId) return;
+          lastRasterOk = false;
+          svgDirty = false;
+          showWarning('Rasterization failed (SVG → Image). Keeping last good bitmap if available.');
+        }
+      );
+    }
+
+    // Best-effort raster mask for ALPH snapping:
+    function buildElementOnlySvg(targetEl) {
+      // If root selected, still rasterize with concrete pixel width/height to avoid distortion.
+      if (!targetEl || targetEl === currentSvg) return serializeCurrentSvg();
+
+      const clone = currentSvg.cloneNode(true);
+
+      const id = targetEl.getAttribute('id');
+      if (!id) return serializeSvgNodeForRaster(clone);
+
+      const esc = window.CSS?.escape ? CSS.escape(id) : id.replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+      const cloneTarget = clone.querySelector('#' + esc);
+      if (!cloneTarget) return serializeSvgNodeForRaster(clone);
+
+      const keep = new Set();
+      let n = cloneTarget;
+      while (n && n !== clone) { keep.add(n); n = n.parentNode; }
+      keep.add(cloneTarget);
+      cloneTarget.querySelectorAll('*').forEach(x => keep.add(x));
+
+      clone.querySelectorAll('*').forEach(el => {
+        const tag = el.tagName?.toLowerCase?.() || '';
+        if (tag === 'defs') return;
+        if (!keep.has(el)) el.setAttribute('visibility', 'hidden');
+      });
+
+      return serializeSvgNodeForRaster(clone);
+    }
+
+    function rasterizeMaskIfNeeded(targetEl) {
+      if (!maskDirty || !currentSvg) return;
+      maskDirty = false;
+      maskTainted = false;
+
+      const svgText = buildElementOnlySvg(targetEl);
+
+      rasterizeSvgTo(maskCtx, maskCanvas, svgText,
+        (img) => {
+          const dpr = window.devicePixelRatio || 1;
+          maskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          maskCtx.clearRect(0, 0, maskCanvas.width / dpr, maskCanvas.height / dpr);
+          maskCtx.drawImage(img, 0, 0, maskCanvas.width / dpr, maskCanvas.height / dpr);
+
+          try {
+            maskCtx.getImageData(0, 0, 1, 1);
+            maskTainted = false;
+          } catch {
+            maskTainted = true;
+          }
+        },
+        () => { maskTainted = true; }
+      );
+    }
+
+    function saveBasePng() {
+      try {
+        baseCanvas.toBlob((blob) => {
+          if (!blob) { showWarning('PNG export failed: toBlob returned null.'); return; }
+          const a = document.createElement('a');
+          a.download = 'svg-boxes.png';
+          a.href = URL.createObjectURL(blob);
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+        }, 'image/png');
+      } catch {
+        showWarning('PNG export failed (likely a tainted canvas / SecurityError due to cross-origin resources).');
+      }
+    }
+
+
+    // --- PNG export helpers -------------------------------------------------
+    // Exports always use the base (unzoomed) bitmap. Zoom/pan never changes measurements.
+    function downloadBlob(blob, filename) {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = URL.createObjectURL(blob);
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    }
+
+    function toBlobSafe(canvas, filename) {
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) { showWarning('PNG export failed: toBlob returned null.'); return; }
+          downloadBlob(blob, filename);
+        }, 'image/png');
+      } catch {
+        showWarning('PNG export failed (likely a tainted canvas / SecurityError due to cross-origin resources).');
+      }
+    }
+
+    function drawOverlaysToDeviceCtx(ctxDev, baseOffsetCssX = 0, baseOffsetCssY = 0) {
+      // Draw the *currently active* overlay rectangles into an export canvas.
+      // ctxDev is in device pixels: (0,0)-(baseCanvas.width, baseCanvas.height).
+      const dpr = window.devicePixelRatio || 1;
+
+      function strokeRectCss(rectCss, color, dash) {
+        // Convert CSS coords to device coords
+        const dpr = window.devicePixelRatio || 1;
+        const lw = overlayLineWidthCss();
+
+        ctxDev.save();
+
+        if (overlayFill.checked) {
+          ctxDev.fillStyle = rgbaWithAlpha(color, 0.40);
+          ctxDev.fillRect(
+            (rectCss.x - baseOffsetCssX) * dpr,
+            (rectCss.y - baseOffsetCssY) * dpr,
+            rectCss.w * dpr,
+            rectCss.h * dpr
+          );
+        }
+
+        ctxDev.strokeStyle = color;
+        ctxDev.lineWidth = lw * dpr;
+        ctxDev.setLineDash(dash.map(x => x * dpr));
+        ctxDev.lineDashOffset = 0;
+        ctxDev.strokeRect(
+          (rectCss.x - baseOffsetCssX) * dpr,
+          (rectCss.y - baseOffsetCssY) * dpr,
+          rectCss.w * dpr,
+          rectCss.h * dpr
+        );
+        ctxDev.restore();
+      }
+
+      // Use the same snapping logic as preview (but static dash offset).
+      const snapMode = snapSelect.value;
+      const snapFn = (snapMode === 'ALPH' && !maskTainted) ? outsideRect_ALPH : outsideRect_CONS;
+
+      // Colors match the on-screen legend.
+      const RED = 'rgba(255,45,45,0.90)';
+      const BLUE = 'rgba(0,163,255,0.90)';
+      const YELLOW = 'rgba(255,212,0,0.95)';
+      const MAGENTA = 'rgba(255,0,255,0.85)';
+
+      const dashA = [10, 6];
+      const dashB = [8, 6];
+      const dashC = [12, 5];
+
+      // Overlays are stored in *base* CSS coordinates.
+      const o = lastOverlaysBase || {};
+
+      if (showBBox.checked && o.bbox) strokeRectCss(snapFn(o.bbox), RED, dashA);
+      if (showBcr.checked && o.bcr) strokeRectCss(snapFn(o.bcr), BLUE, dashB);
+      if (showViewBox.checked && o.vb) strokeRectCss(outsideRect_CONS(o.vb), YELLOW, dashC);
+      if (showFitBox.checked && o.fit) strokeRectCss(outsideRect_CONS(o.fit), MAGENTA, dashA);
+    }
+
+    function exportFullPng() {
+      // Full export = base bitmap, optionally with currently active overlays.
+      const out = document.createElement('canvas');
+      out.width = baseCanvas.width;
+      out.height = baseCanvas.height;
+      const ctx = out.getContext('2d');
+      ctx.drawImage(baseCanvas, 0, 0);
+
+      if (includeRects.checked) {
+        drawOverlaysToDeviceCtx(ctx, 0, 0);
+      }
+      toBlobSafe(out, 'svg-boxes-full.png');
+    }
+
+    function rectCssForKey(key) {
+      const o = lastOverlaysBase || {};
+      return o[key] || null;
+    }
+
+    function exportRectCropPng(key, filename) {
+      // Crop region based on the measured rectangle extents (unsnapped),
+      // then optionally burn-in active overlays (also cropped).
+      const dpr = window.devicePixelRatio || 1;
+      const r = rectCssForKey(key);
+      if (!r) { showWarning(`Cannot export ${filename}: rectangle not available.`); return; }
+
+      // Crop conservatively outward to include subpixel areas
+      const x0 = Math.floor(r.x);
+      const y0 = Math.floor(r.y);
+      const x1 = Math.ceil(r.x + r.w);
+      const y1 = Math.ceil(r.y + r.h);
+
+      const cssW = baseCanvas.width / dpr;
+      const cssH = baseCanvas.height / dpr;
+
+      const cx0 = Math.max(0, Math.min(cssW, x0));
+      const cy0 = Math.max(0, Math.min(cssH, y0));
+      const cx1 = Math.max(0, Math.min(cssW, x1));
+      const cy1 = Math.max(0, Math.min(cssH, y1));
+
+      const outCssW = Math.max(1, cx1 - cx0);
+      const outCssH = Math.max(1, cy1 - cy0);
+
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(outCssW * dpr));
+      out.height = Math.max(1, Math.round(outCssH * dpr));
+
+      const ctx = out.getContext('2d');
+
+      // Copy the relevant pixels from the base bitmap
+      ctx.drawImage(
+        baseCanvas,
+        Math.round(cx0 * dpr), Math.round(cy0 * dpr),
+        Math.round(outCssW * dpr), Math.round(outCssH * dpr),
+        0, 0, out.width, out.height
+      );
+
+      if (includeRects.checked) {
+        // draw active overlays but offset to the cropped origin
+        drawOverlaysToDeviceCtx(ctx, cx0, cy0);
+      }
+
+      toBlobSafe(out, filename);
+    }
+    function paintBitmap() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = viewport.getBoundingClientRect();
+      const cssW = Math.max(1, Math.round(r.width));
+      const cssH = Math.max(1, Math.round(r.height));
+
+      const bmp = bitmapCanvas.getContext('2d');
+      bmp.setTransform(dpr, 0, 0, dpr, 0, 0);
+      bmp.clearRect(0, 0, cssW, cssH);
+
+      if (!lastRasterOk) return;
+
+      const viewW = cssW / zoom;
+      const viewH = cssH / zoom;
+      clampPan();
+
+      bmp.drawImage(
+        baseCanvas,
+        Math.round(panX * dpr),
+        Math.round(panY * dpr),
+        Math.round(viewW * dpr),
+        Math.round(viewH * dpr),
+        0, 0, cssW, cssH
+      );
+    }
+
+    // Convert a base-space rect (CSS px, local to viewport) into view-space (zoomed bitmap coords)
+    function toViewSpace(box) {
+      return {
+        x: (box.x - panX) * zoom,
+        y: (box.y - panY) * zoom,
+        w: box.w * zoom,
+        h: box.h * zoom
+      };
+    }
+
+    function overlayLineWidthCss() {
+      const v = Number(borderSelect.value);
+      return (v === 4 ? 4 : 1);
+    }
+
+    function overlayAlignOffsetCss(lineWidthCss) {
+      // Canvas crispness: odd widths align on 0.5, even widths align on integer pixels.
+      return (lineWidthCss % 2 === 1) ? 0.5 : 0.0;
+    }
+
+    function rgbaWithAlpha(rgba, alpha) {
+      const m = rgba.match(/^rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+)\s*)?\)$/i);
+      if (!m) return rgba;
+      const r = m[1], g = m[2], b = m[3];
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    // Conservative outside rect: round outward + ensure the whole stroke is outside.
+    function outsideRect_CONS(viewBox, lineWidthCss = 1) {
+      const lw = lineWidthCss;
+      const align = overlayAlignOffsetCss(lw);
+
+      // "1px outside" + half-stroke outward (rounded outward)
+      const margin = 1 + Math.ceil(lw / 2);
+
+      const x0 = Math.floor(viewBox.x) - margin;
+      const y0 = Math.floor(viewBox.y) - margin;
+      const x1 = Math.ceil(viewBox.x + viewBox.w) + margin;
+      const y1 = Math.ceil(viewBox.y + viewBox.h) + margin;
+
+      return { x: x0 + align, y: y0 + align, w: (x1 - x0), h: (y1 - y0) };
+    }
+
+    // Alpha-aware outside rect: expand until perimeter pixels are empty in maskCanvas (element-only raster).
+    function outsideRect_ALPH(viewBox, lineWidthCss = 1, maxExpandPx = 10) {
+      const dpr = window.devicePixelRatio || 1;
+      let r = outsideRect_CONS(viewBox, lineWidthCss);
+      if (maskTainted) return r;
+
+      const cssW = Math.max(1, Math.round(viewport.getBoundingClientRect().width));
+      const cssH = Math.max(1, Math.round(viewport.getBoundingClientRect().height));
+
+      const img = (() => {
+        try { return maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data; }
+        catch { maskTainted = true; return null; }
+      })();
+      if (!img) return r;
+
+      const W = maskCanvas.width;
+      const H = maskCanvas.height;
+
+      function alphaAtCSS(xCss, yCss) {
+        const x = Math.max(0, Math.min(W - 1, Math.floor(xCss * dpr)));
+        const y = Math.max(0, Math.min(H - 1, Math.floor(yCss * dpr)));
+        return img[(y * W + x) * 4 + 3];
+      }
+
+      function perimeterHasAlpha(rectCss) {
+        const align = overlayAlignOffsetCss(lineWidthCss);
+        const x0 = rectCss.x - align, y0 = rectCss.y - align;
+        const x1 = rectCss.x + rectCss.w - align;
+        const y1 = rectCss.y + rectCss.h - align;
+
+        for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(cssW - 1, Math.ceil(x1)); x++) {
+          if (alphaAtCSS(x, y0) !== 0) return true;
+          if (alphaAtCSS(x, y1) !== 0) return true;
+        }
+        for (let y = Math.max(0, Math.floor(y0)); y <= Math.min(cssH - 1, Math.ceil(y1)); y++) {
+          if (alphaAtCSS(x0, y) !== 0) return true;
+          if (alphaAtCSS(x1, y) !== 0) return true;
+        }
+        return false;
+      }
+
+      for (let i = 0; i < maxExpandPx; i++) {
+        if (!perimeterHasAlpha(r)) break;
+        r = { x: r.x - 1, y: r.y - 1, w: r.w + 2, h: r.h + 2 };
+      }
+      return r;
+    }
+
+    function computeScreenAABBFromBBox(el, bbox) {
+      const m = el.getScreenCTM ? el.getScreenCTM() : null;
+      if (!m) return null;
+
+      const pts = [
+        new DOMPoint(bbox.x, bbox.y),
+        new DOMPoint(bbox.x + bbox.width, bbox.y),
+        new DOMPoint(bbox.x + bbox.width, bbox.y + bbox.height),
+        new DOMPoint(bbox.x, bbox.y + bbox.height)
+      ].map(p => p.matrixTransform(m));
+
+      const xs = pts.map(p => p.x);
+      const ys = pts.map(p => p.y);
+
+      const left = Math.min(...xs);
+      const right = Math.max(...xs);
+      const top = Math.min(...ys);
+      const bottom = Math.max(...ys);
+
+      const hostRect = viewport.getBoundingClientRect();
+      return { x: left - hostRect.left, y: top - hostRect.top, w: right - left, h: bottom - top };
+    }
+
+    function computeScreenAABBForViewBoxRect(svg, vb) {
+      const m = svg.getScreenCTM ? svg.getScreenCTM() : null;
+      if (!m) return null;
+
+      const pts = [
+        new DOMPoint(vb.x, vb.y),
+        new DOMPoint(vb.x + vb.width, vb.y),
+        new DOMPoint(vb.x + vb.width, vb.y + vb.height),
+        new DOMPoint(vb.x, vb.y + vb.height)
+      ].map(p => p.matrixTransform(m));
+
+      const xs = pts.map(p => p.x);
+      const ys = pts.map(p => p.y);
+      const left = Math.min(...xs), right = Math.max(...xs);
+      const top = Math.min(...ys), bottom = Math.max(...ys);
+
+      const hostRect = viewport.getBoundingClientRect();
+      return { x: left - hostRect.left, y: top - hostRect.top, w: right-left, h: bottom-top };
+    }
+
+    function drawDashedRect(ctx, rect, rgba, dashOffset, dashPattern, label) {
+      const lw = overlayLineWidthCss();
+      ctx.save();
+
+      // Optional fill (default off): 60% transparent means 40% opaque.
+      if (overlayFill.checked) {
+        ctx.fillStyle = rgbaWithAlpha(rgba, 0.40);
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+      }
+
+      ctx.strokeStyle = rgba;
+      ctx.lineWidth = lw;
+      ctx.setLineDash(dashPattern);
+      ctx.lineDashOffset = dashOffset;
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+
+      const tx = rect.x + 6;
+      const ty = rect.y + 14;
+      ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(tx - 4, ty - 12, 46, 16);
+      ctx.fillStyle = rgbaWithAlpha(rgba, 1.0);
+      ctx.fillText(label, tx, ty);
+      ctx.restore();
+    }
+
+    function paintOverlays(nowMs, overlays, targetElForMask) {
+      const dpr = window.devicePixelRatio || 1;
+      const r = viewport.getBoundingClientRect();
+      const cssW = Math.max(1, Math.round(r.width));
+      const cssH = Math.max(1, Math.round(r.height));
+      const ctx = overlayCanvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      const t = nowMs / 1000;
+      const offR = -t * 18;
+      const offB = t * 14;
+      const offY = -t * 10;
+      const offM = t * 20;
+
+      const RED = 'rgba(255,45,45,0.90)';
+      const BLUE = 'rgba(0,163,255,0.90)';
+      const YELLOW = 'rgba(255,212,0,0.95)';
+      const MAGENTA = 'rgba(255,0,255,0.85)';
+
+      const dashA = [10, 6];
+      const dashB = [8, 6];
+      const dashC = [12, 5];
+
+      const snapMode = snapSelect.value;
+
+      if (snapMode === 'ALPH') rasterizeMaskIfNeeded(targetElForMask);
+
+      const snapFn = (snapMode === 'ALPH' && !maskTainted) ? outsideRect_ALPH : outsideRect_CONS;
+
+      if (showBBox.checked && overlays.bbox) drawDashedRect(ctx, snapFn(overlays.bbox), RED, offR, dashA, 'BBOX');
+      if (showBcr.checked && overlays.bcr)  drawDashedRect(ctx, snapFn(overlays.bcr),  BLUE, offB, dashB, 'BCRR');
+
+      if (showViewBox.checked && overlays.vb)   drawDashedRect(ctx, outsideRect_CONS(overlays.vb), YELLOW, offY, dashC, 'VBOX');
+      if (showFitBox.checked && overlays.fit)  drawDashedRect(ctx, outsideRect_CONS(overlays.fit), MAGENTA, offM, dashA, 'FITB');
+    }
+
+    function updateMeasurementsAndOverlays() {
+      if (!currentSvg) return { overlaysView: {}, overlaysBase: {}, targetEl: null };
+
+            // --- Apply view mode (NORMAL vs FIT-ALL) ---
+      // IMPORTANT: the bitmap preview updates only when we re-raster.
+      // So if viewBox/PAR changes, we flag svgDirty and let the loop rasterize immediately after.
+      let desiredViewBox = meta.originalViewBoxStr;
+      let desiredPAR = meta.originalPAR;
+
+      meta.fitBBox = null;
+
+      if (modeFit.checked) {
+        if (fitCache.dirty || !fitCache.box) {
+          const rr = computeFitAllBox(currentSvg);
+          fitCache.dirty = false;
+          fitCache.box = rr.ok ? rr.box : null;
+          fitCache.err = rr.ok ? null : rr.error;
+        }
+
+        if (fitCache.box) {
+          meta.fitBBox = fitCache.box;
+          desiredViewBox = `${fitCache.box.x} ${fitCache.box.y} ${fitCache.box.width} ${fitCache.box.height}`;
+          desiredPAR = 'xMidYMid meet';
+        }
+      }
+
+      if (desiredViewBox == null) currentSvg.removeAttribute('viewBox');
+      else currentSvg.setAttribute('viewBox', desiredViewBox);
+
+      if (desiredPAR == null) currentSvg.removeAttribute('preserveAspectRatio');
+      else currentSvg.setAttribute('preserveAspectRatio', desiredPAR);
+
+      meta.activeViewBoxStr = currentSvg.getAttribute('viewBox');
+
+      const nowView = meta.activeViewBoxStr || null;
+      const nowPAR = currentSvg.getAttribute('preserveAspectRatio') || null;
+      if (appliedView.viewBox !== nowView || appliedView.par !== nowPAR) {
+        appliedView.viewBox = nowView;
+        appliedView.par = nowPAR;
+        svgDirty = true;
+        maskDirty = true;
+      }
+
+const el = getMeasuredElement();
+
+      let bcr = null;
+      try { bcr = el ? el.getBoundingClientRect() : null; } catch {}
+
+      const raw = el ? callGetBBox(el, null) : { ok:false, box:null, error:'no element' };
+      const opt = el ? callGetBBox(el, bboxOptions()) : { ok:false, box:null, error:'no element' };
+
+      const o = bboxOptions();
+      const bboxLines = [];
+      bboxLines.push(`raw: ${raw.ok && raw.box ? `x:${fmt(raw.box.x)} y:${fmt(raw.box.y)} w:${fmt(raw.box.width)} h:${fmt(raw.box.height)}` : `err:${raw.error ?? '—'}`}`);
+      bboxLines.push(`opts: fill=${o.fill} stroke=${o.stroke} markers=${o.markers} clipped=${o.clipped}`);
+      bboxLines.push(`opt: ${opt.ok && opt.box ? `x:${fmt(opt.box.x)} y:${fmt(opt.box.y)} w:${fmt(opt.box.width)} h:${fmt(opt.box.height)}` : `err:${opt.error ?? '—'}`}`);
+      bboxText.textContent = bboxLines.join('\n');
+
+      if (bcr) {
+        bcrText.textContent = `x:${fmt(bcr.x)} y:${fmt(bcr.y)}\nw:${fmt(bcr.width)} h:${fmt(bcr.height)}`;
+      } else {
+        bcrText.textContent = '—';
+      }
+
+      modeText.textContent =
+        `mode: ${modeFit.checked ? 'FIT' : 'NOR'}\n` +
+        `VBOX: ${meta.originalViewBoxStr ?? '—'}\n` +
+        `view: ${meta.activeViewBoxStr ?? '—'}\n` +
+        `snap: ${snapSelect.value}${snapSelect.value==='ALPH' ? (maskTainted ? ' (TAINT)' : ' (OK)') : ''}` +
+        (modeFit.checked ? `\nFITB: ${fitCache.box ? 'OK' : 'ERR'}${fitCache.err ? ' ('+fitCache.err+')' : ''}` : '');
+
+      const overlaysBase = {};
+
+      if (bcr) {
+        const hostRect = viewport.getBoundingClientRect();
+        overlaysBase.bcr = { x: bcr.left - hostRect.left, y: bcr.top - hostRect.top, w: bcr.width, h: bcr.height };
+      }
+
+      const chosen = (opt.ok && opt.box) ? opt.box : (raw.ok && raw.box ? raw.box : null);
+      if (el && chosen) {
+        const aabb = computeScreenAABBFromBBox(el, chosen);
+        if (aabb) overlaysBase.bbox = aabb;
+      }
+
+      if (meta.originalViewBox) {
+        const aabb = computeScreenAABBForViewBoxRect(currentSvg, meta.originalViewBox);
+        if (aabb) overlaysBase.vb = aabb;
+      }
+
+      if (meta.fitBBox) {
+        const aabb = computeScreenAABBFromBBox(currentSvg, meta.fitBBox);
+        if (aabb) overlaysBase.fit = aabb;
+      }
+
+      const overlaysView = {};
+      if (overlaysBase.bcr) overlaysView.bcr = toViewSpace(overlaysBase.bcr);
+      if (overlaysBase.bbox) overlaysView.bbox = toViewSpace(overlaysBase.bbox);
+      if (overlaysBase.vb) overlaysView.vb = toViewSpace(overlaysBase.vb);
+      if (overlaysBase.fit) overlaysView.fit = toViewSpace(overlaysBase.fit);
+
+      return { overlaysView, overlaysBase, targetEl: el };
+    }
+
+    // Clipboard
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch {}
+      ta.remove();
+    }
+    async function writeClipboard(text) { try { await navigator.clipboard.writeText(text); } catch { fallbackCopy(text); } }
+    async function readClipboard() { try { return await navigator.clipboard.readText(); } catch { return null; } }
+
+    // Navigator interactions
+    function navClientToBasePan(clientX, clientY) {
+      const rect = navWrap.getBoundingClientRect();
+      const x = (clientX - rect.left) / rect.width;
+      const y = (clientY - rect.top) / rect.height;
+
+      const hostRect = viewport.getBoundingClientRect();
+      const baseW = Math.max(1, Math.round(hostRect.width));
+      const baseH = Math.max(1, Math.round(hostRect.height));
+      const viewW = baseW / zoom;
+      const viewH = baseH / zoom;
+
+      panX = (x * baseW) - (viewW / 2);
+      panY = (y * baseH) - (viewH / 2);
+      clampPan();
+    }
+
+    navWrap.addEventListener('pointerdown', (e) => {
+      if (zoom <= 1) return;
+      navDragging = true;
+      navWrap.setPointerCapture(e.pointerId);
+      navClientToBasePan(e.clientX, e.clientY);
+    });
+    navWrap.addEventListener('pointermove', (e) => {
+      if (!navDragging) return;
+      navClientToBasePan(e.clientX, e.clientY);
+    });
+    navWrap.addEventListener('pointerup', () => { navDragging = false; });
+    navWrap.addEventListener('pointercancel', () => { navDragging = false; });
+
+    // UI wiring
+    editor.value = DEFAULT_SVG;
+    renderLiveSvgFromEditor(editor.value);
+
+    let debounceTimer = null;
+    editor.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => renderLiveSvgFromEditor(editor.value), 120);
+    });
+
+    btnReset.addEventListener('click', () => { editor.value = DEFAULT_SVG; renderLiveSvgFromEditor(editor.value); });
+    btnSelectAll.addEventListener('click', () => { editor.focus(); editor.setSelectionRange(0, editor.value.length); });
+    btnCopyAll.addEventListener('click', async () => writeClipboard(editor.value));
+    btnCopySel.addEventListener('click', async () => {
+      const sel = editor.value.slice(editor.selectionStart, editor.selectionEnd);
+      if (sel) await writeClipboard(sel);
+    });
+    btnPaste.addEventListener('click', async () => {
+      const txt = await readClipboard();
+      if (txt == null) { showWarning('Clipboard read blocked by the browser. Use Ctrl/Cmd+V in the editor.'); return; }
+      hideWarning();
+      const start = editor.selectionStart, end = editor.selectionEnd;
+      editor.value = editor.value.slice(0, start) + txt + editor.value.slice(end);
+      const caret = start + txt.length;
+      editor.focus(); editor.setSelectionRange(caret, caret);
+      renderLiveSvgFromEditor(editor.value);
+    });
+
+    modeNormal.addEventListener('change', () => { svgDirty = true; maskDirty = true; });
+    modeFit.addEventListener('change', () => { svgDirty = true; maskDirty = true; });
+
+    zoomSelect.addEventListener('change', () => { setZoom(Number(zoomSelect.value) || 1); });
+    btnSavePng.addEventListener('click', exportFullPng);
+    btnSaveBboxPng.addEventListener('click', () => exportRectCropPng('bbox', 'svg-boxes-bbox.png'));
+    btnSaveBcrPng.addEventListener('click', () => exportRectCropPng('bcr', 'svg-boxes-bcrr.png'));
+    btnSaveVboxPng.addEventListener('click', () => exportRectCropPng('vb', 'svg-boxes-vbox.png'));
+    btnSaveFitbPng.addEventListener('click', () => exportRectCropPng('fit', 'svg-boxes-fitb.png'));
+
+    [optFill,optStroke,optMarkers,optClipped].forEach(x => x.addEventListener('change', () => {
+      // These options affect only getBBox(...) measurements.
+      maskDirty = true;
+    }));
+    [measureSelect, showBBox, showBcr, showViewBox, showFitBox].forEach(x => x.addEventListener('change', () => { maskDirty = true; }));
+    snapSelect.addEventListener('change', () => { maskDirty = true; });
+    overlayFill.addEventListener('change', () => { /* visual only */ });
+    borderSelect.addEventListener('change', () => { /* visual only */ });
+
+    const ro = new ResizeObserver(() => resizeCanvases());
+    ro.observe(viewport);
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+    setZoom(1);
+
+    // Main loop
+    function loop(nowMs) {
+      const { overlaysView, overlaysBase, targetEl } = updateMeasurementsAndOverlays();
+      lastOverlaysBase = overlaysBase || {};
+      lastOverlaysView = overlaysView || {};
+
+      if (svgDirty && currentSvg) rasterizeSvgToBaseCanvas();
+      paintBitmap();
+
+lastOverlaysBase = overlaysBase || {};
+      lastOverlaysView = overlaysView || {};
+      paintOverlays(nowMs, lastOverlaysView, targetEl);
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

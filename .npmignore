@@ -2,15 +2,24 @@
 .github/
 scripts/
 test/
-SVG-MATRIX/
 
 # Documentation (dev-only)
 CLAUDE.md
+API.md
+docs_dev/
+
+# Sample files (not needed for runtime)
+samples/
+
+# Examples (optional - uncomment to include)
+examples/
 
 # Build/dev artifacts
 *.tgz
 npm-shrinkwrap.json
 .DS_Store
+*.bak
+*.bak2
 
 # IDE and editor
 .idea/

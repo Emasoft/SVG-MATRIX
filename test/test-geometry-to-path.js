@@ -59,7 +59,7 @@ assert(circlePath.endsWith(' Z'), 'Circle path ends with Z command');
 assert(circlePath.includes(' C '), 'Circle path contains C commands');
 
 // Check that circle starts at rightmost point (cx + r, cy)
-assert(circlePath.startsWith('M 150 100'), 'Circle starts at rightmost point');
+assert(circlePath.startsWith('M 150.000000 100.000000'), 'Circle starts at rightmost point');
 
 // Test circle with high precision
 const circleHP = GeometryToPath.circleToPathData(0, 0, 1, 15);
@@ -67,18 +67,18 @@ assert(circleHP.includes('1.000000000000000'), 'High precision circle has correc
 
 // Test circle at origin
 const circleOrigin = GeometryToPath.circleToPathData(0, 0, 10, 6);
-assert(circleOrigin.startsWith('M 10 0'), 'Circle at origin starts at (r, 0)');
+assert(circleOrigin.startsWith('M 10.000000 0.000000'), 'Circle at origin starts at (r, 0)');
 
 // Test circle with Decimal inputs
 const circleDecimal = GeometryToPath.circleToPathData(new Decimal(50), new Decimal(50), new Decimal(25), 6);
-assert(circleDecimal.startsWith('M 75 50'), 'Circle with Decimal inputs works correctly');
+assert(circleDecimal.startsWith('M 75.000000 50.000000'), 'Circle with Decimal inputs works correctly');
 
 // ===== Test ellipseToPathData =====
 console.log('\n--- ellipseToPathData() tests ---');
 
 const ellipsePath = GeometryToPath.ellipseToPathData(100, 100, 50, 30, 6);
 assert(typeof ellipsePath === 'string', 'ellipseToPathData returns string');
-assert(ellipsePath.startsWith('M 150 100'), 'Ellipse starts at (cx + rx, cy)');
+assert(ellipsePath.startsWith('M 150.000000 100.000000'), 'Ellipse starts at (cx + rx, cy)');
 assert(ellipsePath.endsWith(' Z'), 'Ellipse path ends with Z command');
 
 // Test circular ellipse (rx = ry) matches circle
@@ -88,7 +88,7 @@ assert(ellipseCircular === circleEquiv, 'Circular ellipse matches circle');
 
 // Test ellipse with different radii
 const ellipseWide = GeometryToPath.ellipseToPathData(0, 0, 100, 50, 6);
-assert(ellipseWide.startsWith('M 100 0'), 'Wide ellipse starts at correct point');
+assert(ellipseWide.startsWith('M 100.000000 0.000000'), 'Wide ellipse starts at correct point');
 
 // ===== Test rectToPathData =====
 console.log('\n--- rectToPathData() tests ---');
@@ -97,7 +97,7 @@ console.log('\n--- rectToPathData() tests ---');
 const rectSharp = GeometryToPath.rectToPathData(10, 10, 100, 50, 0, 0, false, 6);
 assert(rectSharp.includes(' L '), 'Sharp rect uses L commands');
 assert(rectSharp.endsWith(' Z'), 'Rect path ends with Z');
-assert(rectSharp.startsWith('M 10 10'), 'Rect starts at top-left corner');
+assert(rectSharp.startsWith('M 10.000000 10.000000'), 'Rect starts at top-left corner');
 
 // Rounded rectangle with Bezier curves
 const rectRounded = GeometryToPath.rectToPathData(10, 10, 100, 50, 5, 5, false, 6);
@@ -111,7 +111,7 @@ assert(rectArc.includes(' L '), 'Rounded rect with arcs uses L commands');
 
 // Test rx/ry clamping (rx > width/2)
 const rectClamped = GeometryToPath.rectToPathData(0, 0, 100, 50, 60, 30, false, 6);
-assert(rectClamped.includes('M 50 0'), 'Rect with clamped rx starts at half width');
+assert(rectClamped.includes('M 50.000000 0.000000'), 'Rect with clamped rx starts at half width');
 
 // Test ry defaults to rx
 const rectDefaultRy = GeometryToPath.rectToPathData(0, 0, 100, 50, 10, null, false, 6);
@@ -121,36 +121,36 @@ assert(rectDefaultRy.includes(' C '), 'Rect with rx but no ry creates rounded co
 console.log('\n--- lineToPathData() tests ---');
 
 const line = GeometryToPath.lineToPathData(10, 20, 50, 80, 6);
-assert(line === 'M 10 20 L 50 80', 'Line path has correct format');
+assert(line === 'M 10.000000 20.000000 L 50.000000 80.000000', 'Line path has correct format');
 assert(!line.includes(' Z'), 'Line path is not closed');
 
 const lineOrigin = GeometryToPath.lineToPathData(0, 0, 100, 100, 6);
-assert(lineOrigin === 'M 0 0 L 100 100', 'Diagonal line has correct format');
+assert(lineOrigin === 'M 0.000000 0.000000 L 100.000000 100.000000', 'Diagonal line has correct format');
 
 // ===== Test polylineToPathData =====
 console.log('\n--- polylineToPathData() tests ---');
 
 const polyline = GeometryToPath.polylineToPathData('10,10 50,50 90,10', 6);
-assert(polyline.startsWith('M 10 10'), 'Polyline starts with M command');
-assert(polyline.includes('L 50 50'), 'Polyline includes intermediate points');
+assert(polyline.startsWith('M 10.000000 10.000000'), 'Polyline starts with M command');
+assert(polyline.includes('L 50.000000 50.000000'), 'Polyline includes intermediate points');
 assert(!polyline.endsWith(' Z'), 'Polyline is not closed');
 
 // Test with array input
 const polylineArray = GeometryToPath.polylineToPathData([[0, 0], [10, 20], [30, 15]], 6);
-assert(polylineArray.includes('M 0 0'), 'Polyline from array has correct start');
-assert(polylineArray.includes('L 10 20'), 'Polyline from array includes all points');
+assert(polylineArray.includes('M 0.000000 0.000000'), 'Polyline from array has correct start');
+assert(polylineArray.includes('L 10.000000 20.000000'), 'Polyline from array includes all points');
 
 // Test with space-separated points
 const polylineSpaced = GeometryToPath.polylineToPathData('0 0 100 0 100 100', 6);
-assert(polylineSpaced === 'M 0 0 L 100 0 L 100 100', 'Space-separated polyline works');
+assert(polylineSpaced === 'M 0.000000 0.000000 L 100.000000 0.000000 L 100.000000 100.000000', 'Space-separated polyline works');
 
 // ===== Test polygonToPathData =====
 console.log('\n--- polygonToPathData() tests ---');
 
 const polygon = GeometryToPath.polygonToPathData('0,0 50,100 100,0', 6);
-assert(polygon.startsWith('M 0 0'), 'Polygon starts with M command');
+assert(polygon.startsWith('M 0.000000 0.000000'), 'Polygon starts with M command');
 assert(polygon.endsWith(' Z'), 'Polygon is closed with Z');
-assert(polygon.includes('L 50 100'), 'Polygon includes all vertices');
+assert(polygon.includes('L 50.000000 100.000000'), 'Polygon includes all vertices');
 
 const square = GeometryToPath.polygonToPathData([[0, 0], [100, 0], [100, 100], [0, 100]], 6);
 assert(square.endsWith(' Z'), 'Square polygon is closed');
@@ -183,39 +183,39 @@ const commands = [
   { command: 'Z', args: [] }
 ];
 const pathStr = GeometryToPath.pathArrayToString(commands, 6);
-assert(pathStr === 'M 10 20 L 30 40 Z', 'pathArrayToString formats correctly');
+assert(pathStr === 'M 10.000000 20.000000 L 30.000000 40.000000 Z', 'pathArrayToString formats correctly');
 
-// Test with different precision
+// Test with different precision (2 decimal places)
 const pathStrHP = GeometryToPath.pathArrayToString(commands, 2);
-assert(pathStrHP === 'M 10 20 L 30 40 Z', 'pathArrayToString with low precision works');
+assert(pathStrHP === 'M 10.00 20.00 L 30.00 40.00 Z', 'pathArrayToString with precision 2 works');
 
 // ===== Test pathToAbsolute =====
 console.log('\n--- pathToAbsolute() tests ---');
 
 const relative = 'M 10 10 l 20 0 l 0 20 z';
 const absolute = GeometryToPath.pathToAbsolute(relative);
-assert(absolute.includes('M 10 10'), 'Absolute path preserves M command');
-assert(absolute.includes('L 30 10'), 'Relative l converted to absolute L');
-assert(absolute.includes('L 30 30'), 'Chained relative commands work correctly');
+assert(absolute.includes('M 10.000000 10.000000'), 'Absolute path preserves M command');
+assert(absolute.includes('L 30.000000 10.000000'), 'Relative l converted to absolute L');
+assert(absolute.includes('L 30.000000 30.000000'), 'Chained relative commands work correctly');
 
 const relCurve = 'M 0 0 c 10 0 20 10 20 20';
 const absCurve = GeometryToPath.pathToAbsolute(relCurve);
-assert(absCurve.includes('C 10 0 20 10 20 20'), 'Relative cubic converted to absolute');
+assert(absCurve.includes('C 10.000000 0.000000 20.000000 10.000000 20.000000 20.000000'), 'Relative cubic converted to absolute');
 
 const relH = 'M 10 10 h 50';
 const absH = GeometryToPath.pathToAbsolute(relH);
-assert(absH.includes('L 60 10'), 'Relative h converted to absolute L');
+assert(absH.includes('L 60.000000 10.000000'), 'Relative h converted to absolute L');
 
 const relV = 'M 10 10 v 50';
 const absV = GeometryToPath.pathToAbsolute(relV);
-assert(absV.includes('L 10 60'), 'Relative v converted to absolute L');
+assert(absV.includes('L 10.000000 60.000000'), 'Relative v converted to absolute L');
 
 // ===== Test pathToCubics =====
 console.log('\n--- pathToCubics() tests ---');
 
 const lineToC = GeometryToPath.pathToCubics('M 0 0 L 100 100 Z');
 assert(lineToC.includes('C '), 'Line converted to cubic Bezier');
-assert(lineToC.includes('C 0 0 100 100 100 100'), 'Line becomes degenerate cubic');
+assert(lineToC.includes('C 0.000000 0.000000 100.000000 100.000000 100.000000 100.000000'), 'Line becomes degenerate cubic');
 
 const quadToC = GeometryToPath.pathToCubics('M 0 0 Q 50 100 100 0');
 assert(quadToC.includes('C '), 'Quadratic converted to cubic');
@@ -228,20 +228,20 @@ console.log('\n--- transformPathData() tests ---');
 const T = Matrix.from([[1, 0, 10], [0, 1, 20], [0, 0, 1]]);
 const pathOrig = 'M 0 0 L 100 0 L 100 100 Z';
 const pathTrans = GeometryToPath.transformPathData(pathOrig, T, 6);
-assert(pathTrans.includes('M 10 20'), 'Translation transforms M command correctly');
-assert(pathTrans.includes('L 110 20'), 'Translation transforms first L command');
-assert(pathTrans.includes('L 110 120'), 'Translation transforms second L command');
+assert(pathTrans.includes('M 10.000000 20.000000'), 'Translation transforms M command correctly');
+assert(pathTrans.includes('L 110.000000 20.000000'), 'Translation transforms first L command');
+assert(pathTrans.includes('L 110.000000 120.000000'), 'Translation transforms second L command');
 
 // Scaling
 const S = Matrix.from([[2, 0, 0], [0, 2, 0], [0, 0, 1]]);
 const pathScaled = GeometryToPath.transformPathData('M 10 10 L 20 20', S, 6);
-assert(pathScaled.includes('M 20 20'), 'Scaling transforms coordinates correctly');
-assert(pathScaled.includes('L 40 40'), 'Scaling applies to all points');
+assert(pathScaled.includes('M 20.000000 20.000000'), 'Scaling transforms coordinates correctly');
+assert(pathScaled.includes('L 40.000000 40.000000'), 'Scaling applies to all points');
 
 // Test with cubic Bezier
 const pathCubic = 'M 0 0 C 10 0 20 10 20 20';
 const cubicTrans = GeometryToPath.transformPathData(pathCubic, T, 6);
-assert(cubicTrans.includes('C 20 20'), 'Translation transforms control points');
+assert(cubicTrans.includes('C 20.000000 20.000000'), 'Translation transforms control points');
 
 // ===== Test transformArcParams =====
 console.log('\n--- transformArcParams() tests ---');
@@ -275,16 +275,16 @@ console.log('\n--- convertElementToPath() tests ---');
 const circleObj = { tagName: 'circle', cx: 100, cy: 100, r: 50 };
 const circleConv = GeometryToPath.convertElementToPath(circleObj, 6);
 assert(circleConv !== null, 'Circle object converts successfully');
-assert(circleConv.includes('M 150 100'), 'Converted circle has correct path');
+assert(circleConv.includes('M 150.000000 100.000000'), 'Converted circle has correct path');
 
 const rectObj = { tagName: 'rect', x: 10, y: 10, width: 100, height: 50 };
 const rectConv = GeometryToPath.convertElementToPath(rectObj, 6);
 assert(rectConv !== null, 'Rect object converts successfully');
-assert(rectConv.includes('M 10 10'), 'Converted rect starts at correct position');
+assert(rectConv.includes('M 10.000000 10.000000'), 'Converted rect starts at correct position');
 
 const lineObj = { tagName: 'line', x1: 0, y1: 0, x2: 100, y2: 100 };
 const lineConv = GeometryToPath.convertElementToPath(lineObj, 6);
-assert(lineConv === 'M 0 0 L 100 100', 'Line object converts correctly');
+assert(lineConv === 'M 0.000000 0.000000 L 100.000000 100.000000', 'Line object converts correctly');
 
 const polyObj = { tagName: 'polygon', points: '0,0 100,0 50,100' };
 const polyConv = GeometryToPath.convertElementToPath(polyObj, 6);
@@ -298,8 +298,8 @@ assert(unknownConv === null, 'Unknown element returns null');
 console.log('\n--- Precision tests ---');
 
 const circleLowPrec = GeometryToPath.circleToPathData(100, 100, 50, 2);
-assert(circleLowPrec.includes('150'), 'Low precision circle has short decimals');
-assert(!circleLowPrec.includes('150.000000'), 'Low precision does not over-format');
+assert(circleLowPrec.includes('150.00'), 'Low precision circle has 2 decimal places');
+assert(!circleLowPrec.includes('150.000000'), 'Low precision does not over-format with 6 decimals');
 
 const circleHighPrec = GeometryToPath.circleToPathData(100, 100, 50, 10);
 assert(circleHighPrec.includes('.'), 'High precision circle has decimal points');

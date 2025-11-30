@@ -162,9 +162,10 @@ console.log(`  Recovered:   (${recoveredPoint.x.toFixed(40)}, ${recoveredPoint.y
 console.log(`\n  Round-trip error:`);
 console.log(`    X: ${formatSci(finalErrorX)}`);
 console.log(`    Y: ${formatSci(finalErrorY)}`);
-console.log(`\n  Float precision would give: ~0.0143 error (9.9857 instead of 10)`);
-console.log(`  This library gives:         ${formatSci(finalErrorX.plus(finalErrorY).div(2))} average error`);
-console.log(`  Improvement factor:         ${formatSci(new Decimal('0.0143').div(finalErrorX.plus(finalErrorY).div(2).plus('1e-100')))} times better`);
+console.log(`\n  Float precision (measured):  ~1.14e-13 error (for this 6-level hierarchy)`);
+console.log(`  Float precision (GIS scale): ~1.69e-7 error (with 1e6+ coordinates)`);
+console.log(`  This library gives:          ${formatSci(finalErrorX.plus(finalErrorY).div(2))} average error`);
+console.log(`  Improvement factor:          ${formatSci(new Decimal('1.14e-13').div(finalErrorX.plus(finalErrorY).div(2).plus('1e-100')))} times better`);
 console.log();
 
 // Test 6: Transform path data

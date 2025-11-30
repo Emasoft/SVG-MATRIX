@@ -492,18 +492,18 @@ console.log(`  Viewport coords:        (${viewportCoords[0].toFixed(20)}, ${view
 console.log(`  Recovered local coords: (${recoveredCoords[0].toFixed(40)}, ${recoveredCoords[1].toFixed(40)})`);
 console.log(`  Round-trip error X:     ${errorX.toExponential()}`);
 console.log(`  Round-trip error Y:     ${errorY.toExponential()}`);
-console.log(`  Old float error was:    ~0.0143 (returned 9.9857 instead of 10)`);
-console.log(`  Precision improvement:  ${new Decimal('0.0143').div(errorX.plus(errorY).div(2)).toExponential()} times better`);
+console.log(`  Float error (typical):  ~1.14e-13 (measured with proper matrix inverse)`);
+console.log(`  Float error (GIS):      ~1.69e-7 (with 1e6+ scale coordinates)`);
+console.log(`  Precision improvement:  ${new Decimal('1.14e-13').div(errorX.plus(errorY).div(2).plus('1e-100')).toExponential()} times better`);
 
 // With 80-digit precision and 6 levels of mixed transforms, expect < 1e-50 error
-// This is astronomically better than float's 0.0143 error
 assert(errorX.lessThan('1e-50'),
   'SVG 6-level hierarchy: round-trip x error < 1e-50');
 assert(errorY.lessThan('1e-50'),
   'SVG 6-level hierarchy: round-trip y error < 1e-50');
 
-// Verify we're WAY better than the old float precision
-const floatError = new Decimal('0.0143');  // old error: 10 - 9.9857
+// Verify we're WAY better than measured float precision (1.14e-13 for this hierarchy)
+const floatError = new Decimal('1.14e-13');  // measured float error for 6-level SVG
 assert(errorX.lessThan(floatError.div('1e40')),
   'SVG 6-level: 10^40 times better than float precision for x');
 assert(errorY.lessThan(floatError.div('1e40')),

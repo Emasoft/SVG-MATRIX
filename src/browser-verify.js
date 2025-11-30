@@ -7,13 +7,35 @@
  * This is the authoritative way to verify correctness since browsers
  * implement the W3C SVG2 specification.
  *
+ * IMPORTANT: This module requires Playwright as an optional peer dependency.
+ * Install with: npm install playwright && npx playwright install chromium
+ *
  * @module browser-verify
  */
 
-import { chromium } from 'playwright';
 import Decimal from 'decimal.js';
 import { Matrix } from './matrix.js';
 import * as SVGFlatten from './svg-flatten.js';
+
+// Playwright is loaded dynamically to avoid crashes when not installed
+let chromium = null;
+
+/**
+ * Load Playwright dynamically. Throws helpful error if not installed.
+ * @returns {Promise<void>}
+ */
+async function loadPlaywright() {
+  if (chromium) return;
+  try {
+    const playwright = await import('playwright');
+    chromium = playwright.chromium;
+  } catch (e) {
+    throw new Error(
+      'Playwright is required for browser verification but not installed.\n' +
+      'Install with: npm install playwright && npx playwright install chromium'
+    );
+  }
+}
 
 // Set high precision
 Decimal.set({ precision: 80 });
@@ -34,8 +56,10 @@ export class BrowserVerifier {
    *
    * @param {Object} options - Playwright launch options
    * @returns {Promise<void>}
+   * @throws {Error} If Playwright is not installed
    */
   async init(options = {}) {
+    await loadPlaywright();
     this.browser = await chromium.launch(options);
     this.page = await this.browser.newPage();
   }
