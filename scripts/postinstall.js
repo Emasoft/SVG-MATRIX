@@ -114,15 +114,12 @@ ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}CLI Commands:${c.reset}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}svg-matrix flatten${c.reset} input.svg -o output.svg`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}Bake all transforms into path coordinates${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}svg-matrix flatten${c.reset}   ${c.dim}Bake transforms into path coordinates${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}svg-matrix convert${c.reset}   ${c.dim}Convert shapes to <path> elements${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}svg-matrix normalize${c.reset} ${c.dim}Convert paths to cubic Beziers${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}svg-matrix info${c.reset}      ${c.dim}Show SVG file information${c.reset}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}Options:${c.reset}`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}--precision N${c.reset}       Output decimal places (default: 6)`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}--clip-segments N${c.reset}   Polygon sampling for clips (default: 64)`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}--bezier-arcs N${c.reset}     Bezier arcs for curves (default: 8)`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}--e2e-tolerance N${c.reset}   Verification tolerance (default: 1e-10)`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`    ${c.dim}--verbose${c.reset}           Show processing details`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.dim}Run${c.reset} svg-matrix --help ${c.dim}or${c.reset} svg-matrix <cmd> --help`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
@@ -137,7 +134,7 @@ ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot} Transforms3D${c.reset}  3D af
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R('')}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.18:${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.0.19:${c.reset}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Enhanced CLI help: svg-matrix <command> --help`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} High-precision Bezier circle/ellipse approximation`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} E2E verification always enabled for precision`)}${c.cyan}${B.v}${c.reset}
