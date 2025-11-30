@@ -41,6 +41,10 @@ import {
   parseTransformAttribute,
   transformPathData
 } from './svg-flatten.js';
+import {
+  circleToPathDataHP,
+  ellipseToPathDataHP
+} from './geometry-to-path.js';
 import { Logger } from './logger.js';
 
 // Alias for cleaner code
@@ -414,14 +418,32 @@ function removeDuplicateConsecutive(points) {
  * const ctm = Transforms2D.translation(10, 20);
  * const polygon = shapeToPolygon(rect, ctm, 30);
  */
-export function shapeToPolygon(element, ctm = null, samples = DEFAULT_CURVE_SAMPLES) {
+/**
+ * Convert SVG shape to polygon.
+ *
+ * @param {Object} element - Shape element (circle, ellipse, rect, etc.)
+ * @param {Matrix} ctm - Current transform matrix (optional)
+ * @param {number} samples - Samples per curve for polygon conversion
+ * @param {number} bezierArcs - Number of Bezier arcs for circles/ellipses (4=standard, 16 or 64=HP)
+ */
+export function shapeToPolygon(element, ctm = null, samples = DEFAULT_CURVE_SAMPLES, bezierArcs = 4) {
   let pathData;
   switch (element.type) {
     case 'circle':
-      pathData = circleToPath(D(element.cx || 0), D(element.cy || 0), D(element.r || 0));
+      // Use high-precision Bezier arcs for better curve approximation
+      if (bezierArcs > 4) {
+        pathData = circleToPathDataHP(element.cx || 0, element.cy || 0, element.r || 0, bezierArcs, 10);
+      } else {
+        pathData = circleToPath(D(element.cx || 0), D(element.cy || 0), D(element.r || 0));
+      }
       break;
     case 'ellipse':
-      pathData = ellipseToPath(D(element.cx || 0), D(element.cy || 0), D(element.rx || 0), D(element.ry || 0));
+      // Use high-precision Bezier arcs for better curve approximation
+      if (bezierArcs > 4) {
+        pathData = ellipseToPathDataHP(element.cx || 0, element.cy || 0, element.rx || 0, element.ry || 0, bezierArcs, 10);
+      } else {
+        pathData = ellipseToPath(D(element.cx || 0), D(element.cy || 0), D(element.rx || 0), D(element.ry || 0));
+      }
       break;
     case 'rect':
       pathData = rectToPath(D(element.x || 0), D(element.y || 0), D(element.width || 0), D(element.height || 0),

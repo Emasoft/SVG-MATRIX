@@ -111,6 +111,11 @@ const DEFAULT_CONFIG = {
   resolveMarkers: true,       // Instantiate markers as path geometry
   resolvePatterns: true,      // Expand pattern fills to tiled geometry
   bakeGradients: true,        // Bake gradientTransform into gradient coords
+  // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
+  // E2E verification precision controls
+  clipSegments: 64,           // Polygon samples for clip operations (higher = more precise)
+  bezierArcs: 8,              // Bezier arcs for circles/ellipses (multiple of 4; 8=π/4 optimal)
+  e2eTolerance: '1e-10',      // E2E verification tolerance (tighter with more segments)
 };
 
 /** @type {CLIConfig} */
@@ -538,6 +543,22 @@ ${colors.bright}FLATTEN OPTIONS:${colors.reset}
   --no-patterns           Skip pattern expansion
   --no-gradients          Skip gradient transform baking
 
+${colors.bright}E2E VERIFICATION OPTIONS:${colors.reset}
+  --clip-segments <n>     Polygon samples for clipping (default: 64)
+                          Higher = better curve approximation, tighter tolerance
+                          Recommended: 64 (balanced), 128 (high), 256 (very high)
+  --bezier-arcs <n>       Bezier arcs for circles/ellipses (default: 8)
+                          Must be multiple of 4. Multiples of 8 are optimal (π/4).
+                          8: ~0.0004% error (π/4 optimal base)
+                          16: ~0.000007% error (high precision)
+                          32: ~0.0000004% error, 64: ~0.00000001% error
+  --e2e-tolerance <exp>   E2E verification tolerance exponent (default: 1e-10)
+                          Examples: 1e-8, 1e-10, 1e-12, 1e-14
+                          Tighter tolerance requires more clip-segments
+
+  ${colors.dim}Note: Mathematical verification is ALWAYS enabled.${colors.reset}
+  ${colors.dim}Precision is non-negotiable in this library.${colors.reset}
+
 ${colors.bright}EXAMPLES:${colors.reset}
   svg-matrix flatten input.svg -o output.svg
   svg-matrix flatten ./svgs/ -o ./output/ --transform-only
@@ -626,6 +647,9 @@ function processFlatten(inputPath, outputPath) {
     const pipelineOptions = {
       precision: config.precision,
       curveSegments: 20,
+      clipSegments: config.clipSegments,     // Higher segments for clip accuracy (default 64)
+      bezierArcs: config.bezierArcs,         // Bezier arcs for circles/ellipses (default 16)
+      e2eTolerance: config.e2eTolerance,     // Configurable E2E tolerance (default 1e-10)
       resolveUse: config.resolveUse,
       resolveMarkers: config.resolveMarkers,
       resolvePatterns: config.resolvePatterns,
@@ -634,6 +658,7 @@ function processFlatten(inputPath, outputPath) {
       flattenTransforms: true, // Always flatten transforms
       bakeGradients: config.bakeGradients,
       removeUnusedDefs: true,
+      // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
     };
 
     // Run the full flatten pipeline
@@ -653,6 +678,49 @@ function processFlatten(inputPath, outputPath) {
       logInfo(`Flattened: ${parts.join(', ')}`);
     } else {
       logInfo('No transform dependencies found');
+    }
+
+    // Report verification results (ALWAYS - precision is non-negotiable)
+    if (stats.verifications) {
+      const v = stats.verifications;
+      const total = v.passed + v.failed;
+      if (total > 0) {
+        const verifyStatus = v.allPassed
+          ? `${colors.green}VERIFIED${colors.reset}`
+          : `${colors.red}${v.failed} FAILED${colors.reset}`;
+        logInfo(`Verification: ${v.passed}/${total} - ${verifyStatus}`);
+
+        // Show detailed results in verbose mode
+        if (config.verbose) {
+          if (v.matrices.length > 0) {
+            logDebug(`  Matrix verifications: ${v.matrices.filter(m => m.valid).length}/${v.matrices.length} passed`);
+          }
+          if (v.transforms.length > 0) {
+            logDebug(`  Transform round-trips: ${v.transforms.filter(t => t.valid).length}/${v.transforms.length} passed`);
+          }
+          if (v.polygons.length > 0) {
+            logDebug(`  Polygon intersections: ${v.polygons.filter(p => p.valid).length}/${v.polygons.length} passed`);
+          }
+          if (v.gradients.length > 0) {
+            logDebug(`  Gradient transforms: ${v.gradients.filter(g => g.valid).length}/${v.gradients.length} passed`);
+          }
+          if (v.e2e && v.e2e.length > 0) {
+            logDebug(`  E2E area conservation: ${v.e2e.filter(e => e.valid).length}/${v.e2e.length} passed`);
+          }
+        }
+
+        // Always show failed verifications (not just in verbose mode)
+        const allVerifications = [...v.matrices, ...v.transforms, ...v.polygons, ...v.gradients, ...(v.e2e || [])];
+        const failed = allVerifications.filter(vr => !vr.valid);
+        if (failed.length > 0) {
+          for (const f of failed.slice(0, 3)) {
+            logError(`${colors.red}VERIFICATION FAILED:${colors.reset} ${f.message}`);
+          }
+          if (failed.length > 3) {
+            logError(`...and ${failed.length - 3} more failed verifications`);
+          }
+        }
+      }
     }
 
     // Report any errors
@@ -944,6 +1012,35 @@ function parseArgs(args) {
       case '--no-markers': cfg.resolveMarkers = false; break;
       case '--no-patterns': cfg.resolvePatterns = false; break;
       case '--no-gradients': cfg.bakeGradients = false; break;
+      // E2E verification precision options
+      case '--clip-segments': {
+        const segs = parseInt(args[++i], 10);
+        if (isNaN(segs) || segs < 8 || segs > 512) {
+          logError('clip-segments must be between 8 and 512');
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        cfg.clipSegments = segs;
+        break;
+      }
+      case '--bezier-arcs': {
+        const arcs = parseInt(args[++i], 10);
+        if (isNaN(arcs) || arcs < 4 || arcs > 128) {
+          logError('bezier-arcs must be between 4 and 128');
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        cfg.bezierArcs = arcs;
+        break;
+      }
+      case '--e2e-tolerance': {
+        const tol = args[++i];
+        if (!/^1e-\d+$/.test(tol)) {
+          logError('e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)');
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        cfg.e2eTolerance = tol;
+        break;
+      }
+      // NOTE: --verify removed - verification is ALWAYS enabled
       default:
         if (arg.startsWith('-')) { logError(`Unknown option: ${arg}`); process.exit(CONSTANTS.EXIT_ERROR); }
         if (['flatten', 'convert', 'normalize', 'info', 'help', 'version'].includes(arg) && cfg.command === 'help') {

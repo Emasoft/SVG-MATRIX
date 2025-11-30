@@ -26,6 +26,7 @@ import * as MeshGradient from './mesh-gradient.js';
 import * as GeometryToPath from './geometry-to-path.js';
 import { parseSVG, SVGElement, buildDefsMap, parseUrlReference, serializeSVG, findElementsWithAttribute } from './svg-parser.js';
 import { Logger } from './logger.js';
+import * as Verification from './verification.js';
 
 Decimal.set({ precision: 80 });
 
@@ -36,7 +37,11 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
  */
 const DEFAULT_OPTIONS = {
   precision: 6,              // Decimal places in output coordinates
-  curveSegments: 20,         // Samples per curve for polygon conversion
+  curveSegments: 20,         // Samples per curve for polygon conversion (visual output)
+  clipSegments: 64,          // Higher samples for clip polygon accuracy (affects E2E precision)
+  bezierArcs: 8,             // Bezier arcs for circles/ellipses (must be multiple of 4)
+                             // 8: π/4 optimal base (~0.0004% error)
+                             // 16: π/8 (~0.000007% error), 32: π/16, 64: π/32 (~0.00000001% error)
   resolveUse: true,          // Expand <use> elements
   resolveMarkers: true,      // Expand marker instances
   resolvePatterns: true,     // Expand pattern fills to geometry
@@ -46,6 +51,9 @@ const DEFAULT_OPTIONS = {
   bakeGradients: true,       // Bake gradientTransform into gradient coords
   removeUnusedDefs: true,    // Remove defs that are no longer referenced
   preserveIds: false,        // Keep original IDs on expanded elements
+  // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
+  // E2E verification tolerance (configurable for different accuracy needs)
+  e2eTolerance: '1e-10',     // Default: 1e-10 (very tight with high clipSegments)
 };
 
 /**
@@ -77,6 +85,19 @@ export function flattenSVG(svgString, options = {}) {
     gradientsProcessed: 0,
     defsRemoved: 0,
     errors: [],
+    // Verification results - ALWAYS enabled (precision is non-negotiable)
+    verifications: {
+      transforms: [],
+      matrices: [],
+      polygons: [],
+      gradients: [],
+      e2e: [], // End-to-end verification: area conservation, union reconstruction
+      passed: 0,
+      failed: 0,
+      allPassed: true,
+    },
+    // Store outside fragments from clipping for potential reconstruction
+    clipOutsideFragments: [],
   };
 
   try {
@@ -120,21 +141,21 @@ export function flattenSVG(svgString, options = {}) {
 
     // Step 5: Apply clipPaths (boolean intersection)
     if (opts.resolveClipPaths) {
-      const result = applyAllClipPaths(root, defsMap, opts);
+      const result = applyAllClipPaths(root, defsMap, opts, stats);
       stats.clipPathsApplied = result.count;
       stats.errors.push(...result.errors);
     }
 
     // Step 6: Flatten transforms (bake into coordinates)
     if (opts.flattenTransforms) {
-      const result = flattenAllTransforms(root, opts);
+      const result = flattenAllTransforms(root, opts, stats);
       stats.transformsFlattened = result.count;
       stats.errors.push(...result.errors);
     }
 
     // Step 7: Bake gradient transforms
     if (opts.bakeGradients) {
-      const result = bakeAllGradientTransforms(root, opts);
+      const result = bakeAllGradientTransforms(root, opts, stats);
       stats.gradientsProcessed = result.count;
       stats.errors.push(...result.errors);
     }
@@ -430,11 +451,20 @@ function resolveAllMasks(root, defsMap, opts) {
 
 /**
  * Apply clipPath references by performing boolean intersection.
+ * Also computes the difference (outside parts) and verifies area conservation (E2E).
  * @private
  */
-function applyAllClipPaths(root, defsMap, opts) {
+function applyAllClipPaths(root, defsMap, opts, stats) {
   const errors = [];
   let count = 0;
+
+  // Initialize E2E verification tracking in stats
+  if (!stats.verifications.e2e) {
+    stats.verifications.e2e = [];
+  }
+  if (!stats.clipOutsideFragments) {
+    stats.clipOutsideFragments = []; // Store outside fragments for potential reconstruction
+  }
 
   const elementsWithClip = findElementsWithAttribute(root, 'clip-path');
 
@@ -466,12 +496,74 @@ function applyAllClipPaths(root, defsMap, opts) {
 
       if (!clipPathData) continue;
 
-      // Convert to polygons
-      const origPolygon = ClipPathResolver.pathToPolygon(origPathData, opts.curveSegments);
-      const clipPolygon = ClipPathResolver.pathToPolygon(clipPathData, opts.curveSegments);
+      // Convert to polygons using higher segment count for clip accuracy
+      // clipSegments (default 64) provides better curve approximation for E2E verification
+      const clipSegs = opts.clipSegments || 64;
+      const origPolygon = ClipPathResolver.pathToPolygon(origPathData, clipSegs);
+      const clipPolygon = ClipPathResolver.pathToPolygon(clipPathData, clipSegs);
 
-      // Perform intersection
+      // Perform intersection (clipped result - what's kept)
       const clippedPolygon = intersectPolygons(origPolygon, clipPolygon);
+
+      // Convert polygon arrays to proper format for verification
+      const origForVerify = origPolygon.map(p => ({
+        x: p.x instanceof Decimal ? p.x : D(p.x),
+        y: p.y instanceof Decimal ? p.y : D(p.y)
+      }));
+      const clipForVerify = clipPolygon.map(p => ({
+        x: p.x instanceof Decimal ? p.x : D(p.x),
+        y: p.y instanceof Decimal ? p.y : D(p.y)
+      }));
+
+      // VERIFICATION: Verify polygon intersection is valid (ALWAYS runs)
+      if (clippedPolygon && clippedPolygon.length > 2) {
+        const clippedForVerify = clippedPolygon.map(p => ({
+          x: p.x instanceof Decimal ? p.x : D(p.x),
+          y: p.y instanceof Decimal ? p.y : D(p.y)
+        }));
+
+        const polyResult = Verification.verifyPolygonIntersection(origForVerify, clipForVerify, clippedForVerify);
+        stats.verifications.polygons.push({
+          element: el.tagName,
+          clipPathId: refId,
+          ...polyResult
+        });
+        if (polyResult.valid) {
+          stats.verifications.passed++;
+        } else {
+          stats.verifications.failed++;
+          stats.verifications.allPassed = false;
+        }
+
+        // E2E VERIFICATION: Compute difference (outside parts) and verify area conservation
+        // This ensures: area(original) = area(clipped) + area(outside)
+        const outsideFragments = Verification.computePolygonDifference(origForVerify, clipForVerify);
+
+        // Store outside fragments (marked invisible) for potential reconstruction
+        stats.clipOutsideFragments.push({
+          elementId: el.getAttribute('id') || `clip-${count}`,
+          clipPathId: refId,
+          fragments: outsideFragments,
+          visible: false // These are the "thrown away" parts, stored invisibly
+        });
+
+        // E2E Verification: area(original) = area(clipped) + area(outside)
+        // Pass configurable tolerance (default 1e-10 with 64 clipSegments)
+        const e2eTolerance = opts.e2eTolerance || '1e-10';
+        const e2eResult = Verification.verifyClipPathE2E(origForVerify, clippedForVerify, outsideFragments, e2eTolerance);
+        stats.verifications.e2e.push({
+          element: el.tagName,
+          clipPathId: refId,
+          type: 'clip-area-conservation',
+          ...e2eResult
+        });
+        if (e2eResult.valid) {
+          stats.verifications.passed++;
+        } else {
+          stats.verifications.failed++;
+          stats.verifications.allPassed = false;
+        }
+      }
 
       if (clippedPolygon && clippedPolygon.length > 2) {
         const clippedPath = ClipPathResolver.polygonToPathData(clippedPolygon, opts.precision);
@@ -510,7 +602,7 @@ function applyAllClipPaths(root, defsMap, opts) {
  * Flatten all transform attributes by baking into coordinates.
  * @private
  */
-function flattenAllTransforms(root, opts) {
+function flattenAllTransforms(root, opts, stats) {
   const errors = [];
   let count = 0;
 
@@ -524,20 +616,62 @@ function flattenAllTransforms(root, opts) {
       // Parse transform to matrix
       const ctm = SVGFlatten.parseTransformAttribute(transform);
 
+      // VERIFICATION: Verify matrix is invertible and well-formed (ALWAYS runs)
+      const matrixResult = Verification.verifyMatrixInversion(ctm);
+      stats.verifications.matrices.push({
+        element: el.tagName,
+        transform,
+        ...matrixResult
+      });
+      if (matrixResult.valid) {
+        stats.verifications.passed++;
+      } else {
+        stats.verifications.failed++;
+        stats.verifications.allPassed = false;
+      }
+
       // Get element path data
       const pathData = getElementPathData(el, opts.precision);
       if (!pathData) {
         // For groups, propagate transform to children
         if (el.tagName === 'g') {
-          propagateTransformToChildren(el, ctm, opts);
+          propagateTransformToChildren(el, ctm, opts, stats);
           el.removeAttribute('transform');
           count++;
         }
         continue;
       }
 
+      // VERIFICATION: Sample test points from original path for round-trip verification (ALWAYS runs)
+      let testPoints = [];
+      // Extract a few key points from the path for verification
+      const polygon = ClipPathResolver.pathToPolygon(pathData, 4);
+      if (polygon && polygon.length > 0) {
+        testPoints = polygon.slice(0, 4).map(p => ({
+          x: p.x instanceof Decimal ? p.x : D(p.x),
+          y: p.y instanceof Decimal ? p.y : D(p.y)
+        }));
+      }
+
       // Transform the path data
       const transformedPath = SVGFlatten.transformPathData(pathData, ctm, { precision: opts.precision });
+
+      // VERIFICATION: Verify transform round-trip accuracy for each test point (ALWAYS runs)
+      for (let i = 0; i < testPoints.length; i++) {
+        const pt = testPoints[i];
+        const rtResult = Verification.verifyTransformRoundTrip(ctm, pt.x, pt.y);
+        stats.verifications.transforms.push({
+          element: el.tagName,
+          pointIndex: i,
+          ...rtResult
+        });
+        if (rtResult.valid) {
+          stats.verifications.passed++;
+        } else {
+          stats.verifications.failed++;
+          stats.verifications.allPassed = false;
+        }
+      }
 
       // Update or replace element
       if (el.tagName === 'path') {
@@ -573,7 +707,7 @@ function flattenAllTransforms(root, opts) {
  * Propagate transform to all children of a group.
  * @private
  */
-function propagateTransformToChildren(group, ctm, opts) {
+function propagateTransformToChildren(group, ctm, opts, stats) {
   for (const child of [...group.children]) {
     if (!(child instanceof SVGElement)) continue;
 
@@ -597,6 +731,20 @@ function propagateTransformToChildren(group, ctm, opts) {
         if (childTransform) {
           const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
           combinedCtm = ctm.mul(childCtm);
+        }
+
+        // VERIFICATION: Verify combined transform matrix (ALWAYS runs)
+        const matrixResult = Verification.verifyMatrixInversion(combinedCtm);
+        stats.verifications.matrices.push({
+          element: child.tagName,
+          context: 'group-propagation',
+          ...matrixResult
+        });
+        if (matrixResult.valid) {
+          stats.verifications.passed++;
+        } else {
+          stats.verifications.failed++;
+          stats.verifications.allPassed = false;
         }
 
         const transformedPath = SVGFlatten.transformPathData(pathData, combinedCtm, { precision: opts.precision });
@@ -627,7 +775,7 @@ function propagateTransformToChildren(group, ctm, opts) {
  * Bake gradientTransform into gradient coordinates.
  * @private
  */
-function bakeAllGradientTransforms(root, opts) {
+function bakeAllGradientTransforms(root, opts, stats) {
   const errors = [];
   let count = 0;
 
@@ -648,6 +796,24 @@ function bakeAllGradientTransforms(root, opts) {
 
       const [tx1, ty1] = Transforms2D.applyTransform(ctm, x1, y1);
       const [tx2, ty2] = Transforms2D.applyTransform(ctm, x2, y2);
+
+      // VERIFICATION: Verify linear gradient transform (ALWAYS runs)
+      const gradResult = Verification.verifyLinearGradientTransform(
+        { x1, y1, x2, y2 },
+        { x1: tx1.toNumber(), y1: ty1.toNumber(), x2: tx2.toNumber(), y2: ty2.toNumber() },
+        ctm
+      );
+      stats.verifications.gradients.push({
+        gradientId: grad.getAttribute('id') || 'unknown',
+        type: 'linear',
+        ...gradResult
+      });
+      if (gradResult.valid) {
+        stats.verifications.passed++;
+      } else {
+        stats.verifications.failed++;
+        stats.verifications.allPassed = false;
+      }
 
       grad.setAttribute('x1', tx1.toFixed(opts.precision));
       grad.setAttribute('y1', ty1.toFixed(opts.precision));

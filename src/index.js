@@ -46,6 +46,7 @@ import * as MeshGradient from './mesh-gradient.js';
 import * as TextToPath from './text-to-path.js';
 import * as SVGParser from './svg-parser.js';
 import * as FlattenPipeline from './flatten-pipeline.js';
+import * as Verification from './verification.js';
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
 // Set high-precision default (80 significant digits) on module load
@@ -91,7 +92,7 @@ export { SVGFlatten, BrowserVerify };
 export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
 export { MeshGradient, TextToPath };
-export { SVGParser, FlattenPipeline };
+export { SVGParser, FlattenPipeline, Verification };
 
 // ============================================================================
 // LOGGING: Configurable logging control
@@ -426,6 +427,7 @@ export default {
   TextToPath,
   SVGParser,
   FlattenPipeline,
+  Verification,
 
   // Logging
   Logger,
