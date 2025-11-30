@@ -3,11 +3,14 @@
  * @fileoverview Post-install welcome message for @emasoft/svg-matrix
  * Displays a summary of CLI commands and API functions after npm install.
  *
+ * Note: npm 7+ suppresses lifecycle script output by default.
+ * We write directly to /dev/tty on Unix to bypass this.
+ *
  * @module scripts/postinstall
  * @license MIT
  */
 
-import { readFileSync } from 'fs';
+import { readFileSync, createWriteStream, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -68,9 +71,24 @@ function pad(s, w) {
   return s + ' '.repeat(Math.max(0, w - visible));
 }
 
+// Get a writable stream that bypasses npm's output suppression
+function getOutputStream() {
+  // On Unix, try to write directly to /dev/tty (the terminal)
+  // This bypasses npm's stdout/stderr redirection
+  if (process.platform !== 'win32' && existsSync('/dev/tty')) {
+    try {
+      return createWriteStream('/dev/tty');
+    } catch {
+      // Fall back to stderr
+    }
+  }
+  // On Windows or if /dev/tty fails, use stderr
+  return process.stderr;
+}
+
 function showWelcome() {
+  // Skip in CI environments - no need to clutter build logs
   if (isCI()) process.exit(0);
-  if (!process.stdout.isTTY) process.exit(0);
 
   const version = getVersion();
   const c = getColors(shouldDisableColors());
@@ -84,7 +102,11 @@ function showWelcome() {
   const hr = B.h.repeat(W);
   const R = (s) => pad(s, W);
 
-  console.log(`
+  // Get output stream that bypasses npm suppression
+  const out = getOutputStream();
+  const write = (s) => out.write(s);
+
+  write(`
 ${c.cyan}${B.tl}${hr}${B.tr}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.bright}@emasoft/svg-matrix${c.reset} v${version}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.dim}Arbitrary-precision SVG transforms with decimal.js${c.reset}`)}${c.cyan}${B.v}${c.reset}
