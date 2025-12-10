@@ -1,895 +1,633 @@
 # @emasoft/svg-matrix
 
-High-precision matrix, vector, and SVG transformation library for JavaScript. Built on decimal.js for 80-digit precision arithmetic.
+A JavaScript library for working with SVG files, matrices, and geometric transformations.
+Uses high-precision math (80 digits!) so your calculations are always accurate.
 
-## Features
+---
 
-**Linear Algebra**
-- Matrix and Vector classes with full linear algebra operations
-- LU/QR decomposition, determinant, inverse, solve, matrix exponential
+## How to Install
 
-**Affine Transforms**
-- 2D (3x3 homogeneous): translation, rotation, scale, skew, reflection
-- 3D (4x4 homogeneous): translation, rotation (X/Y/Z/arbitrary axis), scale
+### Step 1: Check you have Node.js 24 or newer
 
-**SVG Processing**
-- Transform attribute parsing and CTM (Current Transform Matrix) building
-- viewBox, preserveAspectRatio, nested viewports, unit resolution
-- Shape-to-path conversion (circle, ellipse, rect, line, polygon, polyline)
-- Path parsing, normalization (absolute, cubics), transformation
-
-**SVG Element Resolution**
-- ClipPath flattening to polygons
-- Mask resolution (luminance and alpha)
-- Pattern tiling expansion
-- Use/symbol inlining with proper transforms
-- Marker positioning and orientation
-
-**Advanced**
-- Polygon boolean operations (intersection, union, difference, convex hull)
-- SVG 2.0 mesh gradient parsing and rasterization
-- Text-to-path conversion with font support
-- Browser verification against Chrome's native W3C SVG2 implementation
-
-## Requirements
-
-- **Node.js 24.0.0** or higher (ES modules, modern JavaScript features)
-- **Playwright** (optional) - for browser verification features
-
-## Precision
-
-| Scenario | Float Error | This Library | Improvement |
-|----------|-------------|--------------|-------------|
-| GIS/CAD coordinates (1e6+ scale) | 1.69e-7 | 0 | 10^93x |
-| 6-level SVG hierarchy | 1.14e-13 | 1e-77 | 10^64x |
-| 1000 round-trip transforms | 5.41e-14 | 0 | 10^86x |
-
-**When precision matters:** GIS, CAD, scientific visualization, deep transform hierarchies, accumulated operations.
-
-**When floats suffice:** Simple transforms, small coordinates, visual applications where sub-pixel errors are imperceptible.
+Open your terminal and type:
 
 ```bash
-node test/benchmark-precision.js
+node --version
 ```
 
-## Installation
+You should see `v24.0.0` or higher. If not, download Node.js from https://nodejs.org
 
-### Node.js (Local Installation)
+### Step 2: Install the package
 
-**What does "local installation" mean?** It means downloading the library to your computer so you can use it in your Node.js projects. This is what most developers do.
-
-#### Step 1: Install the package
-
-Open your terminal and run:
+In your terminal, go to your project folder and type:
 
 ```bash
 npm install @emasoft/svg-matrix
 ```
 
-This downloads the library into a folder called `node_modules` in your project.
+That's it! The package is now installed.
 
-#### Upgrading to the Latest Version
+---
 
-To update to the latest version:
+## How to Use It
 
-```bash
-npm update @emasoft/svg-matrix
-```
+### In your JavaScript/TypeScript file
 
-Or to install a specific version:
-
-```bash
-npm install @emasoft/svg-matrix@latest
-```
-
-To check your current version:
-
-```bash
-npm list @emasoft/svg-matrix
-```
-
-#### Step 2: Create a JavaScript file
-
-Create a new file called `example.js` in your project folder.
-
-#### Step 3: Import what you need
-
-There are two ways to import the library:
-
-**Way 1: Pick only what you need (recommended)**
-
-This is like ordering specific items from a menu:
+Add this line at the top of your file:
 
 ```js
-// example.js
-
-// Import only the modules you need
 import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
-
-// Now you can use them directly
-const v = Vector.from([1, 2, 3]);
-const rotation = Transforms2D.rotate(Math.PI / 4);  // 45 degrees
-
-console.log('Vector:', v.toNumberArray());
-console.log('Rotation matrix created!');
 ```
 
-**Way 2: Import everything at once**
+Now you can use all the tools!
 
-This is like getting the entire toolbox:
+### In an HTML page (no install needed)
 
-```js
-// example.js
-
-// Import EVERYTHING as one big object called "SVGMatrix"
-import * as SVGMatrix from '@emasoft/svg-matrix';
-
-// Now use SVGMatrix.ModuleName to access each tool
-const v = SVGMatrix.Vector.from([1, 2, 3]);
-const m = SVGMatrix.Matrix.identity(3);
-const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
-const pathData = SVGMatrix.GeometryToPath.circleToPathData(100, 100, 50);
-
-// See everything that's available:
-console.log('Available modules:', Object.keys(SVGMatrix));
-```
-
-**What's inside the toolbox?** When you import everything, you get:
-- `SVGMatrix.Matrix` - For matrix math
-- `SVGMatrix.Vector` - For vector math
-- `SVGMatrix.Transforms2D` - For 2D rotations, translations, scaling
-- `SVGMatrix.Transforms3D` - For 3D transformations
-- `SVGMatrix.SVGFlatten` - For flattening SVG transforms
-- `SVGMatrix.GeometryToPath` - For converting shapes to paths
-- `SVGMatrix.PolygonClip` - For polygon boolean operations
-- ...and many more!
-
-#### Step 4: Run your code
-
-```bash
-node example.js
-```
-
-#### Complete Working Example
-
-Save this as `my-first-example.js`:
-
-```js
-// my-first-example.js
-// A complete example showing the main features
-
-import {
-  Matrix,
-  Vector,
-  Transforms2D,
-  GeometryToPath,
-  SVGFlatten
-} from '@emasoft/svg-matrix';
-
-console.log('=== Vector Example ===');
-const v = Vector.from([1, 2, 3]);
-const w = Vector.from([4, 5, 6]);
-console.log('Vector v:', v.toNumberArray());
-console.log('Vector w:', w.toNumberArray());
-console.log('Dot product (v · w):', v.dot(w).toString());
-
-console.log('\n=== Matrix Example ===');
-const A = Matrix.from([[1, 2], [3, 4]]);
-console.log('Matrix A:', A.toNumberArray());
-console.log('Determinant:', A.determinant().toString());
-
-console.log('\n=== Transform Example ===');
-// Create a transform: move 100 right, rotate 45°, scale 2x
-const transform = Transforms2D.translation(100, 0)
-  .mul(Transforms2D.rotate(Math.PI / 4))
-  .mul(Transforms2D.scale(2));
-
-// Apply to a point
-const [x, y] = Transforms2D.applyTransform(transform, 10, 0);
-console.log(`Point (10, 0) after transform: (${x.toFixed(2)}, ${y.toFixed(2)})`);
-
-console.log('\n=== SVG Path Example ===');
-// Convert a circle to a path
-const circlePath = GeometryToPath.circleToPathData(0, 0, 50);
-console.log('Circle as path:', circlePath.substring(0, 50) + '...');
-
-console.log('\nDone! Everything works!');
-```
-
-Run it:
-```bash
-node my-first-example.js
-```
-
-#### Troubleshooting
-
-**"Cannot use import statement outside a module"**
-
-Add `"type": "module"` to your `package.json`:
-
-```json
-{
-  "name": "my-project",
-  "type": "module"
-}
-```
-
-Or rename your file from `.js` to `.mjs`.
-
-**Using older Node.js syntax (require)?**
-
-This library uses modern ES modules. If you have old code using `require()`:
-
-```js
-// OLD WAY (doesn't work directly)
-// const { Matrix } = require('@emasoft/svg-matrix');  // ❌ Error!
-
-// NEW WAY (use dynamic import)
-async function main() {
-  const { Matrix, Vector } = await import('@emasoft/svg-matrix');
-
-  const v = Vector.from([1, 2, 3]);
-  console.log(v.norm().toString());
-}
-main();
-```
-
-### Browser Usage (CDN)
-
-You can use this library directly in a web browser without installing anything. Just add a `<script>` tag to your HTML file.
-
-**What is a CDN?** A CDN (Content Delivery Network) hosts the library files so you can load them directly in your browser. No `npm install` needed!
-
-#### Option 1: esm.sh (Recommended)
-
-Best for modern browsers. Automatically handles dependencies.
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SVG Matrix Example</title>
-</head>
-<body>
-  <script type="module">
-    // Import the modules you need
-    import { Matrix, Vector, Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix';
-
-    // Now you can use them!
-    const rotation = Transforms2D.rotate(Math.PI / 4);  // 45 degrees
-    const [x, y] = Transforms2D.applyTransform(rotation, 10, 0);
-
-    console.log(`Point (10, 0) rotated 45 degrees = (${x}, ${y})`);
-  </script>
-</body>
-</html>
-```
-
-#### Option 2: unpkg
-
-Another reliable CDN option.
+Just add this inside your HTML:
 
 ```html
 <script type="module">
-  import { SVGFlatten, GeometryToPath } from 'https://unpkg.com/@emasoft/svg-matrix/src/index.js';
+  import { Matrix, Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix';
 
-  // Convert a circle to a path
-  const pathData = GeometryToPath.circleToPathData(100, 100, 50);
-  console.log(pathData);
+  // Your code here
 </script>
 ```
 
-#### Option 3: jsDelivr
+---
 
-Popular CDN with good caching.
+## Command Line Tools
 
-```html
-<script type="module">
-  import { Matrix, Vector } from 'https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/src/index.js';
+After installing, you get two commands you can run in your terminal:
 
-  const v = Vector.from([1, 2, 3]);
-  const w = Vector.from([4, 5, 6]);
-  console.log('Dot product:', v.dot(w).toString());
-</script>
-```
+### `svg-matrix` - Process SVG files
 
-#### Import Everything at Once
+| What you type | What it does |
+|---------------|--------------|
+| `svg-matrix flatten input.svg -o output.svg` | Bakes all transforms into the shapes |
+| `svg-matrix convert input.svg -o output.svg` | Turns circles, rectangles into paths |
+| `svg-matrix normalize input.svg -o output.svg` | Makes all path commands consistent |
+| `svg-matrix info input.svg` | Shows info about the SVG file |
 
-**What if I don't know what I need yet?** You can import the entire library as one big object. This is like getting the whole toolbox instead of picking individual tools.
+**Options you can add:**
 
-```html
-<script type="module">
-  // Import EVERYTHING as one object called "SVGMatrix"
-  // The "* as" means "everything as"
-  import * as SVGMatrix from 'https://esm.sh/@emasoft/svg-matrix';
-
-  // Now use SVGMatrix.ModuleName to access each tool
-  const v = SVGMatrix.Vector.from([1, 2, 3]);
-  const m = SVGMatrix.Matrix.identity(3);
-  const rotation = SVGMatrix.Transforms2D.rotate(Math.PI / 4);
-  const [x, y] = SVGMatrix.Transforms2D.applyTransform(rotation, 10, 0);
-
-  // See everything that's available:
-  console.log('All modules:', Object.keys(SVGMatrix));
-  // Output: ['Matrix', 'Vector', 'Transforms2D', 'Transforms3D', 'SVGFlatten', ...]
-</script>
-```
-
-**What's inside?** Here's everything you get:
-
-| Module | What it does |
+| Option | What it does |
 |--------|--------------|
-| `SVGMatrix.Matrix` | Matrix math (multiply, inverse, determinant) |
-| `SVGMatrix.Vector` | Vector math (add, dot product, cross product) |
-| `SVGMatrix.Transforms2D` | 2D transforms (rotate, scale, translate) |
-| `SVGMatrix.Transforms3D` | 3D transforms (rotate around axes) |
-| `SVGMatrix.SVGFlatten` | Flatten SVG transforms into paths |
-| `SVGMatrix.GeometryToPath` | Convert shapes (circle, rect) to paths |
-| `SVGMatrix.PolygonClip` | Boolean operations on polygons |
-| `SVGMatrix.ClipPathResolver` | Resolve SVG clipPath elements |
-| `SVGMatrix.BrowserVerify` | Verify against browser's SVG engine |
-| `SVGMatrix.Logger` | Control library logging |
+| `-o output.svg` | Where to save the result |
+| `-r` | Process all SVG files in subfolders too |
+| `-f` | Overwrite files without asking |
+| `-q` | Don't print messages |
 
-#### Pin to a Specific Version
+### `svglinter` - Check SVG files for problems
 
-To avoid breaking changes, pin to a specific version:
+| What you type | What it does |
+|---------------|--------------|
+| `svglinter myfile.svg` | Check one file for problems |
+| `svglinter icons/` | Check all SVG files in a folder |
+| `svglinter --fix icons/` | Fix problems automatically |
+| `svglinter --errors-only icons/` | Only show serious problems |
 
-```html
-<!-- esm.sh with version -->
-<script type="module">
-  import { Transforms2D } from 'https://esm.sh/@emasoft/svg-matrix@1.0.7';
-</script>
+The linter finds things like:
+- Broken references (pointing to IDs that don't exist)
+- Typos in element or attribute names
+- Invalid colors or values
+- Missing required attributes
 
-<!-- unpkg with version -->
-<script type="module">
-  import { Matrix } from 'https://unpkg.com/@emasoft/svg-matrix@1.0.7/src/index.js';
-</script>
+See [full svglinter documentation](docs/SVGLINTER.md) for the complete list of checks.
 
-<!-- jsDelivr with version -->
-<script type="module">
-  import { Vector } from 'https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix@1.0.7/src/index.js';
-</script>
-```
+---
 
-#### Complete Working Example
+## Quick Examples
 
-Save this as `example.html` and open it in your browser:
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>SVG Matrix - Complete Example</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    svg { border: 1px solid #ccc; }
-    pre { background: #f5f5f5; padding: 10px; }
-  </style>
-</head>
-<body>
-  <h1>SVG Matrix Demo</h1>
-
-  <h2>Original Circle</h2>
-  <svg width="200" height="200">
-    <circle id="original" cx="100" cy="100" r="40" fill="blue" opacity="0.5"/>
-  </svg>
-
-  <h2>Transformed (rotate 45 + scale 1.5)</h2>
-  <svg width="200" height="200">
-    <path id="transformed" fill="red" opacity="0.5"/>
-  </svg>
-
-  <h2>Generated Path Data</h2>
-  <pre id="output"></pre>
-
-  <script type="module">
-    import {
-      Transforms2D,
-      GeometryToPath,
-      SVGFlatten
-    } from 'https://esm.sh/@emasoft/svg-matrix';
-
-    // Step 1: Convert circle to path
-    const circlePath = GeometryToPath.circleToPathData(100, 100, 40);
-
-    // Step 2: Create a combined transform (rotate 45 degrees, then scale 1.5x)
-    const transform = Transforms2D.scale(1.5)
-      .mul(Transforms2D.rotate(Math.PI / 4));
-
-    // Step 3: Apply transform to the path
-    const transformedPath = SVGFlatten.transformPathData(circlePath, transform);
-
-    // Step 4: Display the result
-    document.getElementById('transformed').setAttribute('d', transformedPath);
-    document.getElementById('output').textContent = transformedPath;
-  </script>
-</body>
-</html>
-```
-
-#### Troubleshooting
-
-**"Cannot use import statement outside a module"**
-Make sure you have `type="module"` in your script tag:
-```html
-<script type="module">  <!-- This is required! -->
-```
-
-**CORS errors when opening HTML file directly**
-Some browsers block CDN imports when opening files with `file://`. Solutions:
-1. Use a local server: `npx serve .` or `python -m http.server`
-2. Or use a code playground like CodePen, JSFiddle, or StackBlitz
-
-**Want to use with older browsers?**
-This library requires ES modules (modern browsers). For IE11 or very old browsers, you'll need a bundler like Webpack or Rollup.
-
-## CLI
-
-The library includes a command-line interface for batch processing SVG files.
-
-```bash
-# Show help
-svg-matrix --help
-
-# Show command-specific help
-svg-matrix flatten --help
-
-# Show version
-svg-matrix --version
-
-# Process single file
-svg-matrix flatten input.svg -o output.svg
-
-# Batch process folder
-svg-matrix flatten ./svgs/ -o ./output/
-
-# Process files from list
-svg-matrix flatten --list files.txt -o ./output/
-
-# Convert shapes to paths
-svg-matrix convert input.svg -o output.svg
-
-# Normalize paths to cubic Beziers
-svg-matrix normalize input.svg -o output.svg
-
-# Show SVG file info
-svg-matrix info input.svg
-```
-
-### CLI Options
-
-| Option | Description |
-|--------|-------------|
-| `-o, --output <path>` | Output file or directory |
-| `-l, --list <file>` | Read input files from text file |
-| `-r, --recursive` | Process directories recursively |
-| `-p, --precision <n>` | Decimal precision (default: 6) |
-| `-f, --force` | Overwrite existing files |
-| `-n, --dry-run` | Show what would be done |
-| `-q, --quiet` | Suppress all output except errors |
-| `-v, --verbose` | Enable verbose/debug output |
-| `--log-file <path>` | Write log to file |
-
-### File List Format
-
-Create a text file with one path per line:
-
-```
-# This is a comment
-./folder1/file1.svg
-./folder2/file2.svg
-./entire-folder/
-```
-
-## Quick Start
+### Example 1: Work with vectors
 
 ```js
-import { Decimal, Matrix, Vector, Transforms2D, SVGFlatten } from '@emasoft/svg-matrix';
+import { Vector } from '@emasoft/svg-matrix';
 
-Decimal.set({ precision: 80 });
+// Create two vectors
+const a = Vector.from([3, 4]);
+const b = Vector.from([1, 0]);
 
-// Compose transforms (right-to-left: scale first, then rotate, then translate)
-const M = Transforms2D.translation(10, 20)
-  .mul(Transforms2D.rotate(Math.PI / 4))
-  .mul(Transforms2D.scale(2));
+// Get the length of vector a (it's 5, like a 3-4-5 triangle!)
+console.log(a.norm().toString());  // "5"
 
-// Apply to point
-const [x, y] = Transforms2D.applyTransform(M, 1, 0);
-
-// Round-trip with inverse
-const [xBack, yBack] = Transforms2D.applyTransform(M.inverse(), x, y);
+// Add them together
+const sum = a.add(b);
+console.log(sum.toNumberArray());  // [4, 4]
 ```
+
+### Example 2: Work with matrices
+
+```js
+import { Matrix } from '@emasoft/svg-matrix';
+
+// Create a 2x2 matrix
+const M = Matrix.from([
+  [1, 2],
+  [3, 4]
+]);
+
+// Calculate its determinant
+console.log(M.determinant().toString());  // "-2"
+
+// Get the inverse matrix
+const inv = M.inverse();
+```
+
+### Example 3: Transform a point
+
+```js
+import { Transforms2D } from '@emasoft/svg-matrix';
+
+// Move a point 100 units to the right
+const move = Transforms2D.translation(100, 0);
+
+// Apply to point (10, 20)
+const [newX, newY] = Transforms2D.applyTransform(move, 10, 20);
+console.log(newX, newY);  // 110, 20
+```
+
+### Example 4: Convert a circle to a path
+
+```js
+import { GeometryToPath } from '@emasoft/svg-matrix';
+
+// Turn a circle (center 50,50 radius 25) into path commands
+const pathData = GeometryToPath.circleToPathData(50, 50, 25);
+console.log(pathData);
+// "M75,50 A25,25 0 1,1 25,50 A25,25 0 1,1 75,50"
+```
+
+---
+
+## What's Inside
+
+| Category | What you can do |
+|----------|-----------------|
+| **Vectors** | Add, subtract, dot product, cross product, normalize, find angles |
+| **Matrices** | Multiply, invert, transpose, solve equations, decompose (LU, QR) |
+| **2D Transforms** | Move, rotate, scale, skew, reflect shapes |
+| **3D Transforms** | Same as 2D but for 3D graphics |
+| **SVG Shapes** | Convert circles, rectangles, etc. to path commands |
+| **SVG Paths** | Parse, normalize, transform path data |
+| **SVG Validation** | Find and fix problems in SVG files |
 
 ---
 
 ## API Reference
 
-### Linear Algebra
+### Vector
 
-#### Vector
+| Method | Description | Example |
+|--------|-------------|---------|
+| `Vector.from(arr)` | Create vector | `Vector.from([1, 2, 3])` |
+| `.add(v)` | Addition | `v.add(w)` |
+| `.sub(v)` | Subtraction | `v.sub(w)` |
+| `.scale(s)` | Scalar multiply | `v.scale(2)` |
+| `.dot(v)` | Dot product | `v.dot(w)` → Decimal |
+| `.cross(v)` | Cross product (3D) | `v.cross(w)` |
+| `.norm()` | Euclidean length | `v.norm()` |
+| `.normalize()` | Unit vector | `v.normalize()` |
+| `.angleBetween(v)` | Angle (radians) | `v.angleBetween(w)` |
+| `.distance(v)` | Euclidean distance | `v.distance(w)` |
+| `.toNumberArray()` | To JS array | `[1, 2, 3]` |
 
 ```js
 import { Vector } from '@emasoft/svg-matrix';
 
-const v = Vector.from([1, 2, 3]);
-const w = Vector.from([4, 5, 6]);
-
-v.add(w)              // Element-wise addition
-v.sub(w)              // Element-wise subtraction
-v.scale(2)            // Scalar multiplication
-v.dot(w)              // Dot product → Decimal
-v.cross(w)            // Cross product (3D)
-v.norm()              // Euclidean length
-v.normalize()         // Unit vector
-v.angleBetween(w)     // Angle in radians
-v.projectOnto(w)      // Vector projection
-v.orthogonal()        // Perpendicular vector
-v.distance(w)         // Euclidean distance
-v.toNumberArray()     // [1, 2, 3]
+const v = Vector.from([3, 4]);
+console.log(v.norm().toString());        // "5"
+console.log(v.normalize().toNumberArray()); // [0.6, 0.8]
 ```
 
-#### Matrix
+---
+
+### Matrix
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `Matrix.from(arr)` | Create from 2D array | `Matrix.from([[1,2],[3,4]])` |
+| `Matrix.identity(n)` | Identity matrix | `Matrix.identity(3)` |
+| `Matrix.zeros(r, c)` | Zero matrix | `Matrix.zeros(2, 3)` |
+| `.mul(M)` | Matrix multiply | `A.mul(B)` |
+| `.transpose()` | Transpose | `A.transpose()` |
+| `.determinant()` | Determinant | `A.determinant()` |
+| `.inverse()` | Inverse | `A.inverse()` |
+| `.solve(b)` | Solve Ax = b | `A.solve([1, 1])` |
+| `.lu()` | LU decomposition | `{ L, U, P }` |
+| `.qr()` | QR decomposition | `{ Q, R }` |
+| `.exp()` | Matrix exponential | `A.exp()` |
 
 ```js
 import { Matrix } from '@emasoft/svg-matrix';
 
-const A = Matrix.from([[1, 2], [3, 4]]);
-const I = Matrix.identity(3);
-const Z = Matrix.zeros(2, 3);
-
-A.add(B)              // Element-wise addition
-A.sub(B)              // Element-wise subtraction
-A.mul(B)              // Matrix multiplication
-A.transpose()         // Transpose
-A.trace()             // Sum of diagonal
-A.determinant()       // Determinant
-A.inverse()           // Matrix inverse
-A.solve([1, 1])       // Solve Ax = b
-A.lu()                // { L, U, P } decomposition
-A.qr()                // { Q, R } decomposition
-A.exp()               // Matrix exponential
-A.applyToVector(v)    // Matrix-vector product
+const A = Matrix.from([[4, 7], [2, 6]]);
+console.log(A.determinant().toString());  // "10"
+const x = A.solve([1, 0]);                // Solve Ax = [1, 0]
 ```
 
-### Transforms
+---
 
-#### 2D (3x3 matrices)
+### Transforms2D
+
+| Method | Description |
+|--------|-------------|
+| `translation(tx, ty)` | Translation matrix |
+| `scale(sx, sy?)` | Scale matrix (sy defaults to sx) |
+| `rotate(theta)` | Rotation matrix (radians) |
+| `rotateAroundPoint(theta, px, py)` | Rotate around point |
+| `skew(ax, ay)` | Skew matrix |
+| `reflectX()` / `reflectY()` | Reflection matrices |
+| `applyTransform(M, x, y)` | Apply matrix to point |
 
 ```js
 import { Transforms2D } from '@emasoft/svg-matrix';
 
-Transforms2D.translation(tx, ty)
-Transforms2D.scale(sx, sy)              // sy defaults to sx
-Transforms2D.rotate(theta)              // radians
-Transforms2D.rotateAroundPoint(theta, px, py)
-Transforms2D.skew(ax, ay)
-Transforms2D.stretchAlongAxis(ux, uy, k)
-Transforms2D.reflectX()                 // flip across X axis
-Transforms2D.reflectY()                 // flip across Y axis
-Transforms2D.reflectOrigin()
+// Rotate 45 degrees around origin
+const R = Transforms2D.rotate(Math.PI / 4);
+const [x, y] = Transforms2D.applyTransform(R, 10, 0);
+// Result: [7.07..., 7.07...]
 
-// Apply to point
-const [x, y] = Transforms2D.applyTransform(matrix, px, py);
+// Compose: translate, then rotate, then scale
+const M = Transforms2D.translation(100, 50)
+  .mul(Transforms2D.rotate(Math.PI / 6))
+  .mul(Transforms2D.scale(2));
 ```
 
-#### 3D (4x4 matrices)
+---
+
+### Transforms3D
+
+| Method | Description |
+|--------|-------------|
+| `translation(tx, ty, tz)` | Translation matrix |
+| `scale(sx, sy, sz)` | Scale matrix |
+| `rotateX(theta)` | Rotate around X axis |
+| `rotateY(theta)` | Rotate around Y axis |
+| `rotateZ(theta)` | Rotate around Z axis |
+| `rotateAroundAxis(ux, uy, uz, theta)` | Rotate around arbitrary axis |
+| `applyTransform(M, x, y, z)` | Apply matrix to point |
 
 ```js
 import { Transforms3D } from '@emasoft/svg-matrix';
 
-Transforms3D.translation(tx, ty, tz)
-Transforms3D.scale(sx, sy, sz)
-Transforms3D.rotateX(theta)
-Transforms3D.rotateY(theta)
-Transforms3D.rotateZ(theta)
-Transforms3D.rotateAroundAxis(ux, uy, uz, theta)
-Transforms3D.rotateAroundPoint(ux, uy, uz, theta, px, py, pz)
-Transforms3D.reflectXY()                // flip Z
-Transforms3D.reflectXZ()                // flip Y
-Transforms3D.reflectYZ()                // flip X
-
-const [x, y, z] = Transforms3D.applyTransform(matrix, px, py, pz);
+const R = Transforms3D.rotateY(Math.PI / 2);  // 90 degrees around Y
+const [x, y, z] = Transforms3D.applyTransform(R, 1, 0, 0);
+// Result: [0, 0, -1]
 ```
 
-### SVG Processing
+---
 
-#### SVGFlatten - Transform Parsing & CTM
+### SVGFlatten
+
+| Method | Description |
+|--------|-------------|
+| `parseTransformAttribute(str)` | Parse SVG transform string |
+| `buildCTM(transforms[])` | Build CTM from transform stack |
+| `applyToPoint(ctm, x, y)` | Transform a point |
+| `transformPathData(pathData, ctm)` | Transform path data |
+| `parseViewBox(str)` | Parse viewBox attribute |
+| `parsePreserveAspectRatio(str)` | Parse preserveAspectRatio |
+| `computeViewBoxTransform(vb, w, h, par)` | Compute viewBox transform |
+| `resolveLength(str, ref)` | Resolve CSS length units |
 
 ```js
 import { SVGFlatten } from '@emasoft/svg-matrix';
 
-// Parse transform attributes
-const m = SVGFlatten.parseTransformAttribute('translate(50,50) rotate(45) scale(2)');
-
-// Build CTM from transform stack
-const ctm = SVGFlatten.buildCTM([
-  'scale(1.5)',
-  'translate(-13.6, -10.2)',
-  'rotate(15)',
-  'matrix(0.716, 0, 0, 1.397, 0, 0)'
-]);
-
-// Apply to point
+// Parse and apply SVG transforms
+const ctm = SVGFlatten.parseTransformAttribute('translate(50,50) rotate(45) scale(2)');
 const { x, y } = SVGFlatten.applyToPoint(ctm, 10, 10);
 
 // Transform path data
-const transformed = SVGFlatten.transformPathData('M 100 100 L 200 200', ctm);
+const transformed = SVGFlatten.transformPathData('M 0 0 L 100 100', ctm);
 
-// viewBox handling
-const viewBox = SVGFlatten.parseViewBox('0 0 100 100');
-const par = SVGFlatten.parsePreserveAspectRatio('xMidYMid meet');
-const vbTransform = SVGFlatten.computeViewBoxTransform(viewBox, 800, 600, par);
-
-// Full CTM with viewBox + nested transforms
-const fullCtm = SVGFlatten.buildFullCTM([
-  { type: 'svg', width: 800, height: 600, viewBox: '0 0 400 300' },
-  { type: 'g', transform: 'translate(50, 50)' },
-  { type: 'g', transform: 'rotate(45)' },
-  { type: 'element', transform: 'scale(2)' }
-]);
-
-// Unit resolution (px, %, em, pt, in, cm, mm, pc)
-SVGFlatten.resolveLength('50%', 800);   // → 400
-SVGFlatten.resolveLength('1in', 800);   // → 96
-
-// objectBoundingBox transform
-const bboxTransform = SVGFlatten.objectBoundingBoxTransform(100, 50, 200, 100);
+// Resolve units
+SVGFlatten.resolveLength('50%', 800);  // → 400
+SVGFlatten.resolveLength('1in', 96);   // → 96
 ```
 
-#### GeometryToPath - Shape Conversion
+---
+
+### GeometryToPath
+
+| Method | Description |
+|--------|-------------|
+| `circleToPathData(cx, cy, r)` | Circle to path |
+| `ellipseToPathData(cx, cy, rx, ry)` | Ellipse to path |
+| `rectToPathData(x, y, w, h, rx?, ry?)` | Rectangle to path |
+| `lineToPathData(x1, y1, x2, y2)` | Line to path |
+| `polylineToPathData(points)` | Polyline to path |
+| `polygonToPathData(points)` | Polygon to path |
+| `parsePathData(d)` | Parse path to commands |
+| `pathToAbsolute(d)` | Convert to absolute |
+| `pathToCubics(d)` | Convert to cubic Beziers |
+| `transformPathData(d, matrix)` | Transform path |
 
 ```js
 import { GeometryToPath } from '@emasoft/svg-matrix';
 
-// Shape to path
-GeometryToPath.circleToPathData(cx, cy, r, precision)
-GeometryToPath.ellipseToPathData(cx, cy, rx, ry, precision)
-GeometryToPath.rectToPathData(x, y, w, h, rx, ry, useArcs, precision)
-GeometryToPath.lineToPathData(x1, y1, x2, y2, precision)
-GeometryToPath.polylineToPathData(points, precision)
-GeometryToPath.polygonToPathData(points, precision)
-GeometryToPath.convertElementToPath(element, precision)
+// Convert shapes to paths
+const circle = GeometryToPath.circleToPathData(100, 100, 50);
+const rect = GeometryToPath.rectToPathData(0, 0, 200, 100, 10, 10);
 
-// Path manipulation
-GeometryToPath.parsePathData(pathData)          // → [{command, args}]
-GeometryToPath.pathArrayToString(commands)      // → path string
-GeometryToPath.pathToAbsolute(pathData)         // relative → absolute
-GeometryToPath.pathToCubics(pathData)           // all → cubic Beziers
-GeometryToPath.transformPathData(pathData, matrix, precision)
-
-// Bezier kappa constant: 4*(sqrt(2)-1)/3
-GeometryToPath.getKappa()
+// Parse and normalize paths
+const commands = GeometryToPath.parsePathData('M 0 0 l 10 10 h 20');
+const absolute = GeometryToPath.pathToAbsolute('m 0 0 l 10 10');
+const cubics = GeometryToPath.pathToCubics('M 0 0 Q 50 50 100 0');
 ```
 
-#### BrowserVerify - Chrome Verification
+---
 
-```js
-import { BrowserVerify } from '@emasoft/svg-matrix';
+### PolygonClip
 
-// One-off verification
-await BrowserVerify.verifyViewBox(800, 600, '0 0 400 300', 'xMidYMid meet');
-await BrowserVerify.verifyTransform('rotate(45) translate(100, 50) scale(2)');
-
-// Session-based verification
-const verifier = new BrowserVerify.BrowserVerifier();
-await verifier.init({ headless: true });
-await verifier.verifyViewBoxTransform(800, 600, '0 0 100 100');
-await verifier.verifyMatrix(ctm, { width: 100, height: 100, transform: '...' });
-await verifier.verifyPointTransform(ctm, 10, 20, config);
-await verifier.close();
-
-// Standard test suite (28 tests including W3C issue #215 cases)
-await BrowserVerify.runStandardTests({ verbose: true });
-```
-
-### Polygon Operations
-
-#### PolygonClip
+| Method | Description |
+|--------|-------------|
+| `point(x, y)` | Create point |
+| `polygonIntersection(p1, p2)` | Boolean intersection |
+| `polygonUnion(p1, p2)` | Boolean union |
+| `polygonDifference(p1, p2)` | Boolean difference |
+| `polygonArea(p)` | Signed area |
+| `isConvex(p)` | Check if convex |
+| `pointInPolygon(pt, p)` | Point containment (1=in, 0=on, -1=out) |
+| `convexHull(points)` | Compute convex hull |
+| `boundingBox(p)` | Get bounding box |
 
 ```js
 import { PolygonClip } from '@emasoft/svg-matrix';
 
 const square = [
-  PolygonClip.point(0, 0),
-  PolygonClip.point(2, 0),
-  PolygonClip.point(2, 2),
-  PolygonClip.point(0, 2)
+  PolygonClip.point(0, 0), PolygonClip.point(2, 0),
+  PolygonClip.point(2, 2), PolygonClip.point(0, 2)
+];
+const triangle = [
+  PolygonClip.point(1, 0), PolygonClip.point(3, 0),
+  PolygonClip.point(2, 2)
 ];
 
-// Boolean operations
-PolygonClip.polygonIntersection(poly1, poly2)
-PolygonClip.polygonUnion(poly1, poly2)
-PolygonClip.polygonDifference(poly1, poly2)
-
-// Properties
-PolygonClip.polygonArea(polygon)
-PolygonClip.isCounterClockwise(polygon)
-PolygonClip.isConvex(polygon)
-PolygonClip.pointInPolygon(point, polygon)  // 1=inside, 0=boundary, -1=outside
-
-// Convex hull
-PolygonClip.convexHull(points)
-
-// Bounding box
-PolygonClip.boundingBox(polygon)  // {minX, minY, maxX, maxY}
-PolygonClip.bboxIntersects(bbox1, bbox2)
+const intersection = PolygonClip.polygonIntersection(square, triangle);
+const area = PolygonClip.polygonArea(square);  // 4
 ```
 
-#### ClipPathResolver
+---
+
+### ClipPathResolver
+
+| Method | Description |
+|--------|-------------|
+| `parseClipPathElement(el)` | Parse clipPath element |
+| `resolveClipPath(data, bbox)` | Resolve to polygon |
+| `shapeToPolygon(shape, opts)` | Shape to polygon |
+| `pathToPolygon(d, opts)` | Path to polygon |
+| `applyClipPath(el, clip, bbox)` | Apply clipping |
 
 ```js
 import { ClipPathResolver } from '@emasoft/svg-matrix';
 
-// Parse and resolve clipPath
-const clipData = ClipPathResolver.parseClipPathElement(element);
-const clipPolygon = ClipPathResolver.resolveClipPath(clipData, targetBBox);
-
-// Shape to polygon
-ClipPathResolver.shapeToPolygon({ type: 'circle', cx: 100, cy: 100, r: 50 }, { samples: 32 })
-ClipPathResolver.pathToPolygon(pathData, { samples: 20 })
-ClipPathResolver.polygonToPathData(polygon)
-
-// Apply clipPath to element
-ClipPathResolver.applyClipPath(elementData, clipPathData, targetBBox)
+const polygon = ClipPathResolver.shapeToPolygon(
+  { type: 'circle', cx: 100, cy: 100, r: 50 },
+  { samples: 32 }
+);
 ```
 
-### SVG Element Resolution
+---
 
-#### UseSymbolResolver
+### UseSymbolResolver
+
+| Method | Description |
+|--------|-------------|
+| `parseUseElement(el)` | Parse use element |
+| `parseSymbolElement(el)` | Parse symbol element |
+| `resolveUse(data, doc)` | Resolve use reference |
+| `flattenResolvedUse(resolved)` | Flatten to paths |
+| `resolveAllUses(doc)` | Resolve all use elements |
 
 ```js
 import { UseSymbolResolver } from '@emasoft/svg-matrix';
 
-const useData = UseSymbolResolver.parseUseElement(useElement);
-const symbolData = UseSymbolResolver.parseSymbolElement(symbolElement);
-const resolved = UseSymbolResolver.resolveUse(useData, svgDocument);
-const flattened = UseSymbolResolver.flattenResolvedUse(resolved);
-UseSymbolResolver.resolveAllUses(svgDocument)
+// Resolve all <use> elements in document
+const flattened = UseSymbolResolver.resolveAllUses(svgDocument);
 ```
 
-#### MarkerResolver
+---
+
+### MarkerResolver
+
+| Method | Description |
+|--------|-------------|
+| `parseMarkerElement(el)` | Parse marker element |
+| `getPathVertices(d)` | Get vertices from path |
+| `getMarkerTransform(marker, vertex, angle, stroke)` | Compute marker transform |
+| `resolveMarkers(d, opts)` | Resolve all markers |
+| `markersToPathData(instances)` | Convert to path data |
 
 ```js
 import { MarkerResolver } from '@emasoft/svg-matrix';
 
-const markerData = MarkerResolver.parseMarkerElement(markerElement);
-const vertices = MarkerResolver.getPathVertices(pathData);
-const transform = MarkerResolver.getMarkerTransform(markerData, vertex, angle, strokeWidth);
-const instances = MarkerResolver.resolveMarkers(pathD, { 'marker-start': m1, 'marker-end': m2, strokeWidth: 2 });
-MarkerResolver.markersToPathData(instances)
+const instances = MarkerResolver.resolveMarkers(pathD, {
+  'marker-start': startMarker,
+  'marker-end': endMarker,
+  strokeWidth: 2
+});
 ```
 
-#### PatternResolver
+---
+
+### PatternResolver
+
+| Method | Description |
+|--------|-------------|
+| `parsePatternElement(el)` | Parse pattern element |
+| `resolvePattern(data, bbox)` | Resolve pattern tiles |
+| `applyPattern(el, pattern, bbox)` | Apply pattern fill |
+| `patternToPathData(data, bbox)` | Convert to path data |
 
 ```js
 import { PatternResolver } from '@emasoft/svg-matrix';
 
-const patternData = PatternResolver.parsePatternElement(patternElement);
 const tiles = PatternResolver.resolvePattern(patternData, targetBBox);
-PatternResolver.applyPattern(elementData, patternData, targetBBox)
-PatternResolver.patternToClipPath(patternData, targetBBox)
-PatternResolver.patternToPathData(patternData, targetBBox)
 ```
 
-#### MaskResolver
+---
+
+### MaskResolver
+
+| Method | Description |
+|--------|-------------|
+| `parseMaskElement(el)` | Parse mask element |
+| `resolveMask(data, bbox)` | Resolve mask polygon |
+| `applyMask(polygon, mask, bbox)` | Apply mask clipping |
+| `colorToLuminance(rgb)` | Compute sRGB luminance |
 
 ```js
 import { MaskResolver } from '@emasoft/svg-matrix';
 
-const maskData = MaskResolver.parseMaskElement(maskElement);
 const maskPolygon = MaskResolver.resolveMask(maskData, targetBBox);
-MaskResolver.applyMask(elementPolygon, maskData, targetBBox)
-MaskResolver.colorToLuminance({ r, g, b })  // sRGB luminance
 ```
 
-### Advanced Features
+---
 
-#### MeshGradient (SVG 2.0)
+### MeshGradient (SVG 2.0)
+
+| Method | Description |
+|--------|-------------|
+| `parseMeshGradientElement(el)` | Parse mesh gradient |
+| `CoonsPatch` | Coons patch class |
+| `rasterizeMeshGradient(data, w, h)` | Rasterize to ImageData |
+| `meshGradientToPolygons(data, opts)` | Convert to polygons |
 
 ```js
 import { MeshGradient } from '@emasoft/svg-matrix';
 
-// Parse mesh gradient
-const meshDef = MeshGradient.parseMeshGradientElement(element);
-const meshData = MeshGradient.parseMeshGradient(meshDef);
+const patch = new MeshGradient.CoonsPatch(top, right, bottom, left, colors);
+const { point, color } = patch.evaluate(0.5, 0.5);
 
-// Coons patch evaluation
-const patch = new MeshGradient.CoonsPatch(topEdge, rightEdge, bottomEdge, leftEdge, cornerColors);
-const { point, color } = patch.evaluate(u, v);
-
-// Rasterize to ImageData
-const imageData = MeshGradient.rasterizeMeshGradient(meshData, width, height);
-
-// Convert to polygons for vector export
-const polygons = MeshGradient.meshGradientToPolygons(meshData, { subdivisions: 16 });
-
-// Clip and export
-const clipped = MeshGradient.clipMeshGradient(meshData, clipPolygon, { subdivisions: 32 });
-const svgPaths = MeshGradient.clippedMeshToSVG(clipped);
+const imageData = MeshGradient.rasterizeMeshGradient(meshData, 256, 256);
 ```
 
-#### TextToPath
+---
+
+### TextToPath
+
+| Method | Description |
+|--------|-------------|
+| `textToPath(text, opts)` | Convert text to path |
+| `parseTextElement(el)` | Parse text element |
+| `textElementToPath(data, opts)` | Text element to path |
+| `measureText(text, style, font)` | Measure text |
+| `getTextBBox(data)` | Get text bounding box |
 
 ```js
 import { TextToPath } from '@emasoft/svg-matrix';
 import opentype from 'opentype.js';
 
 const font = await opentype.load('font.ttf');
-
-// Convert text to path
 const pathData = TextToPath.textToPath("Hello", {
-  x: 100, y: 100,
-  fontSize: 24,
-  font: font,
-  textAnchor: TextToPath.TextAnchor.MIDDLE,
-  dominantBaseline: TextToPath.DominantBaseline.MIDDLE
+  x: 100, y: 100, fontSize: 24, font
 });
-
-// Parse text element
-const textData = TextToPath.parseTextElement(textElement);
-const result = TextToPath.textElementToPath(textData, { font });
-
-// Measure text
-const metrics = TextToPath.measureText("Hello", { fontSize: "20px" }, font);
-const bbox = TextToPath.getTextBBox(textData);
 ```
 
-### Convenience Functions
+---
 
-Direct exports for common operations:
+### BrowserVerify
+
+| Method | Description |
+|--------|-------------|
+| `verifyViewBox(w, h, vb, par)` | Verify viewBox transform |
+| `verifyTransform(str)` | Verify transform attribute |
+| `BrowserVerifier` | Session-based verifier class |
+| `runStandardTests(opts)` | Run W3C test suite |
 
 ```js
-import {
-  // Transforms
-  translate2D, rotate2D, scale2D, transform2D,
-  translate3D, scale3D, transform3D,
+import { BrowserVerify } from '@emasoft/svg-matrix';
 
-  // Shape conversion
-  circleToPath, ellipseToPath, rectToPath, lineToPath,
-  polygonToPath, polylineToPath,
+// One-off verification
+await BrowserVerify.verifyTransform('rotate(45) translate(100, 50)');
 
-  // Path manipulation
-  parsePath, pathToString, pathToAbsolute, pathToCubics, transformPath,
-  elementToPath,
-
-  // Matrix/Vector creation
-  identity, zeros, vec, mat,
-
-  // Precision control
-  setPrecision, getPrecision,
-
-  // Constants
-  getKappa
-} from '@emasoft/svg-matrix';
+// Run standard test suite (28 tests)
+await BrowserVerify.runStandardTests({ verbose: true });
 ```
+
+---
+
+### validateSvg / fixInvalidSvg
+
+| Function | Description |
+|----------|-------------|
+| `validateSvg(input)` | Validate SVG file or string |
+| `fixInvalidSvg(input)` | Auto-fix issues |
+
+```js
+import { validateSvg, fixInvalidSvg } from '@emasoft/svg-matrix';
+
+const result = await validateSvg('icon.svg');
+console.log(result.valid);   // true/false
+console.log(result.issues);  // Array of { type, severity, line, reason }
+
+const fixed = await fixInvalidSvg('broken.svg');
+console.log(fixed.svg);      // Fixed SVG string
+```
+
+---
 
 ### Logging
 
-Control library logging output:
+| Function | Description |
+|----------|-------------|
+| `setLogLevel(level)` | Set log level |
+| `enableFileLogging(path)` | Log to file |
+| `LogLevel.SILENT` | No output |
+| `LogLevel.ERROR` | Errors only |
+| `LogLevel.WARN` | Warnings + errors (default) |
+| `LogLevel.DEBUG` | All output |
 
 ```js
-import { Logger, LogLevel, setLogLevel, enableFileLogging } from '@emasoft/svg-matrix';
+import { setLogLevel, LogLevel } from '@emasoft/svg-matrix';
 
-// Suppress all logging
-setLogLevel(LogLevel.SILENT);
-
-// Enable only errors
-setLogLevel(LogLevel.ERROR);
-
-// Enable warnings and errors (default)
-setLogLevel(LogLevel.WARN);
-
-// Enable all logging including debug
-setLogLevel(LogLevel.DEBUG);
-
-// Write logs to file
-enableFileLogging('/path/to/log.txt');
-
-// Direct Logger access
-Logger.level = LogLevel.INFO;
-Logger.warn('Custom warning');
-Logger.debug('Debug info');
+setLogLevel(LogLevel.SILENT);  // Suppress all logging
 ```
+
+---
+
+### Convenience Exports
+
+```js
+import {
+  // Quick transforms
+  translate2D, rotate2D, scale2D, transform2D,
+  translate3D, scale3D, transform3D,
+
+  // Quick shapes
+  circleToPath, ellipseToPath, rectToPath, lineToPath,
+  polygonToPath, polylineToPath,
+
+  // Quick paths
+  parsePath, pathToString, pathToAbsolute, pathToCubics, transformPath,
+
+  // Quick matrix/vector
+  identity, zeros, vec, mat,
+
+  // Precision
+  setPrecision, getPrecision, getKappa
+} from '@emasoft/svg-matrix';
+```
+
+---
+
+## SVGO vs svg-matrix
+
+| Aspect | SVGO | svg-matrix |
+|--------|------|------------|
+| **Precision** | 15 digits (JS float) | 80 digits (Decimal.js) |
+| **Verification** | None | Mathematical inverse verification |
+| **Architecture** | Monolithic optimizer | Modular toolkit |
+| **Use Case** | Production optimization | Precision-critical apps |
+
+**Use svg-matrix when:** GIS, CAD, scientific visualization, deep transform hierarchies, or when you need mathematical verification.
+
+**Use SVGO when:** Production optimization, file size reduction, standard precision is acceptable.
+
+---
+
+## Exclusive Features
+
+These features are not available in SVGO:
+
+| Function | Description |
+|----------|-------------|
+| `flattenClipPaths()` | Flatten clip-paths to geometry |
+| `flattenMasks()` | Flatten masks to geometry |
+| `flattenGradients()` | Bake gradients into fills |
+| `flattenPatterns()` | Bake patterns into fills |
+| `flattenFilters()` | Bake filter effects |
+| `flattenUseElements()` | Inline use references |
+| `textToPath()` | Text to path geometry |
+| `imageToPath()` | Trace raster to paths |
+| `detectCollisions()` | GJK collision detection |
+| `measureDistance()` | Distance between shapes |
+| `validateSVG()` | W3C schema validation |
+| `simplifyPath()` | Bezier simplification |
+| `decomposeTransform()` | Matrix decomposition |
+
+---
 
 ## License
 
