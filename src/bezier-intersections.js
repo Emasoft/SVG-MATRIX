@@ -440,6 +440,12 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
  * Check if two bounding boxes overlap.
  */
 function bboxOverlap(bbox1, bbox2) {
+  // INPUT VALIDATION
+  // WHY: Prevent cryptic errors from undefined bounding boxes
+  if (!bbox1 || !bbox2) {
+    return false; // No overlap if either bbox is missing
+  }
+
   return !(bbox1.xmax.lt(bbox2.xmin) ||
            bbox1.xmin.gt(bbox2.xmax) ||
            bbox1.ymax.lt(bbox2.ymin) ||
@@ -584,6 +590,12 @@ export function pathPathIntersection(path1, path2, options = {}) {
     throw new Error('pathPathIntersection: path2 must be an array');
   }
 
+  // Handle empty paths gracefully
+  // WHY: Empty paths have no intersections by definition
+  if (path1.length === 0 || path2.length === 0) {
+    return [];
+  }
+
   const results = [];
 
   for (let i = 0; i < path1.length; i++) {
@@ -619,6 +631,12 @@ export function pathSelfIntersection(path, options = {}) {
     throw new Error('pathSelfIntersection: path must be an array');
   }
 
+  // Handle empty or single-segment paths
+  // WHY: Single segment path can only have self-intersections within that segment
+  if (path.length === 0) {
+    return [];
+  }
+
   const results = [];
 
   // Check each segment for self-intersection
@@ -638,16 +656,11 @@ export function pathSelfIntersection(path, options = {}) {
   // Check pairs of non-adjacent segments
   for (let i = 0; i < path.length; i++) {
     for (let j = i + 2; j < path.length; j++) {
-      // BUGFIX: Skip adjacent segments (they share an endpoint)
-      // WHY: Adjacent segments always touch at their shared endpoint, which is not a real intersection.
-      // For closed paths, the first and last segments are also adjacent (share the start/end point).
-      const isAdjacent = (j === i + 1);
-      const isClosedAdjacent = (i === 0 && j === path.length - 1);
-
-      // Skip if segments are adjacent (note: isAdjacent is already handled by j = i + 2)
-      if (isAdjacent) continue;
-      // Skip if first and last segments in a closed path
-      if (isClosedAdjacent) continue;
+      // WHY: j starts at i+2, so segments i and j are never adjacent (which would be i and i+1)
+      // However, for closed paths, first (i=0) and last (j=path.length-1) segments ARE adjacent
+      // because they share the start/end vertex. Skip this pair.
+      const isClosedPathAdjacent = (i === 0 && j === path.length - 1);
+      if (isClosedPathAdjacent) continue;
 
       const isects = bezierBezierIntersection(path[i], path[j], options);
 
@@ -1117,7 +1130,9 @@ export function verifyAllIntersectionFunctions(tolerance = '1e-30') {
     results.lineLine = lineVerify;
     if (!lineVerify.valid) allPassed = false;
   } else {
-    results.lineLine = { valid: false, reason: 'No intersection found' };
+    // WHY: These specific test lines (diagonal from [0,0] to [2,2] and [0,2] to [2,0])
+    // geometrically MUST intersect at [1,1]. No intersection indicates a bug.
+    results.lineLine = { valid: false, reason: 'No intersection found for lines that geometrically must intersect at [1,1]' };
     allPassed = false;
   }
 

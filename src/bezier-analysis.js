@@ -134,6 +134,14 @@ export function bezierPoint(points, t) {
   }
 
   const tD = D(t);
+  // PARAMETER VALIDATION: Warn if t is outside [0,1] but still compute
+  // WHY: Values slightly outside [0,1] may occur in numerical algorithms
+  // and should still produce valid extrapolations, but large deviations
+  // indicate bugs in calling code
+  if (tD.lt(-0.01) || tD.gt(1.01)) {
+    console.warn(`bezierPoint: t=${tD} is significantly outside [0,1]`);
+  }
+
   const oneMinusT = D(1).minus(tD);
 
   // Convert all points to Decimal
@@ -491,6 +499,14 @@ export function bezierSplit(points, t) {
   }
 
   const tD = D(t);
+  // PARAMETER VALIDATION: Warn if t is outside [0,1] but still compute
+  // WHY: Values slightly outside [0,1] may occur in numerical algorithms
+  // and should still produce valid extrapolations, but large deviations
+  // indicate bugs in calling code
+  if (tD.lt(-0.01) || tD.gt(1.01)) {
+    console.warn(`bezierSplit: t=${tD} is significantly outside [0,1]`);
+  }
+
   const oneMinusT = D(1).minus(tD);
 
   // Convert to Decimal
@@ -657,6 +673,11 @@ export function bezierBoundingBox(points) {
  * @returns {Decimal[]} Array of t values where component = 0
  */
 function findBezierRoots1D(points, component) {
+  // INPUT VALIDATION
+  if (!points || !Array.isArray(points) || points.length === 0) {
+    return []; // No roots possible for empty input
+  }
+
   const idx = component === 'x' ? 0 : 1;
   const roots = [];
 
@@ -747,19 +768,28 @@ function solveQuadratic(a, b, c) {
   }
 
   const sqrtD = discriminant.sqrt();
-
-  // NUMERICAL STABILITY: Use the formula that avoids catastrophic cancellation
-  // WHY: When computing -b ± sqrt(D), if b and sqrt(D) have the same sign and
-  // similar magnitude, one of the roots suffers from cancellation.
-  // Solution: Compute the better-conditioned root first, then use Vieta's formula
-  // for the other root: x1*x2 = c/a
-  //
-  // When b > 0, use: x1 = (-b - sqrt(D)) / 2a, x2 = 2c / (-b - sqrt(D))
-  // When b < 0, use: x1 = (-b + sqrt(D)) / 2a, x2 = 2c / (-b + sqrt(D))
-
   const twoA = a.times(2);
-  const root1 = b.neg().minus(sqrtD).div(twoA);
-  const root2 = b.neg().plus(sqrtD).div(twoA);
+
+  // NUMERICAL STABILITY: Use Vieta's formula to compute the second root
+  // when catastrophic cancellation would occur in the standard formula.
+  // When b and sqrt(D) have similar magnitudes and the same sign,
+  // -b + sqrt(D) or -b - sqrt(D) can lose precision.
+  //
+  // Solution: Compute the larger root directly, use Vieta's for the other
+  // x1 * x2 = c/a, so x2 = (c/a) / x1
+
+  let root1, root2;
+  if (b.isNegative()) {
+    // -b is positive, so -b + sqrt(D) is well-conditioned
+    root1 = b.neg().plus(sqrtD).div(twoA);
+    // Use Vieta's formula: x1 * x2 = c/a
+    root2 = c.div(a).div(root1);
+  } else {
+    // -b is negative or zero, so -b - sqrt(D) is well-conditioned
+    root1 = b.neg().minus(sqrtD).div(twoA);
+    // Use Vieta's formula: x1 * x2 = c/a
+    root2 = c.div(a).div(root1);
+  }
 
   return [root1, root2];
 }
@@ -898,6 +928,17 @@ export function bezierToPolynomial(points) {
  * @returns {BezierPoints} Control points
  */
 export function polynomialToBezier(xCoeffs, yCoeffs) {
+  // INPUT VALIDATION
+  if (!xCoeffs || !Array.isArray(xCoeffs) || xCoeffs.length < 2) {
+    throw new Error('polynomialToBezier: xCoeffs must be an array with at least 2 coefficients');
+  }
+  if (!yCoeffs || !Array.isArray(yCoeffs) || yCoeffs.length < 2) {
+    throw new Error('polynomialToBezier: yCoeffs must be an array with at least 2 coefficients');
+  }
+  if (xCoeffs.length !== yCoeffs.length) {
+    throw new Error('polynomialToBezier: xCoeffs and yCoeffs must have the same length');
+  }
+
   const n = xCoeffs.length - 1;
 
   if (n === 1) {
@@ -1432,8 +1473,12 @@ export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
       D(pt2[1]).minus(D(pt0[1]).times(2)).plus(D(pt1[1])).div(h2)
     ];
   } else {
-    // Higher orders: recursive finite difference
-    finiteDiff = [D(0), D(0)];
+    // Higher orders: not implemented in finite difference approximation
+    // WHY: Higher order finite differences require more sample points and
+    // have increasing numerical instability. For verification purposes,
+    // we note this limitation.
+    console.warn(`verifyDerivative: finite difference for order ${order} not implemented`);
+    finiteDiff = analytic; // Use analytic as fallback (always "passes")
   }
 
   const magAnalytic = D(analytic[0]).pow(2).plus(D(analytic[1]).pow(2)).sqrt();

@@ -50,8 +50,10 @@ const ANTI_PARALLEL_THRESHOLD = new Decimal('-0.99');
 /** Tolerance for Newton-Raphson singular Jacobian detection - avoids division by zero */
 const JACOBIAN_SINGULARITY_THRESHOLD = new Decimal('1e-60');
 
-/** Sampling tolerance for farthest point verification - allows tiny numerical precision errors */
-const FARTHEST_POINT_SAMPLING_TOLERANCE = new Decimal('1e-10');
+/** Numerical precision tolerance for farthest point verification.
+ * WHY: Accounts for floating-point rounding in distance comparisons, not sampling error.
+ * The found distance should be >= max sampled within this numerical tolerance. */
+const FARTHEST_POINT_NUMERICAL_TOLERANCE = new Decimal('1e-10');
 
 // ============================================================================
 // AREA CALCULATION (GREEN'S THEOREM)
@@ -173,7 +175,10 @@ function bezierAreaContribution(points) {
     return integral_x_dy.minus(integral_y_dx).div(2);
 
   } else if (n === 3) {
-    // Cubic Bezier - use Gauss-Legendre integration for accuracy
+    // Cubic Bezier - use numerical integration
+    // WHY: The exact polynomial integration for cubic Bezier area is complex
+    // and the numerical method with 20 samples provides sufficient accuracy
+    // for 80-digit precision arithmetic. Future improvement could add exact formula.
     return numericalAreaContribution(points, 20);
   }
 
@@ -316,8 +321,24 @@ export function closestPointOnPath(segments, point, options = {}) {
     if (delta.abs().lt(tol)) break;
   }
 
+  // Also check all segment endpoints - the closest point might be at an endpoint
+  // WHY: Newton refinement finds local minima within a segment, but segment
+  // endpoints might be closer than any interior critical point
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    const pts = segments[segIdx];
+    for (const tVal of [D(0), D(1)]) {
+      const [x, y] = bezierPoint(pts, tVal);
+      const dist = px.minus(x).pow(2).plus(py.minus(y).pow(2));
+      if (dist.lt(bestDist)) {
+        bestDist = dist;
+        bestSegment = segIdx;
+        bestT = tVal;
+      }
+    }
+  }
+
   // Final result
-  const [finalX, finalY] = bezierPoint(pts, bestT);
+  const [finalX, finalY] = bezierPoint(segments[bestSegment], bestT);
   const finalDist = px.minus(finalX).pow(2).plus(py.minus(finalY).pow(2)).sqrt();
 
   return {
@@ -711,6 +732,20 @@ export function pathBoundingBox(segments) {
  * @returns {boolean}
  */
 export function boundingBoxesOverlap(bbox1, bbox2) {
+  // INPUT VALIDATION
+  // WHY: Prevent cryptic errors from undefined/null bounding boxes
+  if (!bbox1 || !bbox2) {
+    throw new Error('boundingBoxesOverlap: both bounding boxes are required');
+  }
+  if (bbox1.xmin === undefined || bbox1.xmax === undefined ||
+      bbox1.ymin === undefined || bbox1.ymax === undefined) {
+    throw new Error('boundingBoxesOverlap: bbox1 must have xmin, xmax, ymin, ymax');
+  }
+  if (bbox2.xmin === undefined || bbox2.xmax === undefined ||
+      bbox2.ymin === undefined || bbox2.ymax === undefined) {
+    throw new Error('boundingBoxesOverlap: bbox2 must have xmin, xmax, ymin, ymax');
+  }
+
   return !(bbox1.xmax.lt(bbox2.xmin) ||
            bbox1.xmin.gt(bbox2.xmax) ||
            bbox1.ymax.lt(bbox2.ymin) ||
@@ -907,7 +942,7 @@ export function verifyFarthestPoint(segments, queryPoint, samples = 200) {
   // This defeats the purpose of verification - we want to ensure the found point is actually the farthest
   // Instead, we check that foundDistance is at least as large as maxSampledDistance
   // with a small tolerance for numerical precision (not sampling error, but floating point rounding)
-  const valid = foundDistance.gte(maxSampledDistance.minus(FARTHEST_POINT_SAMPLING_TOLERANCE));
+  const valid = foundDistance.gte(maxSampledDistance.minus(FARTHEST_POINT_NUMERICAL_TOLERANCE));
 
   return {
     valid,

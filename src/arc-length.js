@@ -159,6 +159,15 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
 
   const t0D = D(t0);
   const t1D = D(t1);
+
+  // PARAMETER VALIDATION: Handle reversed parameters
+  // WHY: Some callers might accidentally pass t0 > t1. Rather than silently
+  // returning negative arc length or crashing, we swap them.
+  if (t0D.gt(t1D)) {
+    // Swap parameters - arc length from t1 to t0 equals arc length from t0 to t1
+    return arcLength(points, t1, t0, options);
+  }
+
   const tol = D(tolerance);
 
   // Use adaptive quadrature
@@ -456,6 +465,16 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
     throw new Error('pathInverseArcLength: targetLength must be non-negative');
   }
 
+  // EDGE CASE: Zero target length
+  // WHY: If target is 0, we're at the start of the first segment
+  if (target.isZero()) {
+    return {
+      segmentIndex: 0,
+      t: D(0),
+      totalLength: D(0)
+    };
+  }
+
   let accumulated = D(0);
 
   for (let i = 0; i < segments.length; i++) {
@@ -506,7 +525,7 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
     throw new Error('createArcLengthTable: points must have at least 2 control points');
   }
   if (samples < 2) {
-    throw new Error('createArcLengthTable: samples must be at least 2');
+    throw new Error('createArcLengthTable: samples must be at least 2 (for binary search to work)');
   }
 
   const table = [];
@@ -541,6 +560,12 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
 
       if (sD.lte(0)) return D(0);
       if (sD.gte(this.totalLength)) return D(1);
+
+      // EDGE CASE: Handle degenerate table
+      // WHY: If table has only 1 entry (shouldn't happen with samples >= 2, but defensive)
+      if (table.length < 2) {
+        return sD.div(this.totalLength);
+      }
 
       // Binary search
       let lo = 0;
@@ -749,8 +774,14 @@ export function verifyArcLengthAdditivity(points, t, tolerance = DEFAULT_ARC_LEN
     throw new Error('verifyArcLengthAdditivity: points must be an array with at least 2 control points');
   }
 
-  const tol = D(tolerance);
   const tD = D(t);
+  // PARAMETER VALIDATION: t must be in [0, 1] for additivity to make sense
+  // WHY: Arc length additivity L(0,t) + L(t,1) = L(0,1) only holds for t in [0,1]
+  if (tD.lt(0) || tD.gt(1)) {
+    throw new Error('verifyArcLengthAdditivity: t must be in range [0, 1]');
+  }
+
+  const tol = D(tolerance);
 
   const totalLength = arcLength(points, 0, 1);
   const leftLength = arcLength(points, 0, tD);
