@@ -77,6 +77,49 @@ const GAUSS_LEGENDRE = {
 };
 
 // ============================================================================
+// NUMERICAL CONSTANTS (documented magic numbers)
+// ============================================================================
+
+/**
+ * Threshold for near-zero speed detection (cusp handling in Newton's method).
+ * WHY: Speeds below this threshold indicate cusps or near-singular points where
+ * the curve derivative is essentially zero. At such points, Newton's method
+ * would divide by near-zero, causing instability. We switch to bisection instead.
+ */
+const NEAR_ZERO_SPEED_THRESHOLD = new Decimal('1e-60');
+
+/**
+ * Default tolerance for arc length computation.
+ * WHY: This tolerance determines when adaptive quadrature stops subdividing.
+ * The value 1e-30 provides extremely high precision (suitable for arbitrary
+ * precision arithmetic) while still converging in reasonable time.
+ */
+const DEFAULT_ARC_LENGTH_TOLERANCE = '1e-30';
+
+/**
+ * Subdivision convergence threshold.
+ * WHY: Used in adaptive quadrature to determine if subdivision has converged
+ * by comparing 5-point and 10-point Gauss-Legendre results. When results
+ * differ by less than this, we accept the higher-order result.
+ */
+const SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal('1e-15');
+
+/**
+ * Tolerance for table roundtrip verification.
+ * WHY: When verifying arc length tables, we check if lookup->compute->verify
+ * produces consistent results. This tolerance accounts for interpolation error
+ * in table-based lookups.
+ */
+const TABLE_ROUNDTRIP_TOLERANCE = new Decimal('1e-20');
+
+/**
+ * Maximum relative error for subdivision comparison verification.
+ * WHY: When comparing adaptive quadrature vs subdivision methods, this tolerance
+ * accounts for the inherent approximation in chord-based subdivision.
+ */
+const SUBDIVISION_COMPARISON_TOLERANCE = '1e-20';
+
+// ============================================================================
 // ARC LENGTH COMPUTATION
 // ============================================================================
 
@@ -100,8 +143,16 @@ const GAUSS_LEGENDRE = {
  * const partialLength = arcLength(cubicPoints, 0, 0.5);
  */
 export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: Arc length computation requires evaluating bezierDerivative, which needs
+  // at least 2 control points to define a curve. Catching this early prevents
+  // cryptic errors deep in the computation.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('arcLength: points must be an array with at least 2 control points');
+  }
+
   const {
-    tolerance = '1e-30',
+    tolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
     maxDepth = 50,
     minDepth = 3
   } = options;
@@ -125,13 +176,24 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
 /**
  * Compute speed |B'(t)| at parameter t.
  *
+ * WHY: Speed is the magnitude of the velocity vector (first derivative).
+ * This is the integrand for arc length: L = integral of |B'(t)| dt.
+ *
  * @param {Array} points - Control points
  * @param {Decimal} t - Parameter
  * @returns {Decimal} Speed (magnitude of derivative)
  */
 function speedAtT(points, t) {
   const [dx, dy] = bezierDerivative(points, t, 1);
-  return dx.times(dx).plus(dy.times(dy)).sqrt();
+  const speedSquared = dx.times(dx).plus(dy.times(dy));
+
+  // NUMERICAL STABILITY: Handle near-zero speed (cusp) gracefully
+  // WHY: At cusps or inflection points, the derivative may be very small or zero.
+  // We return the actual computed value (sqrt of speedSquared) rather than
+  // special-casing zero, because the caller (Newton's method in inverseArcLength)
+  // already handles near-zero speeds appropriately by switching to bisection.
+  // This approach maintains accuracy for all curve geometries.
+  return speedSquared.sqrt();
 }
 
 /**
@@ -231,10 +293,17 @@ function gaussLegendre(f, a, b, order) {
  * const { t } = inverseArcLength(points, totalLength.div(2)); // Find midpoint by arc length
  */
 export function inverseArcLength(points, targetLength, options = {}) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: inverseArcLength calls arcLength internally, which requires valid points.
+  // Catching this early provides clearer error messages to users.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('inverseArcLength: points must be an array with at least 2 control points');
+  }
+
   const {
-    tolerance = '1e-30',
+    tolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
     maxIterations = 100,
-    lengthTolerance = '1e-30',
+    lengthTolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
     initialT
   } = options;
 
@@ -242,7 +311,10 @@ export function inverseArcLength(points, targetLength, options = {}) {
   const tol = D(tolerance);
   const lengthOpts = { tolerance: lengthTolerance };
 
-  // Input validation
+  // FAIL FAST: Negative arc length is mathematically invalid
+  // WHY: Arc length is always non-negative by definition (it's an integral of
+  // a magnitude). Accepting negative values would be nonsensical and lead to
+  // incorrect results or infinite loops in Newton's method.
   if (target.lt(0)) {
     throw new Error('inverseArcLength: targetLength must be non-negative');
   }
@@ -282,7 +354,11 @@ export function inverseArcLength(points, targetLength, options = {}) {
     // f'(t) = speed(t)
     const fPrime = speedAtT(points, t);
 
-    if (fPrime.lt(new Decimal('1e-60'))) {
+    // NUMERICAL STABILITY: Handle near-zero speed (cusps)
+    // WHY: At cusps, the curve has zero or near-zero velocity. Newton's method
+    // requires division by f'(t), which becomes unstable when f'(t) ≈ 0.
+    // We switch to bisection in these cases to ensure robust convergence.
+    if (fPrime.lt(NEAR_ZERO_SPEED_THRESHOLD)) {
       // Near-zero speed (cusp), use bisection step
       if (f.isNegative()) {
         t = t.plus(D(1).minus(t).div(2));
@@ -334,9 +410,20 @@ export function inverseArcLength(points, targetLength, options = {}) {
  * @returns {Decimal} Total arc length
  */
 export function pathArcLength(segments, options = {}) {
+  // INPUT VALIDATION: Ensure segments is a valid array
+  // WHY: We need to iterate over segments and call arcLength on each.
+  // Catching invalid input early prevents cryptic errors in the loop.
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathArcLength: segments must be an array');
+  }
+  if (segments.length === 0) {
+    throw new Error('pathArcLength: segments array must not be empty');
+  }
+
   let total = D(0);
 
   for (const segment of segments) {
+    // Each segment validation is handled by arcLength itself
     total = total.plus(arcLength(segment, 0, 1, options));
   }
 
@@ -352,7 +439,23 @@ export function pathArcLength(segments, options = {}) {
  * @returns {{segmentIndex: number, t: Decimal, totalLength: Decimal}}
  */
 export function pathInverseArcLength(segments, targetLength, options = {}) {
+  // INPUT VALIDATION: Ensure segments is a valid array
+  // WHY: We need to iterate over segments to find which one contains the target length.
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathInverseArcLength: segments must be an array');
+  }
+  if (segments.length === 0) {
+    throw new Error('pathInverseArcLength: segments array must not be empty');
+  }
+
   const target = D(targetLength);
+
+  // FAIL FAST: Negative arc length is invalid
+  // WHY: Same reason as inverseArcLength - arc length is non-negative by definition.
+  if (target.lt(0)) {
+    throw new Error('pathInverseArcLength: targetLength must be non-negative');
+  }
+
   let accumulated = D(0);
 
   for (let i = 0; i < segments.length; i++) {
@@ -491,6 +594,13 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
  * @returns {{valid: boolean, chordLength: Decimal, polygonLength: Decimal, arcLength: Decimal, ratio: Decimal, errors: string[]}}
  */
 export function verifyArcLength(points, computedLength = null) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function needs to access points[0], points[length-1], and iterate
+  // over points to compute polygon length. Invalid input would cause errors.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyArcLength: points must be an array with at least 2 control points');
+  }
+
   const errors = [];
 
   // Compute arc length if not provided
@@ -537,7 +647,21 @@ export function verifyArcLength(points, computedLength = null) {
  * @returns {{valid: boolean, targetLength: Decimal, foundT: Decimal, verifiedLength: Decimal, error: Decimal}}
  */
 export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25') {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function calls inverseArcLength and arcLength, both of which require
+  // valid points. We validate early for clearer error messages.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyInverseArcLength: points must be an array with at least 2 control points');
+  }
+
   const target = D(targetLength);
+
+  // FAIL FAST: Validate targetLength is non-negative
+  // WHY: Negative arc lengths are mathematically invalid. This prevents nonsensical tests.
+  if (target.lt(0)) {
+    throw new Error('verifyInverseArcLength: targetLength must be non-negative');
+  }
+
   const tol = D(tolerance);
 
   // Forward: find t for target length
@@ -568,7 +692,14 @@ export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25'
  * @param {number|string|Decimal} [tolerance='1e-20'] - Maximum difference
  * @returns {{valid: boolean, quadratureLength: Decimal, subdivisionLength: Decimal, difference: Decimal}}
  */
-export function verifyArcLengthBySubdivision(points, subdivisions = 16, tolerance = '1e-20') {
+export function verifyArcLengthBySubdivision(points, subdivisions = 16, tolerance = SUBDIVISION_COMPARISON_TOLERANCE) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function calls arcLength and bezierPoint, both of which require
+  // valid control points. Early validation provides better error messages.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyArcLengthBySubdivision: points must be an array with at least 2 control points');
+  }
+
   const tol = D(tolerance);
 
   // Method 1: Adaptive quadrature
@@ -610,7 +741,14 @@ export function verifyArcLengthBySubdivision(points, subdivisions = 16, toleranc
  * @param {number|string|Decimal} [tolerance='1e-30'] - Maximum error
  * @returns {{valid: boolean, totalLength: Decimal, leftLength: Decimal, rightLength: Decimal, sum: Decimal, error: Decimal}}
  */
-export function verifyArcLengthAdditivity(points, t, tolerance = '1e-30') {
+export function verifyArcLengthAdditivity(points, t, tolerance = DEFAULT_ARC_LENGTH_TOLERANCE) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function calls arcLength multiple times with the same points array.
+  // Validating once here is more efficient than letting each call validate.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyArcLengthAdditivity: points must be an array with at least 2 control points');
+  }
+
   const tol = D(tolerance);
   const tD = D(t);
 
@@ -639,6 +777,13 @@ export function verifyArcLengthAdditivity(points, t, tolerance = '1e-30') {
  * @returns {{valid: boolean, errors: string[], isMonotonic: boolean, maxGap: Decimal}}
  */
 export function verifyArcLengthTable(points, samples = 50) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function calls createArcLengthTable and arcLength, both requiring
+  // valid points. Early validation provides better diagnostics.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyArcLengthTable: points must be an array with at least 2 control points');
+  }
+
   const errors = [];
   const table = createArcLengthTable(points, samples);
 
@@ -675,7 +820,8 @@ export function verifyArcLengthTable(points, samples = 50) {
   // Verify total length consistency
   const directLength = arcLength(points);
   const tableTotalDiff = table.totalLength.minus(directLength).abs();
-  if (tableTotalDiff.gt(new Decimal('1e-20'))) {
+  // WHY: Use TABLE_ROUNDTRIP_TOLERANCE to account for accumulated segment errors
+  if (tableTotalDiff.gt(TABLE_ROUNDTRIP_TOLERANCE)) {
     errors.push(`Table total length ${table.totalLength} differs from direct computation ${directLength}`);
   }
 
@@ -709,6 +855,13 @@ export function verifyArcLengthTable(points, samples = 50) {
  * @returns {{valid: boolean, results: Object}}
  */
 export function verifyAllArcLengthFunctions(points, options = {}) {
+  // INPUT VALIDATION: Ensure points array is valid
+  // WHY: This function orchestrates multiple verification functions, all of which
+  // require valid points. Validating once at the top prevents redundant checks.
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error('verifyAllArcLengthFunctions: points must be an array with at least 2 control points');
+  }
+
   const results = {};
 
   // 1. Verify basic arc length bounds

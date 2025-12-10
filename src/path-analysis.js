@@ -26,6 +26,34 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
 const PI = new Decimal('3.1415926535897932384626433832795028841971693993751058209749445923078164062862090');
 
 // ============================================================================
+// NUMERICAL CONSTANTS (documented magic numbers)
+// ============================================================================
+
+/** Tolerance for boundary detection in point-in-path - very small to catch points on curve */
+const BOUNDARY_TOLERANCE = new Decimal('1e-20');
+
+/** Default tolerance for path closed/continuous checks - detects microscopic gaps */
+const DEFAULT_CONTINUITY_TOLERANCE = '1e-20';
+
+/** Default tolerance for path smoothness (tangent angle) checks - allows tiny angle differences */
+const DEFAULT_SMOOTHNESS_TOLERANCE = '1e-10';
+
+/** Tolerance for centroid-based direction calculations - avoids division by near-zero */
+const CENTROID_ZERO_THRESHOLD = new Decimal('1e-30');
+
+/** Small epsilon for neighbor point testing - small offset for nearby point checks */
+const NEIGHBOR_TEST_EPSILON = new Decimal('1e-10');
+
+/** Threshold for considering tangents anti-parallel (180-degree turn) - dot product ~ -1 */
+const ANTI_PARALLEL_THRESHOLD = new Decimal('-0.99');
+
+/** Tolerance for Newton-Raphson singular Jacobian detection - avoids division by zero */
+const JACOBIAN_SINGULARITY_THRESHOLD = new Decimal('1e-60');
+
+/** Sampling tolerance for farthest point verification - allows tiny numerical precision errors */
+const FARTHEST_POINT_SAMPLING_TOLERANCE = new Decimal('1e-10');
+
+// ============================================================================
 // AREA CALCULATION (GREEN'S THEOREM)
 // ============================================================================
 
@@ -56,6 +84,11 @@ const PI = new Decimal('3.141592653589793238462643383279502884197169399375105820
  * const area = pathArea(rect); // 5000 (100 * 50)
  */
 export function pathArea(segments, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathArea: segments must be an array');
+  }
+
   const { samples = 50 } = options;
 
   let area = D(0);
@@ -186,6 +219,11 @@ function numericalAreaContribution(points, samples) {
  * @returns {Decimal} Absolute area
  */
 export function pathAbsoluteArea(segments, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathAbsoluteArea: segments must be an array');
+  }
+
   return pathArea(segments, options).abs();
 }
 
@@ -209,6 +247,14 @@ export function pathAbsoluteArea(segments, options = {}) {
  * @returns {{point: Array, distance: Decimal, segmentIndex: number, t: Decimal}}
  */
 export function closestPointOnPath(segments, point, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments) || segments.length === 0) {
+    throw new Error('closestPointOnPath: segments must be a non-empty array');
+  }
+  if (!point || !Array.isArray(point) || point.length < 2) {
+    throw new Error('closestPointOnPath: point must be an array [x, y]');
+  }
+
   const { samples = 50, maxIterations = 30, tolerance = '1e-30' } = options;
 
   const px = D(point[0]);
@@ -255,7 +301,8 @@ export function closestPointOnPath(segments, point, options = {}) {
     const fDoublePrime = dx.pow(2).plus(dy.pow(2))
       .plus(diffX.times(d2x)).plus(diffY.times(d2y)).times(2);
 
-    if (fDoublePrime.abs().lt(new Decimal('1e-60'))) break;
+    // WHY: Use named constant instead of magic number for clarity
+    if (fDoublePrime.abs().lt(JACOBIAN_SINGULARITY_THRESHOLD)) break;
 
     const delta = fPrime.div(fDoublePrime);
 
@@ -290,6 +337,14 @@ export function closestPointOnPath(segments, point, options = {}) {
  * @returns {{point: Array, distance: Decimal, segmentIndex: number, t: Decimal}}
  */
 export function farthestPointOnPath(segments, point, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments) || segments.length === 0) {
+    throw new Error('farthestPointOnPath: segments must be a non-empty array');
+  }
+  if (!point || !Array.isArray(point) || point.length < 2) {
+    throw new Error('farthestPointOnPath: point must be an array [x, y]');
+  }
+
   const { samples = 50, maxIterations = 30, tolerance = '1e-30' } = options;
 
   const px = D(point[0]);
@@ -333,7 +388,8 @@ export function farthestPointOnPath(segments, point, options = {}) {
     const fDoublePrime = dx.pow(2).plus(dy.pow(2))
       .plus(diffX.times(d2x)).plus(diffY.times(d2y)).times(2);
 
-    if (fDoublePrime.abs().lt(new Decimal('1e-60'))) break;
+    // WHY: Use named constant instead of magic number for clarity
+    if (fDoublePrime.abs().lt(JACOBIAN_SINGULARITY_THRESHOLD)) break;
 
     // Note: for maximum, we still find critical point where fPrime = 0
     const delta = fPrime.div(fDoublePrime);
@@ -389,13 +445,22 @@ export function farthestPointOnPath(segments, point, options = {}) {
  * @returns {{inside: boolean, windingNumber: number, onBoundary: boolean}}
  */
 export function pointInPath(segments, point, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments) || segments.length === 0) {
+    throw new Error('pointInPath: segments must be a non-empty array');
+  }
+  if (!point || !Array.isArray(point) || point.length < 2) {
+    throw new Error('pointInPath: point must be an array [x, y]');
+  }
+
   const { samples = 100 } = options;
 
   const px = D(point[0]);
   const py = D(point[1]);
 
   let windingNumber = 0;
-  const boundaryTolerance = new Decimal('1e-20');
+  // WHY: Use named constant instead of magic number for clarity and maintainability
+  const boundaryTolerance = BOUNDARY_TOLERANCE;
 
   for (const pts of segments) {
     // Sample the segment and count crossings
@@ -462,7 +527,11 @@ export function pointInPath(segments, point, options = {}) {
  * @param {string} [tolerance='1e-20'] - Distance tolerance
  * @returns {boolean}
  */
-export function isPathClosed(segments, tolerance = '1e-20') {
+export function isPathClosed(segments, tolerance = DEFAULT_CONTINUITY_TOLERANCE) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('isPathClosed: segments must be an array');
+  }
   if (segments.length === 0) return false;
 
   const tol = D(tolerance);
@@ -483,7 +552,11 @@ export function isPathClosed(segments, tolerance = '1e-20') {
  * @param {string} [tolerance='1e-20'] - Distance tolerance
  * @returns {{continuous: boolean, gaps: Array}}
  */
-export function isPathContinuous(segments, tolerance = '1e-20') {
+export function isPathContinuous(segments, tolerance = DEFAULT_CONTINUITY_TOLERANCE) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('isPathContinuous: segments must be an array');
+  }
   if (segments.length <= 1) return { continuous: true, gaps: [] };
 
   const tol = D(tolerance);
@@ -521,7 +594,11 @@ export function isPathContinuous(segments, tolerance = '1e-20') {
  * @param {string} [tolerance='1e-10'] - Tangent angle tolerance (radians)
  * @returns {{smooth: boolean, kinks: Array}}
  */
-export function isPathSmooth(segments, tolerance = '1e-10') {
+export function isPathSmooth(segments, tolerance = DEFAULT_SMOOTHNESS_TOLERANCE) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('isPathSmooth: segments must be an array');
+  }
   if (segments.length <= 1) return { smooth: true, kinks: [] };
 
   const tol = D(tolerance);
@@ -541,12 +618,14 @@ export function isPathSmooth(segments, tolerance = '1e-10') {
     const dot = tx1.times(tx2).plus(ty1.times(ty2));
     const cross = tx1.times(ty2).minus(ty1.times(tx2));
 
-    // Angle = atan2(cross, dot)
-    // For small angles, angle ≈ cross (since dot ≈ 1)
-    const angleDiff = cross.abs(); // Simplified for small angles
+    // WHY: Compute actual angle between tangents using atan2 for accuracy
+    // The old comment said "Simplified for small angles" but used cross.abs() which is only
+    // accurate for very small angles (< 0.1 radians). For larger angles, this approximation
+    // breaks down. Using atan2 gives the true angle for any angle magnitude.
+    const angleDiff = Decimal.atan2(cross.abs(), dot.abs());
 
     // Also check if tangents are parallel but opposite (180-degree turn)
-    const antiParallel = dot.lt(new Decimal('-0.99'));
+    const antiParallel = dot.lt(ANTI_PARALLEL_THRESHOLD);
 
     if (angleDiff.gt(tol) || antiParallel) {
       kinks.push({
@@ -571,7 +650,12 @@ export function isPathSmooth(segments, tolerance = '1e-10') {
  * @param {string} [tolerance='1e-10'] - Angle tolerance
  * @returns {Array} Array of kink locations
  */
-export function findKinks(segments, tolerance = '1e-10') {
+export function findKinks(segments, tolerance = DEFAULT_SMOOTHNESS_TOLERANCE) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('findKinks: segments must be an array');
+  }
+
   const { kinks } = isPathSmooth(segments, tolerance);
 
   // Convert to path parameter
@@ -595,6 +679,10 @@ export function findKinks(segments, tolerance = '1e-10') {
  * @returns {{xmin: Decimal, xmax: Decimal, ymin: Decimal, ymax: Decimal}}
  */
 export function pathBoundingBox(segments) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathBoundingBox: segments must be an array');
+  }
   if (segments.length === 0) {
     return { xmin: D(0), xmax: D(0), ymin: D(0), ymax: D(0) };
   }
@@ -641,6 +729,11 @@ export function boundingBoxesOverlap(bbox1, bbox2) {
  * @returns {Decimal} Total path length
  */
 export function pathLength(segments, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('pathLength: segments must be an array');
+  }
+
   let total = D(0);
 
   for (const pts of segments) {
@@ -664,6 +757,11 @@ export function pathLength(segments, options = {}) {
  * @returns {{valid: boolean, greenArea: Decimal, shoelaceArea: Decimal, relativeError: Decimal}}
  */
 export function verifyPathArea(segments, samples = 100, tolerance = '1e-5') {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyPathArea: segments must be an array');
+  }
+
   const tol = D(tolerance);
 
   // Method 1: Green's theorem (main implementation)
@@ -695,7 +793,9 @@ export function verifyPathArea(segments, samples = 100, tolerance = '1e-5') {
   const absShoelace = shoelaceArea.abs();
 
   let relativeError;
-  if (absGreen.gt(new Decimal('1e-30'))) {
+  // WHY: Use named constant to avoid division by near-zero values
+  const AREA_ZERO_THRESHOLD = new Decimal('1e-30');
+  if (absGreen.gt(AREA_ZERO_THRESHOLD)) {
     relativeError = absGreen.minus(absShoelace).abs().div(absGreen);
   } else {
     relativeError = absGreen.minus(absShoelace).abs();
@@ -720,6 +820,14 @@ export function verifyPathArea(segments, samples = 100, tolerance = '1e-5') {
  * @returns {{valid: boolean, closestPoint: Object, dotProduct: Decimal, isEndpoint: boolean}}
  */
 export function verifyClosestPoint(segments, queryPoint, tolerance = '1e-10') {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyClosestPoint: segments must be an array');
+  }
+  if (!queryPoint || !Array.isArray(queryPoint) || queryPoint.length < 2) {
+    throw new Error('verifyClosestPoint: queryPoint must be an array [x, y]');
+  }
+
   const tol = D(tolerance);
   const qx = D(queryPoint[0]);
   const qy = D(queryPoint[1]);
@@ -740,8 +848,10 @@ export function verifyClosestPoint(segments, queryPoint, tolerance = '1e-10') {
   // Dot product (should be 0 if perpendicular)
   const dotProduct = vx.times(tx).plus(vy.times(ty));
 
-  // Check if at endpoint (where perpendicularity may not hold)
-  const isEndpoint = t.lt(new Decimal('1e-10')) || t.gt(new Decimal('0.9999999999'));
+  // WHY: Check if at endpoint (where perpendicularity may not hold)
+  // Use a small threshold to determine if t is effectively 0 or 1
+  const ENDPOINT_THRESHOLD = new Decimal('1e-10');
+  const isEndpoint = t.lt(ENDPOINT_THRESHOLD) || t.gt(D(1).minus(ENDPOINT_THRESHOLD));
 
   return {
     valid: dotProduct.abs().lte(tol) || isEndpoint,
@@ -763,6 +873,14 @@ export function verifyClosestPoint(segments, queryPoint, tolerance = '1e-10') {
  * @returns {{valid: boolean, farthestPoint: Object, maxSampledDistance: Decimal, foundDistance: Decimal}}
  */
 export function verifyFarthestPoint(segments, queryPoint, samples = 200) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyFarthestPoint: segments must be an array');
+  }
+  if (!queryPoint || !Array.isArray(queryPoint) || queryPoint.length < 2) {
+    throw new Error('verifyFarthestPoint: queryPoint must be an array [x, y]');
+  }
+
   const qx = D(queryPoint[0]);
   const qy = D(queryPoint[1]);
 
@@ -784,9 +902,12 @@ export function verifyFarthestPoint(segments, queryPoint, samples = 200) {
     }
   }
 
-  // Found distance should be >= max sampled distance
-  // (might be slightly larger due to Newton refinement between samples)
-  const valid = foundDistance.gte(maxSampledDistance.times(0.999));
+  // WHY: Found distance should be >= max sampled distance (or very close due to sampling resolution)
+  // The old logic used 0.999 which INCORRECTLY allowed found to be 0.1% SMALLER than max sampled
+  // This defeats the purpose of verification - we want to ensure the found point is actually the farthest
+  // Instead, we check that foundDistance is at least as large as maxSampledDistance
+  // with a small tolerance for numerical precision (not sampling error, but floating point rounding)
+  const valid = foundDistance.gte(maxSampledDistance.minus(FARTHEST_POINT_SAMPLING_TOLERANCE));
 
   return {
     valid,
@@ -806,6 +927,14 @@ export function verifyFarthestPoint(segments, queryPoint, samples = 200) {
  * @returns {{valid: boolean, result: Object, consistentWithNeighbors: boolean}}
  */
 export function verifyPointInPath(segments, testPoint) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyPointInPath: segments must be an array');
+  }
+  if (!testPoint || !Array.isArray(testPoint) || testPoint.length < 2) {
+    throw new Error('verifyPointInPath: testPoint must be an array [x, y]');
+  }
+
   const result = pointInPath(segments, testPoint);
 
   if (result.onBoundary) {
@@ -835,11 +964,12 @@ export function verifyPointInPath(segments, testPoint) {
   const dy = centroidY.minus(py);
   const len = dx.pow(2).plus(dy.pow(2)).sqrt();
 
-  if (len.lt(new Decimal('1e-30'))) {
+  // WHY: Use named constant instead of magic number for clarity
+  if (len.lt(CENTROID_ZERO_THRESHOLD)) {
     return { valid: true, result, consistentWithNeighbors: true };
   }
 
-  const epsilon = new Decimal('1e-10');
+  const epsilon = NEIGHBOR_TEST_EPSILON;
   const unitDx = dx.div(len).times(epsilon);
   const unitDy = dy.div(len).times(epsilon);
 
@@ -877,6 +1007,11 @@ export function verifyPointInPath(segments, testPoint) {
  * @returns {{valid: boolean, bbox: Object, allInside: boolean, errors: string[]}}
  */
 export function verifyPathBoundingBox(segments, samples = 100) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyPathBoundingBox: segments must be an array');
+  }
+
   const bbox = pathBoundingBox(segments);
   const errors = [];
   let allInside = true;
@@ -917,6 +1052,11 @@ export function verifyPathBoundingBox(segments, samples = 100) {
  * @returns {{valid: boolean, continuous: boolean, gaps: Array, maxGap: Decimal}}
  */
 export function verifyPathContinuity(segments) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyPathContinuity: segments must be an array');
+  }
+
   const { continuous, gaps } = isPathContinuous(segments);
 
   let maxGap = D(0);
@@ -951,6 +1091,11 @@ export function verifyPathContinuity(segments) {
  * @returns {{valid: boolean, arcLength: Decimal, chordSum: Decimal, ratio: Decimal}}
  */
 export function verifyPathLength(segments) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyPathLength: segments must be an array');
+  }
+
   const totalArcLength = pathLength(segments);
 
   let chordSum = D(0);
@@ -979,6 +1124,11 @@ export function verifyPathLength(segments) {
  * @returns {{valid: boolean, results: Object}}
  */
 export function verifyAllPathFunctions(segments, options = {}) {
+  // WHY: Validate input to prevent undefined behavior and provide clear error messages
+  if (!segments || !Array.isArray(segments)) {
+    throw new Error('verifyAllPathFunctions: segments must be an array');
+  }
+
   const results = {};
 
   // 1. Verify area
