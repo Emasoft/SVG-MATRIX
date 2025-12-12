@@ -7,6 +7,8 @@
  * @module inkscape-support
  */
 
+import { SVGElement } from './svg-parser.js';
+
 // Inkscape namespace URIs
 export const INKSCAPE_NS = 'http://www.inkscape.org/namespaces/inkscape';
 export const SODIPODI_NS = 'http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd';
@@ -245,4 +247,395 @@ export function ensureInkscapeNamespaces(doc) {
   }
 
   return doc;
+}
+
+// ============================================================================
+// LAYER EXTRACTION
+// ============================================================================
+
+/**
+ * Find all IDs referenced by an element and its descendants.
+ * Looks for url(#id) references in fill, stroke, clip-path, mask, marker-*, filter, etc.
+ * Also checks xlink:href and href attributes for #id references.
+ *
+ * @param {Object} element - SVG element to scan
+ * @returns {Set<string>} Set of referenced IDs
+ */
+export function findReferencedIds(element) {
+  const ids = new Set();
+
+  // Attributes that can contain url(#id) references
+  const urlRefAttrs = [
+    'fill', 'stroke', 'clip-path', 'mask', 'filter',
+    'marker-start', 'marker-mid', 'marker-end',
+    'fill-opacity', 'stroke-opacity' // Sometimes reference paint servers
+  ];
+
+  // Attributes that can contain #id or url(#id) references
+  const hrefAttrs = ['href', 'xlink:href'];
+
+  const extractUrlId = (value) => {
+    if (!value) return null;
+    // Match url(#id) or url("#id")
+    const match = value.match(/url\(["']?#([^"')]+)["']?\)/);
+    return match ? match[1] : null;
+  };
+
+  const extractHrefId = (value) => {
+    if (!value) return null;
+    // Match #id references
+    if (value.startsWith('#')) {
+      return value.slice(1);
+    }
+    return null;
+  };
+
+  const walk = (el) => {
+    if (!el) return;
+
+    // Check url() references
+    for (const attr of urlRefAttrs) {
+      const id = extractUrlId(el.getAttribute?.(attr));
+      if (id) ids.add(id);
+    }
+
+    // Check href references
+    for (const attr of hrefAttrs) {
+      const id = extractHrefId(el.getAttribute?.(attr));
+      if (id) ids.add(id);
+    }
+
+    // Check style attribute for url() references
+    const style = el.getAttribute?.('style');
+    if (style) {
+      const urlMatches = style.matchAll(/url\(["']?#([^"')]+)["']?\)/g);
+      for (const match of urlMatches) {
+        ids.add(match[1]);
+      }
+    }
+
+    // Recurse into children
+    if (el.children) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(element);
+  return ids;
+}
+
+/**
+ * Build a map of all defs elements by their ID.
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @returns {Map<string, Object>} Map of ID to element
+ */
+export function buildDefsMap(doc) {
+  const defsMap = new Map();
+
+  const walk = (el) => {
+    if (!el) return;
+
+    // If element has an ID, add to map
+    const id = el.getAttribute?.('id');
+    if (id) {
+      defsMap.set(id, el);
+    }
+
+    // Recurse
+    if (el.children) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    }
+  };
+
+  // Only scan defs elements for efficiency
+  const findDefs = (el) => {
+    if (!el) return;
+    if (el.tagName === 'defs') {
+      walk(el);
+    }
+    if (el.children) {
+      for (const child of el.children) {
+        findDefs(child);
+      }
+    }
+  };
+
+  findDefs(doc);
+  return defsMap;
+}
+
+/**
+ * Recursively resolve all dependencies for a set of IDs.
+ * Defs elements can reference other defs (e.g., gradient with xlink:href to another gradient).
+ *
+ * @param {Set<string>} initialIds - Initial set of IDs to resolve
+ * @param {Map<string, Object>} defsMap - Map of all defs elements
+ * @returns {Set<string>} Complete set of IDs including all nested dependencies
+ */
+export function resolveDefsDependencies(initialIds, defsMap) {
+  const resolved = new Set();
+  const toProcess = [...initialIds];
+
+  while (toProcess.length > 0) {
+    const id = toProcess.pop();
+    if (resolved.has(id)) continue;
+
+    const element = defsMap.get(id);
+    if (!element) continue;
+
+    resolved.add(id);
+
+    // Find references within this def element
+    const nestedRefs = findReferencedIds(element);
+    for (const nestedId of nestedRefs) {
+      if (!resolved.has(nestedId) && defsMap.has(nestedId)) {
+        toProcess.push(nestedId);
+      }
+    }
+  }
+
+  return resolved;
+}
+
+/**
+ * Deep clone an SVG element and all its children using proper SVGElement class.
+ *
+ * @param {Object} element - Element to clone
+ * @returns {SVGElement} Cloned element with serialize() method
+ */
+export function cloneElement(element) {
+  if (!element) return null;
+
+  // Get attributes as plain object
+  const attrs = {};
+  if (element._attributes) {
+    Object.assign(attrs, element._attributes);
+  } else if (element.getAttributeNames) {
+    for (const name of element.getAttributeNames()) {
+      attrs[name] = element.getAttribute(name);
+    }
+  }
+
+  // Clone children recursively
+  const clonedChildren = [];
+  if (element.children) {
+    for (const child of element.children) {
+      const clonedChild = cloneElement(child);
+      if (clonedChild) {
+        clonedChildren.push(clonedChild);
+      }
+    }
+  }
+
+  // Create proper SVGElement with serialize() method
+  const clone = new SVGElement(
+    element.tagName,
+    attrs,
+    clonedChildren,
+    element.textContent || null
+  );
+
+  return clone;
+}
+
+/**
+ * Extract a single layer as a standalone SVG document.
+ * Includes only the defs elements that are referenced by the layer.
+ *
+ * @param {Object} doc - Source parsed SVG document
+ * @param {Object|string} layerOrId - Layer element or layer ID to extract
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.includeHiddenLayers=false] - Include hidden layers in output
+ * @param {boolean} [options.preserveTransform=true] - Preserve layer transform attribute
+ * @returns {{svg: SVGElement, layerInfo: {id: string, label: string}}} Extracted SVG and layer info
+ */
+export function extractLayer(doc, layerOrId, options = {}) {
+  const { preserveTransform = true } = options;
+
+  // Find the layer element
+  let layer;
+  if (typeof layerOrId === 'string') {
+    const layers = findLayers(doc);
+    const found = layers.find(l => l.id === layerOrId || l.label === layerOrId);
+    if (!found) {
+      throw new Error(`Layer not found: ${layerOrId}`);
+    }
+    layer = found.element;
+  } else {
+    layer = layerOrId;
+  }
+
+  if (!isInkscapeLayer(layer)) {
+    throw new Error('Element is not an Inkscape layer');
+  }
+
+  // Get SVG root element
+  const svgRoot = doc.documentElement || doc;
+
+  // Build defs map from source document
+  const defsMap = buildDefsMap(doc);
+
+  // Find all IDs referenced by this layer
+  const referencedIds = findReferencedIds(layer);
+
+  // Resolve all nested dependencies
+  const requiredDefIds = resolveDefsDependencies(referencedIds, defsMap);
+
+  // Get SVG root attributes
+  const svgAttrs = {};
+  if (svgRoot._attributes) {
+    Object.assign(svgAttrs, svgRoot._attributes);
+  } else if (svgRoot.getAttributeNames) {
+    for (const name of svgRoot.getAttributeNames()) {
+      svgAttrs[name] = svgRoot.getAttribute(name);
+    }
+  }
+
+  // Build children array for new SVG
+  const svgChildren = [];
+
+  // Create defs element with required definitions
+  if (requiredDefIds.size > 0) {
+    const defsChildren = [];
+    for (const id of requiredDefIds) {
+      const defElement = defsMap.get(id);
+      if (defElement) {
+        defsChildren.push(cloneElement(defElement));
+      }
+    }
+    const newDefs = new SVGElement('defs', {}, defsChildren, null);
+    svgChildren.push(newDefs);
+  }
+
+  // Clone the layer
+  const clonedLayer = cloneElement(layer);
+
+  // Optionally remove the transform
+  if (!preserveTransform && clonedLayer._attributes) {
+    delete clonedLayer._attributes.transform;
+  }
+
+  svgChildren.push(clonedLayer);
+
+  // Create new SVG document using SVGElement
+  const newSvg = new SVGElement('svg', svgAttrs, svgChildren, null);
+
+  // Get layer info
+  const layerInfo = {
+    id: layer.getAttribute('id'),
+    label: getLayerLabel(layer)
+  };
+
+  return { svg: newSvg, layerInfo };
+}
+
+/**
+ * Extract all layers from an Inkscape SVG as separate documents.
+ *
+ * @param {Object} doc - Source parsed SVG document
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.includeHidden=false] - Include hidden layers (display:none or visibility:hidden)
+ * @param {boolean} [options.preserveTransform=true] - Preserve layer transform attributes
+ * @returns {Array<{svg: Object, layerInfo: {id: string, label: string}}>} Array of extracted SVGs
+ */
+export function extractAllLayers(doc, options = {}) {
+  const { includeHidden = false } = options;
+  const layers = findLayers(doc);
+  const results = [];
+
+  for (const layerData of layers) {
+    const layer = layerData.element;
+
+    // Skip hidden layers unless requested
+    if (!includeHidden) {
+      const style = layer.getAttribute('style') || '';
+      const display = layer.getAttribute('display');
+      const visibility = layer.getAttribute('visibility');
+
+      if (display === 'none' ||
+          visibility === 'hidden' ||
+          style.includes('display:none') ||
+          style.includes('visibility:hidden')) {
+        continue;
+      }
+    }
+
+    try {
+      const extracted = extractLayer(doc, layer, options);
+      results.push(extracted);
+    } catch (e) {
+      // Skip layers that fail to extract
+      console.warn(`Failed to extract layer ${layerData.id || layerData.label}: ${e.message}`);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Get a summary of shared resources between layers.
+ * Useful for understanding what defs are shared across layers.
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @returns {Object} Summary of shared resources
+ */
+export function analyzeLayerDependencies(doc) {
+  const layers = findLayers(doc);
+  const defsMap = buildDefsMap(doc);
+  const layerRefs = new Map(); // layer ID -> Set of referenced def IDs
+  const defUsage = new Map();  // def ID -> Set of layer IDs that use it
+
+  for (const layerData of layers) {
+    const layer = layerData.element;
+    const layerId = layerData.id || layerData.label || 'unnamed';
+
+    // Find refs for this layer
+    const refs = findReferencedIds(layer);
+    const resolved = resolveDefsDependencies(refs, defsMap);
+
+    layerRefs.set(layerId, resolved);
+
+    // Track which defs are used by which layers
+    for (const defId of resolved) {
+      if (!defUsage.has(defId)) {
+        defUsage.set(defId, new Set());
+      }
+      defUsage.get(defId).add(layerId);
+    }
+  }
+
+  // Find shared defs (used by more than one layer)
+  const sharedDefs = [];
+  const exclusiveDefs = new Map(); // layer ID -> defs only used by that layer
+
+  for (const [defId, layerSet] of defUsage) {
+    if (layerSet.size > 1) {
+      sharedDefs.push({
+        id: defId,
+        usedBy: [...layerSet]
+      });
+    } else {
+      const layerId = [...layerSet][0];
+      if (!exclusiveDefs.has(layerId)) {
+        exclusiveDefs.set(layerId, []);
+      }
+      exclusiveDefs.get(layerId).push(defId);
+    }
+  }
+
+  return {
+    layers: layers.map(l => ({
+      id: l.id,
+      label: l.label,
+      referencedDefs: [...(layerRefs.get(l.id || l.label || 'unnamed') || [])]
+    })),
+    sharedDefs,
+    exclusiveDefs: Object.fromEntries(exclusiveDefs),
+    totalDefs: defsMap.size
+  };
 }

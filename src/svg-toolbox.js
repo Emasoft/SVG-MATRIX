@@ -874,6 +874,49 @@ export const removeUnknownsAndDefaults = createOperation(
              css.includes(':not(');
     });
 
+    // Map lowercase SVG tag names to their canonical mixed-case forms
+    // SVG is case-sensitive but XML parsers may lowercase tag names
+    const tagNameMap = {
+      'clippath': 'clipPath',
+      'textpath': 'textPath',
+      'lineargradient': 'linearGradient',
+      'radialgradient': 'radialGradient',
+      'meshgradient': 'meshGradient',
+      'hatchpath': 'hatchPath',
+      'solidcolor': 'solidColor',
+      'foreignobject': 'foreignObject',
+      'feblend': 'feBlend',
+      'fecolormatrix': 'feColorMatrix',
+      'fecomponenttransfer': 'feComponentTransfer',
+      'fecomposite': 'feComposite',
+      'feconvolvematrix': 'feConvolveMatrix',
+      'fediffuselighting': 'feDiffuseLighting',
+      'fedisplacementmap': 'feDisplacementMap',
+      'fedistantlight': 'feDistantLight',
+      'fedropshadow': 'feDropShadow',
+      'feflood': 'feFlood',
+      'fefunca': 'feFuncA',
+      'fefuncb': 'feFuncB',
+      'fefuncg': 'feFuncG',
+      'fefuncr': 'feFuncR',
+      'fegaussianblur': 'feGaussianBlur',
+      'feimage': 'feImage',
+      'femerge': 'feMerge',
+      'femergenode': 'feMergeNode',
+      'femorphology': 'feMorphology',
+      'feoffset': 'feOffset',
+      'fepointlight': 'fePointLight',
+      'fespecularlighting': 'feSpecularLighting',
+      'fespotlight': 'feSpotLight',
+      'fetile': 'feTile',
+      'feturbulence': 'feTurbulence',
+      'animatemotion': 'animateMotion',
+      'animatetransform': 'animateTransform',
+    };
+    const canonicalTagName = (tag) => tagNameMap[tag] || tag;
+
+    // Known SVG elements - include both mixed-case and lowercase variants
+    // because XML parsers may lowercase tag names
     const knownElements = [
       "svg",
       "g",
@@ -887,13 +930,22 @@ export const removeUnknownsAndDefaults = createOperation(
       "text",
       "tspan",
       "tref",
-      "textPath",
+      "textPath", "textpath",
       "defs",
-      "clipPath",
+      "clipPath", "clippath",
       "mask",
       "pattern",
-      "linearGradient",
-      "radialGradient",
+      "linearGradient", "lineargradient",
+      "radialGradient", "radialgradient",
+      // SVG 2.0 gradient elements (mesh gradients)
+      "meshGradient", "meshgradient",
+      "meshrow",
+      "meshpatch",
+      // SVG 2.0 hatch elements
+      "hatch",
+      "hatchpath", "hatchPath",
+      // SVG 2.0 solid color
+      "solidcolor", "solidColor",
       "stop",
       "image",
       "use",
@@ -902,38 +954,38 @@ export const removeUnknownsAndDefaults = createOperation(
       "title",
       "desc",
       "metadata",
-      "foreignObject",
+      "foreignObject", "foreignobject",
       "switch",
       "a",
       "filter",
-      "feBlend",
-      "feColorMatrix",
-      "feComponentTransfer",
-      "feComposite",
-      "feConvolveMatrix",
-      "feDiffuseLighting",
-      "feDisplacementMap",
-      "feDistantLight",
-      "feDropShadow",
-      "feFlood",
-      "feFuncA",
-      "feFuncB",
-      "feFuncG",
-      "feFuncR",
-      "feGaussianBlur",
-      "feImage",
-      "feMerge",
-      "feMergeNode",
-      "feMorphology",
-      "feOffset",
-      "fePointLight",
-      "feSpecularLighting",
-      "feSpotLight",
-      "feTile",
-      "feTurbulence",
+      "feBlend", "feblend",
+      "feColorMatrix", "fecolormatrix",
+      "feComponentTransfer", "fecomponenttransfer",
+      "feComposite", "fecomposite",
+      "feConvolveMatrix", "feconvolvematrix",
+      "feDiffuseLighting", "fediffuselighting",
+      "feDisplacementMap", "fedisplacementmap",
+      "feDistantLight", "fedistantlight",
+      "feDropShadow", "fedropshadow",
+      "feFlood", "feflood",
+      "feFuncA", "fefunca",
+      "feFuncB", "fefuncb",
+      "feFuncG", "fefuncg",
+      "feFuncR", "fefuncr",
+      "feGaussianBlur", "fegaussianblur",
+      "feImage", "feimage",
+      "feMerge", "femerge",
+      "feMergeNode", "femergenode",
+      "feMorphology", "femorphology",
+      "feOffset", "feoffset",
+      "fePointLight", "fepointlight",
+      "feSpecularLighting", "fespecularlighting",
+      "feSpotLight", "fespotlight",
+      "feTile", "fetile",
+      "feTurbulence", "feturbulence",
       "animate",
-      "animateMotion",
-      "animateTransform",
+      "animateMotion", "animatemotion",
+      "animateTransform", "animatetransform",
       "set",
       "mpath",
       "view",
@@ -1123,7 +1175,9 @@ export const removeUnknownsAndDefaults = createOperation(
       // Remove unknown children (but protect known ones)
       // P4-1: Also validate parent-child relationships per SVG spec
       const parentTagLower = el.tagName.toLowerCase();
-      const allowedChildren = allowedChildrenPerElement[parentTagLower];
+      // Try lowercase key first, then canonical mixed-case (case-insensitive lookup)
+      const allowedChildren = allowedChildrenPerElement[parentTagLower] ||
+                              allowedChildrenPerElement[canonicalTagName(parentTagLower)];
 
       for (const child of [...el.children]) {
         if (isElement(child)) {
@@ -1142,7 +1196,10 @@ export const removeUnknownsAndDefaults = createOperation(
 
           // P4-1: Check if child is allowed for this parent
           // Only validate if we have rules for this parent
-          if (allowedChildren && !allowedChildren.has(childTagLower)) {
+          // Use case-insensitive check: try both lowercase and canonical form
+          if (allowedChildren &&
+              !allowedChildren.has(childTagLower) &&
+              !allowedChildren.has(canonicalTagName(childTagLower))) {
             // Invalid child for this parent - remove it
             el.removeChild(child);
             continue;
@@ -1323,12 +1380,42 @@ export const removeHiddenElements = createOperation((doc, options = {}) => {
 
 /**
  * Remove empty text elements
+ * Recursively checks for text content in child elements (tspan, etc.)
+ * Preserves text elements with namespace attributes when preserveNamespaces is set
  */
 export const removeEmptyText = createOperation((doc, options = {}) => {
   const textElements = doc.getElementsByTagName("text");
 
+  // Helper to get all text content recursively from element and children
+  const getTextContentRecursive = (el) => {
+    let text = el.textContent || '';
+    if (el.children) {
+      for (const child of el.children) {
+        text += getTextContentRecursive(child);
+      }
+    }
+    return text;
+  };
+
+  // Helper to check if element has preserved namespace attributes
+  const hasPreservedNsAttrs = (el, preserveNs) => {
+    if (!preserveNs || preserveNs.length === 0) return false;
+    const attrNames = el.getAttributeNames ? el.getAttributeNames() : [];
+    return attrNames.some(attr =>
+      preserveNs.some(ns => attr.startsWith(ns + ':'))
+    );
+  };
+
+  const preserveNamespaces = options.preserveNamespaces || [];
+
   for (const text of [...textElements]) {
-    if (!text.textContent || text.textContent.trim() === "") {
+    const recursiveContent = getTextContentRecursive(text);
+    const isEmpty = !recursiveContent || recursiveContent.trim() === "";
+
+    // Don't remove if it has preserved namespace attributes (e.g., Inkscape tile metadata)
+    const hasNsAttrs = hasPreservedNsAttrs(text, preserveNamespaces);
+
+    if (isEmpty && !hasNsAttrs) {
       if (text.parentNode) {
         text.parentNode.removeChild(text);
       }
@@ -1340,14 +1427,16 @@ export const removeEmptyText = createOperation((doc, options = {}) => {
 
 /**
  * Remove empty container elements
+ * Note: Patterns with xlink:href/href inherit content and are NOT empty
  */
 export const removeEmptyContainers = createOperation((doc, options = {}) => {
+  // Include both mixed-case and lowercase variants for case-insensitive matching
   const containers = [
     "g",
     "defs",
     "symbol",
     "marker",
-    "clipPath",
+    "clipPath", "clippath",
     "mask",
     "pattern",
   ];
@@ -1358,8 +1447,21 @@ export const removeEmptyContainers = createOperation((doc, options = {}) => {
       if (isElement(child)) processElement(child);
     }
 
-    // Remove if container is empty
-    if (containers.includes(el.tagName) && el.children.length === 0) {
+    const tagLower = el.tagName?.toLowerCase();
+
+    // Skip if not a container type
+    if (!containers.includes(el.tagName) && !containers.includes(tagLower)) {
+      return;
+    }
+
+    // Don't remove if element has href/xlink:href (inherits content from reference)
+    // This is common for patterns that reference other patterns
+    if (el.getAttribute('href') || el.getAttribute('xlink:href')) {
+      return;
+    }
+
+    // Remove if container is truly empty (no children)
+    if (el.children.length === 0) {
       if (el.parentNode) {
         el.parentNode.removeChild(el);
       }

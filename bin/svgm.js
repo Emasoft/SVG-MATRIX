@@ -220,6 +220,13 @@ async function optimizeSvg(content, options = {}) {
   const doc = parseSVG(content);
   const pipeline = DEFAULT_PIPELINE;
 
+  // Detect SVG 2 features BEFORE optimization pipeline removes them
+  // (removeUnknownsAndDefaults strips elements not in SVG 1.1 spec)
+  let svg2Features = null;
+  if (options.svg2Polyfills) {
+    svg2Features = detectSVG2Features(doc);
+  }
+
   // Run optimization pipeline
   for (const pluginName of pipeline) {
     const fn = SVGToolbox[pluginName];
@@ -246,11 +253,11 @@ async function optimizeSvg(content, options = {}) {
     }
   }
 
-  // Inject SVG 2 polyfills if requested
-  if (options.svg2Polyfills) {
-    const features = detectSVG2Features(doc);
-    if (features.meshGradients.length > 0 || features.hatches.length > 0) {
-      injectPolyfills(doc);
+  // Inject SVG 2 polyfills if requested (using pre-detected features)
+  if (options.svg2Polyfills && svg2Features) {
+    if (svg2Features.meshGradients.length > 0 || svg2Features.hatches.length > 0) {
+      // Pass pre-detected features since pipeline may have removed SVG2 elements
+      injectPolyfills(doc, { features: svg2Features });
     }
   }
 
@@ -432,7 +439,15 @@ function parseArgs(args) {
   let i = 0;
 
   while (i < args.length) {
-    const arg = args[i];
+    let arg = args[i];
+    let argValue = null;
+
+    // Handle --arg=value format
+    if (arg.includes('=') && arg.startsWith('--')) {
+      const eqIdx = arg.indexOf('=');
+      argValue = arg.substring(eqIdx + 1);
+      arg = arg.substring(0, eqIdx);
+    }
 
     switch (arg) {
       case '-v':
@@ -533,8 +548,10 @@ function parseArgs(args) {
         break;
 
       case '--preserve-ns':
-        i++;
-        cfg.preserveNamespaces = args[i].split(',').map(s => s.trim().toLowerCase());
+        {
+          const val = argValue || args[++i];
+          cfg.preserveNamespaces = val.split(',').map(s => s.trim().toLowerCase());
+        }
         break;
 
       case '--svg2-polyfills':

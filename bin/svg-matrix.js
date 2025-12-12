@@ -1353,7 +1353,16 @@ function parseArgs(args) {
   let i = 0;
 
   while (i < args.length) {
-    const arg = args[i];
+    let arg = args[i];
+    let argValue = null;
+
+    // Handle --arg=value format
+    if (arg.includes('=') && arg.startsWith('--')) {
+      const eqIdx = arg.indexOf('=');
+      argValue = arg.substring(eqIdx + 1);
+      arg = arg.substring(0, eqIdx);
+    }
+
     switch (arg) {
       case '-o': case '--output': cfg.output = args[++i]; break;
       case '-l': case '--list': cfg.listFile = args[++i]; break;
@@ -1393,7 +1402,7 @@ function parseArgs(args) {
       case '--preserve-vendor': cfg.preserveVendor = true; break;
       // Namespace preservation option (comma-separated list)
       case '--preserve-ns': {
-        const namespaces = args[++i];
+        const namespaces = argValue || args[++i];
         if (!namespaces) {
           logError('--preserve-ns requires a comma-separated list of namespaces');
           process.exit(CONSTANTS.EXIT_ERROR);

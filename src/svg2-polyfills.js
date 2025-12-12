@@ -10,6 +10,8 @@
  * @module svg2-polyfills
  */
 
+import { SVGElement } from './svg-parser.js';
+
 /**
  * SVG 2.0 features that can be polyfilled
  */
@@ -364,10 +366,12 @@ export function generatePolyfillScript(features) {
  * @param {Object} doc - Parsed SVG document
  * @param {Object} [options] - Options
  * @param {boolean} [options.force=false] - Force injection even if no features detected
+ * @param {Object} [options.features] - Pre-detected features (use instead of re-detecting)
  * @returns {Object} The document (modified in place)
  */
 export function injectPolyfills(doc, options = {}) {
-  const features = detectSVG2Features(doc);
+  // Use pre-detected features if provided (for when pipeline has removed SVG2 elements)
+  const features = options.features || detectSVG2Features(doc);
 
   // Check if polyfills are needed
   if (!options.force &&
@@ -382,28 +386,24 @@ export function injectPolyfills(doc, options = {}) {
   // Find or create the SVG root
   const svg = doc.documentElement || doc;
 
-  // Create script element
-  // Note: We need to handle this based on the parser being used
-  const scriptEl = {
-    tagName: 'script',
-    attributes: new Map([['type', 'text/javascript']]),
-    children: [],
-    textContent: script,
-    getAttribute(name) { return this.attributes.get(name); },
-    setAttribute(name, value) { this.attributes.set(name, value); },
-    hasAttribute(name) { return this.attributes.has(name); },
-    removeAttribute(name) { this.attributes.delete(name); },
-    getAttributeNames() { return [...this.attributes.keys()]; },
-    appendChild(child) { this.children.push(child); },
-    removeChild(child) {
-      const idx = this.children.indexOf(child);
-      if (idx >= 0) this.children.splice(idx, 1);
-    }
-  };
+  // Create a proper SVGElement for the script
+  // The script content uses CDATA to avoid XML escaping issues
+  const scriptEl = new SVGElement('script', {
+    type: 'text/javascript',
+    id: 'svg-matrix-polyfill'
+  }, [], script);
 
-  // Insert script at beginning of SVG (after any xml declaration)
+  // Insert script at beginning of SVG (after defs if present, else at start)
   if (svg.children && svg.children.length > 0) {
-    svg.children.unshift(scriptEl);
+    // Find first non-defs element to insert before
+    let insertIdx = 0;
+    for (let i = 0; i < svg.children.length; i++) {
+      if (svg.children[i].tagName === 'defs') {
+        insertIdx = i + 1;
+        break;
+      }
+    }
+    svg.children.splice(insertIdx, 0, scriptEl);
   } else if (svg.children) {
     svg.children.push(scriptEl);
   }

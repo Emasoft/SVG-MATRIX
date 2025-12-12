@@ -718,7 +718,9 @@ export const allowedChildrenPerElement = {
     'circle', 'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face',
     'foreignObject', 'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata',
     'mpath', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script',
-    'set', 'style', 'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
+    'set', 'style', 'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view',
+    // SVG 2.0 elements
+    'meshgradient', 'meshGradient', 'hatch', 'solidcolor', 'solidColor'
   ]),
   'symbol': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
@@ -780,6 +782,29 @@ export const allowedChildrenPerElement = {
   ]),
   'radialGradient': new Set([
     'animate', 'animateTransform', 'desc', 'metadata', 'set', 'stop', 'title'
+  ]),
+  // SVG 2.0 mesh gradient element hierarchy
+  'meshgradient': new Set([
+    'animate', 'animateTransform', 'desc', 'metadata', 'meshrow', 'set', 'title'
+  ]),
+  'meshGradient': new Set([
+    'animate', 'animateTransform', 'desc', 'metadata', 'meshrow', 'set', 'title'
+  ]),
+  'meshrow': new Set([
+    'meshpatch'
+  ]),
+  'meshpatch': new Set([
+    'stop'
+  ]),
+  // SVG 2.0 hatch element
+  'hatch': new Set([
+    'animate', 'animateTransform', 'desc', 'hatchpath', 'hatchPath', 'metadata', 'script', 'set', 'style', 'title'
+  ]),
+  'hatchpath': new Set([
+    'animate', 'animateTransform', 'desc', 'metadata', 'script', 'set', 'title'
+  ]),
+  'hatchPath': new Set([
+    'animate', 'animateTransform', 'desc', 'metadata', 'script', 'set', 'title'
   ]),
   'filter': new Set([
     'animate', 'animateTransform', 'desc', 'feBlend', 'feColorMatrix', 'feComponentTransfer',
