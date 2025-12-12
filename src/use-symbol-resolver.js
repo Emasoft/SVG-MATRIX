@@ -19,6 +19,7 @@ import { Matrix } from './matrix.js';
 import * as Transforms2D from './transforms2d.js';
 import * as PolygonClip from './polygon-clip.js';
 import * as ClipPathResolver from './clip-path-resolver.js';
+import { parseTransformAttribute } from './svg-flatten.js';
 
 Decimal.set({ precision: 80 });
 
@@ -557,7 +558,7 @@ export function resolveUse(useData, defs, options = {}) {
   // Pre-multiply by use element's transform if present (step 1)
   // This makes useTransform apply FIRST, then translation
   if (useData.transform) {
-    const useTransform = ClipPathResolver.parseTransform(useData.transform);
+    const useTransform = parseTransformAttribute(useData.transform);
     transform = transform.mul(useTransform);
   }
 
