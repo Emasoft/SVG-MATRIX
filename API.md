@@ -579,20 +579,6 @@ const meshData = MeshGradient.parseMeshGradient(meshGradientDef);
 const polygons = MeshGradient.meshGradientToPolygons(meshData);
 ```
 
-### TextToPath
-
-Convert text elements to path outlines.
-
-```javascript
-import { TextToPath } from '@emasoft/svg-matrix';
-
-// Convert text to path
-const pathData = TextToPath.textToPath(text, options);
-
-// Measure text
-const metrics = TextToPath.measureText(text, style, font);
-```
-
 ---
 
 ## SVG Attribute Handling
@@ -925,7 +911,6 @@ const path2 = circleToPath(100, 100, 50, 2);
 | `UseSymbolResolver` | Resolve use/symbol elements |
 | `MarkerResolver` | Resolve marker elements |
 | `MeshGradient` | SVG 2.0 mesh gradients |
-| `TextToPath` | Text to path conversion |
 
 ---
 

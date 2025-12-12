@@ -240,7 +240,6 @@ For each function that performs geometric operations, we checked support for the
 | **flattenPatterns** | • Pattern flattening | • **All stroke properties**: Pattern fills on strokes not handled |
 | **flattenFilters** | • Filter removal (stub) | • N/A - Cannot flatten filters without rendering |
 | **flattenUseElements** | • `<use>` inlining | • N/A - Structure flattening |
-| **textToPath** | • Text to path (stub) | • N/A - Requires font rendering |
 | **imageToPath** | • Image tracing (stub) | • N/A - Requires CV algorithms |
 | **detectCollisions** | • GJK collision detection | • **stroke-width**: Collision uses fill polygons only<br>• **Impact**: Stroked shapes may collide visually but not geometrically |
 | **measureDistance** | • GJK distance measurement | • **stroke-width**: Distance to fill boundary only |

@@ -369,7 +369,6 @@ console.log(fixed.svg);       // Fixed SVG string
 | `flattenGradients()` | Bake gradients into fills |
 | `flattenPatterns()` | Expand pattern tiles |
 | `flattenUseElements()` | Inline use/symbol references |
-| `textToPath()` | Convert text to path outlines |
 | `detectCollisions()` | GJK collision detection |
 | `validateSVG()` | W3C schema validation |
 | `decomposeTransform()` | Matrix decomposition |

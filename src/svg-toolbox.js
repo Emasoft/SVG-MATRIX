@@ -3703,21 +3703,6 @@ export const flattenUseElements = createOperation(async (doc, options = {}) => {
 });
 
 /**
- * Convert text to path geometry (requires font info - stub)
- */
-export const textToPath = createOperation((doc, options = {}) => {
-  // Note: True text-to-path conversion requires font rendering engine
-  // This is a placeholder that removes text elements
-  const texts = doc.getElementsByTagName("text");
-  for (const text of [...texts]) {
-    // In real implementation, would convert using font metrics
-    // For now, just mark with comment
-    text.setAttribute("data-text-to-path-needed", "true");
-  }
-  return doc;
-});
-
-/**
  * Trace raster images to paths (basic - stub)
  */
 export const imageToPath = createOperation((doc, options = {}) => {
@@ -7421,7 +7406,6 @@ export default {
   flattenPatterns,
   flattenFilters,
   flattenUseElements,
-  textToPath,
   imageToPath,
   detectCollisions,
   measureDistance,

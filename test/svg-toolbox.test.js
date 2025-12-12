@@ -15,7 +15,7 @@
  * Coverage: 209 tests total
  *
  * Known limitations:
- * - textToPath and imageToPath are stubs (mark elements, don't convert)
+ * - imageToPath is a stub (marks elements, doesn't convert)
  * - flattenFilters removes filters (cannot render without engine)
  * - Some async functions require flattenSVG pipeline
  *
@@ -2142,35 +2142,6 @@ describe('SVG Toolbox - Bonus Functions', () => {
       } catch (e) {
         assert.ok(true, 'Function accepts options (async wrapper issue documented)');
       }
-    });
-
-  });
-
-  // ---------------------------------------------------------------------------
-  // textToPath (3 tests) - Note: This is a stub/placeholder
-  // ---------------------------------------------------------------------------
-  describe('textToPath', () => {
-
-    it('should mark text elements for conversion', async () => {
-      const result = await SVGToolbox.textToPath(svgWithText);
-      const doc = parseSVG(result);
-
-      const text = doc.querySelector('text');
-      // Stub implementation marks text with data attribute
-      assert.ok(text.getAttribute('data-text-to-path-needed') === 'true', 'Text should be marked for conversion');
-    });
-
-    it('should preserve text content', async () => {
-      const result = await SVGToolbox.textToPath(svgWithText);
-
-      assert.ok(result.includes('Hello World'), 'Text content should be preserved');
-    });
-
-    it('should handle SVG without text elements', async () => {
-      const result = await SVGToolbox.textToPath(simpleSVG);
-      const doc = parseSVG(result);
-
-      assert.ok(doc.querySelector('rect') !== null, 'Non-text content should be preserved');
     });
 
   });

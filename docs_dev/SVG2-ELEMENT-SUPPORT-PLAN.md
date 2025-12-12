@@ -185,7 +185,7 @@ For **coons** (bicubic) type:
 | File | Purpose |
 |------|---------|
 | `src/mesh-gradient.js` | Mesh gradient parsing and rasterization |
-| `src/text-to-path.js` | Text element to path conversion |
+| ~~`src/text-to-path.js`~~ | ~~Text element to path conversion~~ (REMOVED - requires proprietary fonts) |
 | `src/mask-resolver.js` | Mask flattening |
 | `src/pattern-resolver.js` | Pattern tiling and flattening |
 | `src/use-resolver.js` | Use/symbol reference resolution |
@@ -207,7 +207,7 @@ For **coons** (bicubic) type:
 ## Dependencies
 
 - **Existing**: decimal.js (already included)
-- **For text**: opentype.js or fontkit (optional, for text-to-path)
+- ~~**For text**: opentype.js or fontkit (optional, for text-to-path)~~ (REMOVED - text-to-path feature dropped)
 - **For testing**: Playwright (already used)
 
 ---

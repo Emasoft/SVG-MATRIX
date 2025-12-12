@@ -43,7 +43,6 @@ import * as PatternResolver from './pattern-resolver.js';
 import * as UseSymbolResolver from './use-symbol-resolver.js';
 import * as MarkerResolver from './marker-resolver.js';
 import * as MeshGradient from './mesh-gradient.js';
-import * as TextToPath from './text-to-path.js';
 import * as SVGParser from './svg-parser.js';
 import * as FlattenPipeline from './flatten-pipeline.js';
 import * as Verification from './verification.js';
@@ -119,7 +118,7 @@ export { GeometryToPath, PolygonClip };
 export { SVGFlatten, BrowserVerify };
 export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
-export { MeshGradient, TextToPath };
+export { MeshGradient };
 export { SVGParser, FlattenPipeline, Verification };
 
 // ============================================================================
@@ -233,7 +232,6 @@ export {
   flattenPatterns,
   flattenFilters,
   flattenUseElements,
-  textToPath,
   imageToPath,
   detectCollisions,
   measureDistance,
@@ -576,7 +574,6 @@ export default {
   UseSymbolResolver,
   MarkerResolver,
   MeshGradient,
-  TextToPath,
   SVGParser,
   FlattenPipeline,
   Verification,

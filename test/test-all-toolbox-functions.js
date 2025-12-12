@@ -136,7 +136,6 @@ const FUNCTIONS_TO_TEST = {
 
 // Functions to skip (not applicable or require special handling)
 const SKIP_FUNCTIONS = [
-  'textToPath',        // Requires font rendering
   'imageToPath',       // Requires image processing
   'detectCollisions',  // O(n^2) - too slow for large files
   'measureDistance',   // O(n^2) - too slow for large files

@@ -1203,7 +1203,7 @@ const TOOLBOX_FUNCTIONS = {
   detection: ['detectCollisions', 'measureDistance'],
 };
 
-const SKIP_TOOLBOX_FUNCTIONS = ['textToPath', 'imageToPath', 'detectCollisions', 'measureDistance'];
+const SKIP_TOOLBOX_FUNCTIONS = ['imageToPath', 'detectCollisions', 'measureDistance'];
 
 function getTimestamp() {
   const now = new Date();
