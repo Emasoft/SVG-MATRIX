@@ -266,15 +266,13 @@ async function optimizeSvg(content, options = {}) {
 }
 
 /**
- * Minify XML output (matching SVGO behavior)
- * - Remove XML declaration
+ * Minify XML output while keeping it valid
+ * - KEEPS XML declaration (ensures valid SVG)
  * - Remove whitespace between tags
  * - Collapse multiple spaces
  */
 function minifyXml(xml) {
   return xml
-    // Remove XML declaration (SVGO removes it by default)
-    .replace(/<\?xml[^?]*\?>\s*/gi, '')
     // Remove newlines and collapse whitespace between tags
     .replace(/>\s+</g, '><')
     // Remove leading/trailing whitespace
