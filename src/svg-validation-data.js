@@ -1,0 +1,944 @@
+// SVG 1.1 Validation Data - Extracted from W3C DTD
+// https://www.w3.org/Graphics/SVG/1.1/DTD/svg11-flat-20110816.dtd
+// Auto-generated - do not edit manually
+
+/**
+ * Set of all valid SVG 1.1 element names (lowercase)
+ */
+export const SVG11_ELEMENTS = new Set(["a","altglyph","altglyphdef","altglyphitem","animate","animatecolor","animatemotion","animatetransform","circle","clippath","color-profile","cursor","defs","desc","ellipse","feblend","fecolormatrix","fecomponenttransfer","fecomposite","feconvolvematrix","fediffuselighting","fedisplacementmap","fedistantlight","feflood","fefunca","fefuncb","fefuncg","fefuncr","fegaussianblur","feimage","femerge","femergenode","femorphology","feoffset","fepointlight","fespecularlighting","fespotlight","fetile","feturbulence","filter","font","font-face","font-face-format","font-face-name","font-face-src","font-face-uri","foreignobject","g","glyph","glyphref","hkern","image","line","lineargradient","marker","mask","metadata","missing-glyph","mpath","path","pattern","polygon","polyline","radialgradient","rect","script","set","stop","style","svg","switch","symbol","text","textpath","title","tref","tspan","use","view","vkern"]);
+
+/**
+ * Set of all valid SVG 1.1 attribute names (lowercase)
+ */
+export const SVG11_ATTRIBUTES = new Set(["accent-height","accumulate","actuate","additive","alignment-baseline","alphabetic","amplitude","arabic-form","arcrole","ascent","attributename","attributetype","azimuth","basefrequency","baseline-shift","baseprofile","bbox","begin","bias","by","calcmode","cap-height","class","clip","clip-path","clip-rule","clippathunits","color","color-interpolation","color-interpolation-filters","color-profile","color-rendering","contentscripttype","contentstyletype","cursor","cx","cy","d","descent","diffuseconstant","direction","display","divisor","dominant-baseline","dur","dx","dy","edgemode","elevation","enable-background","end","exponent","externalresourcesrequired","fill","fill-opacity","fill-rule","filter","filterres","filterunits","flood-color","flood-opacity","font-family","font-size","font-size-adjust","font-stretch","font-style","font-variant","font-weight","format","from","fx","fy","g1","g2","glyph-name","glyph-orientation-horizontal","glyph-orientation-vertical","glyphref","gradienttransform","gradientunits","hanging","height","horiz-adv-x","horiz-origin-x","horiz-origin-y","href","id","ideographic","image-rendering","in","in2","intercept","k","k1","k2","k3","k4","kernelmatrix","kernelunitlength","kerning","keypoints","keysplines","keytimes","lang","lengthadjust","letter-spacing","lighting-color","limitingconeangle","local","marker-end","marker-mid","marker-start","markerheight","markerunits","markerwidth","mask","maskcontentunits","maskunits","mathematical","max","media","method","min","mode","name","numoctaves","offset","onabort","onactivate","onbegin","onclick","onend","onerror","onfocusin","onfocusout","onload","onmousedown","onmousemove","onmouseout","onmouseover","onmouseup","onrepeat","onresize","onscroll","onunload","onzoom","opacity","operator","order","orient","orientation","origin","overflow","overline-position","overline-thickness","panose-1","path","pathlength","patterncontentunits","patterntransform","patternunits","pointer-events","points","pointsatx","pointsaty","pointsatz","preservealpha","preserveaspectratio","primitiveunits","r","radius","refx","refy","rendering-intent","repeatcount","repeatdur","requiredextensions","requiredfeatures","restart","result","role","rotate","rx","ry","scale","seed","shape-rendering","show","slope","spacing","specularconstant","specularexponent","spreadmethod","startoffset","stddeviation","stemh","stemv","stitchtiles","stop-color","stop-opacity","strikethrough-position","strikethrough-thickness","string","stroke","stroke-dasharray","stroke-dashoffset","stroke-linecap","stroke-linejoin","stroke-miterlimit","stroke-opacity","stroke-width","style","surfacescale","systemlanguage","tablevalues","target","targetx","targety","text-anchor","text-decoration","text-rendering","textlength","title","to","transform","type","u1","u2","underline-position","underline-thickness","unicode","unicode-bidi","unicode-range","units-per-em","v-alphabetic","v-hanging","v-ideographic","v-mathematical","values","version","vert-adv-y","vert-origin-x","vert-origin-y","viewbox","viewtarget","visibility","width","widths","word-spacing","writing-mode","x","x-height","x1","x2","xchannelselector","xml:base","xml:lang","xml:space","y","y1","y2","ychannelselector","z","zoomandpan"]);
+
+/**
+ * Elements that are truly EMPTY (cannot have any children)
+ * From DTD: font-face-format, font-face-name, glyphRef, hkern, vkern
+ */
+export const EMPTY_ELEMENTS = new Set(["font-face-format","font-face-name","glyphRef","hkern","vkern"]);
+
+/**
+ * Required attributes for each element
+ */
+export const REQUIRED_ATTRIBUTES = {
+  "a": [
+    "href"
+  ],
+  "animate": [
+    "attributename"
+  ],
+  "animatecolor": [
+    "attributename"
+  ],
+  "animatetransform": [
+    "attributename"
+  ],
+  "circle": [
+    "r"
+  ],
+  "color-profile": [
+    "name"
+  ],
+  "cursor": [
+    "href"
+  ],
+  "ellipse": [
+    "rx",
+    "ry"
+  ],
+  "feblend": [
+    "in2"
+  ],
+  "fecomposite": [
+    "in2"
+  ],
+  "feconvolvematrix": [
+    "kernelmatrix"
+  ],
+  "fedisplacementmap": [
+    "in2"
+  ],
+  "fefunca": [
+    "type"
+  ],
+  "fefuncb": [
+    "type"
+  ],
+  "fefuncg": [
+    "type"
+  ],
+  "fefuncr": [
+    "type"
+  ],
+  "feimage": [
+    "href"
+  ],
+  "font": [
+    "horiz-adv-x"
+  ],
+  "font-face-uri": [
+    "href"
+  ],
+  "foreignobject": [
+    "height",
+    "width"
+  ],
+  "hkern": [
+    "k"
+  ],
+  "image": [
+    "height",
+    "href",
+    "width"
+  ],
+  "mpath": [
+    "href"
+  ],
+  "path": [
+    "d"
+  ],
+  "polygon": [
+    "points"
+  ],
+  "polyline": [
+    "points"
+  ],
+  "rect": [
+    "height",
+    "width"
+  ],
+  "script": [
+    "type"
+  ],
+  "set": [
+    "attributename"
+  ],
+  "stop": [
+    "offset"
+  ],
+  "style": [
+    "type"
+  ],
+  "textpath": [
+    "href"
+  ],
+  "tref": [
+    "href"
+  ],
+  "use": [
+    "href"
+  ],
+  "vkern": [
+    "k"
+  ]
+};
+
+/**
+ * Valid children for each element
+ */
+export const VALID_CHILDREN = {
+  "a": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "altglyphdef": [
+    "altglyphitem",
+    "glyphref"
+  ],
+  "altglyphitem": [
+    "glyphref"
+  ],
+  "animate": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "animatecolor": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "animatemotion": [
+    "desc",
+    "metadata",
+    "mpath",
+    "title"
+  ],
+  "animatetransform": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "circle": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "clippath": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "desc",
+    "ellipse",
+    "line",
+    "metadata",
+    "path",
+    "polygon",
+    "polyline",
+    "rect",
+    "set",
+    "text",
+    "title",
+    "use"
+  ],
+  "color-profile": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "cursor": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "defs": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "ellipse": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "feblend": [
+    "animate",
+    "set"
+  ],
+  "fecolormatrix": [
+    "animate",
+    "set"
+  ],
+  "fecomponenttransfer": [
+    "fefunca",
+    "fefuncb",
+    "fefuncg",
+    "fefuncr"
+  ],
+  "fecomposite": [
+    "animate",
+    "set"
+  ],
+  "feconvolvematrix": [
+    "animate",
+    "set"
+  ],
+  "fediffuselighting": [
+    "animate",
+    "animatecolor",
+    "fedistantlight",
+    "fepointlight",
+    "fespotlight",
+    "set"
+  ],
+  "fedisplacementmap": [
+    "animate",
+    "set"
+  ],
+  "fedistantlight": [
+    "animate",
+    "set"
+  ],
+  "feflood": [
+    "animate",
+    "animatecolor",
+    "set"
+  ],
+  "fefunca": [
+    "animate",
+    "set"
+  ],
+  "fefuncb": [
+    "animate",
+    "set"
+  ],
+  "fefuncg": [
+    "animate",
+    "set"
+  ],
+  "fefuncr": [
+    "animate",
+    "set"
+  ],
+  "fegaussianblur": [
+    "animate",
+    "set"
+  ],
+  "feimage": [
+    "animate",
+    "animatetransform",
+    "set"
+  ],
+  "femerge": [
+    "femergenode"
+  ],
+  "femergenode": [
+    "animate",
+    "set"
+  ],
+  "femorphology": [
+    "animate",
+    "set"
+  ],
+  "feoffset": [
+    "animate",
+    "set"
+  ],
+  "fepointlight": [
+    "animate",
+    "set"
+  ],
+  "fespecularlighting": [
+    "animate",
+    "animatecolor",
+    "fedistantlight",
+    "fepointlight",
+    "fespotlight",
+    "set"
+  ],
+  "fespotlight": [
+    "animate",
+    "set"
+  ],
+  "fetile": [
+    "animate",
+    "set"
+  ],
+  "feturbulence": [
+    "animate",
+    "set"
+  ],
+  "filter": [
+    "animate",
+    "desc",
+    "feblend",
+    "fecolormatrix",
+    "fecomponenttransfer",
+    "fecomposite",
+    "feconvolvematrix",
+    "fediffuselighting",
+    "fedisplacementmap",
+    "feflood",
+    "fegaussianblur",
+    "feimage",
+    "femerge",
+    "femorphology",
+    "feoffset",
+    "fespecularlighting",
+    "fetile",
+    "feturbulence",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "font": [
+    "desc",
+    "glyph",
+    "hkern",
+    "metadata",
+    "title",
+    "vkern"
+  ],
+  "font-face": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "g": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "glyph": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "image": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "line": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "lineargradient": [
+    "animate",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "stop",
+    "title"
+  ],
+  "marker": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "mask": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "missing-glyph": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "mpath": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "path": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "pattern": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "polygon": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "polyline": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "radialgradient": [
+    "animate",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "stop",
+    "title"
+  ],
+  "rect": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "set": [
+    "desc",
+    "metadata",
+    "title"
+  ],
+  "stop": [
+    "animate",
+    "animatecolor",
+    "set"
+  ],
+  "svg": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "switch": [
+    "a",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "desc",
+    "ellipse",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "metadata",
+    "path",
+    "polygon",
+    "polyline",
+    "rect",
+    "set",
+    "svg",
+    "switch",
+    "text",
+    "title",
+    "use"
+  ],
+  "symbol": [
+    "a",
+    "altglyphdef",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "circle",
+    "clippath",
+    "cursor",
+    "defs",
+    "desc",
+    "ellipse",
+    "filter",
+    "font",
+    "foreignobject",
+    "g",
+    "image",
+    "line",
+    "lineargradient",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "radialgradient",
+    "rect",
+    "script",
+    "set",
+    "style",
+    "svg",
+    "switch",
+    "symbol",
+    "text",
+    "title",
+    "view"
+  ],
+  "text": [
+    "a",
+    "altglyph",
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "textpath",
+    "title",
+    "tref",
+    "tspan"
+  ],
+  "textpath": [
+    "a",
+    "altglyph",
+    "animate",
+    "animatecolor",
+    "desc",
+    "metadata",
+    "set",
+    "title",
+    "tref",
+    "tspan"
+  ],
+  "tref": [
+    "animate",
+    "animatecolor",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "tspan": [
+    "a",
+    "altglyph",
+    "animate",
+    "animatecolor",
+    "desc",
+    "metadata",
+    "set",
+    "title",
+    "tref",
+    "tspan"
+  ],
+  "use": [
+    "animate",
+    "animatecolor",
+    "animatemotion",
+    "animatetransform",
+    "desc",
+    "metadata",
+    "set",
+    "title"
+  ],
+  "view": [
+    "desc",
+    "metadata",
+    "title"
+  ]
+};
+
+/**
+ * Elements with mixed content (can have text)
+ */
+export const MIXED_CONTENT_ELEMENTS = new Set(['text', 'tspan', 'tref', 'textpath', 'altglyph', 'a', 'title', 'desc', 'metadata']);
+
+/**
+ * SVG 2.0 elements (warn but don't auto-correct)
+ */
+export const SVG2_ELEMENTS = new Set([
+  'mesh', 'meshgradient', 'meshpatch', 'meshrow', 'solidcolor',
+  'hatch', 'hatchpath', 'discard', 'unknown'
+]);

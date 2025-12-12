@@ -1,0 +1,936 @@
+/**
+ * Transform Optimization with Arbitrary Precision and Mathematical Verification
+ *
+ * Optimizes sequences of 2D affine transformations by merging compatible transforms,
+ * removing redundancies, and converting matrices to simpler forms when possible.
+ *
+ * Guarantees:
+ * 1. ARBITRARY PRECISION - All calculations use Decimal.js (80 digits)
+ * 2. MATHEMATICAL VERIFICATION - Every optimization verifies that the result is equivalent
+ *
+ * ## Optimization Strategies
+ *
+ * 1. **Merge Adjacent Transforms**: Combine consecutive transforms of the same type
+ *    - translate + translate → single translate
+ *    - rotate + rotate (same center) → single rotate
+ *    - scale + scale → single scale
+ *
+ * 2. **Remove Identity Transforms**: Remove transforms that have no effect
+ *    - translate(0, 0)
+ *    - rotate(0) or rotate(2π)
+ *    - scale(1, 1)
+ *
+ * 3. **Matrix Simplification**: Convert general matrices to simpler forms
+ *    - Pure translation matrix → translate()
+ *    - Pure rotation matrix → rotate()
+ *    - Pure scale matrix → scale()
+ *
+ * 4. **Shorthand Notation**: Combine translate-rotate-translate sequences
+ *    - translate + rotate + translate⁻¹ → rotate(angle, cx, cy)
+ *
+ * @module transform-optimization
+ */
+
+import Decimal from 'decimal.js';
+import { Matrix } from './matrix.js';
+
+// Set high precision for all calculations
+Decimal.set({ precision: 80 });
+
+// Helper to convert to Decimal
+const D = x => (x instanceof Decimal ? x : new Decimal(x));
+
+// Near-zero threshold for comparisons
+const EPSILON = new Decimal('1e-40');
+
+// Verification tolerance (larger than EPSILON for practical use)
+const VERIFICATION_TOLERANCE = new Decimal('1e-30');
+
+// ============================================================================
+// Matrix Utilities (imported patterns)
+// ============================================================================
+
+/**
+ * Create a 3x3 identity matrix with Decimal values.
+ * @returns {Matrix} 3x3 identity matrix
+ */
+export function identityMatrix() {
+  return Matrix.identity(3);
+}
+
+/**
+ * Create a 2D translation matrix.
+ * @param {number|string|Decimal} tx - X translation
+ * @param {number|string|Decimal} ty - Y translation
+ * @returns {Matrix} 3x3 translation matrix
+ */
+export function translationMatrix(tx, ty) {
+  return Matrix.from([
+    [1, 0, D(tx)],
+    [0, 1, D(ty)],
+    [0, 0, 1]
+  ]);
+}
+
+/**
+ * Create a 2D rotation matrix.
+ * @param {number|string|Decimal} angle - Rotation angle in radians
+ * @returns {Matrix} 3x3 rotation matrix
+ */
+export function rotationMatrix(angle) {
+  const theta = D(angle);
+  const cos = Decimal.cos(theta);
+  const sin = Decimal.sin(theta);
+  return Matrix.from([
+    [cos, sin.neg(), 0],
+    [sin, cos, 0],
+    [0, 0, 1]
+  ]);
+}
+
+/**
+ * Create a 2D rotation matrix around a specific point.
+ * @param {number|string|Decimal} angle - Rotation angle in radians
+ * @param {number|string|Decimal} cx - X coordinate of rotation center
+ * @param {number|string|Decimal} cy - Y coordinate of rotation center
+ * @returns {Matrix} 3x3 rotation matrix around point (cx, cy)
+ */
+export function rotationMatrixAroundPoint(angle, cx, cy) {
+  const cxD = D(cx);
+  const cyD = D(cy);
+  const T1 = translationMatrix(cxD.neg(), cyD.neg());
+  const R = rotationMatrix(angle);
+  const T2 = translationMatrix(cxD, cyD);
+  return T2.mul(R).mul(T1);
+}
+
+/**
+ * Create a 2D scale matrix.
+ * @param {number|string|Decimal} sx - X scale factor
+ * @param {number|string|Decimal} sy - Y scale factor
+ * @returns {Matrix} 3x3 scale matrix
+ */
+export function scaleMatrix(sx, sy) {
+  return Matrix.from([
+    [D(sx), 0, 0],
+    [0, D(sy), 0],
+    [0, 0, 1]
+  ]);
+}
+
+/**
+ * Calculate the maximum absolute difference between two matrices.
+ * @param {Matrix} m1 - First matrix
+ * @param {Matrix} m2 - Second matrix
+ * @returns {Decimal} Maximum absolute difference
+ */
+export function matrixMaxDifference(m1, m2) {
+  let maxDiff = D(0);
+
+  for (let i = 0; i < m1.rows; i++) {
+    for (let j = 0; j < m1.cols; j++) {
+      const diff = m1.data[i][j].minus(m2.data[i][j]).abs();
+      if (diff.greaterThan(maxDiff)) {
+        maxDiff = diff;
+      }
+    }
+  }
+
+  return maxDiff;
+}
+
+/**
+ * Check if two matrices are equal within tolerance.
+ * @param {Matrix} m1 - First matrix
+ * @param {Matrix} m2 - Second matrix
+ * @param {Decimal} [tolerance=VERIFICATION_TOLERANCE] - Maximum allowed difference
+ * @returns {boolean} True if matrices are equal within tolerance
+ */
+export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
+  return matrixMaxDifference(m1, m2).lessThan(D(tolerance));
+}
+
+// ============================================================================
+// Transform Merging Functions
+// ============================================================================
+
+/**
+ * Merge two translation transforms into a single translation.
+ *
+ * Mathematical formula:
+ * translate(a, b) × translate(c, d) = translate(a + c, b + d)
+ *
+ * VERIFICATION: The result matrix must equal the product of the two input matrices.
+ *
+ * @param {{tx: number|string|Decimal, ty: number|string|Decimal}} t1 - First translation
+ * @param {{tx: number|string|Decimal, ty: number|string|Decimal}} t2 - Second translation
+ * @returns {{
+ *   tx: Decimal,
+ *   ty: Decimal,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Merged translation with verification result
+ *
+ * @example
+ * // Merge translate(5, 10) and translate(3, -2)
+ * const result = mergeTranslations({tx: 5, ty: 10}, {tx: 3, ty: -2});
+ * // Result: {tx: 8, ty: 8, verified: true}
+ */
+export function mergeTranslations(t1, t2) {
+  // Calculate merged translation: sum of components
+  const tx = D(t1.tx).plus(D(t2.tx));
+  const ty = D(t1.ty).plus(D(t2.ty));
+
+  // VERIFICATION: Matrix multiplication must give same result
+  const M1 = translationMatrix(t1.tx, t1.ty);
+  const M2 = translationMatrix(t2.tx, t2.ty);
+  const product = M1.mul(M2);
+  const merged = translationMatrix(tx, ty);
+
+  const maxError = matrixMaxDifference(product, merged);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    tx,
+    ty,
+    verified,
+    maxError
+  };
+}
+
+/**
+ * Merge two rotation transforms around the origin into a single rotation.
+ *
+ * Mathematical formula:
+ * rotate(a) × rotate(b) = rotate(a + b)
+ *
+ * Note: This only works for rotations around the SAME point (origin).
+ * For rotations around different points, this function should not be used.
+ *
+ * VERIFICATION: The result matrix must equal the product of the two input matrices.
+ *
+ * @param {{angle: number|string|Decimal}} r1 - First rotation
+ * @param {{angle: number|string|Decimal}} r2 - Second rotation
+ * @returns {{
+ *   angle: Decimal,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Merged rotation with verification result
+ *
+ * @example
+ * // Merge rotate(π/4) and rotate(π/4)
+ * const result = mergeRotations({angle: Math.PI/4}, {angle: Math.PI/4});
+ * // Result: {angle: π/2, verified: true}
+ */
+export function mergeRotations(r1, r2) {
+  // Calculate merged rotation: sum of angles
+  const angle = D(r1.angle).plus(D(r2.angle));
+
+  // Normalize angle to [-π, π]
+  const PI = Decimal.acos(-1);
+  const TWO_PI = PI.mul(2);
+  let normalizedAngle = angle.mod(TWO_PI);
+  if (normalizedAngle.greaterThan(PI)) {
+    normalizedAngle = normalizedAngle.minus(TWO_PI);
+  } else if (normalizedAngle.lessThan(PI.neg())) {
+    normalizedAngle = normalizedAngle.plus(TWO_PI);
+  }
+
+  // VERIFICATION: Matrix multiplication must give same result
+  const M1 = rotationMatrix(r1.angle);
+  const M2 = rotationMatrix(r2.angle);
+  const product = M1.mul(M2);
+  const merged = rotationMatrix(normalizedAngle);
+
+  const maxError = matrixMaxDifference(product, merged);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    angle: normalizedAngle,
+    verified,
+    maxError
+  };
+}
+
+/**
+ * Merge two scale transforms into a single scale.
+ *
+ * Mathematical formula:
+ * scale(a, b) × scale(c, d) = scale(a × c, b × d)
+ *
+ * VERIFICATION: The result matrix must equal the product of the two input matrices.
+ *
+ * @param {{sx: number|string|Decimal, sy: number|string|Decimal}} s1 - First scale
+ * @param {{sx: number|string|Decimal, sy: number|string|Decimal}} s2 - Second scale
+ * @returns {{
+ *   sx: Decimal,
+ *   sy: Decimal,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Merged scale with verification result
+ *
+ * @example
+ * // Merge scale(2, 3) and scale(1.5, 0.5)
+ * const result = mergeScales({sx: 2, sy: 3}, {sx: 1.5, sy: 0.5});
+ * // Result: {sx: 3, sy: 1.5, verified: true}
+ */
+export function mergeScales(s1, s2) {
+  // Calculate merged scale: product of components
+  const sx = D(s1.sx).mul(D(s2.sx));
+  const sy = D(s1.sy).mul(D(s2.sy));
+
+  // VERIFICATION: Matrix multiplication must give same result
+  const M1 = scaleMatrix(s1.sx, s1.sy);
+  const M2 = scaleMatrix(s2.sx, s2.sy);
+  const product = M1.mul(M2);
+  const merged = scaleMatrix(sx, sy);
+
+  const maxError = matrixMaxDifference(product, merged);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    sx,
+    sy,
+    verified,
+    maxError
+  };
+}
+
+// ============================================================================
+// Matrix to Transform Conversion Functions
+// ============================================================================
+
+/**
+ * Convert a matrix to a translate transform if it represents a pure translation.
+ *
+ * A pure translation matrix has the form:
+ * [1  0  tx]
+ * [0  1  ty]
+ * [0  0   1]
+ *
+ * VERIFICATION: The matrices must be equal.
+ *
+ * @param {Matrix} matrix - 3x3 transformation matrix
+ * @returns {{
+ *   isTranslation: boolean,
+ *   tx: Decimal|null,
+ *   ty: Decimal|null,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Translation parameters if matrix is pure translation
+ *
+ * @example
+ * // Check if a matrix is a pure translation
+ * const M = translationMatrix(5, 10);
+ * const result = matrixToTranslate(M);
+ * // Result: {isTranslation: true, tx: 5, ty: 10, verified: true}
+ */
+export function matrixToTranslate(matrix) {
+  const data = matrix.data;
+
+  // Check if linear part is identity
+  const isIdentityLinear =
+    data[0][0].minus(1).abs().lessThan(EPSILON) &&
+    data[0][1].abs().lessThan(EPSILON) &&
+    data[1][0].abs().lessThan(EPSILON) &&
+    data[1][1].minus(1).abs().lessThan(EPSILON);
+
+  if (!isIdentityLinear) {
+    return {
+      isTranslation: false,
+      tx: null,
+      ty: null,
+      verified: false,
+      maxError: D(0)
+    };
+  }
+
+  // Extract translation
+  const tx = data[0][2];
+  const ty = data[1][2];
+
+  // VERIFICATION: Matrices must be equal
+  const reconstructed = translationMatrix(tx, ty);
+  const maxError = matrixMaxDifference(matrix, reconstructed);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    isTranslation: true,
+    tx,
+    ty,
+    verified,
+    maxError
+  };
+}
+
+/**
+ * Convert a matrix to a rotate transform if it represents a pure rotation around origin.
+ *
+ * A pure rotation matrix has the form:
+ * [cos(θ)  -sin(θ)  0]
+ * [sin(θ)   cos(θ)  0]
+ * [  0        0     1]
+ *
+ * Properties:
+ * - Orthogonal columns: a·c + b·d = 0
+ * - Unit column lengths: a² + b² = 1, c² + d² = 1
+ * - Determinant = 1 (no reflection)
+ * - No translation: tx = ty = 0
+ *
+ * VERIFICATION: The matrices must be equal.
+ *
+ * @param {Matrix} matrix - 3x3 transformation matrix
+ * @returns {{
+ *   isRotation: boolean,
+ *   angle: Decimal|null,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Rotation angle if matrix is pure rotation
+ *
+ * @example
+ * // Check if a matrix is a pure rotation
+ * const M = rotationMatrix(Math.PI / 4);
+ * const result = matrixToRotate(M);
+ * // Result: {isRotation: true, angle: π/4, verified: true}
+ */
+export function matrixToRotate(matrix) {
+  const data = matrix.data;
+
+  // Extract components
+  const a = data[0][0];
+  const b = data[1][0];
+  const c = data[0][1];
+  const d = data[1][1];
+  const tx = data[0][2];
+  const ty = data[1][2];
+
+  // Check no translation
+  if (!tx.abs().lessThan(EPSILON) || !ty.abs().lessThan(EPSILON)) {
+    return {
+      isRotation: false,
+      angle: null,
+      verified: false,
+      maxError: D(0)
+    };
+  }
+
+  // Check orthogonality: a*c + b*d = 0
+  const orthogonal = a.mul(c).plus(b.mul(d)).abs().lessThan(EPSILON);
+
+  // Check unit columns: a² + b² = 1, c² + d² = 1
+  const col1Norm = a.mul(a).plus(b.mul(b));
+  const col2Norm = c.mul(c).plus(d.mul(d));
+  const unitNorm = col1Norm.minus(1).abs().lessThan(EPSILON) &&
+    col2Norm.minus(1).abs().lessThan(EPSILON);
+
+  // Check determinant = 1 (no reflection)
+  const det = a.mul(d).minus(b.mul(c));
+  const detOne = det.minus(1).abs().lessThan(EPSILON);
+
+  if (!orthogonal || !unitNorm || !detOne) {
+    return {
+      isRotation: false,
+      angle: null,
+      verified: false,
+      maxError: D(0)
+    };
+  }
+
+  // Calculate rotation angle
+  const angle = Decimal.atan2(b, a);
+
+  // VERIFICATION: Matrices must be equal
+  const reconstructed = rotationMatrix(angle);
+  const maxError = matrixMaxDifference(matrix, reconstructed);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    isRotation: true,
+    angle,
+    verified,
+    maxError
+  };
+}
+
+/**
+ * Convert a matrix to a scale transform if it represents a pure scale.
+ *
+ * A pure scale matrix has the form:
+ * [sx  0   0]
+ * [0   sy  0]
+ * [0   0   1]
+ *
+ * Properties:
+ * - Diagonal matrix in linear part: b = c = 0
+ * - No translation: tx = ty = 0
+ *
+ * VERIFICATION: The matrices must be equal.
+ *
+ * @param {Matrix} matrix - 3x3 transformation matrix
+ * @returns {{
+ *   isScale: boolean,
+ *   sx: Decimal|null,
+ *   sy: Decimal|null,
+ *   isUniform: boolean,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Scale factors if matrix is pure scale
+ *
+ * @example
+ * // Check if a matrix is a pure scale
+ * const M = scaleMatrix(2, 2);
+ * const result = matrixToScale(M);
+ * // Result: {isScale: true, sx: 2, sy: 2, isUniform: true, verified: true}
+ */
+export function matrixToScale(matrix) {
+  const data = matrix.data;
+
+  // Extract components
+  const a = data[0][0];
+  const b = data[1][0];
+  const c = data[0][1];
+  const d = data[1][1];
+  const tx = data[0][2];
+  const ty = data[1][2];
+
+  // Check no translation
+  if (!tx.abs().lessThan(EPSILON) || !ty.abs().lessThan(EPSILON)) {
+    return {
+      isScale: false,
+      sx: null,
+      sy: null,
+      isUniform: false,
+      verified: false,
+      maxError: D(0)
+    };
+  }
+
+  // Check diagonal: b = 0, c = 0
+  if (!b.abs().lessThan(EPSILON) || !c.abs().lessThan(EPSILON)) {
+    return {
+      isScale: false,
+      sx: null,
+      sy: null,
+      isUniform: false,
+      verified: false,
+      maxError: D(0)
+    };
+  }
+
+  // Extract scale factors
+  const sx = a;
+  const sy = d;
+
+  // Check if uniform
+  const isUniform = sx.minus(sy).abs().lessThan(EPSILON);
+
+  // VERIFICATION: Matrices must be equal
+  const reconstructed = scaleMatrix(sx, sy);
+  const maxError = matrixMaxDifference(matrix, reconstructed);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    isScale: true,
+    sx,
+    sy,
+    isUniform,
+    verified,
+    maxError
+  };
+}
+
+// ============================================================================
+// Transform List Optimization Functions
+// ============================================================================
+
+/**
+ * Remove identity transforms from a transform list.
+ *
+ * Identity transforms are those that have no effect:
+ * - translate(0, 0)
+ * - rotate(0) or rotate(2πn) for integer n
+ * - scale(1, 1)
+ *
+ * This function does NOT perform verification (it only removes transforms).
+ *
+ * @param {Array<{type: string, params: Object}>} transforms - Array of transform objects
+ * @returns {{
+ *   transforms: Array<{type: string, params: Object}>,
+ *   removedCount: number
+ * }} Filtered transform list
+ *
+ * @example
+ * // Remove identity transforms
+ * const transforms = [
+ *   {type: 'translate', params: {tx: 5, ty: 10}},
+ *   {type: 'rotate', params: {angle: 0}},
+ *   {type: 'scale', params: {sx: 1, sy: 1}},
+ *   {type: 'translate', params: {tx: 0, ty: 0}}
+ * ];
+ * const result = removeIdentityTransforms(transforms);
+ * // Result: {transforms: [{type: 'translate', params: {tx: 5, ty: 10}}], removedCount: 3}
+ */
+export function removeIdentityTransforms(transforms) {
+  const PI = Decimal.acos(-1);
+  const TWO_PI = PI.mul(2);
+
+  const filtered = transforms.filter(t => {
+    switch (t.type) {
+      case 'translate': {
+        const tx = D(t.params.tx);
+        const ty = D(t.params.ty);
+        return !tx.abs().lessThan(EPSILON) || !ty.abs().lessThan(EPSILON);
+      }
+
+      case 'rotate': {
+        const angle = D(t.params.angle);
+        // Normalize angle to [0, 2π)
+        const normalized = angle.mod(TWO_PI);
+        return !normalized.abs().lessThan(EPSILON);
+      }
+
+      case 'scale': {
+        const sx = D(t.params.sx);
+        const sy = D(t.params.sy);
+        return !sx.minus(1).abs().lessThan(EPSILON) || !sy.minus(1).abs().lessThan(EPSILON);
+      }
+
+      case 'matrix': {
+        // Check if matrix is identity
+        const m = t.params.matrix;
+        const identity = identityMatrix();
+        return !matricesEqual(m, identity, EPSILON);
+      }
+
+      default:
+        // Keep unknown transform types
+        return true;
+    }
+  });
+
+  return {
+    transforms: filtered,
+    removedCount: transforms.length - filtered.length
+  };
+}
+
+/**
+ * Convert translate-rotate-translate sequence to rotate around point shorthand.
+ *
+ * Detects the pattern:
+ * translate(tx, ty) × rotate(angle) × translate(-tx, -ty)
+ *
+ * And converts it to:
+ * rotate(angle, tx, ty)
+ *
+ * This is a common optimization for rotating around a point other than the origin.
+ *
+ * VERIFICATION: The matrices must be equal.
+ *
+ * @param {number|string|Decimal} translateX - First translation X
+ * @param {number|string|Decimal} translateY - First translation Y
+ * @param {number|string|Decimal} angle - Rotation angle in radians
+ * @param {number|string|Decimal} centerX - Expected rotation center X
+ * @param {number|string|Decimal} centerY - Expected rotation center Y
+ * @returns {{
+ *   angle: Decimal,
+ *   cx: Decimal,
+ *   cy: Decimal,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Shorthand rotation parameters with verification
+ *
+ * @example
+ * // Convert translate-rotate-translate to rotate around point
+ * const result = shortRotate(100, 50, Math.PI/4, 100, 50);
+ * // Result: {angle: π/4, cx: 100, cy: 50, verified: true}
+ */
+export function shortRotate(translateX, translateY, angle, centerX, centerY) {
+  const txD = D(translateX);
+  const tyD = D(translateY);
+  const angleD = D(angle);
+  const cxD = D(centerX);
+  const cyD = D(centerY);
+
+  // Build the sequence: T(tx, ty) × R(angle) × T(-tx, -ty)
+  const T1 = translationMatrix(txD, tyD);
+  const R = rotationMatrix(angleD);
+  const T2 = translationMatrix(txD.neg(), tyD.neg());
+  const sequence = T1.mul(R).mul(T2);
+
+  // Build the shorthand: R(angle, cx, cy)
+  const shorthand = rotationMatrixAroundPoint(angleD, cxD, cyD);
+
+  // VERIFICATION: Matrices must be equal
+  const maxError = matrixMaxDifference(sequence, shorthand);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    angle: angleD,
+    cx: cxD,
+    cy: cyD,
+    verified,
+    maxError
+  };
+}
+
+/**
+ * Optimize a list of transforms by applying all optimization strategies.
+ *
+ * Optimization strategies applied:
+ * 1. Remove identity transforms
+ * 2. Merge consecutive transforms of the same type
+ * 3. Detect and convert translate-rotate-translate to rotate around point
+ * 4. Convert matrices to simpler forms when possible
+ *
+ * VERIFICATION: The combined matrix of the optimized list must equal the
+ * combined matrix of the original list.
+ *
+ * @param {Array<{type: string, params: Object}>} transforms - Array of transform objects
+ * @returns {{
+ *   transforms: Array<{type: string, params: Object}>,
+ *   optimizationCount: number,
+ *   verified: boolean,
+ *   maxError: Decimal
+ * }} Optimized transform list with verification
+ *
+ * @example
+ * // Optimize a transform list
+ * const transforms = [
+ *   {type: 'translate', params: {tx: 5, ty: 10}},
+ *   {type: 'translate', params: {tx: 3, ty: -2}},
+ *   {type: 'rotate', params: {angle: 0}},
+ *   {type: 'scale', params: {sx: 2, sy: 2}},
+ *   {type: 'scale', params: {sx: 0.5, sy: 0.5}}
+ * ];
+ * const result = optimizeTransformList(transforms);
+ * // Result: optimized list with merged translations and scales, identity rotation removed
+ */
+export function optimizeTransformList(transforms) {
+  // Calculate original combined matrix for verification
+  let originalMatrix = identityMatrix();
+  for (const t of transforms) {
+    let m;
+    switch (t.type) {
+      case 'translate':
+        m = translationMatrix(t.params.tx, t.params.ty);
+        break;
+      case 'rotate':
+        if (t.params.cx !== undefined && t.params.cy !== undefined) {
+          m = rotationMatrixAroundPoint(t.params.angle, t.params.cx, t.params.cy);
+        } else {
+          m = rotationMatrix(t.params.angle);
+        }
+        break;
+      case 'scale':
+        m = scaleMatrix(t.params.sx, t.params.sy);
+        break;
+      case 'matrix':
+        m = t.params.matrix;
+        break;
+      default:
+        continue;
+    }
+    originalMatrix = originalMatrix.mul(m);
+  }
+
+  // Step 1: Remove identity transforms
+  const { transforms: step1, removedCount } = removeIdentityTransforms(transforms);
+  let optimized = step1.slice();
+
+  // Step 2: Merge consecutive transforms of the same type
+  let i = 0;
+  while (i < optimized.length - 1) {
+    const current = optimized[i];
+    const next = optimized[i + 1];
+
+    // Try to merge
+    let merged = null;
+
+    if (current.type === 'translate' && next.type === 'translate') {
+      const result = mergeTranslations(current.params, next.params);
+      if (result.verified) {
+        merged = {
+          type: 'translate',
+          params: { tx: result.tx, ty: result.ty }
+        };
+      }
+    } else if (current.type === 'rotate' && next.type === 'rotate') {
+      // Only merge if both are around origin
+      if (!current.params.cx && !current.params.cy && !next.params.cx && !next.params.cy) {
+        const result = mergeRotations(current.params, next.params);
+        if (result.verified) {
+          merged = {
+            type: 'rotate',
+            params: { angle: result.angle }
+          };
+        }
+      }
+    } else if (current.type === 'scale' && next.type === 'scale') {
+      const result = mergeScales(current.params, next.params);
+      if (result.verified) {
+        merged = {
+          type: 'scale',
+          params: { sx: result.sx, sy: result.sy }
+        };
+      }
+    }
+
+    if (merged) {
+      // Replace current and next with merged
+      optimized.splice(i, 2, merged);
+      // Don't increment i, check if we can merge again
+    } else {
+      i++;
+    }
+  }
+
+  // Step 3: Detect translate-rotate-translate patterns
+  i = 0;
+  while (i < optimized.length - 2) {
+    const t1 = optimized[i];
+    const t2 = optimized[i + 1];
+    const t3 = optimized[i + 2];
+
+    if (t1.type === 'translate' && t2.type === 'rotate' && t3.type === 'translate') {
+      // Check if t3 is inverse of t1
+      const tx1 = D(t1.params.tx);
+      const ty1 = D(t1.params.ty);
+      const tx3 = D(t3.params.tx);
+      const ty3 = D(t3.params.ty);
+
+      if (tx1.plus(tx3).abs().lessThan(EPSILON) && ty1.plus(ty3).abs().lessThan(EPSILON)) {
+        // This is a rotate around point pattern
+        const result = shortRotate(tx1, ty1, t2.params.angle, tx1, ty1);
+        if (result.verified) {
+          const merged = {
+            type: 'rotate',
+            params: { angle: result.angle, cx: result.cx, cy: result.cy }
+          };
+          optimized.splice(i, 3, merged);
+          // Don't increment i, might be able to merge more
+          continue;
+        }
+      }
+    }
+
+    i++;
+  }
+
+  // Step 4: Convert matrices to simpler forms
+  for (let j = 0; j < optimized.length; j++) {
+    const t = optimized[j];
+    if (t.type === 'matrix') {
+      const m = t.params.matrix;
+
+      // Try to convert to simpler forms
+      const translateResult = matrixToTranslate(m);
+      if (translateResult.isTranslation && translateResult.verified) {
+        optimized[j] = {
+          type: 'translate',
+          params: { tx: translateResult.tx, ty: translateResult.ty }
+        };
+        continue;
+      }
+
+      const rotateResult = matrixToRotate(m);
+      if (rotateResult.isRotation && rotateResult.verified) {
+        optimized[j] = {
+          type: 'rotate',
+          params: { angle: rotateResult.angle }
+        };
+        continue;
+      }
+
+      const scaleResult = matrixToScale(m);
+      if (scaleResult.isScale && scaleResult.verified) {
+        optimized[j] = {
+          type: 'scale',
+          params: { sx: scaleResult.sx, sy: scaleResult.sy }
+        };
+        continue;
+      }
+    }
+  }
+
+  // Final removal of any new identity transforms created by optimization
+  const { transforms: final } = removeIdentityTransforms(optimized);
+
+  // Calculate optimized combined matrix for verification
+  let optimizedMatrix = identityMatrix();
+  for (const t of final) {
+    let m;
+    switch (t.type) {
+      case 'translate':
+        m = translationMatrix(t.params.tx, t.params.ty);
+        break;
+      case 'rotate':
+        if (t.params.cx !== undefined && t.params.cy !== undefined) {
+          m = rotationMatrixAroundPoint(t.params.angle, t.params.cx, t.params.cy);
+        } else {
+          m = rotationMatrix(t.params.angle);
+        }
+        break;
+      case 'scale':
+        m = scaleMatrix(t.params.sx, t.params.sy);
+        break;
+      case 'matrix':
+        m = t.params.matrix;
+        break;
+      default:
+        continue;
+    }
+    optimizedMatrix = optimizedMatrix.mul(m);
+  }
+
+  // VERIFICATION: Combined matrices must be equal
+  const maxError = matrixMaxDifference(originalMatrix, optimizedMatrix);
+  const verified = maxError.lessThan(VERIFICATION_TOLERANCE);
+
+  return {
+    transforms: final,
+    optimizationCount: transforms.length - final.length,
+    verified,
+    maxError
+  };
+}
+
+// ============================================================================
+// Exports
+// ============================================================================
+
+export {
+  EPSILON,
+  VERIFICATION_TOLERANCE,
+  D
+};
+
+export default {
+  // Matrix utilities
+  identityMatrix,
+  translationMatrix,
+  rotationMatrix,
+  rotationMatrixAroundPoint,
+  scaleMatrix,
+  matrixMaxDifference,
+  matricesEqual,
+
+  // Transform merging
+  mergeTranslations,
+  mergeRotations,
+  mergeScales,
+
+  // Matrix to transform conversion
+  matrixToTranslate,
+  matrixToRotate,
+  matrixToScale,
+
+  // Transform list optimization
+  removeIdentityTransforms,
+  shortRotate,
+  optimizeTransformList,
+
+  // Constants
+  EPSILON,
+  VERIFICATION_TOLERANCE
+};

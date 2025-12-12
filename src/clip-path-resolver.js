@@ -46,6 +46,7 @@ import {
   ellipseToPathDataHP
 } from './geometry-to-path.js';
 import { Logger } from './logger.js';
+import { FillRule, pointInPolygonWithRule } from './svg-boolean-ops.js';
 
 // Alias for cleaner code
 const parseTransform = parseTransformAttribute;
@@ -567,6 +568,97 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
 }
 
 /**
+ * Clip a polygon using a clip polygon with clip-rule support.
+ *
+ * For simple (non-self-intersecting) clip polygons, this is equivalent to
+ * polygonIntersection. For self-intersecting clip paths, the clip-rule
+ * determines which regions are inside the clip:
+ *
+ * - 'nonzero': All regions where winding number != 0 are inside
+ * - 'evenodd': Only regions with odd crossing count are inside
+ *
+ * The algorithm:
+ * 1. For simple clip polygons, use standard polygon intersection
+ * 2. For self-intersecting clip polygons with evenodd rule, we need to
+ *    compute which parts of the element polygon are in the "filled" regions
+ *    of the clip polygon according to the evenodd rule
+ *
+ * @private
+ * @param {Array} elementPolygon - The polygon to be clipped
+ * @param {Array} clipPolygon - The clipping polygon (may be self-intersecting)
+ * @param {string} clipRule - 'nonzero' or 'evenodd'
+ * @returns {Array} Clipped polygon(s), or array of polygon arrays for multi-region results
+ */
+function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
+  // For nonzero rule, standard intersection works correctly
+  // because polygonIntersection uses the winding number test internally
+  if (clipRule === 'nonzero') {
+    return PolygonClip.polygonIntersection(elementPolygon, clipPolygon);
+  }
+
+  // For evenodd rule with self-intersecting clip paths, we need a different approach
+  // The idea: filter vertices of the intersection result by the evenodd test
+  // First get the standard intersection
+  const intersection = PolygonClip.polygonIntersection(elementPolygon, clipPolygon);
+  if (intersection.length === 0) return [];
+
+  // For each resulting polygon, check if its centroid is inside according to evenodd
+  // This handles the case where the clip path has holes due to evenodd rule
+  const result = [];
+  for (const poly of intersection) {
+    if (poly.length < 3) continue;
+
+    // Compute centroid of the polygon
+    const centroid = computeCentroid(poly);
+
+    // Test if centroid is inside the clip polygon according to evenodd rule
+    const fillRule = clipRule === 'evenodd' ? FillRule.EVENODD : FillRule.NONZERO;
+    const inside = pointInPolygonWithRule(centroid, clipPolygon, fillRule);
+
+    // If centroid is inside (1) or on boundary (0), keep this polygon
+    if (inside >= 0) {
+      result.push(poly);
+    }
+  }
+
+  return result.length === 1 ? result[0] : result;
+}
+
+/**
+ * Compute the centroid (center of mass) of a polygon.
+ * @private
+ */
+function computeCentroid(polygon) {
+  let cx = new Decimal(0);
+  let cy = new Decimal(0);
+  let area = new Decimal(0);
+
+  for (let i = 0; i < polygon.length; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % polygon.length];
+    const cross = p1.x.times(p2.y).minus(p2.x.times(p1.y));
+    area = area.plus(cross);
+    cx = cx.plus(p1.x.plus(p2.x).times(cross));
+    cy = cy.plus(p1.y.plus(p2.y).times(cross));
+  }
+
+  area = area.div(2);
+  if (area.abs().lt(1e-10)) {
+    // Degenerate polygon - return average of vertices
+    let sumX = new Decimal(0);
+    let sumY = new Decimal(0);
+    for (const p of polygon) {
+      sumX = sumX.plus(p.x);
+      sumY = sumY.plus(p.y);
+    }
+    return PolygonClip.point(sumX.div(polygon.length), sumY.div(polygon.length));
+  }
+
+  const factor = new Decimal(1).div(area.times(6));
+  return PolygonClip.point(cx.times(factor), cy.times(factor));
+}
+
+/**
  * Apply a clipPath to an element, returning the clipped geometry.
  *
  * Performs the complete clipping operation by:
@@ -577,11 +669,17 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
  * This is the main function for applying clip paths to elements. The result is a
  * polygon representing the visible portion of the element after clipping.
  *
+ * The clip-rule property determines how the clipping region is calculated for
+ * self-intersecting paths:
+ * - 'nonzero' (default): Uses winding number rule (SVG default)
+ * - 'evenodd': Uses even-odd rule (creates holes in self-intersecting paths)
+ *
  * @param {Object} element - SVG element to be clipped (rect, circle, path, etc.)
  * @param {Object} clipPathDef - clipPath definition object (see resolveClipPath)
  * @param {Matrix|null} [ctm=null] - Current transformation matrix (3x3) to apply
  * @param {Object} [options={}] - Additional options
  * @param {number} [options.samples=20] - Number of sample points per curve segment
+ * @param {string} [options.clipRule='nonzero'] - Clip rule: 'nonzero' or 'evenodd'
  * @returns {Array<{x: Decimal, y: Decimal}>} Clipped polygon representing the intersection
  *          of the element and clipPath. Empty array if no intersection or invalid input.
  *
@@ -595,6 +693,15 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
  * // Returns polygon approximating the intersection (rounded corners of rect)
  *
  * @example
+ * // Clip with evenodd rule (creates holes in self-intersecting clip paths)
+ * const rect = { type: 'rect', x: 0, y: 0, width: 100, height: 100 };
+ * const clipDef = {
+ *   children: [{ type: 'path', d: 'M 0,0 L 100,100 L 100,0 L 0,100 Z' }] // Self-intersecting
+ * };
+ * const clipped = applyClipPath(rect, clipDef, null, { clipRule: 'evenodd' });
+ * // Center region will NOT be clipped (evenodd creates hole there)
+ *
+ * @example
  * // Clip with objectBoundingBox coordinate system
  * const ellipse = { type: 'ellipse', cx: 100, cy: 100, rx: 80, ry: 60 };
  * const clipDef = {
@@ -604,14 +711,15 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
  * const clipped = applyClipPath(ellipse, clipDef, null, { samples: 50 });
  */
 export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
-  const { samples = DEFAULT_CURVE_SAMPLES } = options;
+  const { samples = DEFAULT_CURVE_SAMPLES, clipRule = 'nonzero' } = options;
   const clipPolygon = resolveClipPath(clipPathDef, element, ctm, options);
   if (clipPolygon.length < 3) return [];
 
   const elementPolygon = shapeToPolygon(element, ctm, samples);
   if (elementPolygon.length < 3) return [];
 
-  return PolygonClip.polygonIntersection(elementPolygon, clipPolygon);
+  // Use clip-rule aware intersection for self-intersecting clip paths
+  return clipPolygonWithRule(elementPolygon, clipPolygon, clipRule);
 }
 
 /**

@@ -26,6 +26,43 @@ npm-shrinkwrap.json
 *.swp
 *.swo
 
+# Claude Code local settings
+.claude/
+
 # Test coverage
 coverage/
 .nyc_output/
+
+# Test output files
+test/*-result.svg
+test/comparison/
+
+# Logs folder
+logs/
+
+# Test output
+samples/toolbox-tests/
+
+# Large test samples (not needed in repo)
+samples/anime_girl*
+samples/panther_bird_header*
+samples/*.png
+samples/svg-bbox*.html
+samples/svg-box*.html
+
+# Debug output folders
+samples/*_20*
+
+# SVGO reference copies (not part of this project)
+svgo/
+svgo_shallow/
+svgo.config.cjs
+
+# Dev documentation (local only)
+docs_dev/
+
+# Dev scripts (local only)
+scripts_dev/
+
+# W3C test suite (large, downloaded separately)
+SVG 1.1 W3C Test Suit/

@@ -1,0 +1,207 @@
+================================================================================
+SVG HIDDEN ISSUES ANALYSIS - SUMMARY REPORT
+================================================================================
+Generated: 2025-12-06
+Analyzed Files: 2 (trombone.bug.fbf.svg, seagull.bug.fbf.svg)
+Total Critical Issues Found: 3
+Total High-Priority Issues: 2
+
+================================================================================
+CRITICAL ISSUES (Animation Won't Work)
+================================================================================
+
+FILE: seagull.bug.fbf.svg
+ISSUE: Undefined Frame Reference at Line 190
+  - Initial href="#FRAME0001" does not exist
+  - Actual frames are "#FRAME00001" through "#FRAME00010"
+  - Animation will not display initial frame
+  - FIX: Change xlink:href="#FRAME0001" to xlink:href="#FRAME00001"
+
+================================================================================
+HIGH-PRIORITY ISSUES (Specification Violations)
+================================================================================
+
+FILE: trombone.bug.fbf.svg  
+ISSUE 1: Invalid Group Element Attributes (Lines 41, 44)
+  - <g> elements using x="0px" y="0px" width="7770.0px" height="4641.0px"
+  - SVG 1.1 spec: <g> elements do NOT support x, y, width, height
+  - These attributes are silently ignored by browsers
+  - FIX: Remove all x, y, width, height from <g> elements
+
+ISSUE 2: Frame ID Format Violation (Lines 799+, Line 48)
+  - Frames named FRAME01, FRAME02, FRAME03, FRAME04
+  - FBF.SVG spec (stated in file): must use FRAME0001, FRAME0002, etc.
+  - Format error violates file's own stated specification
+  - FIX: Rename all FRAME## to FRAME#### format and update animate element
+
+================================================================================
+DETAILED FINDINGS
+================================================================================
+
+TROMBONE.BUG.FBF.SVG (840 lines, ~80KB)
+---------------------------------------
+Line 41:   <g id="ANIMATION_BACKDROP" x="0px" y="0px" width="7770.0px" height="4641.0px">
+Line 44:   <g id="ANIMATION_STAGE" x="0px" y="0px" width="7770.0px" height="4641.0px">
+Line 47:   <use id="PROSKENION" width="7770.0px" height="4641.0px" overflow="visible" xlink:href="#FRAME01">
+Line 48:   <animate attributeName="xlink:href" begin="0s" calcMode="discrete" dur="0.4s" repeatCount="indefinite" values="#FRAME01;#FRAME02;#FRAME03;#FRAME04"/>
+Lines 799+: Frame definitions: FRAME01, FRAME02, FRAME03, FRAME04
+
+Issues:
+  1. Invalid x, y, width, height on <g> elements (2 instances)
+  2. Frame naming does not follow FBF.SVG spec (4 frame IDs)
+  3. Animate values reference non-standard frame names
+
+SEAGULL.BUG.FBF.SVG (660 lines, ~98KB)
+--------------------------------------
+Line 190: <use id="PROSKENION" overflow="visible" xlink:href="#FRAME0001">
+Line 191: <animate attributeName="xlink:href" begin="0s" calcMode="discrete" dur="0.8333s" repeatCount="indefinite" values="#FRAME00001;#FRAME00002;#FRAME00003;#FRAME00004;#FRAME00005;#FRAME00006;#FRAME00007;#FRAME00008;#FRAME00009;#FRAME00010"/>
+
+Issues:
+  1. Initial xlink:href="#FRAME0001" - target does not exist (critical!)
+  2. Animate values reference "#FRAME00001" through "#FRAME00010" (exists)
+  3. Mismatch between initial frame reference and defined frames
+
+Analysis:
+  - Actual frames defined: FRAME00001, FRAME00002, ... FRAME00010
+  - Initial href references: FRAME0001 (not found)
+  - Animation will be missing first frame display
+
+================================================================================
+SVG 1.1 SPECIFICATION VIOLATIONS
+================================================================================
+
+1. INVALID ELEMENT ATTRIBUTES
+   Violation: SVG 1.1 Spec - Container Elements
+   Details: <g> element receiving x, y, width, height attributes
+   Location: trombone.bug.fbf.svg lines 41, 44
+   Impact: Attributes silently ignored, positioning lost
+   
+2. UNDEFINED ELEMENT REFERENCES
+   Violation: SVG 1.1 Spec - XLink Reference Rules
+   Details: xlink:href="#FRAME0001" references non-existent element
+   Location: seagull.bug.fbf.svg line 190
+   Impact: Element will not render, animation glitch on startup
+   
+3. FBF.SVG SPECIFICATION VIOLATION
+   Violation: FBF.SVG Spec - Frame Naming Format
+   Details: FRAME01 format instead of FRAME0001 (zero-padded)
+   Location: trombone.bug.fbf.svg lines 799+ and line 48
+   Impact: Violates FBF.SVG spec (stated in file itself)
+
+================================================================================
+NAMESPACE VALIDATION
+================================================================================
+
+TROMBONE.BUG.FBF.SVG:
+  xmlns="http://www.w3.org/2000/svg"                  ✓ CORRECT
+  xmlns:xlink="http://www.w3.org/1999/xlink"          ✓ CORRECT
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"  ✓ CORRECT
+  xmlns:cc="http://creativecommons.org/ns#"           ✓ CORRECT
+  xmlns:dc="http://purl.org/dc/elements/1.1/"         ✓ CORRECT
+
+SEAGULL.BUG.FBF.SVG:
+  xmlns="http://www.w3.org/2000/svg"                  ✓ CORRECT
+  xmlns:xlink="http://www.w3.org/1999/xlink"          ✓ CORRECT
+  xmlns:fbf="http://opentoonz.github.io/fbf/1.0#"     ✓ CORRECT
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"  ✓ CORRECT
+  xmlns:cc="http://creativecommons.org/ns#"           ✓ CORRECT
+  xmlns:dc="http://purl.org/dc/elements/1.1/"         ✓ CORRECT
+
+Result: All namespace declarations are properly defined
+
+================================================================================
+ANIMATION TIMING VALIDATION
+================================================================================
+
+TROMBONE:
+  begin="0s"                 ✓ VALID
+  dur="0.4s"                 ✓ VALID
+  calcMode="discrete"        ✓ VALID for frame switching
+  repeatCount="indefinite"   ✓ VALID
+
+SEAGULL:
+  begin="0s"                 ✓ VALID
+  dur="0.8333s"              ✓ VALID (10 frames at 12fps = 0.8333s)
+  calcMode="discrete"        ✓ VALID for frame switching
+  repeatCount="indefinite"   ✓ VALID
+
+Result: All animation timing is SVG 1.1 compliant
+
+================================================================================
+FIX RECOMMENDATIONS
+================================================================================
+
+PRIORITY 1 (CRITICAL - DO IMMEDIATELY):
+  [ ] seagull.bug.fbf.svg line 190:
+      Change: xlink:href="#FRAME0001"
+      To:     xlink:href="#FRAME00001"
+
+PRIORITY 2 (HIGH - DO NEXT):
+  [ ] trombone.bug.fbf.svg lines 41, 44:
+      Remove: x="0px" y="0px" width="7770.0px" height="4641.0px"
+
+  [ ] trombone.bug.fbf.svg lines 799+ (frame definitions):
+      Rename: FRAME01 → FRAME0001
+      Rename: FRAME02 → FRAME0002
+      Rename: FRAME03 → FRAME0003
+      Rename: FRAME04 → FRAME0004
+
+  [ ] trombone.bug.fbf.svg line 48:
+      Update animate values:
+      From: values="#FRAME01;#FRAME02;#FRAME03;#FRAME04"
+      To:   values="#FRAME0001;#FRAME0002;#FRAME0003;#FRAME0004"
+
+================================================================================
+WHY THESE BUGS ARE "HIDDEN"
+================================================================================
+
+These issues are silent because:
+
+1. Browser SVG renderers:
+   - Silently ignore invalid attributes (x, y, width, height on <g>)
+   - Use graceful degradation for undefined references
+   - Don't throw errors for specification violations
+   - Different browsers behave differently
+
+2. Animation behavior:
+   - Partial functionality masks complete failure
+   - Initial frame issue only visible on first render
+   - Frame naming doesn't affect playback if values exist
+   - Format violations don't cause immediate failures
+
+3. Testing challenges:
+   - Visual inspection might not catch the missing first frame
+   - Specification compliance is not tested automatically
+   - FBF.SVG validators are specialized tools
+
+================================================================================
+DOCUMENTATION FILES GENERATED
+================================================================================
+
+1. SVG_VIOLATIONS_ANALYSIS.md
+   - Detailed analysis of each issue
+   - SVG 1.1 specification references
+   - Why each issue causes problems
+   - Line-by-line examples
+
+2. FIX_IMPLEMENTATIONS.md
+   - Exact code before and after
+   - Step-by-step fix instructions
+   - Verification checklist
+   - Automated testing commands
+
+3. SVG_1.1_RULES_REFERENCE.md
+   - Complete SVG 1.1 specification reference
+   - Element attributes guide
+   - Animation element specification
+   - Best practices for frame-based animations
+   - FBF.SVG format specification
+
+4. ANALYSIS_SUMMARY.txt (this file)
+   - Quick reference for all findings
+   - Priority-based action items
+   - Validation results summary
+
+================================================================================
+END OF REPORT
+================================================================================

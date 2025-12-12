@@ -339,6 +339,23 @@ function resolveAllPatterns(root, defsMap, opts) {
     if (!patternEl || patternEl.tagName !== 'pattern') continue;
 
     try {
+      // Check coordinate system units - skip if non-default
+      const patternUnits = patternEl.getAttribute('patternUnits') || 'objectBoundingBox';
+      const patternContentUnits = patternEl.getAttribute('patternContentUnits') || 'userSpaceOnUse';
+      const patternTransform = patternEl.getAttribute('patternTransform');
+
+      // PatternResolver handles these cases, but warn about complex patterns
+      // that might need special handling or cause issues
+      if (patternUnits !== 'objectBoundingBox') {
+        errors.push(`pattern ${refId}: non-default patternUnits="${patternUnits}" may cause rendering issues`);
+      }
+      if (patternContentUnits !== 'userSpaceOnUse') {
+        errors.push(`pattern ${refId}: non-default patternContentUnits="${patternContentUnits}" may cause rendering issues`);
+      }
+      if (patternTransform) {
+        errors.push(`pattern ${refId}: patternTransform present - complex transformation may cause rendering issues`);
+      }
+
       // Get element bounding box (approximate from path data or attributes)
       const bbox = getElementBBox(el);
       if (!bbox) continue;
@@ -404,6 +421,20 @@ function resolveAllMasks(root, defsMap, opts) {
     if (!maskEl || maskEl.tagName !== 'mask') continue;
 
     try {
+      // Check coordinate system units
+      const maskUnits = maskEl.getAttribute('maskUnits') || 'objectBoundingBox';
+      const maskContentUnits = maskEl.getAttribute('maskContentUnits') || 'userSpaceOnUse';
+
+      // Default for mask is different from clipPath:
+      // maskUnits defaults to objectBoundingBox
+      // maskContentUnits defaults to userSpaceOnUse
+      if (maskUnits !== 'objectBoundingBox') {
+        errors.push(`mask ${refId}: non-default maskUnits="${maskUnits}" may cause rendering issues`);
+      }
+      if (maskContentUnits !== 'userSpaceOnUse') {
+        errors.push(`mask ${refId}: non-default maskContentUnits="${maskContentUnits}" may cause rendering issues`);
+      }
+
       // Get element bounding box
       const bbox = getElementBBox(el);
       if (!bbox) continue;
@@ -479,6 +510,18 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
     if (!clipPathEl || clipPathEl.tagName !== 'clippath') continue;
 
     try {
+      // Check coordinate system units
+      const clipPathUnits = clipPathEl.getAttribute('clipPathUnits') || 'userSpaceOnUse';
+
+      // userSpaceOnUse is the default and normal case for clipPath
+      // objectBoundingBox means coordinates are 0-1 relative to bounding box
+      if (clipPathUnits === 'objectBoundingBox') {
+        // This requires transforming clip coordinates based on target element's bbox
+        // which is complex - warn about it
+        errors.push(`clipPath ${refId}: objectBoundingBox units require bbox-relative coordinate transformation`);
+        // Note: We continue processing, but results may be incorrect
+      }
+
       // Get element path data
       const origPathData = getElementPathData(el, opts.precision);
       if (!origPathData) continue;
@@ -1004,14 +1047,70 @@ function getElementBBox(el) {
 /**
  * Extract presentation attributes from element.
  * @private
+ *
+ * CRITICAL: This function must include ALL SVG presentation attributes
+ * that affect visual rendering. Missing attributes will cause SILENT
+ * RENDERING BUGS when shapes are converted to paths.
+ *
+ * Categories:
+ * - Stroke properties (width, caps, joins, dashes)
+ * - Fill properties (opacity, rule)
+ * - Clipping/Masking (clip-path, mask, filter) - NON-INHERITABLE but CRITICAL
+ * - Marker properties (marker, marker-start/mid/end)
+ * - Text properties (font, spacing, decoration)
+ * - Rendering hints (shape-rendering, text-rendering, etc.)
+ * - Visual effects (opacity, paint-order, vector-effect)
  */
 function extractPresentationAttrs(el) {
   const presentationAttrs = [
-    'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+    // Stroke properties
+    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
     'stroke-dasharray', 'stroke-dashoffset', 'stroke-miterlimit', 'stroke-opacity',
-    'fill-opacity', 'opacity', 'fill-rule', 'clip-rule', 'visibility', 'display',
-    'color', 'font-family', 'font-size', 'font-weight', 'font-style',
-    'text-anchor', 'dominant-baseline', 'class', 'style'
+    'vector-effect',    // Affects stroke rendering (non-scaling-stroke)
+
+    // Fill properties
+    'fill', 'fill-opacity', 'fill-rule',
+
+    // CRITICAL: Non-inheritable but must be preserved on element
+    'clip-path',        // Clips geometry - MUST NOT BE LOST
+    'mask',             // Masks transparency - MUST NOT BE LOST
+    'filter',           // Visual effects - MUST NOT BE LOST
+    'opacity',          // Element opacity
+
+    // Clip/fill rules
+    'clip-rule',
+
+    // Marker properties - arrows, dots, etc on paths
+    'marker',           // Shorthand for all markers
+    'marker-start',     // Start of path
+    'marker-mid',       // Vertices
+    'marker-end',       // End of path
+
+    // Visibility
+    'visibility', 'display',
+
+    // Color
+    'color',
+
+    // Text properties
+    'font-family', 'font-size', 'font-weight', 'font-style',
+    'text-anchor', 'dominant-baseline', 'alignment-baseline',
+    'letter-spacing', 'word-spacing', 'text-decoration',
+
+    // Rendering hints
+    'shape-rendering', 'text-rendering', 'image-rendering', 'color-rendering',
+
+    // Paint order (affects stroke/fill/marker rendering order)
+    'paint-order',
+
+    // Event handling (visual feedback)
+    'pointer-events', 'cursor',
+
+    // Preserve class and style for CSS targeting
+    'class', 'style',
+
+    // ID must be preserved for references
+    'id'
   ];
 
   const attrs = {};
@@ -1027,6 +1126,10 @@ function extractPresentationAttrs(el) {
 /**
  * Get shape-specific attribute names.
  * @private
+ *
+ * These are attributes specific to each shape element that should NOT be
+ * copied when converting to a <path>. The geometry is encoded in the 'd'
+ * attribute instead.
  */
 function getShapeSpecificAttrs(tagName) {
   const attrs = {
@@ -1036,6 +1139,8 @@ function getShapeSpecificAttrs(tagName) {
     line: ['x1', 'y1', 'x2', 'y2'],
     polyline: ['points'],
     polygon: ['points'],
+    // Image element has position/size attributes that don't apply to paths
+    image: ['x', 'y', 'width', 'height', 'href', 'xlink:href', 'preserveAspectRatio'],
   };
   return attrs[tagName.toLowerCase()] || [];
 }

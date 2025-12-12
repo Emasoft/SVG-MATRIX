@@ -19,6 +19,7 @@ A comprehensive arbitrary-precision matrix, vector, and affine transformation li
 - [Geometry to Path](#geometry-to-path)
 - [Polygon Operations](#polygon-operations)
 - [SVG Element Resolvers](#svg-element-resolvers)
+- [SVG Attribute Handling](#svg-attribute-handling)
 - [Convenience Functions](#convenience-functions)
 - [Precision Control](#precision-control)
 - [Browser/CDN Usage](#browsercdn-usage)
@@ -590,6 +591,154 @@ const pathData = TextToPath.textToPath(text, options);
 
 // Measure text
 const metrics = TextToPath.measureText(text, style, font);
+```
+
+---
+
+## SVG Attribute Handling
+
+The library provides comprehensive attribute handling during shape-to-path conversion and transform flattening operations. This ensures that all visual properties are preserved and validated.
+
+### Presentation Attribute Preservation
+
+When converting shapes to paths or flattening transforms, **all presentation attributes are automatically preserved**. This prevents silent rendering bugs that would otherwise occur when geometric shape elements are converted to path elements.
+
+**Preserved Attribute Categories:**
+
+#### Stroke Properties
+- `stroke`, `stroke-width`, `stroke-linecap`, `stroke-linejoin`
+- `stroke-dasharray`, `stroke-dashoffset`, `stroke-miterlimit`, `stroke-opacity`
+- `vector-effect` (affects stroke rendering, e.g., `non-scaling-stroke`)
+
+#### Fill Properties
+- `fill`, `fill-opacity`, `fill-rule`
+
+#### Non-Inheritable Effects (Critical)
+- `clip-path` - Clips geometry; must not be lost during conversion
+- `mask` - Masks transparency; must not be lost during conversion
+- `filter` - Visual effects; must not be lost during conversion
+- `opacity` - Element opacity
+- `clip-rule` - Clipping fill rule
+
+#### Marker Properties
+- `marker` - Shorthand for all markers
+- `marker-start` - Start of path (arrows, dots)
+- `marker-mid` - Path vertices
+- `marker-end` - End of path
+
+#### Visibility
+- `visibility`, `display`
+
+#### Text Properties
+- `font-family`, `font-size`, `font-weight`, `font-style`
+- `text-anchor`, `dominant-baseline`, `alignment-baseline`
+- `letter-spacing`, `word-spacing`, `text-decoration`
+
+#### Rendering Hints
+- `shape-rendering`, `text-rendering`, `image-rendering`, `color-rendering`
+
+#### Visual Effects
+- `paint-order` - Controls stroke/fill/marker rendering order
+- `pointer-events`, `cursor` - Event handling and visual feedback
+
+#### Targeting
+- `class`, `style`, `id` - Preserved for CSS targeting and references
+
+### URL Reference Validation
+
+The library validates all `url(#id)` references to ensure they point to existing elements in the document. This prevents broken references that would cause rendering failures.
+
+**Validated in Attributes:**
+
+- `fill`, `stroke` - Gradient or pattern references
+- `clip-path` - Clipping path references
+- `mask` - Mask element references
+- `filter` - Filter effect references
+- `color-profile` - Color profile references
+- `marker`, `marker-start`, `marker-mid`, `marker-end` - Marker references
+
+**Validated in Direct References:**
+
+- `href`, `xlink:href` - Element references in `<use>`, `<image>`, etc.
+
+**Detection:**
+
+```javascript
+import { validateSvg } from '@emasoft/svg-matrix';
+
+// Validate SVG and detect broken references
+const issues = await validateSvg(svgString);
+
+// Issues will include entries like:
+// {
+//   type: 'broken_reference',
+//   severity: 'error',
+//   element: 'rect',
+//   attr: 'fill',
+//   refId: 'gradientMissing',
+//   reason: "Broken reference: url(#gradientMissing) points to non-existent ID"
+// }
+```
+
+### Color Attribute Validation
+
+The library validates color values in color-related attributes to ensure they conform to SVG specifications.
+
+**Validated Attributes:**
+
+- `fill`, `stroke`, `color` - Primary color attributes
+- `stop-color` - Gradient stop colors
+- `flood-color` - Filter flood colors
+- `lighting-color` - Filter lighting colors
+- `solid-color` - Solid color paint servers
+
+**Supported Color Formats:**
+
+- Named colors: `red`, `blue`, `aliceblue`, etc. (case-insensitive)
+- Hex colors: `#RGB`, `#RRGGBB`
+- RGB functions: `rgb(255, 0, 0)`, `rgb(100%, 0%, 0%)`
+- RGBA functions: `rgba(255, 0, 0, 0.5)` (SVG 2.0, widely supported)
+- Special values: `none`, `inherit`, `currentColor`
+- URL references: `url(#gradientId)`
+
+**Example:**
+
+```javascript
+import { validateSvg } from '@emasoft/svg-matrix';
+
+// Validate colors
+const issues = await validateSvg(svgString);
+
+// Invalid colors will be reported:
+// {
+//   type: 'invalid_color',
+//   severity: 'warning',
+//   element: 'rect',
+//   attr: 'fill',
+//   value: 'reds',
+//   reason: "Invalid color value 'reds' for attribute 'fill'"
+// }
+```
+
+### Automatic Preservation During Conversion
+
+All attribute preservation happens automatically during shape conversion:
+
+```javascript
+import { GeometryToPath } from '@emasoft/svg-matrix';
+
+// Original circle element with presentation attributes
+const circle = document.querySelector('circle');
+// <circle cx="100" cy="100" r="50"
+//         fill="red" stroke="blue" stroke-width="2"
+//         opacity="0.5" clip-path="url(#clip1)" />
+
+// Convert to path - all attributes automatically preserved
+const pathData = GeometryToPath.convertElementToPath(circle, 6);
+
+// Result: <path d="M 150 100 C ..."
+//               fill="red" stroke="blue" stroke-width="2"
+//               opacity="0.5" clip-path="url(#clip1)" />
 ```
 
 ---

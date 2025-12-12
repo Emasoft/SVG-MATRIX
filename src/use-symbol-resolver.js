@@ -25,6 +25,34 @@ Decimal.set({ precision: 80 });
 const D = x => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
+ * Detect circular references when resolving use/symbol references.
+ * Prevents infinite loops when SVG contains circular reference chains like:
+ * - <use href="#a"> where #a contains <use href="#a"> (self-reference)
+ * - <use href="#a"> → #a contains <use href="#b"> → #b contains <use href="#a"> (circular chain)
+ *
+ * @param {string} startId - Starting ID to check
+ * @param {Function} getNextId - Function that returns the next referenced ID given current ID
+ * @param {number} maxDepth - Maximum chain depth before considering circular (default 100)
+ * @returns {boolean} True if circular reference detected
+ */
+function hasCircularReference(startId, getNextId, maxDepth = 100) {
+  const visited = new Set();
+  let currentId = startId;
+  let depth = 0;
+
+  while (currentId && depth < maxDepth) {
+    if (visited.has(currentId)) {
+      return true; // Circular reference detected!
+    }
+    visited.add(currentId);
+    currentId = getNextId(currentId);
+    depth++;
+  }
+
+  return depth >= maxDepth; // Too deep = likely circular
+}
+
+/**
  * Parse SVG <use> element to structured data.
  *
  * SVG <use> elements reference other elements via href/xlink:href and can apply
@@ -438,13 +466,13 @@ export function calculateViewBoxTransform(viewBox, targetWidth, targetHeight, pr
  *
  * This is the core use/symbol resolution algorithm. It:
  * 1. Looks up the target element by id (can be symbol, shape, group, or nested use)
- * 2. Composes transforms: translation from x,y → use's transform → viewBox mapping
+ * 2. Composes transforms: use's transform → translation from x,y → viewBox mapping
  * 3. Recursively resolves nested <use> elements (with depth limit)
  * 4. Propagates style inheritance from <use> to referenced content
  *
  * Transform composition order (right-to-left multiplication):
- * - First: translate by (x, y) to position the reference
- * - Second: apply use element's transform attribute
+ * - First: apply use element's transform attribute
+ * - Second: translate by (x, y) to position the reference
  * - Third: apply viewBox→viewport mapping (symbols only)
  *
  * For symbols with viewBox, if <use> specifies width/height, those establish the
@@ -515,16 +543,26 @@ export function resolveUse(useData, defs, options = {}) {
     return null;
   }
 
-  // Calculate base transform from x, y
+  // CORRECT ORDER per SVG spec:
+  // 1. Apply use element's transform attribute first
+  // 2. Then apply translate(x, y) for use element's x/y attributes
+  // 3. Then apply viewBox transform (for symbols)
+  //
+  // Matrix multiplication order: rightmost transform is applied first
+  // So to apply transforms in order 1→2→3, we build: 3.mul(2).mul(1)
+
+  // Start with x,y translation (step 2)
   let transform = Transforms2D.translation(useData.x, useData.y);
 
-  // Apply use element's transform if present
+  // Pre-multiply by use element's transform if present (step 1)
+  // This makes useTransform apply FIRST, then translation
   if (useData.transform) {
     const useTransform = ClipPathResolver.parseTransform(useData.transform);
     transform = transform.mul(useTransform);
   }
 
-  // Handle symbol with viewBox
+  // Handle symbol with viewBox (step 3)
+  // ViewBox transform applies LAST (after translation and useTransform)
   if (target.type === 'symbol' && target.viewBoxParsed) {
     const width = useData.width || target.viewBoxParsed.width;
     const height = useData.height || target.viewBoxParsed.height;
@@ -536,7 +574,8 @@ export function resolveUse(useData, defs, options = {}) {
       target.preserveAspectRatio
     );
 
-    transform = transform.mul(viewBoxTransform);
+    // ViewBox transform is applied LAST, so it's the leftmost in multiplication
+    transform = viewBoxTransform.mul(transform);
   }
 
   // Resolve children
@@ -1110,8 +1149,37 @@ export function resolveAllUses(svgRoot, options = {}) {
   const useElements = svgRoot.querySelectorAll('use');
   const resolved = [];
 
+  // Helper to get the next use reference from a definition
+  const getUseRef = (id) => {
+    const target = defs[id];
+    if (!target) return null;
+
+    // Check if target is itself a use element
+    if (target.type === 'use') {
+      return target.href;
+    }
+
+    // Check if target contains use elements in its children
+    if (target.children && target.children.length > 0) {
+      for (const child of target.children) {
+        if (child.type === 'use') {
+          return child.href;
+        }
+      }
+    }
+
+    return null;
+  };
+
   for (const useEl of useElements) {
     const useData = parseUseElement(useEl);
+
+    // Check for circular reference before attempting to resolve
+    if (hasCircularReference(useData.href, getUseRef)) {
+      console.warn(`Circular use reference detected: #${useData.href}, skipping resolution`);
+      continue;
+    }
+
     const result = resolveUse(useData, defs, options);
     if (result) {
       resolved.push({

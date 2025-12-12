@@ -565,7 +565,127 @@ export function bezierSelfIntersection(bezier, options = {}) {
 
   findSelfIntersections(D(0), D(1), 0);
 
-  return deduplicateIntersections(results, tol);
+  // WHY: Self-intersection deduplication needs a more practical tolerance.
+  // The recursive subdivision can find the same intersection from multiple branches,
+  // with slightly different parameter values. Use minSep as the dedup tolerance
+  // since intersections closer than minSep in parameter space are considered the same.
+  const dedupTol = minSep.div(10);  // Use 1/10 of minSeparation for deduplication
+  const deduped = deduplicateIntersections(results, dedupTol);
+
+  // WHY: After finding rough intersections via subdivision on cropped curves,
+  // refine each one using Newton-Raphson on the ORIGINAL curve. This achieves
+  // full precision because we're optimizing directly on the original parameters.
+  const refined = [];
+  for (const isect of deduped) {
+    const refinedIsect = refineSelfIntersection(bezier, isect.t1, isect.t2, tol, minSep);
+    if (refinedIsect) {
+      refined.push(refinedIsect);
+    } else {
+      // Keep original if refinement fails
+      refined.push(isect);
+    }
+  }
+
+  return refined;
+}
+
+/**
+ * Refine a self-intersection using Newton-Raphson directly on the original curve.
+ *
+ * For self-intersection, we solve: B(t1) = B(t2) with t1 < t2
+ *
+ * @param {Array} bezier - Original curve control points
+ * @param {Decimal} t1Init - Initial t1 guess
+ * @param {Decimal} t2Init - Initial t2 guess
+ * @param {Decimal} tol - Convergence tolerance
+ * @param {Decimal} minSep - Minimum separation between t1 and t2
+ * @returns {Object|null} Refined intersection or null if failed
+ */
+function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
+  let t1 = D(t1Init);
+  let t2 = D(t2Init);
+
+  for (let iter = 0; iter < MAX_NEWTON_ITERATIONS; iter++) {
+    // Clamp to valid range while maintaining separation
+    if (t1.lt(0)) t1 = D(0);
+    if (t2.gt(1)) t2 = D(1);
+    if (t2.minus(t1).lt(minSep)) {
+      // Maintain minimum separation
+      const mid = t1.plus(t2).div(2);
+      t1 = mid.minus(minSep.div(2));
+      t2 = mid.plus(minSep.div(2));
+      if (t1.lt(0)) { t1 = D(0); t2 = minSep; }
+      if (t2.gt(1)) { t2 = D(1); t1 = D(1).minus(minSep); }
+    }
+
+    // Evaluate curve at both parameters
+    const [x1, y1] = bezierPoint(bezier, t1);
+    const [x2, y2] = bezierPoint(bezier, t2);
+
+    // Residual: B(t1) - B(t2) = 0
+    const fx = x1.minus(x2);
+    const fy = y1.minus(y2);
+
+    // Check convergence
+    const error = fx.pow(2).plus(fy.pow(2)).sqrt();
+    if (error.lt(tol)) {
+      return {
+        t1: Decimal.min(t1, t2),
+        t2: Decimal.max(t1, t2),
+        point: [x1.plus(x2).div(2), y1.plus(y2).div(2)],  // Average of both points
+        error
+      };
+    }
+
+    // Jacobian: d(B(t1) - B(t2))/d[t1, t2] = [B'(t1), -B'(t2)]
+    const [dx1, dy1] = bezierDerivative(bezier, t1, 1);
+    const [dx2, dy2] = bezierDerivative(bezier, t2, 1);
+
+    // J = [[dx1, -dx2], [dy1, -dy2]]
+    // det(J) = dx1*(-dy2) - (-dx2)*dy1 = -dx1*dy2 + dx2*dy1
+    const det = dx2.times(dy1).minus(dx1.times(dy2));
+
+    if (det.abs().lt(new Decimal(SINGULARITY_THRESHOLD))) {
+      // Singular Jacobian - curves are nearly parallel at these points
+      // Try bisection step instead
+      if (fx.isNegative()) {
+        t1 = t1.plus(D('0.0001'));
+      } else {
+        t2 = t2.minus(D('0.0001'));
+      }
+      continue;
+    }
+
+    // Solve Newton step: [dt1, dt2]^T = J^{-1} * [fx, fy]^T
+    // J = [[dx1, -dx2], [dy1, -dy2]]
+    // For 2x2 [[a,b],[c,d]], inverse = (1/det)*[[d,-b],[-c,a]]
+    // J^{-1} = (1/det) * [[-dy2, dx2], [-dy1, dx1]]
+    // J^{-1} * f = (1/det) * [-dy2*fx + dx2*fy, -dy1*fx + dx1*fy]
+    // Newton update: t_new = t - J^{-1}*f
+    const dt1 = dx2.times(fy).minus(dy2.times(fx)).div(det);  // -dy2*fx + dx2*fy
+    const dt2 = dx1.times(fy).minus(dy1.times(fx)).div(det);  // -dy1*fx + dx1*fy
+
+    t1 = t1.minus(dt1);
+    t2 = t2.minus(dt2);
+
+    // Check step size convergence
+    if (dt1.abs().lt(tol) && dt2.abs().lt(tol)) {
+      // Recompute final error
+      const [finalX1, finalY1] = bezierPoint(bezier, t1);
+      const [finalX2, finalY2] = bezierPoint(bezier, t2);
+      const finalError = finalX1.minus(finalX2).pow(2)
+        .plus(finalY1.minus(finalY2).pow(2)).sqrt();
+
+      return {
+        t1: Decimal.min(t1, t2),
+        t2: Decimal.max(t1, t2),
+        point: [finalX1.plus(finalX2).div(2), finalY1.plus(finalY2).div(2)],
+        error: finalError
+      };
+    }
+  }
+
+  return null;  // Failed to converge
 }
 
 // ============================================================================

@@ -137,9 +137,9 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
     const y2 = y3.minus(kappa.mul(ryD).mul(ty3));
 
     if (i === 0) {
-      commands.push(`M ${f(x0)} ${f(y0)}`);
+      commands.push(`M${f(x0)} ${f(y0)}`);
     }
-    commands.push(`C ${f(x1)} ${f(y1)} ${f(x2)} ${f(y2)} ${f(x3)} ${f(y3)}`);
+    commands.push(`C${f(x1)} ${f(y1)} ${f(x2)} ${f(y2)} ${f(x3)} ${f(y3)}`);
   }
 
   commands.push('Z');
@@ -147,8 +147,13 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
 }
 
 function formatNumber(value, precision = 6) {
-  // Use toFixed to preserve trailing zeros for consistent output formatting
-  return value.toFixed(precision);
+  // Format with precision then remove trailing zeros for smaller output
+  let str = value.toFixed(precision);
+  // Remove trailing zeros after decimal point
+  if (str.includes('.')) {
+    str = str.replace(/\.?0+$/, '');
+  }
+  return str;
 }
 
 export function circleToPathData(cx, cy, r, precision = 6) {
@@ -160,7 +165,7 @@ export function circleToPathData(cx, cy, r, precision = 6) {
   const c3x1 = x2, c3y1 = cyD.plus(k), c3x2 = cxD.minus(k), c3y2 = cyD.plus(rD), x3 = cxD, y3 = cyD.plus(rD);
   const c4x1 = cxD.plus(k), c4y1 = y3, c4x2 = x0, c4y2 = cyD.plus(k);
   const f = v => formatNumber(v, precision);
-  return `M ${f(x0)} ${f(y0)} C ${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)} C ${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)} C ${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)} C ${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)} Z`;
+  return `M${f(x0)} ${f(y0)}C${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)}C${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)}C${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)}C${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)}Z`;
 }
 
 export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
@@ -172,7 +177,7 @@ export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
   const c3x1 = x2, c3y1 = cyD.plus(ky), c3x2 = cxD.minus(kx), c3y2 = cyD.plus(ryD), x3 = cxD, y3 = cyD.plus(ryD);
   const c4x1 = cxD.plus(kx), c4y1 = y3, c4x2 = x0, c4y2 = cyD.plus(ky);
   const f = v => formatNumber(v, precision);
-  return `M ${f(x0)} ${f(y0)} C ${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)} C ${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)} C ${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)} C ${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)} Z`;
+  return `M${f(x0)} ${f(y0)}C${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)}C${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)}C${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)}C${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)}Z`;
 }
 
 export function rectToPathData(x, y, width, height, rx = 0, ry = null, useArcs = false, precision = 6) {
@@ -184,21 +189,25 @@ export function rectToPathData(x, y, width, height, rx = 0, ry = null, useArcs =
   const f = v => formatNumber(v, precision);
   if (rxD.isZero() || ryD.isZero()) {
     const x1 = xD.plus(wD), y1 = yD.plus(hD);
-    return `M ${f(xD)} ${f(yD)} L ${f(x1)} ${f(yD)} L ${f(x1)} ${f(y1)} L ${f(xD)} ${f(y1)} Z`;
+    // Use H (horizontal) and V (vertical) commands for smaller output
+    return `M${f(xD)} ${f(yD)}H${f(x1)}V${f(y1)}H${f(xD)}Z`;
   }
   const left = xD, right = xD.plus(wD), top = yD, bottom = yD.plus(hD);
   const leftInner = left.plus(rxD), rightInner = right.minus(rxD);
   const topInner = top.plus(ryD), bottomInner = bottom.minus(ryD);
   if (useArcs) {
-    return `M ${f(leftInner)} ${f(top)} L ${f(rightInner)} ${f(top)} A ${f(rxD)} ${f(ryD)} 0 0 1 ${f(right)} ${f(topInner)} L ${f(right)} ${f(bottomInner)} A ${f(rxD)} ${f(ryD)} 0 0 1 ${f(rightInner)} ${f(bottom)} L ${f(leftInner)} ${f(bottom)} A ${f(rxD)} ${f(ryD)} 0 0 1 ${f(left)} ${f(bottomInner)} L ${f(left)} ${f(topInner)} A ${f(rxD)} ${f(ryD)} 0 0 1 ${f(leftInner)} ${f(top)} Z`;
+    return `M${f(leftInner)} ${f(top)}L${f(rightInner)} ${f(top)}A${f(rxD)} ${f(ryD)} 0 0 1 ${f(right)} ${f(topInner)}L${f(right)} ${f(bottomInner)}A${f(rxD)} ${f(ryD)} 0 0 1 ${f(rightInner)} ${f(bottom)}L${f(leftInner)} ${f(bottom)}A${f(rxD)} ${f(ryD)} 0 0 1 ${f(left)} ${f(bottomInner)}L${f(left)} ${f(topInner)}A${f(rxD)} ${f(ryD)} 0 0 1 ${f(leftInner)} ${f(top)}Z`;
   }
   const kappa = getKappa(), kx = kappa.mul(rxD), ky = kappa.mul(ryD);
-  return `M ${f(leftInner)} ${f(top)} L ${f(rightInner)} ${f(top)} C ${f(rightInner)} ${f(top)} ${f(right)} ${f(topInner.minus(ky))} ${f(right)} ${f(topInner)} L ${f(right)} ${f(bottomInner)} C ${f(right)} ${f(bottomInner)} ${f(rightInner.plus(kx))} ${f(bottom)} ${f(rightInner)} ${f(bottom)} L ${f(leftInner)} ${f(bottom)} C ${f(leftInner)} ${f(bottom)} ${f(left)} ${f(bottomInner.plus(ky))} ${f(left)} ${f(bottomInner)} L ${f(left)} ${f(topInner)} C ${f(left)} ${f(topInner)} ${f(leftInner.minus(kx))} ${f(top)} ${f(leftInner)} ${f(top)} Z`;
+  // Each corner has two Bezier control points:
+  // First control point: offset from start point along the edge tangent
+  // Second control point: offset from end point along the edge tangent
+  return `M${f(leftInner)} ${f(top)}L${f(rightInner)} ${f(top)}C${f(rightInner.plus(kx))} ${f(top)} ${f(right)} ${f(topInner.minus(ky))} ${f(right)} ${f(topInner)}L${f(right)} ${f(bottomInner)}C${f(right)} ${f(bottomInner.plus(ky))} ${f(rightInner.plus(kx))} ${f(bottom)} ${f(rightInner)} ${f(bottom)}L${f(leftInner)} ${f(bottom)}C${f(leftInner.minus(kx))} ${f(bottom)} ${f(left)} ${f(bottomInner.plus(ky))} ${f(left)} ${f(bottomInner)}L${f(left)} ${f(topInner)}C${f(left)} ${f(topInner.minus(ky))} ${f(leftInner.minus(kx))} ${f(top)} ${f(leftInner)} ${f(top)}Z`;
 }
 
 export function lineToPathData(x1, y1, x2, y2, precision = 6) {
   const f = v => formatNumber(D(v), precision);
-  return `M ${f(x1)} ${f(y1)} L ${f(x2)} ${f(y2)}`;
+  return `M${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}`;
 }
 
 function parsePoints(points) {
@@ -216,10 +225,10 @@ export function polylineToPathData(points, precision = 6) {
   if (pairs.length === 0) return '';
   const f = v => formatNumber(v, precision);
   const [x0, y0] = pairs[0];
-  let path = `M ${f(x0)} ${f(y0)}`;
+  let path = `M${f(x0)} ${f(y0)}`;
   for (let i = 1; i < pairs.length; i++) {
     const [x, y] = pairs[i];
-    path += ` L ${f(x)} ${f(y)}`;
+    path += `L${f(x)} ${f(y)}`;
   }
   return path;
 }
@@ -229,6 +238,13 @@ export function polygonToPathData(points, precision = 6) {
   return path ? path + ' Z' : '';
 }
 
+// Parameter count for each SVG path command
+const COMMAND_PARAMS = {
+  M: 2, m: 2, L: 2, l: 2, H: 1, h: 1, V: 1, v: 1,
+  C: 6, c: 6, S: 4, s: 4, Q: 4, q: 4, T: 2, t: 2,
+  A: 7, a: 7, Z: 0, z: 0
+};
+
 export function parsePathData(pathData) {
   const commands = [];
   const commandRegex = /([MmLlHhVvCcSsQqTtAaZz])\s*([^MmLlHhVvCcSsQqTtAaZz]*)/g;
@@ -236,8 +252,29 @@ export function parsePathData(pathData) {
   while ((match = commandRegex.exec(pathData)) !== null) {
     const command = match[1];
     const argsStr = match[2].trim();
-    const args = argsStr.length > 0 ? argsStr.split(/[\s,]+/).filter(s => s.length > 0).map(s => D(s)) : [];
-    commands.push({ command, args });
+    const allArgs = argsStr.length > 0 ? argsStr.split(/[\s,]+/).filter(s => s.length > 0).map(s => D(s)) : [];
+
+    const paramCount = COMMAND_PARAMS[command];
+
+    if (paramCount === 0 || allArgs.length === 0) {
+      // Z/z command or command with no args
+      commands.push({ command, args: [] });
+    } else {
+      // Split args into groups based on parameter count
+      // Handle implicit command repetition per SVG spec
+      for (let i = 0; i < allArgs.length; i += paramCount) {
+        const args = allArgs.slice(i, i + paramCount);
+        if (args.length === paramCount) {
+          // For M/m, first group is moveto, subsequent groups become implicit lineto (L/l)
+          let effectiveCmd = command;
+          if (i > 0 && (command === 'M' || command === 'm')) {
+            effectiveCmd = command === 'M' ? 'L' : 'l';
+          }
+          commands.push({ command: effectiveCmd, args });
+        }
+        // Incomplete arg groups are silently dropped per SVG error handling
+      }
+    }
   }
   return commands;
 }
@@ -254,6 +291,9 @@ export function pathToAbsolute(pathData) {
   const result = [];
   let currentX = new Decimal(0), currentY = new Decimal(0);
   let subpathStartX = new Decimal(0), subpathStartY = new Decimal(0);
+  let lastControlX = new Decimal(0), lastControlY = new Decimal(0);
+  let lastCommand = '';
+
   for (const { command, args } of commands) {
     const isRelative = command === command.toLowerCase();
     const upperCmd = command.toUpperCase();
@@ -262,19 +302,23 @@ export function pathToAbsolute(pathData) {
       const y = isRelative ? currentY.plus(args[1]) : args[1];
       currentX = x; currentY = y; subpathStartX = x; subpathStartY = y;
       result.push({ command: 'M', args: [x, y] });
+      lastCommand = 'M';
     } else if (upperCmd === 'L') {
       const x = isRelative ? currentX.plus(args[0]) : args[0];
       const y = isRelative ? currentY.plus(args[1]) : args[1];
       currentX = x; currentY = y;
       result.push({ command: 'L', args: [x, y] });
+      lastCommand = 'L';
     } else if (upperCmd === 'H') {
       const x = isRelative ? currentX.plus(args[0]) : args[0];
       currentX = x;
       result.push({ command: 'L', args: [x, currentY] });
+      lastCommand = 'H';
     } else if (upperCmd === 'V') {
       const y = isRelative ? currentY.plus(args[0]) : args[0];
       currentY = y;
       result.push({ command: 'L', args: [currentX, y] });
+      lastCommand = 'V';
     } else if (upperCmd === 'C') {
       const x1 = isRelative ? currentX.plus(args[0]) : args[0];
       const y1 = isRelative ? currentY.plus(args[1]) : args[1];
@@ -282,18 +326,69 @@ export function pathToAbsolute(pathData) {
       const y2 = isRelative ? currentY.plus(args[3]) : args[3];
       const x = isRelative ? currentX.plus(args[4]) : args[4];
       const y = isRelative ? currentY.plus(args[5]) : args[5];
+      lastControlX = x2; lastControlY = y2;
       currentX = x; currentY = y;
       result.push({ command: 'C', args: [x1, y1, x2, y2, x, y] });
+      lastCommand = 'C';
+    } else if (upperCmd === 'S') {
+      // Smooth cubic Bezier: 4 args (x2, y2, x, y)
+      // First control point is reflection of previous second control point
+      let x1, y1;
+      if (lastCommand === 'C' || lastCommand === 'S') {
+        x1 = currentX.mul(2).minus(lastControlX);
+        y1 = currentY.mul(2).minus(lastControlY);
+      } else {
+        x1 = currentX;
+        y1 = currentY;
+      }
+      const x2 = isRelative ? currentX.plus(args[0]) : args[0];
+      const y2 = isRelative ? currentY.plus(args[1]) : args[1];
+      const x = isRelative ? currentX.plus(args[2]) : args[2];
+      const y = isRelative ? currentY.plus(args[3]) : args[3];
+      lastControlX = x2; lastControlY = y2;
+      currentX = x; currentY = y;
+      result.push({ command: 'C', args: [x1, y1, x2, y2, x, y] });
+      lastCommand = 'S';
+    } else if (upperCmd === 'Q') {
+      // Quadratic Bezier: 4 args (x1, y1, x, y)
+      const x1 = isRelative ? currentX.plus(args[0]) : args[0];
+      const y1 = isRelative ? currentY.plus(args[1]) : args[1];
+      const x = isRelative ? currentX.plus(args[2]) : args[2];
+      const y = isRelative ? currentY.plus(args[3]) : args[3];
+      lastControlX = x1; lastControlY = y1;
+      currentX = x; currentY = y;
+      result.push({ command: 'Q', args: [x1, y1, x, y] });
+      lastCommand = 'Q';
+    } else if (upperCmd === 'T') {
+      // Smooth quadratic Bezier: 2 args (x, y)
+      // Control point is reflection of previous control point
+      let x1, y1;
+      if (lastCommand === 'Q' || lastCommand === 'T') {
+        x1 = currentX.mul(2).minus(lastControlX);
+        y1 = currentY.mul(2).minus(lastControlY);
+      } else {
+        x1 = currentX;
+        y1 = currentY;
+      }
+      const x = isRelative ? currentX.plus(args[0]) : args[0];
+      const y = isRelative ? currentY.plus(args[1]) : args[1];
+      lastControlX = x1; lastControlY = y1;
+      currentX = x; currentY = y;
+      result.push({ command: 'Q', args: [x1, y1, x, y] });
+      lastCommand = 'T';
     } else if (upperCmd === 'A') {
       const x = isRelative ? currentX.plus(args[5]) : args[5];
       const y = isRelative ? currentY.plus(args[6]) : args[6];
       currentX = x; currentY = y;
       result.push({ command: 'A', args: [args[0], args[1], args[2], args[3], args[4], x, y] });
+      lastCommand = 'A';
     } else if (upperCmd === 'Z') {
       currentX = subpathStartX; currentY = subpathStartY;
       result.push({ command: 'Z', args: [] });
+      lastCommand = 'Z';
     } else {
       result.push({ command, args });
+      lastCommand = command;
     }
   }
   return pathArrayToString(result);
@@ -461,10 +556,25 @@ export function pathToCubics(pathData) {
   return pathArrayToString(result);
 }
 
+/**
+ * Strip CSS units from a value string (e.g., "100px" -> 100, "50%" -> 50, "2em" -> 2)
+ * Returns the numeric value or 0 if parsing fails.
+ * @param {string|number|Decimal} val - Value to strip units from
+ * @returns {number} Numeric value without units
+ */
+function stripUnits(val) {
+  if (typeof val === 'string') {
+    return parseFloat(val) || 0;
+  }
+  return val;
+}
+
 export function convertElementToPath(element, precision = 6) {
   const getAttr = (name, defaultValue = 0) => {
-    if (element.getAttribute) return element.getAttribute(name) || defaultValue;
-    return element[name] !== undefined ? element[name] : defaultValue;
+    const rawValue = element.getAttribute ? element.getAttribute(name) : element[name];
+    const value = rawValue !== undefined && rawValue !== null ? rawValue : defaultValue;
+    // Strip CSS units before returning (handles px, em, %, etc.)
+    return stripUnits(value);
   };
   const tagName = (element.tagName || element.type || '').toLowerCase();
   if (tagName === 'circle') {

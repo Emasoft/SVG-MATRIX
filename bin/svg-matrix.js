@@ -22,6 +22,8 @@ import * as SVGFlatten from '../src/svg-flatten.js';
 import * as GeometryToPath from '../src/geometry-to-path.js';
 import * as FlattenPipeline from '../src/flatten-pipeline.js';
 import { VERSION } from '../src/index.js';
+import * as SVGToolbox from '../src/svg-toolbox.js';
+import { parseSVG, serializeSVG } from '../src/svg-parser.js';
 
 // ============================================================================
 // CONSTANTS
@@ -117,6 +119,7 @@ const DEFAULT_CONFIG = {
   clipSegments: 64,           // Polygon samples for clip operations (higher = more precise)
   bezierArcs: 8,              // Bezier arcs for circles/ellipses (multiple of 4; 8=π/4 optimal)
   e2eTolerance: '1e-10',      // E2E verification tolerance (tighter with more segments)
+  preserveVendor: false,      // If true, preserve vendor-prefixed properties and editor namespaces
 };
 
 /** @type {CLIConfig} */
@@ -567,6 +570,9 @@ ${boxLine(`              ${colors.dim}Ideal for animation and path morphing${col
 ${boxLine('', W)}
 ${boxLine(`  ${colors.green}info${colors.reset}        Show SVG file information and element counts`, W)}
 ${boxLine('', W)}
+${boxLine(`  ${colors.green}test-toolbox${colors.reset} Test all svg-toolbox functions on an SVG file`, W)}
+${boxLine(`              ${colors.dim}Creates timestamped folder with all processed versions${colors.reset}`, W)}
+${boxLine('', W)}
 ${boxLine(`  ${colors.green}help${colors.reset}        Show this help (or: svg-matrix <command> --help)`, W)}
 ${boxLine(`  ${colors.green}version${colors.reset}     Show version number`, W)}
 ${boxLine('', W)}
@@ -595,6 +601,8 @@ ${boxLine(`  ${colors.dim}--no-use${colors.reset}                Skip use/symbol
 ${boxLine(`  ${colors.dim}--no-markers${colors.reset}            Skip marker instantiation`, W)}
 ${boxLine(`  ${colors.dim}--no-patterns${colors.reset}           Skip pattern expansion`, W)}
 ${boxLine(`  ${colors.dim}--no-gradients${colors.reset}          Skip gradient transform baking`, W)}
+${boxLine(`  ${colors.dim}--preserve-vendor${colors.reset}       Keep vendor prefixes and editor namespaces`, W)}
+${boxLine(`                          ${colors.dim}(inkscape, sodipodi, -webkit-*, etc.)${colors.reset}`, W)}
 ${boxLine('', W)}
 ${boxDivider(W)}
 ${boxLine('', W)}
@@ -1175,6 +1183,161 @@ ${colors.bright}Elements:${colors.reset}
 }
 
 // ============================================================================
+// TEST TOOLBOX
+// ============================================================================
+
+// All testable functions from svg-toolbox.js organized by category
+const TOOLBOX_FUNCTIONS = {
+  cleanup: ['cleanupIds', 'cleanupNumericValues', 'cleanupListOfValues', 'cleanupAttributes', 'cleanupEnableBackground'],
+  remove: ['removeUnknownsAndDefaults', 'removeNonInheritableGroupAttrs', 'removeUselessDefs', 'removeHiddenElements', 'removeEmptyText', 'removeEmptyContainers', 'removeDoctype', 'removeXMLProcInst', 'removeComments', 'removeMetadata', 'removeTitle', 'removeDesc', 'removeEditorsNSData', 'removeEmptyAttrs', 'removeViewBox', 'removeXMLNS', 'removeRasterImages', 'removeScriptElement', 'removeStyleElement', 'removeXlink', 'removeDimensions', 'removeAttrs', 'removeElementsByAttr', 'removeAttributesBySelector', 'removeOffCanvasPath'],
+  convert: ['convertShapesToPath', 'convertPathData', 'convertTransform', 'convertColors', 'convertStyleToAttrs', 'convertEllipseToCircle'],
+  collapse: ['collapseGroups', 'mergePaths'],
+  move: ['moveGroupAttrsToElems', 'moveElemsAttrsToGroup'],
+  style: ['minifyStyles', 'inlineStyles'],
+  sort: ['sortAttrs', 'sortDefsChildren'],
+  pathOptimization: ['optimizePaths', 'simplifyPaths', 'simplifyPath', 'reusePaths'],
+  flatten: ['flattenClipPaths', 'flattenMasks', 'flattenGradients', 'flattenPatterns', 'flattenFilters', 'flattenUseElements', 'flattenAll'],
+  transform: ['decomposeTransform'],
+  other: ['addAttributesToSVGElement', 'addClassesToSVGElement', 'prefixIds', 'optimizeAnimationTiming'],
+  validation: ['validateXML', 'validateSVG', 'fixInvalidSvg'],
+  detection: ['detectCollisions', 'measureDistance'],
+};
+
+const SKIP_TOOLBOX_FUNCTIONS = ['textToPath', 'imageToPath', 'detectCollisions', 'measureDistance'];
+
+function getTimestamp() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+async function testToolboxFunction(fnName, originalContent, originalSize, outputDir) {
+  const result = { name: fnName, status: 'unknown', outputSize: 0, sizeDiff: 0, sizeDiffPercent: 0, error: null, outputFile: null, timeMs: 0 };
+
+  try {
+    const fn = SVGToolbox[fnName];
+    if (!fn) { result.status = 'not_found'; result.error = `Function not found`; return result; }
+    if (SKIP_TOOLBOX_FUNCTIONS.includes(fnName)) { result.status = 'skipped'; result.error = 'Requires special handling'; return result; }
+
+    const startTime = Date.now();
+    const doc = parseSVG(originalContent);
+    // Pass preserveVendor option from config to toolbox functions
+    await fn(doc, { preserveVendor: config.preserveVendor });
+    const output = serializeSVG(doc);
+    const outputSize = Buffer.byteLength(output);
+    result.timeMs = Date.now() - startTime;
+
+    const outputFile = join(outputDir, `${fnName}.svg`);
+    writeFileSync(outputFile, output);
+
+    result.status = 'success';
+    result.outputSize = outputSize;
+    result.sizeDiff = outputSize - originalSize;
+    result.sizeDiffPercent = ((outputSize - originalSize) / originalSize * 100).toFixed(1);
+    result.outputFile = outputFile;
+
+    if (output.length < 100) { result.status = 'warning'; result.error = 'Output suspiciously small'; }
+  } catch (err) {
+    result.status = 'error';
+    result.error = err.message;
+  }
+  return result;
+}
+
+async function processTestToolbox() {
+  const files = gatherInputFiles();
+  if (files.length === 0) { logError('No input file specified'); process.exit(CONSTANTS.EXIT_ERROR); }
+  if (files.length > 1) { logError('test-toolbox only accepts one input file'); process.exit(CONSTANTS.EXIT_ERROR); }
+
+  const inputFile = files[0];
+  validateSvgFile(inputFile);
+
+  const baseName = basename(inputFile, extname(inputFile));
+  const timestamp = getTimestamp();
+  const outputDirName = `${baseName}_${timestamp}`;
+  const outputBase = config.output || dirname(inputFile);
+  const outputDir = join(outputBase, outputDirName);
+  mkdirSync(outputDir, { recursive: true });
+
+  console.log('\n' + '='.repeat(70));
+  console.log(`${colors.bright}SVG-TOOLBOX FUNCTION TEST${colors.reset}`);
+  console.log('='.repeat(70) + '\n');
+
+  const originalContent = readFileSync(inputFile, 'utf8');
+  const originalSize = Buffer.byteLength(originalContent);
+
+  logInfo(`Input:  ${colors.cyan}${inputFile}${colors.reset}`);
+  logInfo(`Size:   ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
+  logInfo(`Output: ${colors.cyan}${outputDir}/${colors.reset}\n`);
+
+  const allResults = [];
+  let total = 0, success = 0, errors = 0, skipped = 0;
+
+  for (const [category, functions] of Object.entries(TOOLBOX_FUNCTIONS)) {
+    console.log(`\n${colors.bright}--- ${category.toUpperCase()} ---${colors.reset}`);
+    for (const fnName of functions) {
+      total++;
+      process.stdout.write(`  Testing ${fnName.padEnd(30)}... `);
+      const result = await testToolboxFunction(fnName, originalContent, originalSize, outputDir);
+      allResults.push({ category, ...result });
+
+      if (result.status === 'success') {
+        success++;
+        const sizeStr = result.sizeDiff >= 0 ? `+${result.sizeDiffPercent}%` : `${result.sizeDiffPercent}%`;
+        console.log(`${colors.green}OK${colors.reset} (${sizeStr}, ${result.timeMs}ms)`);
+      } else if (result.status === 'skipped' || result.status === 'not_found') {
+        skipped++;
+        console.log(`${colors.yellow}SKIP${colors.reset}: ${result.error}`);
+      } else if (result.status === 'warning') {
+        success++;
+        console.log(`${colors.yellow}WARN${colors.reset}: ${result.error}`);
+      } else {
+        errors++;
+        console.log(`${colors.red}ERROR${colors.reset}: ${result.error}`);
+      }
+    }
+  }
+
+  console.log('\n' + '='.repeat(70));
+  console.log(`${colors.bright}SUMMARY${colors.reset}`);
+  console.log('='.repeat(70));
+  console.log(`Total: ${total}  ${colors.green}Success: ${success}${colors.reset}  ${colors.red}Errors: ${errors}${colors.reset}  ${colors.yellow}Skipped: ${skipped}${colors.reset}`);
+
+  console.log('\n' + '-'.repeat(70));
+  console.log(`${colors.bright}TOP SIZE REDUCERS${colors.reset}`);
+  console.log('-'.repeat(70));
+
+  const successResults = allResults.filter(r => r.status === 'success' || r.status === 'warning').sort((a, b) => a.sizeDiff - b.sizeDiff).slice(0, 10);
+  console.log('\nFunction                              Output Size    Diff');
+  console.log('-'.repeat(60));
+  for (const r of successResults) {
+    const name = r.name.padEnd(38);
+    const size = ((r.outputSize / 1024 / 1024).toFixed(2) + ' MB').padStart(10);
+    const diff = (r.sizeDiff >= 0 ? '+' : '') + r.sizeDiffPercent + '%';
+    console.log(`${name} ${size}    ${diff}`);
+  }
+
+  if (errors > 0) {
+    console.log('\n' + '-'.repeat(70));
+    console.log(`${colors.red}${colors.bright}ERROR DETAILS${colors.reset}`);
+    console.log('-'.repeat(70));
+    for (const r of allResults.filter(r => r.status === 'error')) {
+      console.log(`\n${colors.red}${r.name}:${colors.reset} ${r.error}`);
+    }
+  }
+
+  const resultsFile = join(outputDir, '_test-results.json');
+  writeFileSync(resultsFile, JSON.stringify({ timestamp: new Date().toISOString(), inputFile, originalSize, outputDir, summary: { total, success, errors, skipped }, results: allResults }, null, 2));
+
+  console.log('\n' + '='.repeat(70));
+  logInfo(`Results: ${colors.cyan}${resultsFile}${colors.reset}`);
+  logInfo(`Output:  ${colors.cyan}${outputDir}${colors.reset}`);
+  console.log('='.repeat(70) + '\n');
+
+  if (errors > 0) process.exit(CONSTANTS.EXIT_ERROR);
+}
+
+// ============================================================================
 // ARGUMENT PARSING
 // ============================================================================
 
@@ -1205,7 +1368,7 @@ function parseArgs(args) {
       case '--log-file': cfg.logFile = args[++i]; break;
       case '-h': case '--help':
         // If a command is already set (not 'help'), show command-specific help
-        if (cfg.command !== 'help' && ['flatten', 'convert', 'normalize', 'info'].includes(cfg.command)) {
+        if (cfg.command !== 'help' && ['flatten', 'convert', 'normalize', 'info', 'test-toolbox'].includes(cfg.command)) {
           cfg.showCommandHelp = true;
         } else {
           cfg.command = 'help';
@@ -1220,6 +1383,8 @@ function parseArgs(args) {
       case '--no-markers': cfg.resolveMarkers = false; break;
       case '--no-patterns': cfg.resolvePatterns = false; break;
       case '--no-gradients': cfg.bakeGradients = false; break;
+      // Vendor preservation option
+      case '--preserve-vendor': cfg.preserveVendor = true; break;
       // E2E verification precision options
       case '--clip-segments': {
         const segs = parseInt(args[++i], 10);
@@ -1251,7 +1416,7 @@ function parseArgs(args) {
       // NOTE: --verify removed - verification is ALWAYS enabled
       default:
         if (arg.startsWith('-')) { logError(`Unknown option: ${arg}`); process.exit(CONSTANTS.EXIT_ERROR); }
-        if (['flatten', 'convert', 'normalize', 'info', 'help', 'version'].includes(arg) && cfg.command === 'help') {
+        if (['flatten', 'convert', 'normalize', 'info', 'test-toolbox', 'help', 'version'].includes(arg) && cfg.command === 'help') {
           cfg.command = arg;
         } else {
           inputs.push(arg);
@@ -1382,6 +1547,10 @@ async function main() {
         logInfo(`\n${colors.bright}Done:${colors.reset} ${ok} ok, ${fail} failed`);
         if (config.logFile) logInfo(`Log: ${config.logFile}`);
         if (fail > 0) process.exit(CONSTANTS.EXIT_ERROR);
+        break;
+      }
+      case 'test-toolbox': {
+        await processTestToolbox();
         break;
       }
       default:

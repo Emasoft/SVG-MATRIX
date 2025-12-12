@@ -1,5 +1,6 @@
 import Decimal from 'decimal.js';
 import { Matrix, Vector, Transforms2D, Transforms3D } from '../src/index.js';
+import { parsePath, serializePath } from '../src/convert-path-data.js';
 
 Decimal.set({ precision: 80 });
 
@@ -531,6 +532,75 @@ assert(p2[1].minus(11).abs().lessThan('1e-14'), 'Transform order: R×T point y =
 // Verify the two orders give different results
 assert(p1[0].minus(p2[0]).abs().greaterThan(1),
   'Transform order matters: T×R ≠ R×T');
+
+console.log('\n=== Arc Command Serialization Tests ===\n');
+
+// Bug 1: Missing Arc command letters
+const multiArcInput = 'M0 0A10 10 0 0 1 20 20A10 10 0 1 0 40 40';
+const multiArcResult = serializePath(parsePath(multiArcInput), 3);
+const multiArcCount = (multiArcResult.match(/A/g) || []).length;
+assert(multiArcCount === 2, 'Multiple arcs: all arcs have "A" command letter');
+
+const threeArcInput = 'M0 0A1 1 0 0 0 2 2A1 1 0 0 1 4 4A1 1 0 1 0 6 6';
+const threeArcResult = serializePath(parsePath(threeArcInput), 3);
+const threeArcCount = (threeArcResult.match(/A/g) || []).length;
+assert(threeArcCount === 3, 'Three consecutive arcs: all have "A" command letter');
+
+assert(!multiArcResult.match(/20 20\s*10 10/), 'Arc command letter never omitted (regression test)');
+
+// Bug 2: Invalid double-decimal in arc parameters
+const decimalArcInput = 'M0 0A10.5 10.5 0.5 0 1 20.5 20.5';
+const decimalArcResult = serializePath(parsePath(decimalArcInput), 3);
+assert(!decimalArcResult.includes('..'), 'Arc parameters: no double-decimals (..)');
+assert(!/\.\d+\.\d+/.test(decimalArcResult), 'Arc parameters: no sequences like .5.5');
+
+const multiDecimalArcInput = 'M0 0A10.5 10.5 0.5 0 1 20.5 20.5A10.5 10.5 0.5 1 0 40.5 40.5';
+const multiDecimalArcResult = serializePath(parsePath(multiDecimalArcInput), 3);
+assert(!multiDecimalArcResult.includes('..'), 'Multiple arcs with decimals: no double-decimals');
+assert(!/\.\d+\.\d+/.test(multiDecimalArcResult), 'Multiple arcs with decimals: proper delimiters');
+
+// Bug 3: Arc flags not guaranteed 0/1
+assert(/A10 10 0 0 1/.test(multiArcResult), 'Arc flags: large-arc-flag is exactly "0" or "1" (test 1)');
+assert(/A10 10 0 1 0/.test(multiArcResult), 'Arc flags: sweep-flag is exactly "0" or "1" (test 1)');
+
+const zeroFlagsInput = 'M0 0A1 1 0 0 0 2 2';
+const zeroFlagsResult = serializePath(parsePath(zeroFlagsInput), 3);
+assert(/A1 1 0 0 0/.test(zeroFlagsResult), 'Arc flags: both flags can be "0"');
+
+const rotationDecimalInput = 'M0 0A10.5 10.5 45.5 0 1 20.5 20.5';
+const rotationDecimalResult = serializePath(parsePath(rotationDecimalInput), 3);
+assert(/45\.5 0 1/.test(rotationDecimalResult), 'Arc flags: decimal rotation preserved but flags are integers');
+
+// Round-trip consistency
+const roundTripInput = 'M0 0A10 10 0 0 1 20 20A10 10 0 1 0 40 40';
+const firstParse = parsePath(roundTripInput);
+const serialized = serializePath(firstParse, 3);
+const secondParse = parsePath(serialized);
+assert(firstParse.length === secondParse.length, 'Round-trip: parse -> serialize -> parse preserves command count');
+assert(firstParse.every((cmd, i) => cmd.command === secondParse[i].command), 'Round-trip: all command letters preserved');
+
+const complexRoundTripInput = 'M0 0A1 1 0 0 0 2 2L5 5A2 2 45 0 1 8 8A3 3 90 1 0 12 12z';
+const complexFirstParse = parsePath(complexRoundTripInput);
+const complexSerialized = serializePath(complexFirstParse, 3);
+const complexSecondParse = parsePath(complexSerialized);
+const firstArcCount = complexFirstParse.filter(c => c.command === 'A' || c.command === 'a').length;
+const secondArcCount = complexSecondParse.filter(c => c.command === 'A' || c.command === 'a').length;
+assert(firstArcCount === secondArcCount, 'Round-trip: complex path arc count preserved');
+
+// Edge cases
+const singleArcInput = 'M0 0A10 10 0 0 1 20 20';
+const singleArcResult = serializePath(parsePath(singleArcInput), 3);
+assert(/^M0 0A10 10 0 0 1 20 20$/.test(singleArcResult), 'Single arc: serializes correctly');
+
+const arcAfterLineInput = 'M0 0L10 10A5 5 0 0 1 15 15';
+const arcAfterLineResult = serializePath(parsePath(arcAfterLineInput), 3);
+assert(/A5 5/.test(arcAfterLineResult), 'Arc after different command: includes "A" prefix');
+
+const relativeArcInput = 'M0 0a10 10 0 0 1 20 20a10 10 0 1 0 40 40';
+const relativeArcResult = serializePath(parsePath(relativeArcInput), 3);
+const relInputArcCount = (relativeArcInput.match(/a/gi) || []).length;
+const relOutputArcCount = (relativeArcResult.match(/a/gi) || []).length;
+assert(relInputArcCount === relOutputArcCount, 'Relative arc (lowercase a): preserves arc count');
 
 console.log('\n=== Summary ===\n');
 console.log(`Passed: ${passed}`);

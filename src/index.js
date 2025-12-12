@@ -49,6 +49,34 @@ import * as FlattenPipeline from './flatten-pipeline.js';
 import * as Verification from './verification.js';
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
+// SVGO-inspired precision modules
+import * as PathSimplification from './path-simplification.js';
+import * as TransformDecomposition from './transform-decomposition.js';
+import * as GJKCollision from './gjk-collision.js';
+import * as PathOptimization from './path-optimization.js';
+import * as TransformOptimization from './transform-optimization.js';
+import * as OffCanvasDetection from './off-canvas-detection.js';
+import * as CSSSpecificity from './css-specificity.js';
+
+// Animation-aware reference tracking (FIXES SVGO's animation destruction bug)
+import * as AnimationReferences from './animation-references.js';
+
+// SVG Toolbox - SVGO-equivalent functions with simple API
+import * as SVGToolbox from './svg-toolbox.js';
+
+// Bezier Curve Analysis - svgpathtools-equivalent with 80-digit arbitrary precision
+// These modules provide superior precision compared to Python's float64 svgpathtools
+import * as BezierAnalysis from './bezier-analysis.js';
+import * as ArcLength from './arc-length.js';
+import * as PathAnalysis from './path-analysis.js';
+import * as BezierIntersections from './bezier-intersections.js';
+
+// SVG Boolean Operations - fill-rule and stroke-aware geometric operations
+import * as SVGBooleanOps from './svg-boolean-ops.js';
+
+// SVG Rendering Context - tracks ALL SVG properties affecting rendered geometry
+import * as SVGRenderingContext from './svg-rendering-context.js';
+
 // Set high-precision default (80 significant digits) on module load
 // This is the same precision used internally by all svg-matrix modules
 // Users can increase further with setPrecision() or Decimal.set() - max is 1e9
@@ -93,6 +121,130 @@ export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
 export { MeshGradient, TextToPath };
 export { SVGParser, FlattenPipeline, Verification };
+
+// ============================================================================
+// SVGO-INSPIRED PRECISION MODULES
+// ============================================================================
+
+export { PathSimplification, TransformDecomposition, GJKCollision };
+export { PathOptimization, TransformOptimization };
+export { OffCanvasDetection, CSSSpecificity };
+
+// Animation-aware reference tracking (FIXES SVGO's animation destruction)
+export { AnimationReferences };
+
+// ============================================================================
+// SVG TOOLBOX: SVGO-Equivalent Functions with Simple API
+// ============================================================================
+
+export { SVGToolbox };
+
+// ============================================================================
+// BEZIER CURVE ANALYSIS: svgpathtools-equivalent with 80-digit precision
+// Superior to Python's float64 svgpathtools - exact mathematical verification
+// ============================================================================
+
+export { BezierAnalysis, ArcLength, PathAnalysis, BezierIntersections };
+
+// ============================================================================
+// SVG BOOLEAN OPERATIONS: Fill-rule and stroke-aware geometric operations
+// ============================================================================
+
+export { SVGBooleanOps };
+
+// ============================================================================
+// SVG RENDERING CONTEXT: Tracks ALL SVG properties affecting geometry
+// Critical for off-canvas detection, collision, merging, simplification
+// ============================================================================
+
+export { SVGRenderingContext };
+
+// Re-export all svg-toolbox functions for direct access
+export {
+  // Input/Output types
+  InputType,
+  OutputFormat,
+  detectInputType,
+  loadInput,
+  generateOutput,
+  // Cleanup functions
+  cleanupIds,
+  cleanupNumericValues,
+  cleanupListOfValues,
+  cleanupAttributes,
+  cleanupEnableBackground,
+  removeUnknownsAndDefaults,
+  removeNonInheritableGroupAttrs,
+  removeUselessDefs,
+  removeHiddenElements,
+  removeEmptyText,
+  removeEmptyContainers,
+  // Removal functions
+  removeDoctype,
+  removeXMLProcInst,
+  removeComments,
+  removeMetadata,
+  removeTitle,
+  removeDesc,
+  removeEditorsNSData,
+  removeEmptyAttrs,
+  removeViewBox,
+  removeXMLNS,
+  removeRasterImages,
+  removeScriptElement,
+  // Conversion functions
+  convertShapesToPath,
+  convertPathData,
+  convertTransform,
+  convertColors,
+  convertStyleToAttrs,
+  convertEllipseToCircle,
+  collapseGroups,
+  mergePaths,
+  moveGroupAttrsToElems,
+  moveElemsAttrsToGroup,
+  // Optimization functions
+  minifyStyles,
+  inlineStyles,
+  sortAttrs,
+  sortDefsChildren,
+  reusePaths,
+  removeOffCanvasPath,
+  removeStyleElement,
+  removeXlink,
+  // Adding/Modification functions
+  addAttributesToSVGElement,
+  addClassesToSVGElement,
+  prefixIds,
+  removeDimensions,
+  removeAttributesBySelector,
+  removeAttrs,
+  removeElementsByAttr,
+  // Presets
+  preset_default,
+  preset_none,
+  applyPreset,
+  optimize,
+  createConfig,
+  // Bonus functions (SVGO doesn't have these)
+  flattenClipPaths,
+  flattenMasks,
+  flattenGradients,
+  flattenPatterns,
+  flattenFilters,
+  flattenUseElements,
+  textToPath,
+  imageToPath,
+  detectCollisions,
+  measureDistance,
+  validateSVG,
+  validateSvg,
+  fixInvalidSvg,
+  ValidationSeverity,
+  flattenAll,
+  simplifyPath,
+  decomposeTransform,
+} from './svg-toolbox.js';
 
 // ============================================================================
 // LOGGING: Configurable logging control
@@ -435,6 +587,27 @@ export default {
   setLogLevel,
   enableFileLogging,
   disableFileLogging,
+
+  // SVGO-inspired precision modules
+  PathSimplification,
+  TransformDecomposition,
+  GJKCollision,
+  PathOptimization,
+  TransformOptimization,
+  OffCanvasDetection,
+  CSSSpecificity,
+
+  // Animation-aware reference tracking (FIXES SVGO's animation destruction)
+  AnimationReferences,
+
+  // SVG Toolbox (SVGO-equivalent functions)
+  SVGToolbox,
+
+  // Bezier Curve Analysis (svgpathtools-equivalent with 80-digit precision)
+  BezierAnalysis,
+  ArcLength,
+  PathAnalysis,
+  BezierIntersections,
 
   // Convenience functions
   translate2D,

@@ -319,31 +319,49 @@ export class SVGElement {
   /**
    * Serialize to SVG string.
    * @param {number} indent - Indentation level
+   * @param {boolean} minify - Whether to minify output (no whitespace/newlines)
    * @returns {string}
    */
-  serialize(indent = 0) {
-    const pad = '  '.repeat(indent);
+  serialize(indent = 0, minify = false) {
+    const pad = minify ? '' : '  '.repeat(indent);
     const attrs = Object.entries(this._attributes)
       .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
       .join(' ');
 
     const attrStr = attrs ? ' ' + attrs : '';
 
+    // Self-closing tag for empty elements
     if (this.children.length === 0 && !this.textContent) {
       return `${pad}<${this.tagName}${attrStr}/>`;
     }
 
-    const childStr = this.children
-      .map(c => c instanceof SVGElement ? c.serialize(indent + 1) : escapeText(c))
-      .join('\n');
+    const separator = minify ? '' : '\n';
 
-    const content = this.textContent ? escapeText(this.textContent) : childStr;
+    // Serialize children (including animation elements inside text elements)
+    const childStr = this.children
+      .map(c => c instanceof SVGElement ? c.serialize(indent + 1, minify) : escapeText(c))
+      .join(separator);
+
+    // CRITICAL FIX: Elements can have BOTH textContent AND children
+    // Example: <text>Some text<set attributeName="display" .../></text>
+    // We must include both, not choose one or the other
+    let content = '';
+    if (this.textContent && this.children.length > 0) {
+      // Both text and children - combine them
+      content = escapeText(this.textContent) + separator + childStr;
+    } else if (this.textContent) {
+      // Only text content
+      content = escapeText(this.textContent);
+    } else {
+      // Only children
+      content = childStr;
+    }
 
     if (this.children.length === 0) {
       return `${pad}<${this.tagName}${attrStr}>${content}</${this.tagName}>`;
     }
 
-    return `${pad}<${this.tagName}${attrStr}>\n${content}\n${pad}</${this.tagName}>`;
+    return `${pad}<${this.tagName}${attrStr}>${separator}${content}${separator}${pad}</${this.tagName}>`;
   }
 
   /**
@@ -370,10 +388,29 @@ export class SVGElement {
 // ============================================================================
 
 /**
- * Parse a single element from SVG string.
+ * Check if whitespace should be preserved based on xml:space attribute.
+ * BUG FIX 2: Helper function to check xml:space="preserve" on element or ancestors
  * @private
  */
-function parseElement(str, pos) {
+function shouldPreserveWhitespace(element) {
+  let current = element;
+  while (current) {
+    const xmlSpace = current.getAttribute('xml:space');
+    if (xmlSpace === 'preserve') return true;
+    if (xmlSpace === 'default') return false;
+    current = current.parentNode;
+  }
+  return false;
+}
+
+/**
+ * Parse a single element from SVG string.
+ * @private
+ * @param {string} str - SVG string to parse
+ * @param {number} pos - Current position in string
+ * @param {boolean} inheritPreserveSpace - Whether xml:space="preserve" is inherited from ancestor
+ */
+function parseElement(str, pos, inheritPreserveSpace = false) {
   // Skip whitespace and comments
   while (pos < str.length) {
     const ws = str.slice(pos).match(/^(\s+)/);
@@ -406,11 +443,23 @@ function parseElement(str, pos) {
       continue;
     }
 
-    // Skip DOCTYPE
+    // Skip DOCTYPE (can contain internal subset with brackets)
     if (str.slice(pos, pos + 9).toUpperCase() === '<!DOCTYPE') {
-      const endDoctype = str.indexOf('>', pos + 9);
-      if (endDoctype === -1) break;
-      pos = endDoctype + 1;
+      let depth = 0;
+      let i = pos + 9;
+      while (i < str.length) {
+        if (str[i] === '[') depth++;
+        else if (str[i] === ']') depth--;
+        else if (str[i] === '>' && depth === 0) {
+          pos = i + 1;
+          break;
+        }
+        i++;
+      }
+      if (i >= str.length) {
+        // Malformed DOCTYPE, skip to end
+        break;
+      }
       continue;
     }
 
@@ -506,7 +555,14 @@ function parseElement(str, pos) {
         }
       }
 
-      const child = parseElement(str, pos);
+      // BUG FIX 1: Pass down xml:space inheritance to children
+      // Determine what to pass: if current element has xml:space, use it; otherwise inherit
+      const currentXmlSpace = attributes['xml:space'];
+      const childInheritPreserve = currentXmlSpace === 'preserve' ? true :
+                                   currentXmlSpace === 'default' ? false :
+                                   inheritPreserveSpace;
+
+      const child = parseElement(str, pos, childInheritPreserve);
       if (child.element) {
         children.push(child.element);
         pos = child.endPos;
@@ -534,7 +590,21 @@ function parseElement(str, pos) {
     }
   }
 
-  const element = new SVGElement(tagName, attributes, children, textContent.trim());
+  // BUG FIX 1: Create element first to set up parent references
+  const element = new SVGElement(tagName, attributes, children, '');
+
+  // BUG FIX 1: Check xml:space on this element, otherwise use inherited value
+  // xml:space="preserve" means preserve whitespace
+  // xml:space="default" means collapse/trim whitespace
+  // If not specified, inherit from ancestor
+  const currentXmlSpace = attributes['xml:space'];
+  const preserveWhitespace = currentXmlSpace === 'preserve' ? true :
+                             currentXmlSpace === 'default' ? false :
+                             inheritPreserveSpace;
+
+  const processedText = preserveWhitespace ? unescapeText(textContent) : unescapeText(textContent.trim());
+  element.textContent = processedText;
+
   return { element, endPos: pos };
 }
 
@@ -635,12 +705,96 @@ function escapeAttr(str) {
 
 /**
  * Unescape attribute value from XML.
+ * Handles numeric entities (decimal and hex) and named entities.
  * @private
  */
 function unescapeAttr(str) {
+  if (!str) return str;
   return str
+    // Decode hex entities first: &#x41; or &#X41; -> A (case-insensitive)
+    // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
+    .replace(/&#[xX]([0-9A-Fa-f]+);/g, (match, hex) => {
+      const codePoint = parseInt(hex, 16);
+      // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
+      const isXMLInvalid = codePoint === 0 ||
+        (codePoint >= 0x1 && codePoint <= 0x8) ||
+        (codePoint >= 0xB && codePoint <= 0xC) ||
+        (codePoint >= 0xE && codePoint <= 0x1F) ||
+        codePoint === 0xFFFE || codePoint === 0xFFFF;
+      // BUG FIX 4: Validate code point range (0x0 to 0x10FFFF, excluding surrogates)
+      if (isXMLInvalid || codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+        return '\uFFFD'; // Replacement character for invalid code points
+      }
+      return String.fromCodePoint(codePoint);
+    })
+    // Decode decimal entities: &#65; -> A
+    // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
+    .replace(/&#(\d+);/g, (match, dec) => {
+      const codePoint = parseInt(dec, 10);
+      // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
+      const isXMLInvalid = codePoint === 0 ||
+        (codePoint >= 0x1 && codePoint <= 0x8) ||
+        (codePoint >= 0xB && codePoint <= 0xC) ||
+        (codePoint >= 0xE && codePoint <= 0x1F) ||
+        codePoint === 0xFFFE || codePoint === 0xFFFF;
+      // BUG FIX 4: Validate code point range (0x0 to 0x10FFFF, excluding surrogates)
+      if (isXMLInvalid || codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+        return '\uFFFD'; // Replacement character for invalid code points
+      }
+      return String.fromCodePoint(codePoint);
+    })
+    // Then named entities (order matters - & last to avoid double-decoding)
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, '\u00A0')  // BUG FIX 3: Add support for non-breaking space entity
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * Unescape text content from XML.
+ * Handles numeric entities (decimal and hex) and named entities.
+ * @private
+ */
+function unescapeText(str) {
+  if (!str) return str;
+  return str
+    // Decode hex entities: &#x41; or &#X41; -> A (case-insensitive)
+    // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
+    .replace(/&#[xX]([0-9A-Fa-f]+);/g, (match, hex) => {
+      const codePoint = parseInt(hex, 16);
+      // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
+      const isXMLInvalid = codePoint === 0 ||
+        (codePoint >= 0x1 && codePoint <= 0x8) ||
+        (codePoint >= 0xB && codePoint <= 0xC) ||
+        (codePoint >= 0xE && codePoint <= 0x1F) ||
+        codePoint === 0xFFFE || codePoint === 0xFFFF;
+      // BUG FIX 4: Validate code point range (0x0 to 0x10FFFF, excluding surrogates)
+      if (isXMLInvalid || codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+        return '\uFFFD'; // Replacement character for invalid code points
+      }
+      return String.fromCodePoint(codePoint);
+    })
+    // Decode decimal entities: &#65; -> A
+    // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
+    .replace(/&#(\d+);/g, (match, dec) => {
+      const codePoint = parseInt(dec, 10);
+      // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
+      const isXMLInvalid = codePoint === 0 ||
+        (codePoint >= 0x1 && codePoint <= 0x8) ||
+        (codePoint >= 0xB && codePoint <= 0xC) ||
+        (codePoint >= 0xE && codePoint <= 0x1F) ||
+        codePoint === 0xFFFE || codePoint === 0xFFFF;
+      // BUG FIX 4: Validate code point range (0x0 to 0x10FFFF, excluding surrogates)
+      if (isXMLInvalid || codePoint > 0x10FFFF || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+        return '\uFFFD'; // Replacement character for invalid code points
+      }
+      return String.fromCodePoint(codePoint);
+    })
+    // Named entities (& last)
+    .replace(/&nbsp;/g, '\u00A0')  // BUG FIX 3: Add support for non-breaking space entity
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&');
@@ -714,10 +868,15 @@ export function parseUrlReference(urlValue) {
 /**
  * Serialize SVG element tree back to string.
  * @param {SVGElement} root - Root element
+ * @param {Object} options - Serialization options
+ * @param {boolean} options.minify - Whether to minify output (no whitespace/newlines)
  * @returns {string}
  */
-export function serializeSVG(root) {
-  return '<?xml version="1.0" encoding="UTF-8"?>\n' + root.serialize(0);
+export function serializeSVG(root, options = {}) {
+  const minify = options.minify || false;
+  const xmlDecl = '<?xml version="1.0" encoding="UTF-8"?>';
+  const separator = minify ? '' : '\n';
+  return xmlDecl + separator + root.serialize(0, minify);
 }
 
 export default {

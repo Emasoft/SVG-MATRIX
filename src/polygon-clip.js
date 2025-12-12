@@ -1221,23 +1221,17 @@ function removeDuplicatePoints(points) {
 // ============================================================================
 
 /**
- * Compute the union of two simple polygons.
+ * Compute the union of two simple polygons using boundary tracing.
  *
  * Returns the combined region covered by either or both polygons.
- * This implementation provides simplified results for complex cases.
+ * Properly traces the outer boundary to produce correct non-convex results.
  *
- * Algorithm:
+ * Algorithm (Boundary Tracing):
  * 1. Quick optimization: if bounding boxes don't intersect, return both polygons
- * 2. If both polygons are convex: compute convex hull of all vertices
- * 3. Otherwise: use point collection method:
- *    a. Find all edge-edge intersection points
- *    b. Find vertices of each polygon outside the other
- *    c. Compute convex hull of boundary points
- *
- * Note: This is a simplified union that works well for convex polygons
- * and gives approximate results for concave polygons. For exact results
- * with concave polygons, a full polygon clipping algorithm (like
- * Greiner-Hormann or Martinez-Rueda) would be needed.
+ * 2. Insert all edge-edge intersection points into both polygon vertex lists
+ * 3. Start from a vertex guaranteed to be on the outer boundary
+ * 4. Trace the boundary, always following the "outermost" path at intersections
+ * 5. Return the traced polygon
  *
  * @param {Array} polygon1 - First polygon vertices [{x, y}, ...]
  * @param {Array} polygon2 - Second polygon vertices [{x, y}, ...]
@@ -1250,7 +1244,7 @@ function removeDuplicatePoints(points) {
  * const square1 = [point(0,0), point(2,0), point(2,2), point(0,2)];
  * const square2 = [point(1,1), point(3,1), point(3,3), point(1,3)];
  * const result = polygonUnion(square1, square2);
- * // Returns combined region covering both squares
+ * // Returns L-shaped combined region covering both squares
  *
  * @example
  * // Non-overlapping polygons
@@ -1270,74 +1264,246 @@ export function polygonUnion(polygon1, polygon2) {
     return [poly1, poly2];
   }
 
-  // For convex polygons, compute the convex hull of all vertices
-  // This is a simplification - full union requires more complex algorithms
-  if (isConvex(poly1) && isConvex(poly2)) {
-    const allPoints = [...poly1, ...poly2];
-    const hull = convexHull(allPoints);
-    return [hull];
-  }
-
-  // For general case, use point collection approach
-  return generalPolygonUnion(poly1, poly2);
+  // Use boundary tracing for union
+  return traceBoundaryUnion(poly1, poly2);
 }
 
 /**
- * General polygon union using point collection method.
+ * Trace the outer boundary for polygon union.
  *
- * Simplified union for general (possibly concave) polygons.
- * Collects boundary points and computes their convex hull.
- *
- * Algorithm:
- * 1. Find all edge-edge intersection points
- * 2. Find poly1 vertices outside poly2
- * 3. Find poly2 vertices outside poly1
- * 4. If no boundary points found, one polygon contains the other
- * 5. Otherwise, compute convex hull of all boundary points
- *
- * Note: Returns convex hull approximation. Not exact for concave results.
+ * Uses a simpler approach: for union of two overlapping polygons,
+ * trace the boundary staying on the "outside" of the combined shape.
+ * At each intersection, switch to the other polygon.
  *
  * @private
  * @param {Array} poly1 - First polygon vertices
  * @param {Array} poly2 - Second polygon vertices
  * @returns {Array} Array containing result polygon(s)
  */
-function generalPolygonUnion(poly1, poly2) {
-  // Find intersection points
-  const intersectionPoints = [];
+function traceBoundaryUnion(poly1, poly2) {
+  // Find all intersection points with edge indices
+  const intersections = findAllIntersections(poly1, poly2);
 
-  for (let i = 0; i < poly1.length; i++) {
-    const s1 = poly1[i];
-    const s2 = poly1[(i + 1) % poly1.length];
+  // If no intersections, check containment
+  if (intersections.length === 0) {
+    // Check if one contains the other
+    const p1Inside = pointInPolygon(poly1[0], poly2);
+    const p2Inside = pointInPolygon(poly2[0], poly1);
 
-    for (let j = 0; j < poly2.length; j++) {
-      const c1 = poly2[j];
-      const c2 = poly2[(j + 1) % poly2.length];
+    if (p1Inside > 0) {
+      // poly1 is inside poly2
+      return [poly2];
+    } else if (p2Inside > 0) {
+      // poly2 is inside poly1
+      return [poly1];
+    } else {
+      // Disjoint - this shouldn't happen if bbox intersects
+      // But they might just touch at a point
+      return [poly1, poly2];
+    }
+  }
 
-      const intersection = segmentIntersection(s1, s2, c1, c2);
-      if (intersection) {
-        intersectionPoints.push(point(intersection.x, intersection.y));
+  // Build augmented polygons with intersection points inserted
+  const aug1 = augmentPolygon(poly1, intersections.map(i => ({
+    edgeIndex: i.edge1,
+    t: i.t1,
+    point: i.point,
+    intersectionId: i.id
+  })));
+
+  const aug2 = augmentPolygon(poly2, intersections.map(i => ({
+    edgeIndex: i.edge2,
+    t: i.t2,
+    point: i.point,
+    intersectionId: i.id
+  })));
+
+  // Build lookup from intersection ID to indices in both polygons
+  const intersectionMap = new Map();
+  for (let i = 0; i < aug1.length; i++) {
+    if (aug1[i].intersectionId !== undefined) {
+      if (!intersectionMap.has(aug1[i].intersectionId)) {
+        intersectionMap.set(aug1[i].intersectionId, {});
+      }
+      intersectionMap.get(aug1[i].intersectionId).idx1 = i;
+    }
+  }
+  for (let i = 0; i < aug2.length; i++) {
+    if (aug2[i].intersectionId !== undefined) {
+      if (!intersectionMap.has(aug2[i].intersectionId)) {
+        intersectionMap.set(aug2[i].intersectionId, {});
+      }
+      intersectionMap.get(aug2[i].intersectionId).idx2 = i;
+    }
+  }
+
+  // Find starting point: a vertex that's outside the other polygon (guaranteed to be on outer boundary)
+  let startPoly = 1;
+  let startIdx = -1;
+
+  for (let i = 0; i < aug1.length; i++) {
+    const p = aug1[i];
+    if (p.intersectionId === undefined && pointInPolygon(p, poly2) < 0) {
+      startIdx = i;
+      break;
+    }
+  }
+
+  if (startIdx === -1) {
+    // All poly1 vertices are inside poly2, start from poly2
+    startPoly = 2;
+    for (let i = 0; i < aug2.length; i++) {
+      const p = aug2[i];
+      if (p.intersectionId === undefined && pointInPolygon(p, poly1) < 0) {
+        startIdx = i;
+        break;
       }
     }
   }
 
-  // Find vertices outside the other polygon
-  const poly1Outside = poly1.filter(p => pointInPolygon(p, poly2) < 0);
-  const poly2Outside = poly2.filter(p => pointInPolygon(p, poly1) < 0);
-
-  // All boundary points
-  const allPoints = [...intersectionPoints, ...poly1Outside, ...poly2Outside];
-
-  if (allPoints.length < 3) {
-    // One contains the other or identical
+  if (startIdx === -1) {
+    // Edge case: one polygon contains the other entirely
     const area1 = polygonArea(poly1).abs();
     const area2 = polygonArea(poly2).abs();
     return area1.gt(area2) ? [poly1] : [poly2];
   }
 
-  // Compute convex hull (simplified union)
-  const hull = convexHull(allPoints);
-  return hull.length >= 3 ? [hull] : [];
+  // Trace the outer boundary
+  // For union: at each intersection, switch to the other polygon
+  // This works because the outer boundary alternates between the two polygons
+  const result = [];
+  let onPoly1 = startPoly === 1;
+  let currentIdx = startIdx;
+  const usedIntersections = new Set();
+  const maxIterations = aug1.length + aug2.length + 10;
+  let iterations = 0;
+  const startKey = `${startPoly}-${startIdx}`;
+
+  while (iterations < maxIterations) {
+    iterations++;
+
+    const aug = onPoly1 ? aug1 : aug2;
+    const otherAug = onPoly1 ? aug2 : aug1;
+    const vertex = aug[currentIdx];
+
+    // Add vertex to result (avoid duplicates)
+    if (result.length === 0 || !pointsEqual(result[result.length - 1], vertex)) {
+      result.push(point(vertex.x, vertex.y));
+    }
+
+    // Move to next vertex
+    const nextIdx = (currentIdx + 1) % aug.length;
+    const nextVertex = aug[nextIdx];
+
+    // If next vertex is an intersection we haven't used, switch polygons
+    if (nextVertex.intersectionId !== undefined && !usedIntersections.has(nextVertex.intersectionId)) {
+      // Add the intersection point
+      result.push(point(nextVertex.x, nextVertex.y));
+      usedIntersections.add(nextVertex.intersectionId);
+
+      // Switch to other polygon
+      const mapping = intersectionMap.get(nextVertex.intersectionId);
+      const otherIdx = onPoly1 ? mapping.idx2 : mapping.idx1;
+      onPoly1 = !onPoly1;
+      currentIdx = (otherIdx + 1) % otherAug.length;
+    } else {
+      currentIdx = nextIdx;
+    }
+
+    // Check if we're back at start
+    const currentKey = `${onPoly1 ? 1 : 2}-${currentIdx}`;
+    if (currentKey === startKey) {
+      break;
+    }
+  }
+
+  // Remove the last point if it's the same as the first (closed polygon)
+  if (result.length > 1 && pointsEqual(result[0], result[result.length - 1])) {
+    result.pop();
+  }
+
+  return result.length >= 3 ? [result] : [];
+}
+
+/**
+ * Find all intersection points between two polygons.
+ *
+ * @private
+ * @param {Array} poly1 - First polygon
+ * @param {Array} poly2 - Second polygon
+ * @returns {Array} Array of intersection objects with edge indices and parameters
+ */
+function findAllIntersections(poly1, poly2) {
+  const intersections = [];
+  let id = 0;
+
+  for (let i = 0; i < poly1.length; i++) {
+    const a = poly1[i];
+    const b = poly1[(i + 1) % poly1.length];
+
+    for (let j = 0; j < poly2.length; j++) {
+      const c = poly2[j];
+      const d = poly2[(j + 1) % poly2.length];
+
+      const intersection = segmentIntersection(a, b, c, d);
+      if (intersection) {
+        intersections.push({
+          id: id++,
+          point: point(intersection.x, intersection.y),
+          edge1: i,
+          edge2: j,
+          t1: intersection.t,
+          t2: intersection.s
+        });
+      }
+    }
+  }
+
+  return intersections;
+}
+
+/**
+ * Insert intersection points into polygon vertex list.
+ *
+ * @private
+ * @param {Array} polygon - Original polygon vertices
+ * @param {Array} insertions - Points to insert with edge index and t parameter
+ * @returns {Array} Augmented polygon with intersection points inserted
+ */
+function augmentPolygon(polygon, insertions) {
+  // Group insertions by edge
+  const byEdge = new Map();
+  for (const ins of insertions) {
+    if (!byEdge.has(ins.edgeIndex)) {
+      byEdge.set(ins.edgeIndex, []);
+    }
+    byEdge.get(ins.edgeIndex).push(ins);
+  }
+
+  // Sort each edge's insertions by t parameter
+  for (const edgeInsertions of byEdge.values()) {
+    edgeInsertions.sort((a, b) => a.t.minus(b.t).toNumber());
+  }
+
+  // Build augmented polygon
+  const result = [];
+  for (let i = 0; i < polygon.length; i++) {
+    // Add original vertex
+    result.push({ ...polygon[i] });
+
+    // Add intersection points for this edge
+    if (byEdge.has(i)) {
+      for (const ins of byEdge.get(i)) {
+        result.push({
+          x: ins.point.x,
+          y: ins.point.y,
+          intersectionId: ins.intersectionId
+        });
+      }
+    }
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -1350,19 +1516,12 @@ function generalPolygonUnion(poly1, poly2) {
  * Returns the region(s) in polygon1 that are NOT covered by polygon2.
  * This is the "subtraction" operation in polygon boolean algebra.
  *
- * Algorithm:
+ * Algorithm (Boundary Tracing):
  * 1. Quick optimization: if bounding boxes don't intersect, return polygon1
- * 2. Find all edge-edge intersection points
- * 3. Find polygon1 vertices outside polygon2
- * 4. Find polygon2 vertices inside polygon1 (these define the "hole" boundary)
- * 5. Handle special cases:
- *    - polygon2 entirely outside polygon1: return polygon1
- *    - polygon1 entirely inside polygon2: return empty
- * 6. Compute convex hull of remaining points (simplified result)
- *
- * Note: This is a simplified difference operation that works well for
- * convex cases. For complex concave polygons with holes, a full
- * polygon clipping algorithm would be needed.
+ * 2. Insert all edge-edge intersection points into both polygon vertex lists
+ * 3. Start from a polygon1 vertex that's outside polygon2
+ * 4. Trace polygon1's boundary, switching to polygon2 (reversed) at intersections
+ * 5. Return the traced polygon
  *
  * @param {Array} polygon1 - First polygon (subject) [{x, y}, ...]
  * @param {Array} polygon2 - Second polygon (to subtract) [{x, y}, ...]
@@ -1373,7 +1532,7 @@ function generalPolygonUnion(poly1, poly2) {
  * const square1 = [point(0,0), point(3,0), point(3,3), point(0,3)];
  * const square2 = [point(1,1), point(4,1), point(4,4), point(1,4)];
  * const result = polygonDifference(square1, square2);
- * // Returns portion of square1 not covered by square2
+ * // Returns L-shaped portion of square1 not covered by square2
  *
  * @example
  * // No overlap - return original
@@ -1399,49 +1558,167 @@ export function polygonDifference(polygon1, polygon2) {
     return [poly1];
   }
 
-  // Find intersection points
-  const intersectionPoints = [];
+  // Use boundary tracing for difference
+  return traceBoundaryDifference(poly1, poly2);
+}
 
-  for (let i = 0; i < poly1.length; i++) {
-    const s1 = poly1[i];
-    const s2 = poly1[(i + 1) % poly1.length];
+/**
+ * Trace the boundary for polygon difference (poly1 - poly2).
+ *
+ * Traces poly1's boundary, but when entering poly2, follows poly2's boundary
+ * (in reverse) until exiting back to poly1's exterior.
+ *
+ * @private
+ * @param {Array} poly1 - Subject polygon vertices
+ * @param {Array} poly2 - Clipping polygon vertices (to subtract)
+ * @returns {Array} Array containing result polygon(s)
+ */
+function traceBoundaryDifference(poly1, poly2) {
+  // Find all intersection points with edge indices
+  const intersections = findAllIntersections(poly1, poly2);
 
-    for (let j = 0; j < poly2.length; j++) {
-      const c1 = poly2[j];
-      const c2 = poly2[(j + 1) % poly2.length];
+  // If no intersections, check containment
+  if (intersections.length === 0) {
+    // Check if poly1 is entirely inside poly2
+    const p1Inside = pointInPolygon(poly1[0], poly2);
 
-      const intersection = segmentIntersection(s1, s2, c1, c2);
-      if (intersection) {
-        intersectionPoints.push(point(intersection.x, intersection.y));
-      }
+    if (p1Inside > 0) {
+      // poly1 is completely inside poly2 - nothing remains
+      return [];
+    } else {
+      // poly2 doesn't overlap poly1 - return original
+      return [poly1];
     }
   }
 
-  // Find poly1 vertices outside poly2
-  const poly1Outside = poly1.filter(p => pointInPolygon(p, poly2) < 0);
+  // Build augmented polygons with intersection points inserted
+  const aug1 = augmentPolygon(poly1, intersections.map(i => ({
+    edgeIndex: i.edge1,
+    t: i.t1,
+    point: i.point,
+    intersectionId: i.id
+  })));
 
-  // Find poly2 vertices inside poly1 (these form the "hole" boundary)
-  const poly2Inside = poly2.filter(p => pointInPolygon(p, poly1) > 0);
+  const aug2 = augmentPolygon(poly2, intersections.map(i => ({
+    edgeIndex: i.edge2,
+    t: i.t2,
+    point: i.point,
+    intersectionId: i.id
+  })));
 
-  // If poly2 is entirely outside poly1, return poly1
-  if (poly2Inside.length === 0 && intersectionPoints.length === 0) {
-    return [poly1];
+  // Build lookup from intersection ID to indices in both polygons
+  const intersectionMap = new Map();
+  for (let i = 0; i < aug1.length; i++) {
+    if (aug1[i].intersectionId !== undefined) {
+      if (!intersectionMap.has(aug1[i].intersectionId)) {
+        intersectionMap.set(aug1[i].intersectionId, {});
+      }
+      intersectionMap.get(aug1[i].intersectionId).idx1 = i;
+    }
+  }
+  for (let i = 0; i < aug2.length; i++) {
+    if (aug2[i].intersectionId !== undefined) {
+      if (!intersectionMap.has(aug2[i].intersectionId)) {
+        intersectionMap.set(aug2[i].intersectionId, {});
+      }
+      intersectionMap.get(aug2[i].intersectionId).idx2 = i;
+    }
   }
 
-  // If poly1 is entirely inside poly2, return empty
-  if (poly1Outside.length === 0) {
+  // Find starting point: a poly1 vertex that's outside poly2
+  let startIdx = -1;
+  for (let i = 0; i < aug1.length; i++) {
+    const p = aug1[i];
+    if (p.intersectionId === undefined && pointInPolygon(p, poly2) < 0) {
+      startIdx = i;
+      break;
+    }
+  }
+
+  // If all poly1 vertices are inside poly2, no difference remains
+  if (startIdx === -1) {
     return [];
   }
 
-  // Simplified: return poly1 vertices outside poly2 + intersection points
-  const allPoints = [...intersectionPoints, ...poly1Outside];
+  // Trace the difference boundary
+  const result = [];
+  let onPoly1 = true; // We start on poly1
+  let currentIdx = startIdx;
+  const visited = new Set();
+  const maxIterations = aug1.length + aug2.length + 10;
+  let iterations = 0;
 
-  if (allPoints.length < 3) {
-    return [];
+  while (iterations < maxIterations) {
+    iterations++;
+
+    const poly = onPoly1 ? aug1 : aug2;
+    const vertex = poly[currentIdx];
+
+    // Add vertex to result (avoid duplicates)
+    if (result.length === 0 || !pointsEqual(result[result.length - 1], vertex)) {
+      result.push(point(vertex.x, vertex.y));
+    }
+
+    // Check if we've completed the loop
+    const key = `${onPoly1 ? 1 : 2}-${currentIdx}`;
+    if (visited.has(key)) {
+      break;
+    }
+    visited.add(key);
+
+    if (onPoly1) {
+      // On poly1, moving forward (CCW)
+      const nextIdx = (currentIdx + 1) % aug1.length;
+      const nextVertex = aug1[nextIdx];
+
+      if (nextVertex.intersectionId !== undefined) {
+        // Hit an intersection - check if we're entering or leaving poly2
+        const afterNext = aug1[(nextIdx + 1) % aug1.length];
+        const isEntering = pointInPolygon(afterNext, poly2) > 0;
+
+        if (isEntering) {
+          // Entering poly2 - switch to poly2 and go backwards (CW)
+          const mapping = intersectionMap.get(nextVertex.intersectionId);
+          result.push(point(nextVertex.x, nextVertex.y));
+          onPoly1 = false;
+          // Go backwards on poly2
+          currentIdx = (mapping.idx2 - 1 + aug2.length) % aug2.length;
+        } else {
+          // Leaving poly2 (or just touching) - continue on poly1
+          currentIdx = nextIdx;
+        }
+      } else {
+        currentIdx = nextIdx;
+      }
+    } else {
+      // On poly2, moving backward (CW) - this traces the "inside" boundary of the hole
+      const nextIdx = (currentIdx - 1 + aug2.length) % aug2.length;
+      const nextVertex = aug2[nextIdx];
+
+      if (nextVertex.intersectionId !== undefined) {
+        // Hit an intersection - switch back to poly1
+        const mapping = intersectionMap.get(nextVertex.intersectionId);
+        result.push(point(nextVertex.x, nextVertex.y));
+        onPoly1 = true;
+        // Continue forward on poly1 from the intersection
+        currentIdx = (mapping.idx1 + 1) % aug1.length;
+      } else {
+        currentIdx = nextIdx;
+      }
+    }
+
+    // Safety: check if we're back at start
+    if (onPoly1 && currentIdx === startIdx) {
+      break;
+    }
   }
 
-  const hull = convexHull(allPoints);
-  return hull.length >= 3 ? [hull] : [];
+  // Remove the last point if it's the same as the first (closed polygon)
+  if (result.length > 1 && pointsEqual(result[0], result[result.length - 1])) {
+    result.pop();
+  }
+
+  return result.length >= 3 ? [result] : [];
 }
 
 // ============================================================================

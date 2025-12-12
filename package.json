@@ -9,6 +9,8 @@
     "test:browser": "node test/browser-verify.mjs",
     "test:playwright": "node test/playwright-diagnose.js",
     "ci-test": "npm ci && npm test",
+    "lint": "node bin/svglinter.cjs",
+    "lint:fix": "node bin/svglinter.cjs --fix",
     "version:sync": "node scripts/version-sync.js",
     "version:check": "node scripts/version-sync.js --check",
     "preversion": "npm run version:sync",
@@ -52,7 +54,8 @@
     "url": "https://github.com/Emasoft/SVG-MATRIX/issues"
   },
   "bin": {
-    "svg-matrix": "./bin/svg-matrix.js"
+    "svg-matrix": "./bin/svg-matrix.js",
+    "svglinter": "./bin/svglinter.cjs"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -74,5 +77,8 @@
     "playwright": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "svgo": "^4.0.0"
   }
 }
