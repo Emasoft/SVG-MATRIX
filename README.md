@@ -12,6 +12,7 @@
 <p align="center">
   <a href="#part-1-core-math-library">Core Math</a> &#8226;
   <a href="#part-2-svg-toolbox">SVG Toolbox</a> &#8226;
+  <a href="#svgm---svgo-compatible-optimizer-drop-in-replacement">svgm (SVGO replacement)</a> &#8226;
   <a href="#installation">Install</a> &#8226;
   <a href="API.md">API Reference</a>
 </p>
@@ -185,14 +186,17 @@ SVG files are pictures made of shapes, paths, and effects. This toolbox can:
 
 ### Why Use This Instead of SVGO?
 
-| | SVGO | svg-matrix |
+| | SVGO | svgm (this package) |
 |--|------|-----------|
 | **Math precision** | 15 digits (can accumulate errors) | 80 digits (no errors) |
 | **Verification** | None (hope it works) | Mathematical proof each step is correct |
 | **Attribute handling** | May lose clip-path, mask, filter | Guarantees ALL attributes preserved |
+| **CLI syntax** | `svgo input.svg -o out.svg` | `svgm input.svg -o out.svg` (identical!) |
 | **Use case** | Quick file size reduction | Precision-critical applications |
 
-**Use svg-matrix when:** CAD, GIS, scientific visualization, or when visual correctness matters more than file size.
+**Drop-in replacement:** The `svgm` command uses the exact same syntax as SVGO. Just replace `svgo` with `svgm` in your scripts.
+
+**Use svgm/svg-matrix when:** CAD, GIS, scientific visualization, animation, or when visual correctness matters.
 
 **Use SVGO when:** Quick optimization where small rounding errors are acceptable.
 
@@ -200,7 +204,62 @@ SVG files are pictures made of shapes, paths, and effects. This toolbox can:
 
 ## Command Line Tools
 
-### `svg-matrix` - Process SVG files
+### `svgm` - SVGO-Compatible Optimizer (Drop-in Replacement)
+
+A drop-in replacement for SVGO with identical syntax. Simply replace `svgo` with `svgm`:
+
+```bash
+# Basic optimization (same as SVGO)
+svgm input.svg -o output.svg
+
+# Optimize folder recursively
+svgm -f ./icons/ -o ./optimized/ -r
+
+# Multiple passes for maximum compression
+svgm --multipass input.svg -o output.svg
+
+# Pretty print output
+svgm --pretty --indent 2 input.svg -o output.svg
+
+# Set precision
+svgm -p 2 input.svg -o output.svg
+
+# Show available optimizations
+svgm --show-plugins
+```
+
+**Options (SVGO-compatible):**
+
+| Option | What It Does |
+|--------|--------------|
+| `-o <file>` | Output file or folder |
+| `-f <folder>` | Input folder (batch mode) |
+| `-r, --recursive` | Process folders recursively |
+| `-p <n>` | Decimal precision |
+| `--multipass` | Multiple optimization passes |
+| `--pretty` | Pretty print output |
+| `--indent <n>` | Indentation for pretty print |
+| `-q, --quiet` | Suppress output |
+| `--datauri <type>` | Output as data URI (base64, enc, unenc) |
+| `--show-plugins` | List available optimizations |
+
+**Default optimizations (matching SVGO preset-default):**
+
+- Remove DOCTYPE, XML processing instructions, comments, metadata
+- Remove editor namespaces (Inkscape, Illustrator, etc.)
+- Cleanup IDs, attributes, numeric values
+- Convert colors to shorter forms
+- Collapse groups, merge paths
+- Sort attributes for better gzip compression
+- And 20+ more optimizations
+
+Run `svgm --help` for all options.
+
+---
+
+### `svg-matrix` - Advanced SVG Processing
+
+For precision-critical operations beyond simple optimization:
 
 ```bash
 # Flatten all transforms into coordinates
@@ -231,6 +290,8 @@ svg-matrix info input.svg
 | `--no-masks` | Skip mask processing |
 
 Run `svg-matrix --help` for all options.
+
+---
 
 ### `svglinter` - Find problems in SVG files
 
