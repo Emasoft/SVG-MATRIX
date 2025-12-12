@@ -79,65 +79,95 @@ function logError(msg) {
 }
 
 // ============================================================================
-// AVAILABLE OPTIMIZATIONS (like SVGO plugins)
+// AVAILABLE OPTIMIZATIONS (matching SVGO plugins)
 // ============================================================================
 const OPTIMIZATIONS = [
+  // Cleanup plugins
+  { name: 'cleanupAttributes', description: 'Remove useless attributes' },
   { name: 'cleanupIds', description: 'Remove unused and minify used IDs' },
-  { name: 'cleanupNumericValues', description: 'Round numeric values, remove default values' },
+  { name: 'cleanupNumericValues', description: 'Round numeric values, remove default px units' },
   { name: 'cleanupListOfValues', description: 'Round list of numeric values' },
-  { name: 'cleanupAttributes', description: 'Remove unnecessary attributes' },
+  { name: 'cleanupEnableBackground', description: 'Remove or fix enable-background attribute' },
+  // Remove plugins
   { name: 'removeDoctype', description: 'Remove DOCTYPE declaration' },
   { name: 'removeXMLProcInst', description: 'Remove XML processing instructions' },
   { name: 'removeComments', description: 'Remove comments' },
   { name: 'removeMetadata', description: 'Remove <metadata> elements' },
-  { name: 'removeTitle', description: 'Remove <title> elements' },
+  { name: 'removeTitle', description: 'Remove <title> elements (not in default)' },
   { name: 'removeDesc', description: 'Remove <desc> elements' },
-  { name: 'removeEditorsNSData', description: 'Remove editor namespaces and data' },
+  { name: 'removeEditorsNSData', description: 'Remove editor namespaces, elements, and attributes' },
   { name: 'removeEmptyAttrs', description: 'Remove empty attributes' },
-  { name: 'removeEmptyContainers', description: 'Remove empty containers' },
+  { name: 'removeEmptyContainers', description: 'Remove empty container elements' },
   { name: 'removeEmptyText', description: 'Remove empty text elements' },
   { name: 'removeHiddenElements', description: 'Remove hidden elements' },
   { name: 'removeUselessDefs', description: 'Remove unused <defs> content' },
-  { name: 'removeUnknownsAndDefaults', description: 'Remove unknown elements and default attributes' },
-  { name: 'convertShapesToPath', description: 'Convert shapes to paths' },
-  { name: 'convertPathData', description: 'Optimize path data' },
-  { name: 'convertTransform', description: 'Collapse multiple transforms' },
+  { name: 'removeUnknownsAndDefaults', description: 'Remove unknown elements and default attribute values' },
+  { name: 'removeNonInheritableGroupAttrs', description: 'Remove non-inheritable presentation attributes from groups' },
+  // Convert plugins
+  { name: 'convertShapesToPath', description: 'Convert basic shapes to paths' },
+  { name: 'convertPathData', description: 'Optimize path data: convert, remove useless, etc.' },
+  { name: 'convertTransform', description: 'Collapse multiple transforms into one, convert matrices' },
   { name: 'convertColors', description: 'Convert color values to shorter form' },
-  { name: 'convertStyleToAttrs', description: 'Convert style to attributes' },
-  { name: 'convertEllipseToCircle', description: 'Convert ellipse to circle when rx=ry' },
+  { name: 'convertStyleToAttrs', description: 'Convert style to presentation attributes (not in default)' },
+  { name: 'convertEllipseToCircle', description: 'Convert ellipse to circle when rx equals ry' },
+  // Structure plugins
   { name: 'collapseGroups', description: 'Collapse useless groups' },
   { name: 'mergePaths', description: 'Merge multiple paths into one' },
-  { name: 'moveGroupAttrsToElems', description: 'Move group attributes to elements' },
-  { name: 'moveElemsAttrsToGroup', description: 'Move common element attributes to group' },
-  { name: 'minifyStyles', description: 'Minify <style> content' },
-  { name: 'inlineStyles', description: 'Inline styles from <style>' },
-  { name: 'sortAttrs', description: 'Sort attributes for better compression' },
-  { name: 'sortDefsChildren', description: 'Sort <defs> children for better compression' },
+  { name: 'moveGroupAttrsToElems', description: 'Move group attributes to contained elements' },
+  { name: 'moveElemsAttrsToGroup', description: 'Move common element attributes to parent group' },
+  // Style plugins
+  { name: 'minifyStyles', description: 'Minify <style> elements content' },
+  { name: 'inlineStyles', description: 'Inline styles from <style> to element style attributes' },
+  // Sort plugins
+  { name: 'sortAttrs', description: 'Sort attributes for better gzip compression' },
+  { name: 'sortDefsChildren', description: 'Sort children of <defs> for better gzip compression' },
 ];
 
-// Default optimization pipeline (matches SVGO defaults)
+// ============================================================================
+// DEFAULT PIPELINE - Matches SVGO preset-default exactly (34 plugins)
+// Order matters! This is the exact order from SVGO's preset-default.js
+// ============================================================================
 const DEFAULT_PIPELINE = [
+  // 1-6: Initial cleanup (matching SVGO preset-default order)
   'removeDoctype',
   'removeXMLProcInst',
   'removeComments',
+  // removeDeprecatedAttrs - not implemented (rarely needed)
   'removeMetadata',
   'removeEditorsNSData',
+  // 7-11: Style processing
   'cleanupAttributes',
+  // mergeStyles - not implemented
+  'inlineStyles',
+  'minifyStyles',
+  'cleanupIds',
+  // 12-18: Remove unnecessary elements
+  'removeUselessDefs',
   'cleanupNumericValues',
   'convertColors',
   'removeUnknownsAndDefaults',
-  'removeEmptyAttrs',
-  'removeEmptyContainers',
-  'removeEmptyText',
+  'removeNonInheritableGroupAttrs',
+  // removeUselessStrokeAndFill - not implemented
+  'cleanupEnableBackground',
   'removeHiddenElements',
-  'removeUselessDefs',
-  'convertShapesToPath',
+  'removeEmptyText',
+  // 19-27: Convert and optimize
+  // NOTE: convertShapesToPath removed - SVGO only converts when it saves bytes
+  // Our version converts all shapes which often increases size
+  'convertEllipseToCircle',
+  'moveElemsAttrsToGroup',
+  'moveGroupAttrsToElems',
+  'collapseGroups',
   'convertPathData',
   'convertTransform',
-  'collapseGroups',
+  // 28-34: Final cleanup
+  'removeEmptyAttrs',
+  'removeEmptyContainers',
   'mergePaths',
+  // removeUnusedNS - not implemented
   'sortAttrs',
-  'cleanupIds',
+  'sortDefsChildren',
+  'removeDesc',
 ];
 
 // ============================================================================
@@ -215,9 +245,11 @@ async function optimizeSvg(content, options = {}) {
 
   let result = serializeSVG(doc);
 
-  // Pretty print if requested
+  // Pretty print if requested, otherwise minify (SVGO default behavior)
   if (options.pretty) {
     result = prettifyXml(result, options.indent);
+  } else {
+    result = minifyXml(result);
   }
 
   // Handle EOL
@@ -231,6 +263,22 @@ async function optimizeSvg(content, options = {}) {
   }
 
   return result;
+}
+
+/**
+ * Minify XML output (matching SVGO behavior)
+ * - Remove XML declaration
+ * - Remove whitespace between tags
+ * - Collapse multiple spaces
+ */
+function minifyXml(xml) {
+  return xml
+    // Remove XML declaration (SVGO removes it by default)
+    .replace(/<\?xml[^?]*\?>\s*/gi, '')
+    // Remove newlines and collapse whitespace between tags
+    .replace(/>\s+</g, '><')
+    // Remove leading/trailing whitespace
+    .trim();
 }
 
 function prettifyXml(xml, indent = 2) {
