@@ -93,39 +93,82 @@ node examples/03-3d-transforms.js
 - Euler angles (pitch, yaw, roll) and gimbal lock
 - Practical 3D scenarios (camera orbits, cube transformations)
 
-## SVG-Specific Examples (Conceptual)
+## SVG Toolbox Examples
 
-The library includes advanced SVG processing modules. While full examples require complex SVG structures, the conceptual outline is:
+The library includes the SVG Toolbox for high-precision SVG processing.
 
-### 04 - SVG Transform Parsing (Placeholder)
-- Parsing SVG transform attributes
-- Building Current Transformation Matrix (CTM)
-- viewBox and preserveAspectRatio handling
-- Shape to path conversion
+### 04 - SVG Toolbox Optimization
+**File:** `04-svg-toolbox-optimization.js`
 
-### 05 - Polygon Clipping (Placeholder)
-- Boolean operations on polygons
-- Intersection, union, difference
-- Point-in-polygon tests
-- Convex hull computation
+Demonstrates SVG optimization functions (similar to SVGO but with arbitrary precision):
+- Parsing and serializing SVG documents
+- Removing comments, metadata, empty elements
+- Cleaning up numeric values with precision control
+- Converting shapes to paths
+- Collapsing groups and cleaning up IDs
+- Full optimization pipeline
 
-### 06 - ClipPath Resolution (Placeholder)
+**Run:**
+```bash
+node examples/04-svg-toolbox-optimization.js
+```
+
+**Topics Covered:**
+- parseSVG / serializeSVG
+- removeComments, removeMetadata
+- cleanupNumericValues (precision control)
+- convertShapesToPath
+- cleanupIds (remove unused)
+- removeEmptyContainers
+- collapseGroups
+- Optimization pipeline composition
+- Precision advantages over SVGO
+
+### 05 - Bezier Curve Analysis
+**File:** `05-bezier-analysis.js`
+
+Demonstrates high-precision Bezier curve analysis (comparable to svgpathtools but with 80-digit precision):
+- Point evaluation on curves
+- Derivatives (velocity, acceleration)
+- Tangent and normal vectors
+- Curvature computation
+- Arc length calculation
+- Inverse arc length (find t for length)
+- Exact bounding box via critical points
+- Curve splitting and cropping
+- Self-intersection detection
+
+**Run:**
+```bash
+node examples/05-bezier-analysis.js
+```
+
+**Topics Covered:**
+- bezierPoint (de Casteljau algorithm)
+- bezierDerivative (1st/2nd order)
+- bezierTangent, bezierNormal
+- bezierCurvature (k = 1/radius)
+- arcLength, inverseArcLength
+- bezierBoundingBox (exact via critical points)
+- bezierSplit, bezierCrop
+- bezierSelfIntersection
+- 80-digit precision vs float64
+
+## Future Examples (Planned)
+
+### 06 - ClipPath Resolution
 - Resolving clipPath elements
 - Coordinate system transformations
 - Applying clip paths to shapes
-- Path generation from clips
 
-### 07 - Mesh Gradients (Placeholder)
+### 07 - Mesh Gradients
 - SVG 2.0 mesh gradient parsing
 - Coons patch evaluation
-- Rasterization to canvas
-- Polygon approximation for export
 
-### 08 - Masks, Patterns, Use Elements (Placeholder)
+### 08 - Masks, Patterns, Use Elements
 - Mask resolution (luminance/alpha)
 - Pattern tiling
 - Use/symbol resolution
-- Nested reference handling
 
 ## Key Concepts
 
@@ -170,7 +213,7 @@ const sum = a.plus(b); // Exactly 0.3 (not 0.30000000000000004)
 
 ```bash
 # Run all examples in sequence
-for file in examples/0{1,2,3}*.js; do
+for file in examples/0{1,2,3,4,5}*.js; do
   echo "Running $file..."
   node "$file"
   echo ""
