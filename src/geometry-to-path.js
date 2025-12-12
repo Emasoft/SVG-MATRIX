@@ -211,7 +211,22 @@ export function lineToPathData(x1, y1, x2, y2, precision = 6) {
 }
 
 function parsePoints(points) {
+  // Handle null/undefined
+  if (points == null) return [];
+  // Handle arrays
   if (Array.isArray(points)) return points.map(([x, y]) => [D(x), D(y)]);
+  // Handle SVGAnimatedPoints or objects with baseVal
+  if (typeof points === 'object' && points.baseVal !== undefined) {
+    points = points.baseVal;
+  }
+  // Convert to string if not already a string
+  if (typeof points !== 'string') {
+    if (typeof points.toString === 'function') {
+      points = points.toString();
+    } else {
+      return [];
+    }
+  }
   const nums = points.split(/[\s,]+/).filter(s => s.length > 0).map(s => D(s));
   const pairs = [];
   for (let i = 0; i < nums.length; i += 2) {
