@@ -20,6 +20,7 @@ import { join, dirname, basename, extname, resolve, isAbsolute } from 'path';
 import { VERSION } from '../src/index.js';
 import * as SVGToolbox from '../src/svg-toolbox.js';
 import { parseSVG, serializeSVG } from '../src/svg-parser.js';
+import { injectPolyfills, detectSVG2Features } from '../src/svg2-polyfills.js';
 
 // ============================================================================
 // CONSTANTS
@@ -62,6 +63,8 @@ const DEFAULT_CONFIG = {
   exclude: [],
   quiet: false,
   datauri: null,
+  preserveNamespaces: [],
+  svg2Polyfills: false,
   showPlugins: false,
 };
 
@@ -222,7 +225,7 @@ async function optimizeSvg(content, options = {}) {
     const fn = SVGToolbox[pluginName];
     if (fn && typeof fn === 'function') {
       try {
-        await fn(doc, { precision: options.precision });
+        await fn(doc, { precision: options.precision, preserveNamespaces: options.preserveNamespaces });
       } catch (e) {
         // Skip failed optimizations silently
       }
@@ -235,11 +238,19 @@ async function optimizeSvg(content, options = {}) {
       const fn = SVGToolbox[pluginName];
       if (fn && typeof fn === 'function') {
         try {
-          await fn(doc, { precision: options.precision });
+          await fn(doc, { precision: options.precision, preserveNamespaces: options.preserveNamespaces });
         } catch (e) {
           // Skip failed optimizations silently
         }
       }
+    }
+  }
+
+  // Inject SVG 2 polyfills if requested
+  if (options.svg2Polyfills) {
+    const features = detectSVG2Features(doc);
+    if (features.meshGradients.length > 0 || features.hatches.length > 0) {
+      injectPolyfills(doc);
     }
   }
 
@@ -384,6 +395,10 @@ Options:
                              regular expression pattern.
   -q, --quiet                Only output error messages
   --show-plugins             Show available plugins and exit
+  --preserve-ns <NS,...>     Preserve vendor namespaces (inkscape, sodipodi,
+                             illustrator, figma, etc.). Comma-separated.
+  --svg2-polyfills           Inject JavaScript polyfills for SVG 2 features
+                             (mesh gradients, hatches) for browser support
   --no-color                 Output plain text without color
   -h, --help                 Display help for command
 
@@ -517,6 +532,15 @@ function parseArgs(args) {
         cfg.showPlugins = true;
         break;
 
+      case '--preserve-ns':
+        i++;
+        cfg.preserveNamespaces = args[i].split(',').map(s => s.trim().toLowerCase());
+        break;
+
+      case '--svg2-polyfills':
+        cfg.svg2Polyfills = true;
+        break;
+
       case '--no-color':
         // Already handled in colors initialization
         break;
@@ -561,6 +585,8 @@ async function main() {
     eol: config.eol,
     finalNewline: config.finalNewline,
     datauri: config.datauri,
+    preserveNamespaces: config.preserveNamespaces,
+    svg2Polyfills: config.svg2Polyfills,
   };
 
   // Handle string input

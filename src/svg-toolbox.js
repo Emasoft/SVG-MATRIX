@@ -1456,9 +1456,18 @@ export const removeDesc = createOperation((doc, options = {}) => {
  * @param {boolean} options.preserveVendor - If true, preserves all editor namespace elements and attributes
  */
 export const removeEditorsNSData = createOperation((doc, options = {}) => {
-  // Skip if preserveVendor is enabled - editor namespaces are vendor-specific
-  if (options.preserveVendor) return doc;
+  // preserveVendor = true preserves ALL editor namespaces (backward compat)
+  if (options.preserveVendor === true) return doc;
 
+  // preserveNamespaces = array of prefixes to preserve selectively
+  const preserveNamespaces = options.preserveNamespaces || [];
+
+  // Handle namespace aliases: sodipodi and inkscape always go together
+  const normalizedPreserve = new Set(preserveNamespaces);
+  if (normalizedPreserve.has('sodipodi')) normalizedPreserve.add('inkscape');
+  if (normalizedPreserve.has('inkscape')) normalizedPreserve.add('sodipodi');
+
+  // Filter out preserved namespaces from the removal list
   const editorPrefixes = [
     "inkscape",
     "sodipodi",
@@ -1468,7 +1477,10 @@ export const removeEditorsNSData = createOperation((doc, options = {}) => {
     "serif",
     "vectornator",
     "figma",
-  ];
+  ].filter(prefix => !normalizedPreserve.has(prefix));
+
+  // If all namespaces are preserved, exit early
+  if (editorPrefixes.length === 0) return doc;
 
   // FIRST: Remove editor-specific elements (sodipodi:namedview, etc.)
   // This must happen BEFORE checking remaining prefixes to avoid SVGO bug #1530

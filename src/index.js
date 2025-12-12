@@ -5,7 +5,7 @@
  * SVG path conversion, and 2D/3D affine transformations using Decimal.js.
  *
  * @module @emasoft/svg-matrix
- * @version 1.0.26
+ * @version 1.0.27
  * @license MIT
  *
  * @example
@@ -46,6 +46,8 @@ import * as MeshGradient from './mesh-gradient.js';
 import * as SVGParser from './svg-parser.js';
 import * as FlattenPipeline from './flatten-pipeline.js';
 import * as Verification from './verification.js';
+import * as InkscapeSupport from './inkscape-support.js';
+import * as SVG2Polyfills from './svg2-polyfills.js';
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
 // SVGO-inspired precision modules
@@ -85,7 +87,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.26';
+export const VERSION = '1.0.27';
 
 /**
  * Default precision for path output (decimal places)
@@ -120,6 +122,7 @@ export { ClipPathResolver, MaskResolver, PatternResolver };
 export { UseSymbolResolver, MarkerResolver };
 export { MeshGradient };
 export { SVGParser, FlattenPipeline, Verification };
+export { InkscapeSupport, SVG2Polyfills };
 
 // ============================================================================
 // SVGO-INSPIRED PRECISION MODULES
@@ -577,6 +580,8 @@ export default {
   SVGParser,
   FlattenPipeline,
   Verification,
+  InkscapeSupport,
+  SVG2Polyfills,
 
   // Logging
   Logger,

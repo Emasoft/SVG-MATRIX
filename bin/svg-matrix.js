@@ -91,6 +91,7 @@ let currentOutputFile = null; // Track for cleanup on interrupt
  * @property {boolean} resolveMarkers - Expand marker references
  * @property {boolean} resolvePatterns - Expand pattern fills
  * @property {boolean} bakeGradients - Bake gradientTransform into coordinates
+ * @property {string[]} preserveNamespaces - Array of namespace prefixes to preserve
  */
 
 const DEFAULT_CONFIG = {
@@ -120,6 +121,7 @@ const DEFAULT_CONFIG = {
   bezierArcs: 8,              // Bezier arcs for circles/ellipses (multiple of 4; 8=π/4 optimal)
   e2eTolerance: '1e-10',      // E2E verification tolerance (tighter with more segments)
   preserveVendor: false,      // If true, preserve vendor-prefixed properties and editor namespaces
+  preserveNamespaces: [],     // Array of namespace prefixes to preserve (e.g., ['inkscape', 'sodipodi'])
 };
 
 /** @type {CLIConfig} */
@@ -603,6 +605,8 @@ ${boxLine(`  ${colors.dim}--no-patterns${colors.reset}           Skip pattern ex
 ${boxLine(`  ${colors.dim}--no-gradients${colors.reset}          Skip gradient transform baking`, W)}
 ${boxLine(`  ${colors.dim}--preserve-vendor${colors.reset}       Keep vendor prefixes and editor namespaces`, W)}
 ${boxLine(`                          ${colors.dim}(inkscape, sodipodi, -webkit-*, etc.)${colors.reset}`, W)}
+${boxLine(`  ${colors.dim}--preserve-ns <list>${colors.reset}     Preserve specific namespaces (comma-separated)`, W)}
+${boxLine(`                          ${colors.dim}Example: --preserve-ns inkscape,sodipodi${colors.reset}`, W)}
 ${boxLine('', W)}
 ${boxDivider(W)}
 ${boxLine('', W)}
@@ -628,6 +632,7 @@ ${boxLine('', W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o output.svg`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} ./svgs/ -o ./out/ --transform-only`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} --list files.txt -o ./out/ --no-patterns`, W)}
+${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o out.svg --preserve-ns inkscape,sodipodi`, W)}
 ${boxLine(`  ${colors.green}svg-matrix convert${colors.reset} input.svg -o output.svg -p 10`, W)}
 ${boxLine(`  ${colors.green}svg-matrix info${colors.reset} input.svg`, W)}
 ${boxLine('', W)}
@@ -867,6 +872,7 @@ function processFlatten(inputPath, outputPath) {
       flattenTransforms: true, // Always flatten transforms
       bakeGradients: config.bakeGradients,
       removeUnusedDefs: true,
+      preserveNamespaces: config.preserveNamespaces, // Pass namespace preservation to pipeline
       // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
     };
 
@@ -1221,8 +1227,8 @@ async function testToolboxFunction(fnName, originalContent, originalSize, output
 
     const startTime = Date.now();
     const doc = parseSVG(originalContent);
-    // Pass preserveVendor option from config to toolbox functions
-    await fn(doc, { preserveVendor: config.preserveVendor });
+    // Pass preserveVendor and preserveNamespaces options from config to toolbox functions
+    await fn(doc, { preserveVendor: config.preserveVendor, preserveNamespaces: config.preserveNamespaces });
     const output = serializeSVG(doc);
     const outputSize = Buffer.byteLength(output);
     result.timeMs = Date.now() - startTime;
@@ -1385,6 +1391,16 @@ function parseArgs(args) {
       case '--no-gradients': cfg.bakeGradients = false; break;
       // Vendor preservation option
       case '--preserve-vendor': cfg.preserveVendor = true; break;
+      // Namespace preservation option (comma-separated list)
+      case '--preserve-ns': {
+        const namespaces = args[++i];
+        if (!namespaces) {
+          logError('--preserve-ns requires a comma-separated list of namespaces');
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        cfg.preserveNamespaces = namespaces.split(',').map(ns => ns.trim()).filter(ns => ns.length > 0);
+        break;
+      }
       // E2E verification precision options
       case '--clip-segments': {
         const segs = parseInt(args[++i], 10);

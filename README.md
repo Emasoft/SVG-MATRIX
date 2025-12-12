@@ -255,6 +255,36 @@ svgm --show-plugins
 
 Run `svgm --help` for all options.
 
+### Namespace Preservation
+
+Preserve vendor-specific namespaces during optimization:
+
+```bash
+# Preserve Inkscape/Sodipodi namespaces (layers, guides, document settings)
+svgm --preserve-ns inkscape input.svg -o output.svg
+
+# Preserve multiple vendor namespaces
+svgm --preserve-ns inkscape,illustrator input.svg -o output.svg
+
+# Available namespaces: inkscape, sodipodi, illustrator, sketch, ai, serif, vectornator, figma
+```
+
+### SVG 2.0 Polyfills
+
+Enable browser compatibility for SVG 2.0 features:
+
+```bash
+# Add polyfills for mesh gradients and hatches
+svgm --svg2-polyfills input.svg -o output.svg
+
+# Combine with namespace preservation
+svgm --preserve-ns inkscape --svg2-polyfills input.svg -o output.svg
+```
+
+Supported SVG 2.0 features:
+- **Mesh gradients** (`<meshGradient>`) - Rendered via canvas fallback
+- **Hatches** (`<hatch>`) - Converted to SVG 1.1 patterns
+
 ---
 
 ### `svg-matrix` - Advanced SVG Processing
@@ -358,6 +388,33 @@ console.log(result.issues);   // Array of problems
 
 const fixed = await fixInvalidSvg('broken.svg');
 console.log(fixed.svg);       // Fixed SVG string
+```
+
+### Inkscape Support Module
+
+```javascript
+import { InkscapeSupport } from '@emasoft/svg-matrix';
+
+// Check if element is an Inkscape layer
+InkscapeSupport.isInkscapeLayer(element);
+
+// Find all layers in document
+const layers = InkscapeSupport.findLayers(doc);
+
+// Get document settings from sodipodi:namedview
+const settings = InkscapeSupport.getNamedViewSettings(doc);
+```
+
+### SVG 2.0 Polyfills Module
+
+```javascript
+import { SVG2Polyfills } from '@emasoft/svg-matrix';
+
+// Detect SVG 2.0 features in document
+const features = SVG2Polyfills.detectSVG2Features(doc);
+
+// Inject polyfills into document
+SVG2Polyfills.injectPolyfills(doc);
 ```
 
 ### Exclusive Features (Not in SVGO)
