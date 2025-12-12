@@ -20,6 +20,7 @@
  */
 
 import * as SVGToolbox from '../src/svg-toolbox.js';
+import { parseSVG, serializeSVG } from '../src/svg-parser.js';
 
 // Sample SVG with various elements to optimize
 const sampleSVG = `<?xml version="1.0" encoding="UTF-8"?>
@@ -81,8 +82,8 @@ async function runExamples() {
   printSection('1. Parse and Serialize (Round-trip)');
 
   try {
-    const parsed = SVGToolbox.parseSVG(sampleSVG);
-    const serialized = SVGToolbox.serializeSVG(parsed);
+    const parsed = parseSVG(sampleSVG);
+    const serialized = serializeSVG(parsed);
 
     console.log('  Successfully parsed and serialized SVG');
     printSize('Original', sampleSVG);
