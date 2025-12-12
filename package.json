@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Emasoft/SVG-MATRIX.git"
+    "url": "git+https://github.com/Emasoft/SVG-MATRIX.git"
   },
   "keywords": [
     "matrix",
@@ -54,8 +54,8 @@
     "url": "https://github.com/Emasoft/SVG-MATRIX/issues"
   },
   "bin": {
-    "svg-matrix": "./bin/svg-matrix.js",
-    "svglinter": "./bin/svglinter.cjs"
+    "svg-matrix": "bin/svg-matrix.js",
+    "svglinter": "bin/svglinter.cjs"
   },
   "engines": {
     "node": ">=24.0.0"
