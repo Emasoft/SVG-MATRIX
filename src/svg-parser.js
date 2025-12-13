@@ -682,6 +682,8 @@ function matchesAllSelectors(el, matchers) {
  * @private
  */
 function escapeText(str) {
+  // Filter out undefined/null values to prevent "undefined" string in output
+  if (str === undefined || str === null) return '';
   if (typeof str !== 'string') return String(str);
   return str
     .replace(/&/g, '&amp;')
@@ -873,6 +875,12 @@ export function parseUrlReference(urlValue) {
  * @returns {string}
  */
 export function serializeSVG(root, options = {}) {
+  // Validate that root is a proper SVGElement with serialize method
+  if (!root || typeof root.serialize !== 'function') {
+    // If root is already a string, return it directly
+    if (typeof root === 'string') return root;
+    throw new Error(`serializeSVG: expected SVGElement with serialize method, got ${root?.constructor?.name || typeof root}`);
+  }
   const minify = options.minify || false;
   const xmlDecl = '<?xml version="1.0" encoding="UTF-8"?>';
   const separator = minify ? '' : '\n';

@@ -312,14 +312,32 @@ export async function loadInput(input, type) {
       return parseSVG(input);
 
     case InputType.DOM_ELEMENT:
-      // Native browser SVG element - serialize and reparse to our format
-      if (typeof XMLSerializer !== "undefined" && input.ownerDocument) {
-        return parseSVG(new XMLSerializer().serializeToString(input));
+      // Native browser/JSDOM SVG element - serialize and reparse to our format
+      // Check if this is our SVGElement (has serialize method) or a browser element
+      if (input && typeof input.serialize === 'function') {
+        // Already our SVGElement, return as-is
+        return input;
+      }
+      // Browser/JSDOM element - serialize and reparse
+      if (typeof XMLSerializer !== "undefined") {
+        const serializer = new XMLSerializer();
+        const svgStr = serializer.serializeToString(input);
+        return parseSVG(svgStr);
       }
       return input;
 
     case InputType.XML_DOCUMENT:
-      return input.documentElement || input;
+      // For JSDOM/browser Documents, serialize and reparse
+      const rootEl = input.documentElement || input;
+      if (rootEl && typeof rootEl.serialize === 'function') {
+        return rootEl;
+      }
+      if (typeof XMLSerializer !== "undefined") {
+        const serializer = new XMLSerializer();
+        const svgStr = serializer.serializeToString(rootEl);
+        return parseSVG(svgStr);
+      }
+      return rootEl;
 
     case InputType.FILE_PATH:
       // Node.js file reading
@@ -433,7 +451,7 @@ export function createOperation(operationFn) {
       (inputType === InputType.DOM_ELEMENT
         ? OutputFormat.DOM_ELEMENT
         : OutputFormat.SVG_STRING);
-    // Await operationFn in case it's async (e.g., preset_default calling other async operations)
+    // Await operationFn in case it's async (e.g., presetDefault calling other async operations)
     const result = await operationFn(doc, options);
     return generateOutput(result, outputFormat, options);
   };
@@ -874,6 +892,24 @@ export const removeUnknownsAndDefaults = createOperation(
              css.includes(':not(');
     });
 
+    // Check if document has scripts - if so, preserve all elements with IDs
+    // since they might be accessed via JavaScript's getElementById()
+    const hasScripts = doc.querySelectorAll('script').length > 0;
+
+    // Build set of all referenced IDs - elements with referenced IDs must NOT be removed
+    // even if they appear in invalid parent-child positions (they might animate or be used)
+    const referencedIds = new Set();
+    const svgStr = doc.outerHTML || '';
+    // Find all url(#id) references
+    const urlRefs = svgStr.matchAll(/url\(#([^)]+)\)/g);
+    for (const match of urlRefs) referencedIds.add(match[1]);
+    // Find all xlink:href="#id" references
+    const xlinkRefs = svgStr.matchAll(/xlink:href="#([^"]+)"/g);
+    for (const match of xlinkRefs) referencedIds.add(match[1]);
+    // Find all href="#id" references (SVG 2)
+    const hrefRefs = svgStr.matchAll(/\shref="#([^"]+)"/g);
+    for (const match of hrefRefs) referencedIds.add(match[1]);
+
     // Map lowercase SVG tag names to their canonical mixed-case forms
     // SVG is case-sensitive but XML parsers may lowercase tag names
     const tagNameMap = {
@@ -989,6 +1025,7 @@ export const removeUnknownsAndDefaults = createOperation(
       "set",
       "mpath",
       "view",
+      "cursor",  // SVG cursor element
       "style",
       "script",
     ];
@@ -1187,11 +1224,28 @@ export const removeUnknownsAndDefaults = createOperation(
           }
 
           const childTagLower = child.tagName.toLowerCase();
+          const childId = child.getAttribute('id');
 
-          // Check if element is known
+          // If scripts exist and element has ID, preserve it (might be accessed by JS)
+          const preserveForScripts = hasScripts && childId;
+
+          // Helper to check if element or any descendant has a referenced ID
+          const hasReferencedDescendant = (el) => {
+            const elId = el.getAttribute('id');
+            if (elId && referencedIds.has(elId)) return true;
+            for (const c of el.children || []) {
+              if (isElement(c) && hasReferencedDescendant(c)) return true;
+            }
+            return false;
+          };
+
+          // Check if element is known - but preserve if it or descendants have referenced IDs
           if (!knownElements.includes(childTagLower)) {
-            el.removeChild(child);
-            continue;
+            // Don't remove if this element (or any descendant) has an ID that's referenced
+            if (!hasReferencedDescendant(child) && !preserveForScripts) {
+              el.removeChild(child);
+              continue;
+            }
           }
 
           // P4-1: Check if child is allowed for this parent
@@ -1200,9 +1254,12 @@ export const removeUnknownsAndDefaults = createOperation(
           if (allowedChildren &&
               !allowedChildren.has(childTagLower) &&
               !allowedChildren.has(canonicalTagName(childTagLower))) {
-            // Invalid child for this parent - remove it
-            el.removeChild(child);
-            continue;
+            // Don't remove if this element (or any descendant) has an ID that's referenced
+            // Invalid parent-child relationships may still be needed for animations/refs/scripts
+            if (!hasReferencedDescendant(child) && !preserveForScripts) {
+              el.removeChild(child);
+              continue;
+            }
           }
 
           processElement(child, currentStyles);
@@ -1296,9 +1353,15 @@ export const removeUselessDefs = createOperation((doc, options = {}) => {
  * - Preserve non-rendering elements in defs
  * - Never remove animation elements (animate, animateMotion, etc.)
  * - Never remove elements that contain animations (they animate FROM hidden)
+ * - Never remove <use> elements (they're reference elements that may animate)
+ * - Never remove elements that REFERENCE others (they may animate visibility)
  */
 export const removeHiddenElements = createOperation((doc, options = {}) => {
   const force = options.force || false;
+
+  // Check if document has scripts - if so, be more conservative about removing elements with IDs
+  // since they might be accessed via JavaScript's getElementById()
+  const hasScripts = doc.querySelectorAll('script').length > 0;
 
   // Build set of referenced IDs
   const referencedIds = new Set();
@@ -1322,6 +1385,44 @@ export const removeHiddenElements = createOperation((doc, options = {}) => {
   };
   collectRefs(doc);
 
+  // Helper to check if element references something
+  const hasReference = (el) => {
+    const href = el.getAttribute('href') || el.getAttribute('xlink:href');
+    if (href && href.startsWith('#')) return true;
+    for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
+      const val = el.getAttribute(attr);
+      if (val && val.includes('url(#')) return true;
+    }
+    return false;
+  };
+
+  // Helper to check if element contains any animation elements (recursively)
+  // This catches cases where hidden containers have animations that will show them
+  const containsAnimation = (el) => {
+    for (const child of el.children) {
+      if (!isElement(child)) continue;
+      const childTag = child.tagName?.toLowerCase();
+      // Check if this child is an animation element
+      if (elemsGroups.animation.has(childTag)) return true;
+      // Recursively check children
+      if (containsAnimation(child)) return true;
+    }
+    return false;
+  };
+
+  // Helper to check if element or any descendant has a referenced ID (or has any ID if scripts exist)
+  // If a hidden container has descendants that are referenced (or might be referenced by JS), don't remove it
+  const hasReferencedDescendant = (el) => {
+    const id = el.getAttribute('id');
+    // If SVG has scripts, preserve ANY element with an ID (might be used by getElementById)
+    if (id && (referencedIds.has(id) || hasScripts)) return true;
+    for (const child of el.children) {
+      if (!isElement(child)) continue;
+      if (hasReferencedDescendant(child)) return true;
+    }
+    return false;
+  };
+
   const processElement = (el, inDefs = false) => {
     const tagName = el.tagName.toLowerCase();
 
@@ -1336,10 +1437,9 @@ export const removeHiddenElements = createOperation((doc, options = {}) => {
     const isHidden = display === "none" || visibility === "hidden" || opacity === 0;
 
     if (isHidden) {
-      // Exception 1: Never remove elements with ID if referenced
-      const id = el.getAttribute('id');
-      if (!force && id && referencedIds.has(id)) {
-        // Keep referenced hidden elements
+      // Exception 1: Never remove elements (or containers) if they or their descendants are referenced
+      if (!force && hasReferencedDescendant(el)) {
+        // Keep hidden elements that have referenced IDs (or contain referenced descendants)
       }
       // Exception 2: marker elements with display:none still render
       else if (!force && tagName === 'marker') {
@@ -1357,11 +1457,20 @@ export const removeHiddenElements = createOperation((doc, options = {}) => {
       else if (!force && elemsGroups.animation.has(tagName)) {
         // Animation elements should never be removed even if hidden
       }
-      // Exception 6: Never remove elements that CONTAIN animations
-      else if (!force && Array.from(el.children).some(child =>
-        isElement(child) && elemsGroups.animation.has(child.tagName?.toLowerCase())
-      )) {
-        // Keep elements that have animation children - they animate FROM hidden
+      // Exception 6: Never remove elements that CONTAIN animations (check recursively)
+      // Hidden containers often have animations that will show them
+      else if (!force && containsAnimation(el)) {
+        // Keep elements that have animation descendants - they animate FROM hidden
+      }
+      // Exception 7: Never remove <use> elements - they reference other content
+      // and their visibility may be animated
+      else if (!force && tagName === 'use') {
+        // Keep <use> elements even when hidden - animation may show them
+      }
+      // Exception 8: Never remove elements that reference others
+      // (their visibility may be animated, or they're intentionally hidden for later use)
+      else if (!force && hasReference(el)) {
+        // Keep elements with references
       }
       else if (el.parentNode) {
         el.parentNode.removeChild(el);
@@ -1428,6 +1537,7 @@ export const removeEmptyText = createOperation((doc, options = {}) => {
 /**
  * Remove empty container elements
  * Note: Patterns with xlink:href/href inherit content and are NOT empty
+ * Note: Empty containers that are REFERENCED must be preserved (intentional empties)
  */
 export const removeEmptyContainers = createOperation((doc, options = {}) => {
   // Include both mixed-case and lowercase variants for case-insensitive matching
@@ -1440,6 +1550,33 @@ export const removeEmptyContainers = createOperation((doc, options = {}) => {
     "mask",
     "pattern",
   ];
+
+  // Check if document has scripts - if so, preserve all elements with IDs
+  // since they might be accessed via JavaScript's getElementById()
+  const hasScripts = doc.querySelectorAll('script').length > 0;
+
+  // Build set of all referenced IDs - these must NOT be removed even if empty
+  const referencedIds = new Set();
+  const collectRefs = (el) => {
+    for (const attr of el.getAttributeNames ? el.getAttributeNames() : []) {
+      const val = el.getAttribute(attr);
+      // Find url(#id) references
+      if (val && val.includes('url(#')) {
+        const matches = val.matchAll(/url\(#([^)]+)\)/g);
+        for (const match of matches) {
+          referencedIds.add(match[1]);
+        }
+      }
+      // Find href="#id" references
+      if ((attr === 'href' || attr === 'xlink:href') && val && val.startsWith('#')) {
+        referencedIds.add(val.substring(1));
+      }
+    }
+    for (const child of el.children || []) {
+      if (isElement(child)) collectRefs(child);
+    }
+  };
+  collectRefs(doc);
 
   const processElement = (el) => {
     // Process children first (bottom-up)
@@ -1460,7 +1597,15 @@ export const removeEmptyContainers = createOperation((doc, options = {}) => {
       return;
     }
 
-    // Remove if container is truly empty (no children)
+    // Don't remove if element is referenced by ID (even if empty)
+    // Empty clipPaths/masks ARE valid SVG - they clip/mask to nothing
+    // Also preserve if scripts exist and element has ID (might be used by JS)
+    const id = el.getAttribute('id');
+    if (id && (referencedIds.has(id) || hasScripts)) {
+      return;
+    }
+
+    // Remove if container is truly empty (no children) and not referenced
     if (el.children.length === 0) {
       if (el.parentNode) {
         el.parentNode.removeChild(el);
@@ -2615,7 +2760,9 @@ export const inlineStyles = createOperation((doc, options = {}) => {
     allRules.sort((a, b) => CSSSpecificity.compareSpecificity(a.specificity, b.specificity));
 
     // Use a WeakMap to track property specificity per element
+    // WeakMaps are not iterable, so we also track elements in a Set
     const elementPropertySpecificity = new WeakMap();
+    const styledElements = new Set();
 
     // Apply rules in specificity order
     for (const { selector, declarations, specificity, originalRule } of allRules) {
@@ -2645,6 +2792,7 @@ export const inlineStyles = createOperation((doc, options = {}) => {
           // Get or create specificity map for this element
           if (!elementPropertySpecificity.has(el)) {
             elementPropertySpecificity.set(el, new Map());
+            styledElements.add(el);  // Track element in Set for later iteration
           }
           const propSpec = elementPropertySpecificity.get(el);
 
@@ -2725,7 +2873,8 @@ export const inlineStyles = createOperation((doc, options = {}) => {
     }
 
     // After all rules processed, build final style attributes for all elements
-    for (const [el, propSpec] of elementPropertySpecificity) {
+    for (const el of styledElements) {
+      const propSpec = elementPropertySpecificity.get(el);
       const styleParts = [];
       for (const [prop, { value, isImportant }] of propSpec) {
         if (isImportant) {
@@ -3292,7 +3441,7 @@ export const removeElementsByAttr = createOperation((doc, options = {}) => {
 /**
  * Apply default SVGO-like preset
  */
-export const preset_default = createOperation(async (doc, options = {}) => {
+export const presetDefault = createOperation(async (doc, options = {}) => {
   // Chain multiple operations - must await each since they're async wrapped functions
   // Pass outputFormat: DOM_ELEMENT to receive DOM back for chaining
   const domOpts = { ...options, outputFormat: OutputFormat.DOM_ELEMENT };
@@ -3312,7 +3461,7 @@ export const preset_default = createOperation(async (doc, options = {}) => {
 /**
  * No optimizations (pass-through)
  */
-export const preset_none = createOperation((doc, options = {}) => {
+export const presetNone = createOperation((doc, options = {}) => {
   return doc;
 });
 
@@ -3325,9 +3474,9 @@ export const applyPreset = createOperation(async (doc, options = {}) => {
 
   switch (preset) {
     case "default":
-      return await preset_default(doc, domOpts);
+      return await presetDefault(doc, domOpts);
     case "none":
-      return await preset_none(doc, domOpts);
+      return await presetNone(doc, domOpts);
     default:
       return doc;
   }
@@ -4250,7 +4399,7 @@ export const validateSVG = createOperation((doc, options = {}) => {
  * @param {boolean} options.verbose - Include detailed fix report in data-fix-report attribute (default: false)
  * @returns {Object} The fixed SVG document with data-fixes-applied attribute
  */
-export const fixInvalidSvg = createOperation((doc, options = {}) => {
+export const fixInvalidSVG = createOperation((doc, options = {}) => {
   // Note: createOperation wrapper handles input normalization (string, file path, URL, DOM element)
   const fixInvalidGroupAttrs = options.fixInvalidGroupAttrs !== false;
   const fixMissingNamespaces = options.fixMissingNamespaces !== false;
@@ -5824,7 +5973,7 @@ function buildPositionIndex(svgString) {
  * //   reason: "Reference to non-existent ID 'missing'"
  * // }
  */
-export async function validateSvg(input, options = {}) {
+export async function validateSVGAsync(input, options = {}) {
   // Extract options with defaults
   const errorsOnly = options.errorsOnly === true;
   const outputFile = options.outputFile || null;
@@ -7507,8 +7656,8 @@ export default {
   removeElementsByAttr,
 
   // Category 6: Presets (5)
-  preset_default,
-  preset_none,
+  presetDefault,
+  presetNone,
   applyPreset,
   optimize,
   createConfig,
