@@ -27,6 +27,7 @@ import * as GeometryToPath from './geometry-to-path.js';
 import { parseSVG, SVGElement, buildDefsMap, parseUrlReference, serializeSVG, findElementsWithAttribute } from './svg-parser.js';
 import { Logger } from './logger.js';
 import * as Verification from './verification.js';
+import { parseCSSIds } from './animation-references.js';
 
 Decimal.set({ precision: 80 });
 
@@ -110,6 +111,10 @@ export function flattenSVG(svgString, options = {}) {
     // Build defs map
     let defsMap = buildDefsMap(root);
 
+    // CRITICAL: Collect all ID references BEFORE any processing
+    // This ensures we don't remove defs that were referenced before resolution
+    const referencedIds = opts.removeUnusedDefs ? collectAllReferences(root) : null;
+
     // Step 1: Resolve <use> elements (must be first - creates new geometry)
     if (opts.resolveUse) {
       const result = resolveAllUseElements(root, defsMap, opts);
@@ -160,9 +165,9 @@ export function flattenSVG(svgString, options = {}) {
       stats.errors.push(...result.errors);
     }
 
-    // Step 8: Remove unused defs
-    if (opts.removeUnusedDefs) {
-      const result = removeUnusedDefinitions(root);
+    // Step 8: Remove unused defs (using pre-collected references from before processing)
+    if (opts.removeUnusedDefs && referencedIds) {
+      const result = removeUnusedDefinitions(root, referencedIds);
       stats.defsRemoved = result.count;
     }
 
@@ -191,6 +196,19 @@ function resolveAllUseElements(root, defsMap, opts) {
 
   const useElements = root.getElementsByTagName('use');
 
+  // Convert defsMap from Map<id, SVGElement> to {id: parsedData} format
+  // that UseSymbolResolver.resolveUse() expects (objects with .type property)
+  const parsedDefs = {};
+  for (const [id, el] of defsMap.entries()) {
+    const tagName = el.tagName.toLowerCase();
+    if (tagName === 'symbol') {
+      parsedDefs[id] = UseSymbolResolver.parseSymbolElement(el);
+      parsedDefs[id].type = 'symbol';
+    } else {
+      parsedDefs[id] = UseSymbolResolver.parseChildElement(el);
+    }
+  }
+
   for (const useEl of [...useElements]) { // Clone array since we modify DOM
     try {
       const href = useEl.getAttribute('href') || useEl.getAttribute('xlink:href');
@@ -207,8 +225,8 @@ function resolveAllUseElements(root, defsMap, opts) {
       // Parse use element data
       const useData = UseSymbolResolver.parseUseElement(useEl);
 
-      // Resolve the use
-      const resolved = UseSymbolResolver.resolveUse(useData, Object.fromEntries(defsMap), {
+      // Resolve the use with properly formatted defs (plain objects with .type)
+      const resolved = UseSymbolResolver.resolveUse(useData, parsedDefs, {
         samples: opts.curveSegments
       });
 
@@ -912,28 +930,56 @@ function bakeAllGradientTransforms(root, opts, stats) {
 // ============================================================================
 
 /**
- * Remove defs that are no longer referenced.
+ * Collect all ID references in the document.
+ *
+ * This must be called BEFORE any processing that removes references (like resolveMarkers).
+ * Otherwise, we'll incorrectly remove defs that were just used.
+ *
+ * IMPORTANT: This function must find ALL referenced elements, including:
+ * - Elements directly referenced from the document (fill="url(#grad)", xlink:href="#symbol")
+ * - Elements referenced from within <defs> (glyphRef xlink:href="#glyph", gradient xlink:href="#other")
+ * - Elements referenced via any attribute (not just url() and href)
+ *
  * @private
  */
-function removeUnusedDefinitions(root) {
-  let count = 0;
-
-  // Collect all url() references in the document
+function collectAllReferences(root) {
   const usedIds = new Set();
 
+  // Collect references from an element and all its children
   const collectReferences = (el) => {
-    for (const attrName of el.getAttributeNames()) {
-      const val = el.getAttribute(attrName);
-      if (val && val.includes('url(')) {
-        const refId = parseUrlReference(val);
-        if (refId) usedIds.add(refId);
-      }
-      if (attrName === 'href' || attrName === 'xlink:href') {
-        const refId = val?.replace(/^#/, '');
-        if (refId) usedIds.add(refId);
+    // Check for <style> elements and parse their CSS content for url(#id) references
+    // This is CRITICAL for SVG 2.0 features like shape-inside: url(#textShape)
+    if (el.tagName && el.tagName.toLowerCase() === 'style') {
+      const cssContent = el.textContent || '';
+      if (cssContent) {
+        // Parse all url(#id) references from CSS (e.g., shape-inside: url(#textShape), fill: url(#grad))
+        const cssIds = parseCSSIds(cssContent);
+        cssIds.forEach(id => usedIds.add(id));
       }
     }
 
+    for (const attrName of el.getAttributeNames()) {
+      const val = el.getAttribute(attrName);
+      if (!val) continue;
+
+      // Check for url() references (fill, stroke, clip-path, mask, filter, marker, etc.)
+      if (val.includes('url(')) {
+        const refId = parseUrlReference(val);
+        if (refId) {
+          usedIds.add(refId);
+        }
+      }
+
+      // Check for href/xlink:href references (use, image, altGlyph, glyphRef, etc.)
+      if (attrName === 'href' || attrName === 'xlink:href') {
+        const refId = val.replace(/^#/, '');
+        if (refId && refId !== val) { // Only local refs starting with #
+          usedIds.add(refId);
+        }
+      }
+    }
+
+    // Recursively check children (including within <defs>)
     for (const child of el.children) {
       if (child instanceof SVGElement) {
         collectReferences(child);
@@ -941,15 +987,56 @@ function removeUnusedDefinitions(root) {
     }
   };
 
+  // Collect all references from the entire document
   collectReferences(root);
 
-  // Remove unreferenced defs
+  return usedIds;
+}
+
+/**
+ * Remove defs that are not in the referencedIds set.
+ *
+ * IMPORTANT: An element should NOT be removed if:
+ * 1. It has an ID that is referenced, OR
+ * 2. It contains (anywhere in its subtree) an element with a referenced ID
+ *
+ * This handles cases like:
+ *   <defs>
+ *     <g id="container">  <!-- Not referenced, but contains referenced gradients -->
+ *       <linearGradient id="grad1">  <!-- Referenced -->
+ *
+ * @param {SVGElement} root - The root SVG element
+ * @param {Set<string>} referencedIds - Set of IDs that were referenced before processing
+ * @private
+ */
+function removeUnusedDefinitions(root, referencedIds) {
+  let count = 0;
+
+  // Check if an element or any of its descendants has a referenced ID
+  function hasReferencedDescendant(el) {
+    // Check self
+    const id = el.getAttribute('id');
+    if (id && referencedIds.has(id)) {
+      return true;
+    }
+
+    // Check children recursively
+    for (const child of el.children || []) {
+      if (child instanceof SVGElement && hasReferencedDescendant(child)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Remove unreferenced elements from <defs>
   const defsElements = root.getElementsByTagName('defs');
   for (const defs of defsElements) {
     for (const child of [...defs.children]) {
       if (child instanceof SVGElement) {
-        const id = child.getAttribute('id');
-        if (id && !usedIds.has(id)) {
+        // Only remove if neither the element nor any of its descendants are referenced
+        if (!hasReferencedDescendant(child)) {
           defs.removeChild(child);
           count++;
         }
