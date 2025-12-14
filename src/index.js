@@ -9,8 +9,14 @@
  * @license MIT
  *
  * @example
- * // ES Module import
+ * // ES Module import - Core functionality
  * import { Decimal, Matrix, Vector, Transforms2D, GeometryToPath } from '@emasoft/svg-matrix';
+ *
+ * // SVG2 Polyfills - Detect and inject polyfills for mesh gradients and hatches
+ * import { detectSVG2Features, injectPolyfills } from '@emasoft/svg-matrix';
+ *
+ * // Inkscape Support - Extract layers and preserve Inkscape metadata
+ * import { findLayers, extractLayer, extractAllLayers } from '@emasoft/svg-matrix';
  *
  * // Precision is already set to 80 by default (max is 1e9)
  * // You can increase it further if needed:
@@ -47,7 +53,42 @@ import * as SVGParser from './svg-parser.js';
 import * as FlattenPipeline from './flatten-pipeline.js';
 import * as Verification from './verification.js';
 import * as InkscapeSupport from './inkscape-support.js';
+import {
+  INKSCAPE_NS,
+  SODIPODI_NS,
+  INKSCAPE_PREFIXES,
+  isInkscapeLayer,
+  getLayerLabel,
+  findLayers,
+  getNamedViewSettings,
+  findGuides,
+  getArcParameters,
+  getNodeTypes,
+  getExportSettings,
+  isTiledClone,
+  getTiledCloneSource,
+  hasInkscapeNamespaces,
+  ensureInkscapeNamespaces,
+  findReferencedIds,
+  buildDefsMapFromDefs,
+  resolveDefsDependencies,
+  cloneElement,
+  extractLayer,
+  extractAllLayers,
+  analyzeLayerDependencies,
+} from './inkscape-support.js';
+
 import * as SVG2Polyfills from './svg2-polyfills.js';
+import {
+  setPolyfillMinification,
+  SVG2_FEATURES,
+  detectSVG2Features,
+  needsPolyfills,
+  generatePolyfillScript,
+  injectPolyfills,
+  removePolyfills,
+} from './svg2-polyfills.js';
+
 import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
 
 // SVGO-inspired precision modules
@@ -223,8 +264,8 @@ export {
   removeAttrs,
   removeElementsByAttr,
   // Presets
-  preset_default,
-  preset_none,
+  presetDefault,
+  presetNone,
   applyPreset,
   optimize,
   createConfig,
@@ -238,14 +279,55 @@ export {
   imageToPath,
   detectCollisions,
   measureDistance,
+  validateXML,
   validateSVG,
-  validateSvg,
-  fixInvalidSvg,
+  fixInvalidSVG,
   ValidationSeverity,
   flattenAll,
   simplifyPath,
+  optimizeAnimationTiming,
+  optimizePaths,
+  simplifyPaths,
   decomposeTransform,
+  embedExternalDependencies,
 } from './svg-toolbox.js';
+
+// Re-export all svg2-polyfills functions for direct access
+export {
+  setPolyfillMinification,
+  SVG2_FEATURES,
+  detectSVG2Features,
+  needsPolyfills,
+  generatePolyfillScript,
+  injectPolyfills,
+  removePolyfills,
+} from './svg2-polyfills.js';
+
+// Re-export all inkscape-support functions for direct access
+export {
+  INKSCAPE_NS,
+  SODIPODI_NS,
+  INKSCAPE_PREFIXES,
+  isInkscapeLayer,
+  getLayerLabel,
+  findLayers,
+  getNamedViewSettings,
+  findGuides,
+  getArcParameters,
+  getNodeTypes,
+  getExportSettings,
+  isTiledClone,
+  getTiledCloneSource,
+  hasInkscapeNamespaces,
+  ensureInkscapeNamespaces,
+  findReferencedIds,
+  buildDefsMapFromDefs,
+  resolveDefsDependencies,
+  cloneElement,
+  extractLayer,
+  extractAllLayers,
+  analyzeLayerDependencies,
+} from './inkscape-support.js';
 
 // ============================================================================
 // LOGGING: Configurable logging control
@@ -583,6 +665,39 @@ export default {
   InkscapeSupport,
   SVG2Polyfills,
 
+  // SVG2 Polyfills - individual exports
+  setPolyfillMinification,
+  SVG2_FEATURES,
+  detectSVG2Features,
+  needsPolyfills,
+  generatePolyfillScript,
+  injectPolyfills,
+  removePolyfills,
+
+  // Inkscape Support - individual exports
+  INKSCAPE_NS,
+  SODIPODI_NS,
+  INKSCAPE_PREFIXES,
+  isInkscapeLayer,
+  getLayerLabel,
+  findLayers,
+  getNamedViewSettings,
+  findGuides,
+  getArcParameters,
+  getNodeTypes,
+  getExportSettings,
+  isTiledClone,
+  getTiledCloneSource,
+  hasInkscapeNamespaces,
+  ensureInkscapeNamespaces,
+  findReferencedIds,
+  buildDefsMapFromDefs,
+  resolveDefsDependencies,
+  cloneElement,
+  extractLayer,
+  extractAllLayers,
+  analyzeLayerDependencies,
+
   // Logging
   Logger,
   LogLevel,
@@ -610,6 +725,12 @@ export default {
   ArcLength,
   PathAnalysis,
   BezierIntersections,
+
+  // SVG Boolean Operations (fill-rule and stroke-aware)
+  SVGBooleanOps,
+
+  // SVG Rendering Context (tracks all SVG properties affecting geometry)
+  SVGRenderingContext,
 
   // Convenience functions
   translate2D,
