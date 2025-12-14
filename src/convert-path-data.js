@@ -30,6 +30,7 @@ const COMMAND_PARAMS = {
  * Arc format: rx ry x-axis-rotation large-arc-flag sweep-flag x y
  * Flags can be written without separators: "0 01 20" or "0120"
  * BUG FIX #1: Handle compact notation where flags are concatenated with next number
+ * BUG FIX #5: Handle invalid arc flags gracefully - return null to signal parsing failure
  */
 function parseArcArgs(argsStr) {
   const args = [];
@@ -55,8 +56,9 @@ function parseArcArgs(argsStr) {
         pos++;
         arcIndex++;
       } else {
-        // BUG FIX #1: Arc flags MUST be exactly 0 or 1 - throw error for invalid values
-        throw new Error(`Invalid arc flag at position ${pos}: expected 0 or 1, got '${argsStr[pos]}'`);
+        // BUG FIX #5: Arc flags MUST be exactly 0 or 1 - return null for invalid values
+        // This signals the caller to skip this arc command gracefully
+        return null;
       }
     } else {
       // Regular number
@@ -117,6 +119,12 @@ export function parsePath(d) {
     if (cmd === 'A' || cmd === 'a') {
       // Arc commands need special parsing for flags
       nums = parseArcArgs(argsStr);
+
+      // BUG FIX #5: If arc parsing failed due to invalid flags, skip this command
+      if (nums === null) {
+        console.warn(`Invalid arc command with malformed flags - skipping: ${cmd}${argsStr}`);
+        continue; // Skip this command and continue processing the rest
+      }
 
       // BUG FIX #2: Normalize negative arc radii to absolute values per SVG spec Section 8.3.8
       // Process each complete arc (7 parameters)

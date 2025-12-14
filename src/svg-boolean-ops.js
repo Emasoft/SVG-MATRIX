@@ -14,7 +14,7 @@
  */
 
 import Decimal from 'decimal.js';
-import { PolygonClip } from './index.js';
+import * as PolygonClip from './polygon-clip.js';
 
 Decimal.set({ precision: 80 });
 

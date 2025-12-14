@@ -208,8 +208,12 @@ function parsePathCommands(pathData) {
   while ((match = regex.exec(pathData)) !== null) {
     const type = match[1];
     const argsStr = match[2].trim();
+
+    // FIX: Use regex to extract numbers, handles implicit negative separators (e.g., "0.8-2.9" -> ["0.8", "-2.9"])
+    // Per W3C SVG spec, negative signs can act as delimiters without spaces
+    const numRegex = /-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
     const args = argsStr.length > 0
-      ? argsStr.split(/[\s,]+/).filter(s => s.length > 0).map(Number)
+      ? Array.from(argsStr.matchAll(numRegex), m => Number(m[0]))
       : [];
     commands.push({ type, args });
   }

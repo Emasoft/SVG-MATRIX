@@ -36,7 +36,8 @@ export function parseSVG(svgString) {
  */
 export class SVGElement {
   constructor(tagName, attributes = {}, children = [], textContent = '') {
-    this.tagName = tagName.toLowerCase();
+    // Preserve original case for W3C SVG compliance (linearGradient, clipPath, etc.)
+    this.tagName = tagName;
     this.nodeName = tagName.toUpperCase();
     this._attributes = { ...attributes };
     this.children = children;
@@ -107,7 +108,8 @@ export class SVGElement {
     const search = (el) => {
       for (const child of el.children) {
         if (child instanceof SVGElement) {
-          if (child.tagName === tag || tag === '*') {
+          // Case-insensitive tag matching (tagName preserves original case)
+          if (child.tagName.toLowerCase() === tag || tag === '*') {
             results.push(child);
           }
           search(child);
@@ -324,7 +326,13 @@ export class SVGElement {
    */
   serialize(indent = 0, minify = false) {
     const pad = minify ? '' : '  '.repeat(indent);
+
+    // Check for CDATA pending marker (used by embedExternalDependencies for scripts)
+    const needsCDATA = this._attributes['data-cdata-pending'] === 'true';
+
+    // Build attributes string, excluding internal marker attributes
     const attrs = Object.entries(this._attributes)
+      .filter(([k]) => k !== 'data-cdata-pending') // Remove internal marker
       .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
       .join(' ');
 
@@ -348,10 +356,20 @@ export class SVGElement {
     let content = '';
     if (this.textContent && this.children.length > 0) {
       // Both text and children - combine them
-      content = escapeText(this.textContent) + separator + childStr;
+      if (needsCDATA) {
+        // Wrap textContent in CDATA without escaping for script/style elements
+        content = `<![CDATA[\n${this.textContent}\n]]>` + separator + childStr;
+      } else {
+        content = escapeText(this.textContent) + separator + childStr;
+      }
     } else if (this.textContent) {
       // Only text content
-      content = escapeText(this.textContent);
+      if (needsCDATA) {
+        // Wrap in CDATA without escaping for script/style elements
+        content = `<![CDATA[\n${this.textContent}\n]]>`;
+      } else {
+        content = escapeText(this.textContent);
+      }
     } else {
       // Only children
       content = childStr;
@@ -660,7 +678,8 @@ function parseSelector(selector) {
  */
 function matchesAllSelectors(el, matchers) {
   return matchers.some(matcher => {
-    if (matcher.tag && el.tagName !== matcher.tag) return false;
+    // Case-insensitive tag matching (tagName preserves original case)
+    if (matcher.tag && el.tagName.toLowerCase() !== matcher.tag) return false;
     if (matcher.id && el.getAttribute('id') !== matcher.id) return false;
 
     const elClasses = (el.getAttribute('class') || '').split(/\s+/);

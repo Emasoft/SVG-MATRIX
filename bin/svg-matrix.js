@@ -24,6 +24,7 @@ import * as FlattenPipeline from '../src/flatten-pipeline.js';
 import { VERSION } from '../src/index.js';
 import * as SVGToolbox from '../src/svg-toolbox.js';
 import { parseSVG, serializeSVG } from '../src/svg-parser.js';
+import { setPolyfillMinification } from '../src/svg2-polyfills.js';
 
 // ============================================================================
 // CONSTANTS
@@ -122,6 +123,7 @@ const DEFAULT_CONFIG = {
   e2eTolerance: '1e-10',      // E2E verification tolerance (tighter with more segments)
   preserveVendor: false,      // If true, preserve vendor-prefixed properties and editor namespaces
   preserveNamespaces: [],     // Array of namespace prefixes to preserve (e.g., ['inkscape', 'sodipodi'])
+  svg2Polyfills: false,       // If true, inject JavaScript polyfills for SVG 2 features
 };
 
 /** @type {CLIConfig} */
@@ -607,6 +609,8 @@ ${boxLine(`  ${colors.dim}--preserve-vendor${colors.reset}       Keep vendor pre
 ${boxLine(`                          ${colors.dim}(inkscape, sodipodi, -webkit-*, etc.)${colors.reset}`, W)}
 ${boxLine(`  ${colors.dim}--preserve-ns <list>${colors.reset}     Preserve specific namespaces (comma-separated)`, W)}
 ${boxLine(`                          ${colors.dim}Example: --preserve-ns inkscape,sodipodi${colors.reset}`, W)}
+${boxLine(`  ${colors.dim}--svg2-polyfills${colors.reset}        Inject JavaScript polyfills for SVG 2 features`, W)}
+${boxLine(`  ${colors.dim}--no-minify-polyfills${colors.reset}   Use full (non-minified) polyfills for debugging`, W)}
 ${boxLine('', W)}
 ${boxDivider(W)}
 ${boxLine('', W)}
@@ -862,7 +866,7 @@ function processFlatten(inputPath, outputPath) {
       precision: config.precision,
       curveSegments: 20,
       clipSegments: config.clipSegments,     // Higher segments for clip accuracy (default 64)
-      bezierArcs: config.bezierArcs,         // Bezier arcs for circles/ellipses (default 16)
+      bezierArcs: config.bezierArcs,         // Bezier arcs for circles/ellipses (default 8)
       e2eTolerance: config.e2eTolerance,     // Configurable E2E tolerance (default 1e-10)
       resolveUse: config.resolveUse,
       resolveMarkers: config.resolveMarkers,
@@ -873,6 +877,7 @@ function processFlatten(inputPath, outputPath) {
       bakeGradients: config.bakeGradients,
       removeUnusedDefs: true,
       preserveNamespaces: config.preserveNamespaces, // Pass namespace preservation to pipeline
+      svg2Polyfills: config.svg2Polyfills,           // Pass SVG 2 polyfills flag to pipeline
       // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
     };
 
@@ -1407,9 +1412,16 @@ function parseArgs(args) {
           logError('--preserve-ns requires a comma-separated list of namespaces');
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.preserveNamespaces = namespaces.split(',').map(ns => ns.trim()).filter(ns => ns.length > 0);
+        cfg.preserveNamespaces = namespaces.split(',').map(ns => ns.trim().toLowerCase()).filter(ns => ns.length > 0);
         break;
       }
+      case '--svg2-polyfills':
+        cfg.svg2Polyfills = true;
+        break;
+      case '--no-minify-polyfills':
+        cfg.noMinifyPolyfills = true;
+        setPolyfillMinification(false);
+        break;
       // E2E verification precision options
       case '--clip-segments': {
         const segs = parseInt(args[++i], 10);

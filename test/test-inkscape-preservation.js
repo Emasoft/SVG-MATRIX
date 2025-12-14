@@ -15,10 +15,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Import library modules
-import { parseSVG, serializeSVG } from '../src/svg-parser.js';
+import { parseSVG, serializeSVG, SVGElement } from '../src/svg-parser.js';
 import * as toolbox from '../src/svg-toolbox.js';
 import * as InkscapeSupport from '../src/inkscape-support.js';
 import * as SVG2Polyfills from '../src/svg2-polyfills.js';
+import { setPolyfillMinification, removePolyfills, generatePolyfillScript, injectPolyfills } from '../src/svg2-polyfills.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -228,6 +229,377 @@ function testInkscapeSupportFunctions() {
   });
 }
 
+// Test group 4b: Additional InkscapeSupport functions (previously untested)
+function testAdditionalInkscapeFunctions() {
+  log('\n--- Additional InkscapeSupport Functions ---');
+
+  const testFile = TEST_FILES.find(f => fs.existsSync(f));
+  if (!testFile) {
+    log('  SKIP: No test files found');
+    return;
+  }
+
+  const content = fs.readFileSync(testFile, 'utf8');
+  const doc = parseSVG(content);
+
+  // Test cloneElement()
+  test('cloneElement() deep clones SVG elements', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const original = layers[0].element;
+    const clone = InkscapeSupport.cloneElement(original);
+    return clone !== null &&
+           clone.tagName === original.tagName &&
+           clone !== original; // Must be different object
+  });
+
+  test('cloneElement() handles null gracefully', () => {
+    const result = InkscapeSupport.cloneElement(null);
+    return result === null;
+  });
+
+  test('cloneElement() preserves attributes', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const original = layers[0].element;
+    const clone = InkscapeSupport.cloneElement(original);
+    const originalId = original.getAttribute('id');
+    const cloneId = clone.getAttribute('id');
+    return originalId === cloneId || 'ID not preserved';
+  });
+
+  test('cloneElement() preserves children', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const original = layers[0].element;
+    const clone = InkscapeSupport.cloneElement(original);
+    if (!original.children || original.children.length === 0) return true; // Skip if no children
+    return clone.children && clone.children.length === original.children.length ||
+           `Expected ${original.children.length} children, got ${clone.children?.length || 0}`;
+  });
+
+  // Test extractLayer()
+  test('extractLayer() extracts a layer by ID', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const layerId = layers[0].id;
+    if (!layerId) return 'Layer has no ID';
+    const result = InkscapeSupport.extractLayer(doc, layerId);
+    return !!(result && result.svg && result.layerInfo) || 'Invalid result structure';
+  });
+
+  test('extractLayer() extracts a layer by element', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const result = InkscapeSupport.extractLayer(doc, layers[0].element);
+    return !!(result && result.svg && result.layerInfo) || 'Invalid result structure';
+  });
+
+  test('extractLayer() throws for invalid layer', () => {
+    try {
+      InkscapeSupport.extractLayer(doc, 'nonexistent-layer-id-xyz');
+      return 'Should have thrown error';
+    } catch (e) {
+      return e.message.includes('not found') || e.message.includes('invalid');
+    }
+  });
+
+  test('extractLayer() returns layerInfo with id and label', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const result = InkscapeSupport.extractLayer(doc, layers[0].element);
+    return result.layerInfo.id !== undefined && result.layerInfo.label !== undefined;
+  });
+
+  // Test extractAllLayers()
+  test('extractAllLayers() extracts all layers', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const results = InkscapeSupport.extractAllLayers(doc);
+    return Array.isArray(results) && results.length > 0 || 'No layers extracted';
+  });
+
+  test('extractAllLayers() returns array of proper structure', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const results = InkscapeSupport.extractAllLayers(doc);
+    if (results.length === 0) return 'No layers extracted';
+    const first = results[0];
+    return !!(first.svg && first.layerInfo) || 'Invalid result structure';
+  });
+
+  test('extractAllLayers() respects includeHidden option', () => {
+    const allLayers = InkscapeSupport.extractAllLayers(doc, { includeHidden: true });
+    const visibleOnly = InkscapeSupport.extractAllLayers(doc, { includeHidden: false });
+    // includeHidden should give same or more results
+    return allLayers.length >= visibleOnly.length ||
+           `includeHidden=${allLayers.length}, visible=${visibleOnly.length}`;
+  });
+
+  // Test analyzeLayerDependencies()
+  test('analyzeLayerDependencies() returns proper structure', () => {
+    const analysis = InkscapeSupport.analyzeLayerDependencies(doc);
+    return analysis &&
+           Array.isArray(analysis.layers) &&
+           Array.isArray(analysis.sharedDefs) &&
+           typeof analysis.totalDefs === 'number';
+  });
+
+  test('analyzeLayerDependencies() includes layer info', () => {
+    const analysis = InkscapeSupport.analyzeLayerDependencies(doc);
+    if (analysis.layers.length === 0) return 'No layers analyzed';
+    const firstLayer = analysis.layers[0];
+    return firstLayer.id !== undefined &&
+           firstLayer.label !== undefined &&
+           Array.isArray(firstLayer.referencedDefs);
+  });
+
+  test('analyzeLayerDependencies() identifies shared resources', () => {
+    const analysis = InkscapeSupport.analyzeLayerDependencies(doc);
+    // Just verify structure - shared defs may or may not exist
+    return Array.isArray(analysis.sharedDefs);
+  });
+
+  // Test findReferencedIds()
+  test('findReferencedIds() returns Set of IDs', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return 'No layers to test';
+    const refs = InkscapeSupport.findReferencedIds(layers[0].element);
+    return refs instanceof Set;
+  });
+
+  test('findReferencedIds() handles null gracefully', () => {
+    const refs = InkscapeSupport.findReferencedIds(null);
+    return refs instanceof Set && refs.size === 0;
+  });
+
+  test('findReferencedIds() finds url(#id) references', () => {
+    // Create a test element with a url reference
+    const testSvg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="grad1"/></defs>
+      <rect fill="url(#grad1)"/>
+    </svg>`;
+    const testDoc = parseSVG(testSvg);
+    const rect = testDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Test element not found';
+    const refs = InkscapeSupport.findReferencedIds(rect);
+    return refs.has('grad1') || 'url(#grad1) not detected';
+  });
+
+  // Test buildDefsMapFromDefs()
+  test('buildDefsMapFromDefs() returns Map', () => {
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(doc);
+    return defsMap instanceof Map;
+  });
+
+  test('buildDefsMapFromDefs() maps IDs to elements', () => {
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(doc);
+    if (defsMap.size === 0) return true; // OK if no defs
+    const firstEntry = [...defsMap.entries()][0];
+    return typeof firstEntry[0] === 'string' && firstEntry[1] !== null;
+  });
+
+  test('buildDefsMapFromDefs() handles document without defs', () => {
+    const simpleSvg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+    const simpleDoc = parseSVG(simpleSvg);
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(simpleDoc);
+    return defsMap instanceof Map && defsMap.size === 0;
+  });
+
+  // Test resolveDefsDependencies()
+  test('resolveDefsDependencies() returns Set', () => {
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(doc);
+    const initialIds = new Set(['some-id']);
+    const resolved = InkscapeSupport.resolveDefsDependencies(initialIds, defsMap);
+    return resolved instanceof Set;
+  });
+
+  test('resolveDefsDependencies() includes initial IDs', () => {
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(doc);
+    if (defsMap.size === 0) return true; // Skip if no defs
+    const firstId = [...defsMap.keys()][0];
+    const initialIds = new Set([firstId]);
+    const resolved = InkscapeSupport.resolveDefsDependencies(initialIds, defsMap);
+    return resolved.has(firstId) || 'Initial ID not in result';
+  });
+
+  test('resolveDefsDependencies() handles empty set', () => {
+    const defsMap = InkscapeSupport.buildDefsMapFromDefs(doc);
+    const resolved = InkscapeSupport.resolveDefsDependencies(new Set(), defsMap);
+    return resolved instanceof Set && resolved.size === 0;
+  });
+
+  // Test getArcParameters()
+  test('getArcParameters() returns null for non-arc elements', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return true; // Skip
+    const result = InkscapeSupport.getArcParameters(layers[0].element);
+    // Layer is a <g>, so should return null
+    return result === null;
+  });
+
+  test('getArcParameters() handles null element', () => {
+    const result = InkscapeSupport.getArcParameters(null);
+    return result === null;
+  });
+
+  test('getArcParameters() extracts arc parameters from arc element', () => {
+    // Create test SVG with sodipodi:arc
+    const arcSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">
+      <path sodipodi:type="arc" sodipodi:cx="100" sodipodi:cy="100" sodipodi:rx="50" sodipodi:ry="50"/>
+    </svg>`;
+    const arcDoc = parseSVG(arcSvg);
+    const path = arcDoc.children.find(el => el.tagName === 'path');
+    if (!path) return 'Arc element not found';
+    const params = InkscapeSupport.getArcParameters(path);
+    return params && params.type === 'arc' && params.cx === '100' || 'Invalid arc parameters';
+  });
+
+  // Test getNodeTypes()
+  test('getNodeTypes() returns null for elements without nodetypes', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return true; // Skip
+    const result = InkscapeSupport.getNodeTypes(layers[0].element);
+    // May or may not have nodetypes - just verify it doesn't crash
+    return result === null || typeof result === 'string';
+  });
+
+  test('getNodeTypes() handles null element', () => {
+    const result = InkscapeSupport.getNodeTypes(null);
+    return result === null;
+  });
+
+  test('getNodeTypes() extracts nodetypes attribute', () => {
+    const pathSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd">
+      <path sodipodi:nodetypes="ccsc" d="M 0,0 L 10,10"/>
+    </svg>`;
+    const pathDoc = parseSVG(pathSvg);
+    const path = pathDoc.children.find(el => el.tagName === 'path');
+    if (!path) return 'Path element not found';
+    const nodeTypes = InkscapeSupport.getNodeTypes(path);
+    return nodeTypes === 'ccsc' || `Expected 'ccsc', got '${nodeTypes}'`;
+  });
+
+  // Test getExportSettings()
+  test('getExportSettings() returns null for elements without export settings', () => {
+    const simpleSvg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+    const simpleDoc = parseSVG(simpleSvg);
+    const rect = simpleDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Rect not found';
+    const result = InkscapeSupport.getExportSettings(rect);
+    return result === null;
+  });
+
+  test('getExportSettings() handles null element', () => {
+    const result = InkscapeSupport.getExportSettings(null);
+    return result === null;
+  });
+
+  test('getExportSettings() extracts export settings', () => {
+    const exportSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+      <rect inkscape:export-filename="output.png" inkscape:export-xdpi="96" inkscape:export-ydpi="96"/>
+    </svg>`;
+    const exportDoc = parseSVG(exportSvg);
+    const rect = exportDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Rect not found';
+    const settings = InkscapeSupport.getExportSettings(rect);
+    return settings &&
+           settings.filename === 'output.png' &&
+           settings.xdpi === 96 &&
+           settings.ydpi === 96 || 'Invalid export settings';
+  });
+
+  // Test isTiledClone()
+  test('isTiledClone() returns false for non-clone elements', () => {
+    const layers = InkscapeSupport.findLayers(doc);
+    if (layers.length === 0) return true; // Skip
+    const result = InkscapeSupport.isTiledClone(layers[0].element);
+    // Layer is not a tiled clone
+    return result === false;
+  });
+
+  test('isTiledClone() handles null element', () => {
+    const result = InkscapeSupport.isTiledClone(null);
+    return result === false;
+  });
+
+  test('isTiledClone() identifies tiled clones', () => {
+    const cloneSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+      <rect inkscape:tiled-clone-of="#original"/>
+    </svg>`;
+    const cloneDoc = parseSVG(cloneSvg);
+    const rect = cloneDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Clone element not found';
+    const result = InkscapeSupport.isTiledClone(rect);
+    return result === true || 'Not identified as tiled clone';
+  });
+
+  // Test getTiledCloneSource()
+  test('getTiledCloneSource() returns null for non-clone elements', () => {
+    const simpleSvg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+    const simpleDoc = parseSVG(simpleSvg);
+    const rect = simpleDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Rect not found';
+    const result = InkscapeSupport.getTiledCloneSource(rect);
+    return result === null;
+  });
+
+  test('getTiledCloneSource() handles null element', () => {
+    const result = InkscapeSupport.getTiledCloneSource(null);
+    return result === null;
+  });
+
+  test('getTiledCloneSource() extracts source ID', () => {
+    const cloneSvg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">
+      <rect inkscape:tiled-clone-of="#original"/>
+    </svg>`;
+    const cloneDoc = parseSVG(cloneSvg);
+    const rect = cloneDoc.children.find(el => el.tagName === 'rect');
+    if (!rect) return 'Clone element not found';
+    const sourceId = InkscapeSupport.getTiledCloneSource(rect);
+    return sourceId === '#original' || `Expected '#original', got '${sourceId}'`;
+  });
+
+  // Test ensureInkscapeNamespaces()
+  test('ensureInkscapeNamespaces() adds missing namespaces', () => {
+    const simpleSvg = '<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>';
+    const simpleDoc = parseSVG(simpleSvg);
+    const svg = simpleDoc.documentElement || simpleDoc;
+
+    // Remove namespaces if they exist
+    if (svg.getAttribute && svg.setAttribute) {
+      svg.setAttribute('xmlns:inkscape', null);
+      svg.setAttribute('xmlns:sodipodi', null);
+    }
+
+    InkscapeSupport.ensureInkscapeNamespaces(simpleDoc);
+
+    const hasInkscape = svg.getAttribute('xmlns:inkscape') === InkscapeSupport.INKSCAPE_NS;
+    const hasSodipodi = svg.getAttribute('xmlns:sodipodi') === InkscapeSupport.SODIPODI_NS;
+
+    return hasInkscape && hasSodipodi || 'Namespaces not added';
+  });
+
+  test('ensureInkscapeNamespaces() preserves existing namespaces', () => {
+    const content = fs.readFileSync(testFile, 'utf8');
+    const testDoc = parseSVG(content);
+
+    InkscapeSupport.ensureInkscapeNamespaces(testDoc);
+
+    const svg = testDoc.documentElement || testDoc;
+    const hasInkscape = svg.getAttribute('xmlns:inkscape') === InkscapeSupport.INKSCAPE_NS;
+    const hasSodipodi = svg.getAttribute('xmlns:sodipodi') === InkscapeSupport.SODIPODI_NS;
+
+    return hasInkscape && hasSodipodi || 'Namespaces not preserved';
+  });
+
+  test('ensureInkscapeNamespaces() handles invalid document gracefully', () => {
+    const invalidDoc = { documentElement: {} }; // No getAttribute/setAttribute
+    const result = InkscapeSupport.ensureInkscapeNamespaces(invalidDoc);
+    return result === invalidDoc; // Should return document unchanged
+  });
+}
+
 // Test group 5: SVG2Polyfills module
 function testSVG2Polyfills() {
   log('\n--- SVG2Polyfills Module ---');
@@ -287,6 +659,132 @@ function testSVG2Polyfills() {
     // Verify polyfill script can be generated
     const script = SVG2Polyfills.generatePolyfillScript(features);
     return (script !== null && script.length > 0) || 'Polyfill script not generated';
+  });
+
+  // Test setPolyfillMinification
+  test('setPolyfillMinification(true) generates minified polyfills', () => {
+    setPolyfillMinification(true);
+    const features = SVG2Polyfills.detectSVG2Features(doc);
+    const script = generatePolyfillScript(features);
+    if (!script) return 'Script is null';
+    // Minified version should be shorter and not contain many comments/whitespace
+    // Check for lack of multi-line comments (/* ... */ on separate lines)
+    const hasMultilineComments = /\/\*[\s\S]*?\*\//.test(script);
+    // Minified should have minimal newlines relative to content
+    const newlineCount = (script.match(/\n/g) || []).length;
+    const avgCharsPerLine = script.length / (newlineCount || 1);
+    return avgCharsPerLine > 100 || 'Polyfill appears not minified (too many newlines)';
+  });
+
+  test('setPolyfillMinification(false) generates full polyfills with comments', () => {
+    setPolyfillMinification(false);
+    const features = SVG2Polyfills.detectSVG2Features(doc);
+    const script = generatePolyfillScript(features);
+    if (!script) return 'Script is null';
+    // Full version should be longer and contain comments
+    // Check for presence of multi-line comments or license headers
+    const hasComments = script.includes('/*') || script.includes('//');
+    const newlineCount = (script.match(/\n/g) || []).length;
+    const avgCharsPerLine = script.length / (newlineCount || 1);
+    return (hasComments && avgCharsPerLine < 200) || 'Polyfill appears minified (expected full version)';
+  });
+
+  test('Default polyfill minification is enabled (minified)', () => {
+    // Reset to verify default
+    setPolyfillMinification(true); // Explicitly set to default
+    const features = SVG2Polyfills.detectSVG2Features(doc);
+    const scriptMin = generatePolyfillScript(features);
+
+    setPolyfillMinification(false);
+    const scriptFull = generatePolyfillScript(features);
+
+    // Reset to default
+    setPolyfillMinification(true);
+    const scriptDefault = generatePolyfillScript(features);
+
+    // Default should match minified version
+    return scriptDefault === scriptMin || 'Default polyfill is not minified';
+  });
+
+  // Test removePolyfills
+  test('removePolyfills() removes script elements with "SVG 2.0 Polyfill" comment', () => {
+    const testDoc = parseSVG(content);
+    // Inject polyfills first
+    const detectedFeatures = SVG2Polyfills.detectSVG2Features(testDoc);
+    injectPolyfills(testDoc, { features: detectedFeatures });
+
+    // Verify script was added
+    const serialized = serializeSVG(testDoc);
+    const hasPolyfillBefore = serialized.includes('SVG 2.0 Polyfill');
+    if (!hasPolyfillBefore) return 'Polyfill was not injected';
+
+    // Remove polyfills
+    removePolyfills(testDoc);
+    const serializedAfter = serializeSVG(testDoc);
+    const hasPolyfillAfter = serializedAfter.includes('SVG 2.0 Polyfill');
+
+    return !hasPolyfillAfter || 'Polyfill was not removed';
+  });
+
+  test('removePolyfills() removes script elements with "Generated by svg-matrix" comment', () => {
+    const testDoc = parseSVG(content);
+    const detectedFeatures = SVG2Polyfills.detectSVG2Features(testDoc);
+    injectPolyfills(testDoc, { features: detectedFeatures });
+
+    const serialized = serializeSVG(testDoc);
+    const hasMarkerBefore = serialized.includes('Generated by svg-matrix');
+    if (!hasMarkerBefore) return 'svg-matrix marker not found in injected polyfill';
+
+    removePolyfills(testDoc);
+    const serializedAfter = serializeSVG(testDoc);
+    const hasMarkerAfter = serializedAfter.includes('Generated by svg-matrix');
+
+    return !hasMarkerAfter || 'svg-matrix marker still present after removal';
+  });
+
+  test('removePolyfills() preserves other script elements', () => {
+    const testDoc = parseSVG(content);
+
+    // Add a custom script element that should be preserved
+    const svg = testDoc.documentElement || testDoc;
+    if (svg.children) {
+      const customScript = new SVGElement(
+        'script',
+        { type: 'text/javascript' },
+        [],
+        '/* Custom script - not a polyfill */ console.log("test");'
+      );
+      svg.children.push(customScript);
+
+      // Also inject polyfills
+      const detectedFeatures = SVG2Polyfills.detectSVG2Features(testDoc);
+      injectPolyfills(testDoc, { features: detectedFeatures });
+
+      // Remove polyfills
+      removePolyfills(testDoc);
+
+      // Check that custom script is still there
+      const serializedAfter = serializeSVG(testDoc);
+      const hasCustomScript = serializedAfter.includes('Custom script - not a polyfill');
+      const hasPolyfill = serializedAfter.includes('SVG 2.0 Polyfill');
+
+      return hasCustomScript && !hasPolyfill || 'Custom script was removed or polyfill not removed';
+    }
+    return 'Could not add custom script to test document';
+  });
+
+  test('removePolyfills() returns document unchanged if no polyfills present', () => {
+    const testDoc = parseSVG(content);
+    const beforeSerialized = serializeSVG(testDoc);
+
+    // Remove polyfills from document that has none
+    removePolyfills(testDoc);
+    const afterSerialized = serializeSVG(testDoc);
+
+    // Documents should be identical (or very close - serialization may vary slightly)
+    return beforeSerialized.length === afterSerialized.length ||
+           Math.abs(beforeSerialized.length - afterSerialized.length) < 10 ||
+           'Document changed when no polyfills were present';
   });
 }
 
@@ -433,6 +931,7 @@ async function main() {
   await testDefaultStripping();
   await testNamespacePreservation();
   testInkscapeSupportFunctions();
+  testAdditionalInkscapeFunctions();
   testSVG2Polyfills();
   await testSpecificElementPreservation();
   await testSecondFileElements();

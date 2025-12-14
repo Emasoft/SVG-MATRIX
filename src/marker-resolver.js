@@ -486,8 +486,35 @@ export function parsePathCommands(pathData) {
     .replace(/([MmLlHhVvCcSsQqTtAaZz])/g, ' $1 ')
     .trim();
 
-  // Split into tokens
-  const tokens = normalized.split(/[\s,]+/).filter(t => t.length > 0);
+  // FIX: Use regex to extract tokens (command letters and numbers)
+  // Handles implicit negative separators (e.g., "0.8-2.9" -> ["0.8", "-2.9"])
+  // Per W3C SVG spec, negative signs can act as delimiters without spaces
+  const commandRegex = /[MmLlHhVvCcSsQqTtAaZz]/;
+  const numRegex = /-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
+  const tokens = [];
+
+  let pos = 0;
+  while (pos < normalized.length) {
+    // Skip whitespace and commas
+    while (pos < normalized.length && /[\s,]/.test(normalized[pos])) pos++;
+    if (pos >= normalized.length) break;
+
+    // Check if it's a command letter
+    if (commandRegex.test(normalized[pos])) {
+      tokens.push(normalized[pos]);
+      pos++;
+    } else {
+      // Extract number
+      numRegex.lastIndex = pos;
+      const match = numRegex.exec(normalized);
+      if (match && match.index === pos) {
+        tokens.push(match[0]);
+        pos = numRegex.lastIndex;
+      } else {
+        pos++; // Skip invalid character
+      }
+    }
+  }
 
   let i = 0;
   let currentX = 0;

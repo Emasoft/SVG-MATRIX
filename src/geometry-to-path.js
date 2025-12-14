@@ -267,7 +267,13 @@ export function parsePathData(pathData) {
   while ((match = commandRegex.exec(pathData)) !== null) {
     const command = match[1];
     const argsStr = match[2].trim();
-    const allArgs = argsStr.length > 0 ? argsStr.split(/[\s,]+/).filter(s => s.length > 0).map(s => D(s)) : [];
+
+    // FIX: Use regex to extract numbers, handles implicit negative separators (e.g., "0.8-2.9" -> ["0.8", "-2.9"])
+    // Per W3C SVG spec, negative signs can act as delimiters without spaces
+    const numRegex = /-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
+    const allArgs = argsStr.length > 0
+      ? Array.from(argsStr.matchAll(numRegex), m => D(m[0]))
+      : [];
 
     const paramCount = COMMAND_PARAMS[command];
 

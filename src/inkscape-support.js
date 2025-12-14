@@ -25,6 +25,8 @@ export const INKSCAPE_PREFIXES = ['inkscape', 'sodipodi'];
  */
 export function isInkscapeLayer(element) {
   if (!element || element.tagName !== 'g') return false;
+  // Safety check: ensure getAttribute method exists before calling it
+  if (typeof element.getAttribute !== 'function') return false;
   return element.getAttribute('inkscape:groupmode') === 'layer';
 }
 
@@ -223,7 +225,9 @@ export function getTiledCloneSource(element) {
  * @returns {boolean} True if Inkscape namespaces are present
  */
 export function hasInkscapeNamespaces(doc) {
+  if (!doc) return false;
   const svg = doc.documentElement || doc;
+  if (!svg || typeof svg.getAttribute !== 'function') return false;
   const hasInkscape = svg.getAttribute('xmlns:inkscape') === INKSCAPE_NS;
   const hasSodipodi = svg.getAttribute('xmlns:sodipodi') === SODIPODI_NS;
   return hasInkscape || hasSodipodi;
@@ -238,6 +242,11 @@ export function hasInkscapeNamespaces(doc) {
  */
 export function ensureInkscapeNamespaces(doc) {
   const svg = doc.documentElement || doc;
+
+  // Safety check: ensure getAttribute and setAttribute methods exist
+  if (typeof svg.getAttribute !== 'function' || typeof svg.setAttribute !== 'function') {
+    return doc;
+  }
 
   if (!svg.getAttribute('xmlns:inkscape')) {
     svg.setAttribute('xmlns:inkscape', INKSCAPE_NS);
@@ -332,7 +341,7 @@ export function findReferencedIds(element) {
  * @param {Object} doc - Parsed SVG document
  * @returns {Map<string, Object>} Map of ID to element
  */
-export function buildDefsMap(doc) {
+export function buildDefsMapFromDefs(doc) {
   const defsMap = new Map();
 
   const walk = (el) => {
@@ -462,8 +471,8 @@ export function extractLayer(doc, layerOrId, options = {}) {
   if (typeof layerOrId === 'string') {
     const layers = findLayers(doc);
     const found = layers.find(l => l.id === layerOrId || l.label === layerOrId);
-    if (!found) {
-      throw new Error(`Layer not found: ${layerOrId}`);
+    if (!found || !found.element) {
+      throw new Error(`Layer not found or invalid: ${layerOrId}`);
     }
     layer = found.element;
   } else {
@@ -478,7 +487,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
   const svgRoot = doc.documentElement || doc;
 
   // Build defs map from source document
-  const defsMap = buildDefsMap(doc);
+  const defsMap = buildDefsMapFromDefs(doc);
 
   // Find all IDs referenced by this layer
   const referencedIds = findReferencedIds(layer);
@@ -508,8 +517,10 @@ export function extractLayer(doc, layerOrId, options = {}) {
         defsChildren.push(cloneElement(defElement));
       }
     }
-    const newDefs = new SVGElement('defs', {}, defsChildren, null);
-    svgChildren.push(newDefs);
+    if (defsChildren.length > 0) {
+      const newDefs = new SVGElement('defs', {}, defsChildren, null);
+      svgChildren.push(newDefs);
+    }
   }
 
   // Clone the layer
@@ -586,7 +597,7 @@ export function extractAllLayers(doc, options = {}) {
  */
 export function analyzeLayerDependencies(doc) {
   const layers = findLayers(doc);
-  const defsMap = buildDefsMap(doc);
+  const defsMap = buildDefsMapFromDefs(doc);
   const layerRefs = new Map(); // layer ID -> Set of referenced def IDs
   const defUsage = new Map();  // def ID -> Set of layer IDs that use it
 

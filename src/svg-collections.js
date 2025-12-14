@@ -102,7 +102,9 @@ export const referencesProps = new Set([
 
 export const elemsGroups = {
   animation: new Set([
-    'animate', 'animateColor', 'animateMotion', 'animateTransform', 'set'
+    // Include both mixed-case and lowercase for case-insensitive matching
+    'animate', 'animateColor', 'animatecolor', 'animateMotion', 'animatemotion',
+    'animateTransform', 'animatetransform', 'set'
   ]),
   descriptive: new Set([
     'desc', 'metadata', 'title'
@@ -117,8 +119,10 @@ export const elemsGroups = {
     'hatch', 'linearGradient', 'meshGradient', 'pattern', 'radialGradient', 'solidColor'
   ]),
   nonRendering: new Set([
-    'clipPath', 'filter', 'linearGradient', 'marker', 'mask', 'pattern',
-    'radialGradient', 'solidColor', 'symbol'
+    // Include both mixed-case and lowercase for case-insensitive matching
+    'clipPath', 'clippath', 'filter', 'linearGradient', 'lineargradient',
+    'marker', 'mask', 'pattern', 'radialGradient', 'radialgradient',
+    'solidColor', 'solidcolor', 'symbol'
   ]),
   container: new Set([
     'a', 'defs', 'g', 'marker', 'mask', 'pattern', 'svg', 'switch', 'symbol'
@@ -701,21 +705,21 @@ export const attrsGroupsDeprecated = {
 export const allowedChildrenPerElement = {
   'svg': new Set([
     'a', 'altGlyphDef', 'animate', 'animateColor', 'animateMotion', 'animateTransform',
-    'circle', 'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face',
+    'circle', 'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face',
     'foreignObject', 'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata',
     'mpath', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script',
     'set', 'style', 'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'g': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
-    'svg', 'switch', 'symbol', 'text', 'title', 'use'
+    'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'defs': new Set([
     'a', 'altGlyphDef', 'animate', 'animateColor', 'animateMotion', 'animateTransform',
-    'circle', 'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face',
+    'circle', 'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face',
     'foreignObject', 'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata',
     'mpath', 'path', 'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script',
     'set', 'style', 'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view',
@@ -724,17 +728,17 @@ export const allowedChildrenPerElement = {
   ]),
   'symbol': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
-    'svg', 'switch', 'symbol', 'text', 'title', 'use'
+    'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'marker': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
-    'svg', 'switch', 'symbol', 'text', 'title', 'use'
+    'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'clipPath': new Set([
     'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle', 'desc',
@@ -743,29 +747,29 @@ export const allowedChildrenPerElement = {
   ]),
   'mask': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
-    'svg', 'switch', 'symbol', 'text', 'title', 'use'
+    'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'pattern': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
-    'svg', 'switch', 'symbol', 'text', 'title', 'use'
+    'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'a': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'clipPath', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
+    'clipPath', 'cursor', 'defs', 'desc', 'ellipse', 'filter', 'font', 'font-face', 'foreignObject',
     'g', 'image', 'line', 'linearGradient', 'marker', 'mask', 'metadata', 'path',
     'pattern', 'polygon', 'polyline', 'radialGradient', 'rect', 'script', 'set', 'style',
     'svg', 'switch', 'symbol', 'text', 'title', 'use', 'view'
   ]),
   'switch': new Set([
     'a', 'animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle',
-    'desc', 'ellipse', 'foreignObject', 'g', 'image', 'line', 'metadata', 'path',
-    'polygon', 'polyline', 'rect', 'set', 'svg', 'switch', 'text', 'title', 'use'
+    'cursor', 'desc', 'ellipse', 'foreignObject', 'g', 'image', 'line', 'metadata', 'path',
+    'polygon', 'polyline', 'rect', 'set', 'svg', 'switch', 'text', 'title', 'use', 'view'
   ]),
   'text': new Set([
     'a', 'altGlyph', 'animate', 'animateColor', 'animateMotion', 'animateTransform',

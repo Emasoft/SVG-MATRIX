@@ -28,6 +28,7 @@ import { parseSVG, SVGElement, buildDefsMap, parseUrlReference, serializeSVG, fi
 import { Logger } from './logger.js';
 import * as Verification from './verification.js';
 import { parseCSSIds } from './animation-references.js';
+import * as PolygonClip from './polygon-clip.js';
 
 Decimal.set({ precision: 80 });
 
@@ -52,6 +53,7 @@ const DEFAULT_OPTIONS = {
   bakeGradients: true,       // Bake gradientTransform into gradient coords
   removeUnusedDefs: true,    // Remove defs that are no longer referenced
   preserveIds: false,        // Keep original IDs on expanded elements
+  svg2Polyfills: false,      // Apply SVG 2.0 polyfills for backwards compatibility (not yet implemented)
   // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
   // E2E verification tolerance (configurable for different accuracy needs)
   e2eTolerance: '1e-10',     // Default: 1e-10 (very tight with high clipSegments)
@@ -525,7 +527,8 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
     if (!refId) continue;
 
     const clipPathEl = defsMap.get(refId);
-    if (!clipPathEl || clipPathEl.tagName !== 'clippath') continue;
+    // SVG tagNames may be case-preserved, check both lowercase and camelCase
+    if (!clipPathEl || (clipPathEl.tagName !== 'clippath' && clipPathEl.tagName !== 'clipPath')) continue;
 
     try {
       // Check coordinate system units
@@ -1117,12 +1120,25 @@ function getElementBBox(el) {
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const pt of polygon) {
-      const x = pt.x instanceof Decimal ? pt.x.toNumber() : pt.x;
-      const y = pt.y instanceof Decimal ? pt.y.toNumber() : pt.y;
+      // Validate point has coordinates
+      if (!pt || (pt.x === undefined && pt.y === undefined)) continue;
+
+      // Convert to numbers, defaulting to 0 for invalid values
+      const x = pt.x instanceof Decimal ? pt.x.toNumber() : (typeof pt.x === 'number' ? pt.x : 0);
+      const y = pt.y instanceof Decimal ? pt.y.toNumber() : (typeof pt.y === 'number' ? pt.y : 0);
+
+      // Skip NaN values
+      if (isNaN(x) || isNaN(y)) continue;
+
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
       if (y > maxY) maxY = y;
+    }
+
+    // Validate that we found at least one valid point
+    if (minX === Infinity || maxX === -Infinity || minY === Infinity || maxY === -Infinity) {
+      return null;
     }
 
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
@@ -1251,20 +1267,23 @@ function matrixToTransform(matrix) {
  * @private
  */
 function intersectPolygons(subject, clip) {
-  // Use PolygonClip if available, otherwise simple implementation
-  try {
-    const PolygonClip = require('./polygon-clip.js');
-    if (PolygonClip.intersect) {
-      return PolygonClip.intersect(subject, clip);
-    }
-  } catch {
-    // Fall through to simple implementation
-  }
-
-  // Simple convex clip implementation
+  // Validate inputs
   if (!subject || subject.length < 3 || !clip || clip.length < 3) {
     return subject;
   }
+
+  // Use advanced polygon intersection from polygon-clip module if available
+  // Falls back to simple convex clip implementation
+  if (PolygonClip && PolygonClip.polygonIntersection) {
+    try {
+      return PolygonClip.polygonIntersection(subject, clip);
+    } catch (error) {
+      // Fall through to simple implementation on error
+      // Error is intentionally not logged to avoid noise from expected edge cases
+    }
+  }
+
+  // Simple convex clip implementation (Sutherland-Hodgman)
 
   let output = [...subject];
 
@@ -1315,7 +1334,16 @@ function isInsideEdge(point, edgeStart, edgeEnd) {
 
 /**
  * Find intersection point of two lines.
+ *
+ * When lines are nearly parallel (determinant near zero), returns the midpoint
+ * of the first line segment as a reasonable fallback.
+ *
  * @private
+ * @param {Object} p1 - First point of first line
+ * @param {Object} p2 - Second point of first line
+ * @param {Object} p3 - First point of second line
+ * @param {Object} p4 - Second point of second line
+ * @returns {Object} Intersection point with x, y as Decimal
  */
 function lineIntersect(p1, p2, p3, p4) {
   const x1 = p1.x instanceof Decimal ? p1.x.toNumber() : p1.x;
@@ -1328,6 +1356,9 @@ function lineIntersect(p1, p2, p3, p4) {
   const y4 = p4.y instanceof Decimal ? p4.y.toNumber() : p4.y;
 
   const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+  // Tolerance of 1e-10 chosen to match Decimal precision expectations
+  // For nearly-parallel lines, return midpoint of first segment as fallback
   if (Math.abs(denom) < 1e-10) {
     return { x: D((x1 + x2) / 2), y: D((y1 + y2) / 2) };
   }
