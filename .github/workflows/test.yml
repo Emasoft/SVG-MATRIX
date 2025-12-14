@@ -9,6 +9,7 @@ on:
 jobs:
   # Unit tests - fast, run on all platforms
   unit-tests:
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -31,6 +32,8 @@ jobs:
 
   # Embed tests - requires network for fetching external resources
   embed-tests:
+    needs: unit-tests
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,9 +50,18 @@ jobs:
       - name: Run embed tests
         run: npm run test:embed
 
+      - name: Upload embedded SVG artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedded-svg-output
+          path: test/output/
+          retention-days: 7
+
   # Browser tests with Playwright - verify embedded SVGs work in real browsers
   browser-tests:
     needs: embed-tests
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -70,10 +82,23 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Generate embedded SVG for testing
-        run: npm run test:embed
+      - name: Download embedded SVG artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: embedded-svg-output
+          path: test/output/
 
       - name: Run Playwright browser tests
         run: npm run test:embed:browser
         env:
           CI: true
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.os }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

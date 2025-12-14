@@ -17,6 +17,15 @@ npm test
 
 # CI test (clean install + test)
 npm run ci-test
+
+# Run embed tests (embeds external dependencies into SVGs)
+npm run test:embed
+
+# Run Playwright browser tests (verifies embedded SVGs work in browsers)
+npm run test:embed:browser
+
+# Lint SVG files
+npm run lint
 ```
 
 ## Architecture
@@ -51,9 +60,14 @@ Transform composition uses right-to-left multiplication: `T.mul(R).mul(S)` appli
 
 ## Dependencies
 
-- **decimal.js** (^11.4.3) - Arbitrary-precision decimal arithmetic (runtime)
-- **@actions/oidc-client** - GitHub Actions OIDC for npm publishing (dev)
-- **node-fetch** - For npm token retrieval scripts (dev)
+**Runtime:**
+- **decimal.js** (^10.6.0) - Arbitrary-precision decimal arithmetic
+- **js-yaml** (^4.1.0) - YAML config file parsing
+- **jsdom** (^27.3.0) - DOM parsing for SVG manipulation
+
+**Development:**
+- **playwright** (^1.49.0) - Browser testing for embedded SVG verification
+- **svgo** (^4.0.0) - Reference implementation for testing compatibility
 
 ## Publishing
 

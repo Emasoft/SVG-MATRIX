@@ -277,7 +277,10 @@ async function runTests() {
 
     // Navigate to the SVG file
     console.log(`Loading SVG file: ${TEST_FILE}`);
-    const fileUrl = `file://${TEST_FILE}`;
+    // Windows paths need special handling: file:///C:/path (three slashes, forward slashes)
+    const fileUrl = process.platform === 'win32'
+      ? `file:///${TEST_FILE.replace(/\\/g, '/')}`
+      : `file://${TEST_FILE}`;
 
     await page.goto(fileUrl, {
       timeout: TIMEOUT,
@@ -605,7 +608,7 @@ async function runTests() {
     results.push({
       description: 'Test execution',
       status: 'FAIL',
-      details: error.message.slice(0, 38),
+      details: error.message.slice(0, 100),  // Preserve more error context for debugging
     });
   } finally {
     // Cleanup

@@ -775,6 +775,46 @@ function parseArgs(args) {
 
   cfg.inputs = inputs;
 
+  // Validate numeric arguments
+  if (cfg.precision !== undefined && (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 20)) {
+    logError('--precision must be a number between 0 and 20');
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  if (cfg.indent !== undefined && (isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)) {
+    logError('--indent must be a number between 0 and 16');
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  if (cfg.embedMaxRecursionDepth !== undefined && (isNaN(cfg.embedMaxRecursionDepth) || cfg.embedMaxRecursionDepth < 1 || cfg.embedMaxRecursionDepth > 100)) {
+    logError('--embed-max-depth must be a number between 1 and 100');
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  if (cfg.embedTimeout !== undefined && (isNaN(cfg.embedTimeout) || cfg.embedTimeout < 1000 || cfg.embedTimeout > 300000)) {
+    logError('--embed-timeout must be a number between 1000 and 300000 (ms)');
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+
+  // Validate enum arguments (only check if explicitly set, not null/undefined defaults)
+  const validEol = ['lf', 'crlf'];
+  if (cfg.eol != null && !validEol.includes(cfg.eol)) {
+    logError(`--eol must be one of: ${validEol.join(', ')}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  const validDatauri = ['base64', 'enc', 'unenc'];
+  if (cfg.datauri != null && !validDatauri.includes(cfg.datauri)) {
+    logError(`--datauri must be one of: ${validDatauri.join(', ')}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  const validSvgMode = ['extract', 'full'];
+  if (cfg.embedExternalSVGMode != null && cfg.embedExternalSVGMode !== 'extract' && !validSvgMode.includes(cfg.embedExternalSVGMode)) {
+    logError(`--embed-svg-mode must be one of: ${validSvgMode.join(', ')}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  const validOnMissing = ['warn', 'fail', 'skip'];
+  if (cfg.embedOnMissingResource != null && !validOnMissing.includes(cfg.embedOnMissingResource)) {
+    logError(`--embed-on-missing must be one of: ${validOnMissing.join(', ')}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+
   // Load config file if specified and merge with CLI options (CLI takes precedence)
   if (cfg.configFile) {
     const fileConfig = loadConfigFile(cfg.configFile);

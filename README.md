@@ -255,6 +255,76 @@ svgm --show-plugins
 
 Run `svgm --help` for all options.
 
+### Embed External Dependencies
+
+Make SVGs self-contained by embedding external resources as data URIs:
+
+```bash
+# Embed all external dependencies
+svgm --embed input.svg -o output.svg
+
+# Embed specific resource types
+svgm --embed-images --embed-css --embed-fonts input.svg -o output.svg
+
+# Embed external SVG references with mode selection
+svgm --embed-external-svgs --embed-svg-mode extract input.svg -o output.svg
+
+# Embed audio files (for interactive SVGs)
+svgm --embed-audio input.svg -o output.svg
+
+# Subset fonts to only include used characters (smaller file size)
+svgm --embed-fonts --embed-subset-fonts input.svg -o output.svg
+```
+
+**Embed options:**
+
+| Option | What It Does |
+|--------|--------------|
+| `--embed` | Enable all embedding (images, CSS, fonts, scripts, audio) |
+| `--embed-images` | Embed raster images as data URIs |
+| `--embed-external-svgs` | Embed referenced SVG files |
+| `--embed-svg-mode <mode>` | How to embed SVGs: `extract` (symbols only) or `full` |
+| `--embed-css` | Embed external stylesheets |
+| `--embed-fonts` | Embed web fonts as base64 |
+| `--embed-scripts` | Embed external JavaScript |
+| `--embed-audio` | Embed audio files as data URIs |
+| `--embed-subset-fonts` | Subset fonts to used characters only |
+| `--embed-recursive` | Recursively resolve nested dependencies |
+| `--embed-max-depth <n>` | Max recursion depth (default: 10) |
+| `--embed-timeout <ms>` | Fetch timeout in milliseconds (default: 30000) |
+| `--embed-on-missing <mode>` | Action on missing resource: `warn`, `fail`, or `skip` |
+
+### YAML Configuration
+
+Instead of CLI flags, you can use a YAML configuration file:
+
+```yaml
+# svgm.yml
+precision: 4
+multipass: true
+pretty: true
+indent: 2
+
+embed:
+  images: true
+  externalSVGs: true
+  externalSVGMode: extract
+  css: true
+  fonts: true
+  scripts: true
+  audio: true
+  subsetFonts: true
+  recursive: true
+  maxRecursionDepth: 10
+  timeout: 30000
+  onMissingResource: warn
+```
+
+```bash
+# Use config file
+svgm -c svgm.yml input.svg -o output.svg
+```
+
 ### Namespace Preservation
 
 Preserve vendor-specific namespaces during optimization:
@@ -497,6 +567,28 @@ import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
 - [svglinter Documentation](docs/SVGLINTER.md)
 - [Bezier Analysis Examples](test/bezier-analysis-example.js)
 - [Path Analysis Examples](test/path-analysis-example.js)
+
+---
+
+## Third-Party Licenses
+
+This project is licensed under the MIT License (see [LICENSE](LICENSE)).
+
+### SVG 2.0 Polyfill Dependencies
+
+When using the `--svg2-polyfills` option with `svgm` or `svg-matrix`, the following third-party code is embedded in the output SVG:
+
+**Inkscape mesh.js Polyfill** by Tavmjong Bah
+
+- **Purpose:** Provides browser compatibility for SVG 2.0 mesh gradients via canvas fallback
+- **License:** GNU General Public License version 3 or later (GPLv3)
+- **Source:** [https://gitlab.com/Tavmjong/mesh.js/](https://gitlab.com/Tavmjong/mesh.js/)
+- **Location:** `src/vendor/inkscape-mesh-polyfill.js`
+
+**Important:** When you use `--svg2-polyfills`, the generated SVG file will contain GPLv3-licensed JavaScript code. This means:
+- The output SVG file is subject to GPLv3 terms
+- If you distribute the SVG, you must provide source code access as required by GPLv3
+- Without `--svg2-polyfills`, all generated files remain under MIT license
 
 ---
 
