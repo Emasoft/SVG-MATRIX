@@ -109,8 +109,15 @@ function drawResultsTable(results) {
 
 /**
  * Ensures Playwright browsers are installed
+ * In CI environments, browsers are pre-installed by the workflow, so we skip installation
  */
 async function ensureBrowsersInstalled() {
+  // Skip installation in CI - browsers are pre-installed by the workflow
+  if (process.env.CI) {
+    console.log('CI environment detected - using pre-installed Playwright browsers');
+    return;
+  }
+
   return new Promise((resolve, reject) => {
     console.log('Checking Playwright browser installation...');
 
@@ -118,6 +125,8 @@ async function ensureBrowsersInstalled() {
     const proc = spawn(npx, ['playwright', 'install', 'chromium'], {
       stdio: 'inherit',
       cwd: dirname(__dirname),
+      // Windows needs shell: true for .cmd files
+      shell: process.platform === 'win32',
     });
 
     proc.on('close', (code) => {
