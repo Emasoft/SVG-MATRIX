@@ -1,0 +1,29 @@
+{
+  "name": "svg-matrix-tester",
+  "version": "1.0.0",
+  "description": "Testing agent and commands for SVG-MATRIX library. Tests 71 svg-toolbox functions against W3C SVG 1.1 (525 files) and SVG 2.0 (39 files) test suites with ZERO TOLERANCE validation.",
+  "author": "Emasoft",
+  "repository": "https://github.com/Emasoft/SVG-MATRIX",
+  "agents": [
+    {
+      "id": "svg-matrix-tester",
+      "name": "SVG Matrix Tester",
+      "file": "agents/svg-matrix-tester.md"
+    }
+  ],
+  "commands": [
+    {
+      "name": "test-svg-toolbox",
+      "description": "Test all 71 svg-toolbox functions against test suites",
+      "file": "commands/test-svg-toolbox.md"
+    },
+    {
+      "name": "test-function",
+      "description": "Test a specific svg-toolbox function",
+      "file": "commands/test-function.md"
+    }
+  ],
+  "scripts": [
+    "scripts/svg-function-test-runner.mjs"
+  ]
+}

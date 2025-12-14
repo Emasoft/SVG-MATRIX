@@ -26,8 +26,13 @@ npm-shrinkwrap.json
 *.swp
 *.swo
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (keep agents/plugins for testing)
+.claude/settings*
+.claude/commands/
+.claude/ghe_*
+.claude/hook_debug.log
+.claude/*.lock
+CLAUDE.md
 
 # Test coverage
 coverage/
