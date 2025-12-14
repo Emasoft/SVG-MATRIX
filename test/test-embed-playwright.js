@@ -313,6 +313,9 @@ async function runTests() {
     // Test: Verify __EMBEDDED_RESOURCES__ exists
     // Note: When loading SVG directly, scripts run in a different context
     // We check for the variable in the contentWindow of the SVG document
+    // On slower Windows CI runners, wait for scripts to fully execute
+    await page.waitForTimeout(1000);
+
     const embeddedResourcesCheck = await page.evaluate(() => {
       // Check multiple possible locations for the variable
       if (typeof window.__EMBEDDED_RESOURCES__ !== 'undefined') {
@@ -349,11 +352,22 @@ async function runTests() {
       });
     } else {
       // Even if we can't access the variable directly, check if the script is in the SVG
+      // On Windows, CDATA sections may need different handling
       const hasScriptWithResources = await page.evaluate(() => {
         const scripts = document.querySelectorAll('script');
         for (const script of scripts) {
-          if (script.textContent && script.textContent.includes('__EMBEDDED_RESOURCES__')) {
+          // Check textContent (handles both regular scripts and CDATA)
+          const content = script.textContent || script.innerHTML || '';
+          if (content.includes('__EMBEDDED_RESOURCES__')) {
             return true;
+          }
+          // Also check for CDATA child nodes
+          for (const child of script.childNodes) {
+            if (child.nodeType === 4 || child.nodeType === 3) { // CDATA_SECTION_NODE or TEXT_NODE
+              if (child.textContent && child.textContent.includes('__EMBEDDED_RESOURCES__')) {
+                return true;
+              }
+            }
           }
         }
         return false;
