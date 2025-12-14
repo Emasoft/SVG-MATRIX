@@ -140,6 +140,35 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
   return depth >= maxDepth; // Too deep = likely circular
 }
 
+/**
+ * Post-process serialized SVG to fix CDATA sections for script/style elements.
+ * This is needed because linkedom doesn't support createCDATASection.
+ * Elements marked with data-cdata-pending="true" will have their content
+ * properly wrapped in CDATA sections.
+ * @param {string} svgString - Serialized SVG string
+ * @returns {string} SVG string with proper CDATA sections
+ */
+function fixCDATASections(svgString) {
+  // Pattern to find script/style elements marked with data-cdata-pending
+  // and fix their CDATA wrapping
+  return svgString.replace(
+    /<(script|style)([^>]*)\sdata-cdata-pending="true"([^>]*)>([\s\S]*?)<\/\1>/gi,
+    (match, tag, attrsBefore, attrsAfter, content) => {
+      // Unescape the content that was HTML-escaped by the serializer
+      const unescaped = content
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      // Remove the marker attribute and wrap content in CDATA
+      const cleanAttrs = (attrsBefore + attrsAfter).replace(/\s*data-cdata-pending="true"\s*/g, ' ').trim();
+      const attrStr = cleanAttrs ? ' ' + cleanAttrs : '';
+      return `<${tag}${attrStr}><![CDATA[\n${unescaped}\n]]></${tag}>`;
+    }
+  );
+}
+
 // Regex to match numbers including negative and scientific notation
 // Matches: -10, 3.14, 1e-5, -2.5e10, .5, -.5, 0.123
 const NUMBER_REGEX = /-?\d*\.?\d+(?:[eE][+-]?\d+)?/g;
@@ -425,8 +454,11 @@ export async function loadInput(input, type) {
  */
 export function generateOutput(doc, format, options = {}) {
   switch (format) {
-    case OutputFormat.SVG_STRING:
-      return serializeSVG(doc, { minify: options.minify !== false });
+    case OutputFormat.SVG_STRING: {
+      const svgStr = serializeSVG(doc, { minify: options.minify !== false });
+      // Fix CDATA sections for script/style elements marked with data-cdata-pending
+      return fixCDATASections(svgStr);
+    }
 
     case OutputFormat.DOM_ELEMENT:
       return doc;
@@ -434,8 +466,10 @@ export function generateOutput(doc, format, options = {}) {
     case OutputFormat.XML_DOCUMENT:
       return doc;
 
-    default:
-      return serializeSVG(doc, { minify: options.minify !== false });
+    default: {
+      const svgStr = serializeSVG(doc, { minify: options.minify !== false });
+      return fixCDATASections(svgStr);
+    }
   }
 }
 
@@ -1028,6 +1062,17 @@ export const removeUnknownsAndDefaults = createOperation(
       "cursor",  // SVG cursor element
       "style",
       "script",
+      // SVG 1.1 font elements
+      "font",
+      "font-face",
+      "font-face-src",
+      "font-face-uri",
+      "font-face-format",
+      "font-face-name",
+      "glyph",
+      "missing-glyph",
+      "hkern",
+      "vkern",
     ];
 
     const defaultValues = {
@@ -1915,8 +1960,44 @@ export const removeXMLNS = createOperation((doc, options = {}) => {
  * Remove embedded raster images
  */
 export const removeRasterImages = createOperation((doc, options = {}) => {
+  // Check if document has scripts - if so, preserve elements with IDs that might be accessed via getElementById()
+  const hasScripts = doc.querySelectorAll('script').length > 0;
+
+  // Build set of referenced IDs to preserve images that are referenced elsewhere
+  const referencedIds = new Set();
+  const collectRefs = (el) => {
+    for (const attr of el.getAttributeNames()) {
+      const val = el.getAttribute(attr);
+      // Collect all url(#id) references (e.g., in fill, stroke, filter, mask, clip-path, etc.)
+      if (val && val.includes('url(#')) {
+        const matches = val.matchAll(/url\(#([^)]+)\)/g);
+        for (const match of matches) {
+          referencedIds.add(match[1]);
+        }
+      }
+      // Collect all href="#id" and xlink:href="#id" references (e.g., <use> elements)
+      if ((attr === 'href' || attr === 'xlink:href') && val && val.startsWith('#')) {
+        referencedIds.add(val.substring(1));
+      }
+    }
+    for (const child of el.children) {
+      if (isElement(child)) collectRefs(child);
+    }
+  };
+  collectRefs(doc);
+
   const images = doc.getElementsByTagName("image");
   for (const img of [...images]) {
+    const imgId = img.getAttribute('id');
+
+    // Preserve image if:
+    // - It has an ID that is referenced elsewhere in the document
+    // - Document has scripts and image has an ID (might be accessed via getElementById)
+    if (imgId && (referencedIds.has(imgId) || hasScripts)) {
+      continue; // Skip removal, preserve this image
+    }
+
+    // Otherwise, remove the image element
     if (img.parentNode) {
       img.parentNode.removeChild(img);
     }
@@ -1926,14 +2007,45 @@ export const removeRasterImages = createOperation((doc, options = {}) => {
 
 /**
  * Remove script elements
+ * Preserves script elements that are referenced by other elements (e.g., via xlink:href)
  */
 export const removeScriptElement = createOperation((doc, options = {}) => {
+  // Build set of referenced IDs to preserve scripts that are referenced elsewhere
+  const referencedIds = new Set();
+  const collectRefs = (el) => {
+    for (const attr of el.getAttributeNames()) {
+      const val = el.getAttribute(attr);
+      // Collect all url(#id) references (e.g., in fill, stroke, filter, mask, clip-path, etc.)
+      if (val && val.includes('url(#')) {
+        const matches = val.matchAll(/url\(#([^)]+)\)/g);
+        for (const match of matches) {
+          referencedIds.add(match[1]);
+        }
+      }
+      // Collect all href="#id" and xlink:href="#id" references (e.g., <set xlink:href="#s">)
+      if ((attr === 'href' || attr === 'xlink:href') && val && val.startsWith('#')) {
+        referencedIds.add(val.substring(1));
+      }
+    }
+    for (const child of el.children) {
+      if (isElement(child)) collectRefs(child);
+    }
+  };
+  collectRefs(doc);
+
+  // Remove only script elements that are NOT referenced
   const scripts = doc.getElementsByTagName("script");
   for (const script of [...scripts]) {
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
+    const scriptId = script.getAttribute("id");
+
+    // Only remove if the script doesn't have an ID or if its ID is not referenced
+    if (!scriptId || !referencedIds.has(scriptId)) {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     }
   }
+
   return doc;
 });
 
@@ -2013,6 +2125,11 @@ export const convertShapesToPath = createOperation((doc, options = {}) => {
               pathEl.setAttribute(attrName, val);
             }
           }
+        }
+
+        // Copy all children (e.g., <animate>, <set>, <animateMotion>, etc.) to preserve animation references
+        for (const child of [...el.children]) {
+          pathEl.appendChild(child);
         }
 
         if (el.parentNode) {
@@ -2122,10 +2239,11 @@ export const convertTransform = createOperation((doc, options = {}) => {
         if (!force && el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none') {
           // For stroked elements, check if transform is non-uniform
           // Only apply if it's safe (identity-like or uniform scale)
-          const a = matrix.get(0, 0).toNumber();
-          const b = matrix.get(0, 1).toNumber();
-          const c = matrix.get(1, 0).toNumber();
-          const d = matrix.get(1, 1).toNumber();
+          // Access matrix data directly - Matrix stores values in data[row][col]
+          const a = matrix.data[0][0].toNumber();
+          const b = matrix.data[0][1].toNumber();
+          const c = matrix.data[1][0].toNumber();
+          const d = matrix.data[1][1].toNumber();
           const det = a * d - b * c;
           const isUniform = Math.abs(a - d) < 1e-6 && Math.abs(b + c) < 1e-6;
 
@@ -2299,6 +2417,11 @@ export const convertEllipseToCircle = createOperation((doc, options = {}) => {
         } else {
           circle.setAttribute(attrName, val);
         }
+      }
+
+      // Copy all children (e.g., <animate>, <set>, <animateMotion>, etc.) to preserve animation references
+      for (const child of [...ellipse.children]) {
+        circle.appendChild(child);
       }
 
       if (ellipse.parentNode) {
@@ -3003,6 +3126,11 @@ export const reusePaths = createOperation((doc, options = {}) => {
           }
         }
 
+        // Copy all children (e.g., <animate>, <set>, <animateMotion>, etc.) to preserve animation references
+        for (const child of [...el.children]) {
+          use.appendChild(child);
+        }
+
         if (el.parentNode) {
           el.parentNode.replaceChild(use, el);
         }
@@ -3534,6 +3662,7 @@ export const flattenClipPaths = createOperation(async (doc, options = {}) => {
     resolvePatterns: false,
     resolveMasks: false,
     flattenTransforms: false,
+    removeUnusedDefs: false, // CRITICAL: Don't remove other defs (gradients, markers, etc.) that are still referenced
   });
   return parseSVG(result.svg);
 });
@@ -3551,6 +3680,7 @@ export const flattenMasks = createOperation(async (doc, options = {}) => {
     resolveMarkers: false,
     resolvePatterns: false,
     flattenTransforms: false,
+    removeUnusedDefs: false, // CRITICAL: Don't remove other defs (gradients, markers, etc.) that are still referenced
   });
   return parseSVG(result.svg);
 });
@@ -3917,6 +4047,7 @@ export const flattenPatterns = createOperation(async (doc, options = {}) => {
     resolveMarkers: false,
     resolveMasks: false,
     flattenTransforms: false,
+    removeUnusedDefs: false, // CRITICAL: Don't remove other defs (gradients, markers, etc.) that are still referenced
   });
   return parseSVG(result.svg);
 });
@@ -3961,6 +4092,7 @@ export const flattenUseElements = createOperation(async (doc, options = {}) => {
     resolvePatterns: false,
     resolveMasks: false,
     flattenTransforms: false,
+    removeUnusedDefs: false, // CRITICAL: Don't remove other defs (gradients, markers, etc.) that are still referenced
   });
   return parseSVG(result.svg);
 });
@@ -4240,9 +4372,71 @@ export const validateSVG = createOperation((doc, options = {}) => {
     }
   }
 
+  // Track SVG 2.0 features that need polyfills
+  const svg2Features = {
+    meshGradients: [],
+    hatches: [],
+    solidColors: [],
+    needsPolyfills: false
+  };
+
+  // SVG 2.0 elements that MUST be lowercase (camelCase is invalid per final SVG 2.0 spec)
+  const SVG2_CAMELCASE_INVALID = {
+    'meshGradient': 'meshgradient',
+    'meshRow': 'meshrow',
+    'meshPatch': 'meshpatch',
+    'hatchPath': 'hatchpath',
+    'solidColor': 'solidcolor'
+  };
+
   // 4. Check all elements against allowed children
   const checkElementValidity = (el, depth = 0) => {
+    // Defensive check: ensure element has tagName property
+    if (!el || !el.tagName) {
+      warnings.push(`Element at depth ${depth} has no tagName property`);
+      return;
+    }
+
     const tagLower = el.tagName.toLowerCase();
+    const tagOriginal = el.tagName;
+
+    // Check for invalid camelCase SVG 2.0 elements (SVG 2.0 spec requires lowercase)
+    if (SVG2_CAMELCASE_INVALID[tagOriginal]) {
+      errors.push(`Invalid SVG 2.0 element: <${tagOriginal}> must be lowercase <${SVG2_CAMELCASE_INVALID[tagOriginal]}> per SVG 2.0 specification`);
+    }
+
+    // Detect SVG 2.0 mesh gradient elements (valid lowercase)
+    if (tagLower === 'meshgradient') {
+      const id = el.getAttribute('id');
+      // Track meshgradient (with or without id) - id is stored if present, null if missing
+      svg2Features.meshGradients.push(id || null);
+      svg2Features.needsPolyfills = true;
+      if (!id) {
+        warnings.push(`<meshgradient> element without 'id' attribute may be difficult to reference`);
+      }
+    }
+
+    // Detect SVG 2.0 hatch elements (valid lowercase)
+    if (tagLower === 'hatch') {
+      const id = el.getAttribute('id');
+      // Track hatch (with or without id) - id is stored if present, null if missing
+      svg2Features.hatches.push(id || null);
+      svg2Features.needsPolyfills = true;
+      if (!id) {
+        warnings.push(`<hatch> element without 'id' attribute may be difficult to reference`);
+      }
+    }
+
+    // Detect SVG 2.0 solidcolor elements (valid lowercase)
+    if (tagLower === 'solidcolor') {
+      const id = el.getAttribute('id');
+      // Track solidcolor (with or without id) - id is stored if present, null if missing
+      svg2Features.solidColors.push(id || null);
+      svg2Features.needsPolyfills = true;
+      if (!id) {
+        warnings.push(`<solidcolor> element without 'id' attribute may be difficult to reference`);
+      }
+    }
 
     // Check path 'd' attribute
     if (tagLower === 'path') {
@@ -4346,12 +4540,28 @@ export const validateSVG = createOperation((doc, options = {}) => {
 
   checkElementValidity(doc);
 
+  // Add warning if SVG 2.0 features require polyfills for browser compatibility
+  if (svg2Features.needsPolyfills) {
+    const featureList = [];
+    if (svg2Features.meshGradients.length > 0) {
+      featureList.push(`meshgradient (${svg2Features.meshGradients.length} found)`);
+    }
+    if (svg2Features.hatches.length > 0) {
+      featureList.push(`hatch (${svg2Features.hatches.length} found)`);
+    }
+    if (svg2Features.solidColors.length > 0) {
+      featureList.push(`solidcolor (${svg2Features.solidColors.length} found)`);
+    }
+    warnings.push(`SVG contains SVG 2.0 features that require polyfills for browser compatibility: ${featureList.join(', ')}. Use --svg2-polyfills option to inject runtime polyfills.`);
+  }
+
   const result = {
     valid: errors.length === 0,
     svgVersion,
     errors,
     warnings,
     elementsChecked: countElements(doc),
+    svg2Features, // SVG 2.0 feature detection results for polyfill decisions
   };
 
   doc.setAttribute("data-svg-validation", JSON.stringify(result));
@@ -7579,6 +7789,1002 @@ function getShapePolygon(el, samples) {
 }
 
 // ============================================================================
+// EMBED EXTERNAL DEPENDENCIES
+// ============================================================================
+
+// MIME type map for resource embedding
+const EMBED_MIME_TYPES = {
+  // Images
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+  '.avif': 'image/avif', '.ico': 'image/x-icon', '.bmp': 'image/bmp',
+  // Fonts
+  '.woff': 'font/woff', '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf', '.otf': 'font/otf',
+  '.eot': 'application/vnd.ms-fontobject',
+  // Audio
+  '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac',
+  // Other
+  '.css': 'text/css', '.js': 'text/javascript'
+};
+
+// Check if running in Node.js environment
+function isNodeEnvironment() {
+  return typeof process !== 'undefined' && process.versions?.node;
+}
+
+// Check if href is external (not #id or data:)
+function isExternalHref(href) {
+  if (!href || typeof href !== 'string') return false;
+  if (href.startsWith('#')) return false;
+  if (href.startsWith('data:')) return false;
+  return true;
+}
+
+// Parse external SVG reference like "icons.svg#arrow" into {path, fragment}
+function parseExternalSVGRef(href) {
+  const hashIdx = href.indexOf('#');
+  if (hashIdx === -1) return { path: href, fragment: null };
+  return {
+    path: href.substring(0, hashIdx),
+    fragment: href.substring(hashIdx + 1)
+  };
+}
+
+// Detect MIME type from file extension
+function detectMimeType(urlOrPath) {
+  const ext = (urlOrPath.match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+  return EMBED_MIME_TYPES[ext] || 'application/octet-stream';
+}
+
+// Resolve relative URL against base path
+function resolveURL(url, basePath) {
+  if (!url) return url;
+  // Already absolute URL
+  if (url.match(/^https?:\/\//i)) return url;
+  if (url.startsWith('data:')) return url;
+  if (url.startsWith('file://')) return url;
+
+  // Handle base path
+  if (!basePath) return url;
+
+  // If basePath is a URL
+  if (basePath.match(/^https?:\/\//i)) {
+    try {
+      return new URL(url, basePath).href;
+    } catch (e) {
+      return url;
+    }
+  }
+
+  // File path resolution (Node.js)
+  if (isNodeEnvironment()) {
+    // Use require for synchronous path operations
+    try {
+      // Use dynamic require if available
+      const pathModule = require('node:path');
+      const baseDir = basePath.endsWith('/') ? basePath : pathModule.dirname(basePath);
+      return pathModule.resolve(baseDir, url);
+    } catch (e) {
+      // Fallback to simple join
+      const baseDir = basePath.endsWith('/') ? basePath : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+      return baseDir + url;
+    }
+  }
+
+  // Simple path join for browser
+  const baseDir = basePath.endsWith('/') ? basePath : basePath.substring(0, basePath.lastIndexOf('/') + 1);
+  return baseDir + url;
+}
+
+// Fetch resource content (works in Node.js and browser)
+async function fetchResource(url, mode = 'text', timeout = 30000) {
+  // Handle local files in Node.js
+  if (isNodeEnvironment() && !url.match(/^https?:\/\//i)) {
+    const fs = await import('node:fs/promises');
+    const content = mode === 'binary'
+      ? await fs.readFile(url)
+      : await fs.readFile(url, 'utf8');
+    return { content, contentType: detectMimeType(url) };
+  }
+
+  // Use fetch API for URLs
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type') || detectMimeType(url);
+    const content = mode === 'binary'
+      ? await response.arrayBuffer()
+      : await response.text();
+
+    return { content, contentType };
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
+}
+
+// Convert binary content to base64 data URI
+function toDataURI(content, mimeType) {
+  let base64;
+  if (isNodeEnvironment()) {
+    // Node.js: Buffer
+    base64 = Buffer.from(content).toString('base64');
+  } else {
+    // Browser: Uint8Array
+    const bytes = new Uint8Array(content);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    base64 = btoa(binary);
+  }
+  return `data:${mimeType};base64,${base64}`;
+}
+
+// Parse CSS to find @import and url() references
+function parseCSSUrls(css) {
+  const imports = [];
+  const urls = [];
+
+  // Find @import url(...) or @import "..."
+  const importRegex = /@import\s+(?:url\(\s*["']?([^"')]+)["']?\s*\)|["']([^"']+)["'])/gi;
+  let match;
+  while ((match = importRegex.exec(css)) !== null) {
+    imports.push({
+      url: match[1] || match[2],
+      fullMatch: match[0],
+      index: match.index
+    });
+  }
+
+  // Find url(...) in properties (not @import)
+  const urlRegex = /url\(\s*["']?([^"')]+)["']?\s*\)/gi;
+  while ((match = urlRegex.exec(css)) !== null) {
+    // Skip if this is part of an @import
+    const beforeMatch = css.substring(Math.max(0, match.index - 10), match.index);
+    if (beforeMatch.includes('@import')) continue;
+    // Skip local ID references
+    if (match[1].startsWith('#')) continue;
+    // Skip data URIs
+    if (match[1].startsWith('data:')) continue;
+
+    urls.push({
+      url: match[1],
+      fullMatch: match[0],
+      index: match.index
+    });
+  }
+
+  return { imports, urls };
+}
+
+// Relocate all IDs in element tree with prefix to avoid collisions
+function relocateIds(element, prefix, idMap = new Map()) {
+  if (!element) return idMap;
+
+  // Update id attribute
+  const id = element.getAttribute?.('id');
+  if (id) {
+    const newId = prefix + id;
+    idMap.set(id, newId);
+    element.setAttribute('id', newId);
+  }
+
+  // Update references in attributes
+  const refAttrs = ['href', 'xlink:href', 'fill', 'stroke', 'clip-path', 'mask', 'filter', 'marker-start', 'marker-mid', 'marker-end'];
+  for (const attr of refAttrs) {
+    const val = element.getAttribute?.(attr);
+    if (!val) continue;
+
+    // Handle url(#id) references
+    if (val.includes('url(#')) {
+      const newVal = val.replace(/url\(#([^)]+)\)/g, (match, refId) => {
+        return `url(#${idMap.get(refId) || prefix + refId})`;
+      });
+      element.setAttribute(attr, newVal);
+    }
+    // Handle #id references
+    else if (val.startsWith('#')) {
+      const refId = val.substring(1);
+      element.setAttribute(attr, '#' + (idMap.get(refId) || prefix + refId));
+    }
+  }
+
+  // Update style attribute url() references
+  const style = element.getAttribute?.('style');
+  if (style && style.includes('url(#')) {
+    const newStyle = style.replace(/url\(#([^)]+)\)/g, (match, refId) => {
+      return `url(#${idMap.get(refId) || prefix + refId})`;
+    });
+    element.setAttribute('style', newStyle);
+  }
+
+  // Recurse into children
+  if (element.children) {
+    for (const child of element.children) {
+      relocateIds(child, prefix, idMap);
+    }
+  }
+
+  return idMap;
+}
+
+// Set script/style content as a proper CDATA section node
+// Using createCDATASection if available, otherwise use marker for post-processing
+function setCDATAContent(element, content, doc) {
+  // Escape any existing ]]> sequences within the content
+  const escaped = content.replace(/\]\]>/g, ']]]]><![CDATA[>');
+
+  // Clear existing content
+  while (element.firstChild) {
+    element.removeChild(element.firstChild);
+  }
+
+  const needsCDATA = content.includes('<') || content.includes('&') || content.includes(']]>');
+
+  if (needsCDATA && typeof doc.createCDATASection === 'function') {
+    // Browser/full DOM environment - use native CDATA section
+    const cdataNode = doc.createCDATASection(escaped);
+    element.appendChild(cdataNode);
+  } else if (needsCDATA) {
+    // linkedom/Node.js environment - mark element for post-processing
+    // Use a unique marker that won't appear in normal content
+    element.setAttribute('data-cdata-pending', 'true');
+    element.textContent = escaped;
+  } else {
+    // Plain text doesn't need CDATA wrapping
+    element.textContent = content;
+  }
+}
+
+// Common file extensions for resource detection
+const RESOURCE_EXTENSIONS = {
+  // Audio
+  audio: ['.wav', '.mp3', '.ogg', '.webm', '.m4a', '.aac', '.flac'],
+  // Images (additional formats beyond what we already handle)
+  image: ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.avif', '.ico', '.bmp'],
+  // Video
+  video: ['.mp4', '.webm', '.ogv', '.avi', '.mov'],
+  // Data/Config
+  data: ['.json', '.xml', '.txt', '.csv', '.tsv'],
+  // Fonts (for completeness)
+  font: ['.woff', '.woff2', '.ttf', '.otf', '.eot'],
+};
+
+// All extensions flattened for quick lookup
+const ALL_RESOURCE_EXTENSIONS = Object.values(RESOURCE_EXTENSIONS).flat();
+
+/**
+ * Extract file references from text content (JavaScript, HTML, CSS).
+ * Finds string literals that look like file paths with known extensions.
+ * @param {string} content - Text content to scan
+ * @returns {Set<string>} Set of unique file paths found
+ */
+function extractFileReferences(content) {
+  const refs = new Set();
+
+  // Pattern to match string literals (single, double quotes, or backticks)
+  // that contain file paths with known extensions
+  const extPattern = ALL_RESOURCE_EXTENSIONS.map(e => e.replace('.', '\\.')).join('|');
+
+  // Match quoted strings containing paths with known extensions
+  // Handles: "./path/file.wav", './path/file.mp3', `path/file.json`
+  const stringPattern = new RegExp(
+    `["'\`]([^"'\`]*(?:${extPattern}))["'\`]`,
+    'gi'
+  );
+
+  let match;
+  while ((match = stringPattern.exec(content)) !== null) {
+    const path = match[1];
+    // Skip data URIs, absolute URLs to external domains, and empty strings
+    if (path &&
+        !path.startsWith('data:') &&
+        !path.match(/^https?:\/\/(?!localhost)/) &&
+        path.length > 0) {
+      refs.add(path);
+    }
+  }
+
+  return refs;
+}
+
+/**
+ * Generate the resource interceptor JavaScript code.
+ * This code overrides fetch/XHR to serve embedded resources.
+ * @param {Map<string, string>} resourceMap - Map of path -> data URI
+ * @returns {string} JavaScript code to inject
+ */
+function generateResourceInterceptor(resourceMap) {
+  if (resourceMap.size === 0) return '';
+
+  // Convert map to object for JSON serialization
+  const mapObj = {};
+  for (const [path, dataUri] of resourceMap) {
+    mapObj[path] = dataUri;
+  }
+
+  return `
+// ===== EMBEDDED RESOURCES INTERCEPTOR (auto-generated) =====
+(function() {
+  var __EMBEDDED_RESOURCES__ = ${JSON.stringify(mapObj, null, 0)};
+
+  // Helper to normalize paths for lookup
+  function normalizePath(url) {
+    if (!url || typeof url !== 'string') return url;
+    // Handle relative paths: ./foo, ../foo, foo
+    var normalized = url.replace(/^\\.?\\//, '');
+    // Try exact match first
+    if (__EMBEDDED_RESOURCES__[url]) return url;
+    if (__EMBEDDED_RESOURCES__['./' + normalized]) return './' + normalized;
+    if (__EMBEDDED_RESOURCES__[normalized]) return normalized;
+    // Try without leading ./
+    for (var key in __EMBEDDED_RESOURCES__) {
+      if (key.endsWith(normalized) || normalized.endsWith(key.replace(/^\\.?\\//, ''))) {
+        return key;
+      }
+    }
+    return url;
+  }
+
+  // Override XMLHttpRequest.open to intercept resource loading
+  var __originalXHROpen__ = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url) {
+    var normalizedUrl = normalizePath(url);
+    if (__EMBEDDED_RESOURCES__[normalizedUrl]) {
+      this.__embeddedUrl__ = normalizedUrl;
+    }
+    return __originalXHROpen__.apply(this, arguments);
+  };
+
+  // Override XMLHttpRequest.send to serve embedded resources
+  var __originalXHRSend__ = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function() {
+    if (this.__embeddedUrl__) {
+      var xhr = this;
+      var dataUri = __EMBEDDED_RESOURCES__[this.__embeddedUrl__];
+      // Simulate async response
+      setTimeout(function() {
+        // Convert data URI to ArrayBuffer for audio/binary
+        var base64 = dataUri.split(',')[1];
+        var binary = atob(base64);
+        var len = binary.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        Object.defineProperty(xhr, 'response', { value: bytes.buffer, writable: false });
+        Object.defineProperty(xhr, 'responseType', { value: 'arraybuffer', writable: false });
+        Object.defineProperty(xhr, 'status', { value: 200, writable: false });
+        Object.defineProperty(xhr, 'readyState', { value: 4, writable: false });
+        // Create a proper ProgressEvent and call handlers with correct 'this' context
+        var loadEvent = new ProgressEvent('load', { lengthComputable: true, loaded: len, total: len });
+        if (xhr.onload) xhr.onload.call(xhr, loadEvent);
+        if (xhr.onreadystatechange) xhr.onreadystatechange.call(xhr);
+      }, 0);
+      return;
+    }
+    return __originalXHRSend__.apply(this, arguments);
+  };
+
+  // Override fetch to serve embedded resources
+  if (typeof fetch !== 'undefined') {
+    var __originalFetch__ = fetch;
+    window.fetch = function(url, options) {
+      var urlStr = typeof url === 'string' ? url : (url.url || url.toString());
+      var normalizedUrl = normalizePath(urlStr);
+      if (__EMBEDDED_RESOURCES__[normalizedUrl]) {
+        var dataUri = __EMBEDDED_RESOURCES__[normalizedUrl];
+        return __originalFetch__(dataUri, options);
+      }
+      return __originalFetch__.apply(this, arguments);
+    };
+  }
+
+  // Override Audio constructor to serve embedded resources
+  if (typeof Audio !== 'undefined') {
+    var __OriginalAudio__ = Audio;
+    window.Audio = function(src) {
+      var normalizedSrc = normalizePath(src);
+      if (__EMBEDDED_RESOURCES__[normalizedSrc]) {
+        return new __OriginalAudio__(__EMBEDDED_RESOURCES__[normalizedSrc]);
+      }
+      return new __OriginalAudio__(src);
+    };
+    window.Audio.prototype = __OriginalAudio__.prototype;
+  }
+
+  // Override Image.src to serve embedded resources
+  var __originalImageSrcDescriptor__ = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+  if (__originalImageSrcDescriptor__) {
+    Object.defineProperty(HTMLImageElement.prototype, 'src', {
+      set: function(val) {
+        var normalizedVal = normalizePath(val);
+        if (__EMBEDDED_RESOURCES__[normalizedVal]) {
+          __originalImageSrcDescriptor__.set.call(this, __EMBEDDED_RESOURCES__[normalizedVal]);
+        } else {
+          __originalImageSrcDescriptor__.set.call(this, val);
+        }
+      },
+      get: __originalImageSrcDescriptor__.get
+    });
+  }
+})();
+// ===== END EMBEDDED RESOURCES INTERCEPTOR =====
+
+`;
+}
+
+/**
+ * Extract all text content from SVG and map to fonts.
+ * Returns { fontFamily: Set<characters> }
+ * @param {Object} element - SVG element to scan
+ * @returns {Map<string, Set<string>>} Font to characters map
+ */
+function extractFontCharacterMap(element) {
+  const fontMap = new Map();
+
+  const addCharsToFont = (fontFamily, text) => {
+    if (!fontFamily || !text) return;
+    // Normalize font family name (remove quotes, trim)
+    const normalizedFont = fontFamily.replace(/['"]/g, '').trim().split(',')[0].trim();
+    if (!fontMap.has(normalizedFont)) {
+      fontMap.set(normalizedFont, new Set());
+    }
+    const charSet = fontMap.get(normalizedFont);
+    for (const char of text) {
+      charSet.add(char);
+    }
+  };
+
+  const walk = (el) => {
+    if (!el) return;
+
+    // Get font-family from style attribute
+    const style = el.getAttribute?.('style') || '';
+    const fontMatch = style.match(/font-family:\s*([^;]+)/i);
+    const fontFromStyle = fontMatch ? fontMatch[1] : null;
+
+    // Get font-family from font-family attribute
+    const fontFromAttr = el.getAttribute?.('font-family');
+
+    // Get font-family from CSS face attribute (for foreignObject content)
+    const faceAttr = el.getAttribute?.('face');
+
+    const fontFamily = fontFromStyle || fontFromAttr || faceAttr;
+
+    // Get text content from this element (direct text, not children)
+    const textContent = el.textContent || '';
+    if (fontFamily && textContent.trim()) {
+      addCharsToFont(fontFamily, textContent);
+    }
+
+    // Also check for text in <text> and <tspan> elements
+    if (el.tagName === 'text' || el.tagName === 'tspan') {
+      // Try to get inherited font from ancestors
+      let inheritedFont = fontFamily;
+      if (!inheritedFont && el.parentNode) {
+        const parentStyle = el.parentNode.getAttribute?.('style') || '';
+        const parentFontMatch = parentStyle.match(/font-family:\s*([^;]+)/i);
+        inheritedFont = parentFontMatch ? parentFontMatch[1] : el.parentNode.getAttribute?.('font-family');
+      }
+      if (inheritedFont && textContent.trim()) {
+        addCharsToFont(inheritedFont, textContent);
+      }
+    }
+
+    // Recurse into children
+    if (el.children) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(element);
+  return fontMap;
+}
+
+/**
+ * Convert font character map to URL-safe text parameter.
+ * @param {Set<string>} charSet - Set of characters
+ * @returns {string} URL-encoded unique characters
+ */
+function charsToTextParam(charSet) {
+  // Sort and dedupe characters, then URL-encode
+  const uniqueChars = [...charSet].sort().join('');
+  return encodeURIComponent(uniqueChars);
+}
+
+/**
+ * Check if URL is a Google Fonts URL.
+ * @param {string} url - URL to check
+ * @returns {boolean}
+ */
+function isGoogleFontsUrl(url) {
+  return url && (
+    url.includes('fonts.googleapis.com') ||
+    url.includes('fonts.gstatic.com')
+  );
+}
+
+/**
+ * Extract font family name from Google Fonts URL.
+ * @param {string} url - Google Fonts URL
+ * @returns {string|null} Font family name
+ */
+function extractFontFamilyFromGoogleUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const family = urlObj.searchParams.get('family');
+    if (family) {
+      // Handle "Fira+Mono" or "Fira Mono:400,700"
+      return family.split(':')[0].replace(/\+/g, ' ');
+    }
+  } catch (e) {
+    // Try regex fallback
+    const match = url.match(/family=([^&:]+)/);
+    if (match) {
+      return match[1].replace(/\+/g, ' ');
+    }
+  }
+  return null;
+}
+
+/**
+ * Add text parameter to Google Fonts URL for character subsetting.
+ * @param {string} url - Original Google Fonts URL
+ * @param {string} textParam - URL-encoded characters to include
+ * @returns {string} Modified URL with text parameter
+ */
+function addTextParamToGoogleFontsUrl(url, textParam) {
+  if (!textParam) return url;
+
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set('text', decodeURIComponent(textParam));
+    return urlObj.toString();
+  } catch (e) {
+    // Fallback: append to URL string
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}text=${textParam}`;
+  }
+}
+
+/**
+ * Embed all external dependencies into an SVG, making it completely self-contained.
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @param {Object} [options={}] - Embedding options
+ * @param {string} [options.basePath] - Base path for resolving relative URLs
+ * @param {boolean} [options.embedImages=true] - Convert <image> hrefs to base64 data URIs
+ * @param {boolean} [options.embedExternalSVGs=true] - Resolve external SVG references
+ * @param {'extract'|'embed'} [options.externalSVGMode='extract'] - How to embed external SVGs
+ * @param {boolean} [options.embedCSS=true] - Inline external stylesheets and @import rules
+ * @param {boolean} [options.embedFonts=true] - Convert @font-face url() to base64
+ * @param {boolean} [options.embedScripts=true] - Inline external <script src="...">
+ * @param {boolean} [options.embedAudio=false] - Embed audio files as base64 (can significantly increase file size)
+ * @param {boolean} [options.subsetFonts=true] - Enable Google Fonts character subsetting (reduces ~1.5MB to ~35KB)
+ * @param {boolean} [options.verbose=false] - Log font subsetting and embedding information
+ * @param {boolean} [options.recursive=true] - Recursively process embedded SVGs
+ * @param {number} [options.maxRecursionDepth=10] - Maximum depth for recursive embedding
+ * @param {number} [options.timeout=30000] - Timeout for remote fetches (ms)
+ * @param {'fail'|'warn'|'skip'} [options.onMissingResource='warn'] - Behavior when resource not found
+ * @param {Function} [options.onProgress] - Progress callback (stage, current, total)
+ * @param {string} [options.idPrefix='ext_'] - Prefix for relocated IDs from external SVGs
+ * @returns {Object} Self-contained SVG document
+ */
+export const embedExternalDependencies = createOperation(async (doc, options = {}) => {
+  const {
+    basePath = '',
+    embedImages = true,
+    embedExternalSVGs = true,
+    externalSVGMode = 'extract',
+    embedCSS = true,
+    embedFonts = true,
+    embedScripts = true,
+    embedAudio = false,
+    subsetFonts = true,
+    verbose = false,
+    recursive = true,
+    maxRecursionDepth = 10,
+    timeout = 30000,
+    onMissingResource = 'warn',
+    onProgress = null,
+    idPrefix = 'ext_'
+  } = options;
+
+  const visitedURLs = new Set();
+  const warnings = [];
+  let extCounter = 0;
+
+  // Helper to handle missing resources
+  const handleMissingResource = (url, error) => {
+    const msg = `Failed to fetch resource: ${url} - ${error.message}`;
+    if (onMissingResource === 'fail') {
+      throw new Error(msg);
+    } else if (onMissingResource === 'warn') {
+      warnings.push(msg);
+      console.warn('embedExternalDependencies:', msg);
+    }
+    // 'skip' mode: silently continue
+    return null;
+  };
+
+  // Phase 1: Embed Images
+  if (embedImages) {
+    const images = doc.getElementsByTagName('image');
+    const imageArray = [...images];
+    if (onProgress) onProgress('images', 0, imageArray.length);
+
+    for (let i = 0; i < imageArray.length; i++) {
+      const img = imageArray[i];
+      const href = img.getAttribute('href') || img.getAttribute('xlink:href');
+
+      if (!href || !isExternalHref(href)) continue;
+
+      try {
+        const resolvedURL = resolveURL(href, basePath);
+        const { content, contentType } = await fetchResource(resolvedURL, 'binary', timeout);
+        const dataURI = toDataURI(content, contentType.split(';')[0]);
+
+        // Update both href and xlink:href for compatibility
+        if (img.getAttribute('href')) img.setAttribute('href', dataURI);
+        if (img.getAttribute('xlink:href')) img.setAttribute('xlink:href', dataURI);
+      } catch (e) {
+        handleMissingResource(href, e);
+      }
+
+      if (onProgress) onProgress('images', i + 1, imageArray.length);
+    }
+  }
+
+  // Phase 2: Embed External SVG References
+  if (embedExternalSVGs) {
+    const useElements = doc.getElementsByTagName('use');
+    const useArray = [...useElements];
+    if (onProgress) onProgress('externalSVGs', 0, useArray.length);
+
+    // Ensure defs element exists
+    let defs = doc.querySelector('defs');
+    if (!defs) {
+      defs = new SVGElement('defs', {}, []);
+      const svg = doc.documentElement || doc;
+      if (svg.children) {
+        svg.children.unshift(defs);
+      }
+    }
+
+    for (let i = 0; i < useArray.length; i++) {
+      const useEl = useArray[i];
+      const href = useEl.getAttribute('href') || useEl.getAttribute('xlink:href');
+
+      if (!href || !isExternalHref(href)) continue;
+
+      const { path, fragment } = parseExternalSVGRef(href);
+      if (!path) continue;
+
+      // Check circular reference
+      const resolvedPath = resolveURL(path, basePath);
+      if (visitedURLs.has(resolvedPath)) {
+        warnings.push(`Circular reference detected: ${resolvedPath}`);
+        continue;
+      }
+      visitedURLs.add(resolvedPath);
+
+      try {
+        const { content } = await fetchResource(resolvedPath, 'text', timeout);
+        const externalDoc = parseSVG(content);
+
+        if (!externalDoc) {
+          handleMissingResource(path, new Error('Failed to parse SVG'));
+          continue;
+        }
+
+        // Recursively process external SVG if enabled
+        if (recursive && maxRecursionDepth > 0) {
+          await embedExternalDependencies(externalDoc, {
+            ...options,
+            basePath: resolvedPath,
+            maxRecursionDepth: maxRecursionDepth - 1
+          });
+        }
+
+        extCounter++;
+        const uniquePrefix = `${idPrefix}${extCounter}_`;
+
+        if (externalSVGMode === 'extract' && fragment) {
+          // Extract just the referenced element
+          const targetEl = externalDoc.getElementById(fragment);
+          if (targetEl) {
+            // Clone and relocate IDs
+            const cloned = targetEl.clone ? targetEl.clone() : JSON.parse(JSON.stringify(targetEl));
+            relocateIds(cloned, uniquePrefix);
+
+            // Add to defs
+            defs.children.push(cloned);
+
+            // Update use href to local reference
+            const newId = uniquePrefix + fragment;
+            if (useEl.getAttribute('href')) useEl.setAttribute('href', '#' + newId);
+            if (useEl.getAttribute('xlink:href')) useEl.setAttribute('xlink:href', '#' + newId);
+          } else {
+            handleMissingResource(href, new Error(`Fragment #${fragment} not found in ${path}`));
+          }
+        } else {
+          // Embed entire external SVG
+          const externalSvg = externalDoc.documentElement || externalDoc;
+          relocateIds(externalSvg, uniquePrefix);
+
+          // Set an ID on the external SVG
+          const svgId = uniquePrefix + 'svg';
+          externalSvg.setAttribute('id', svgId);
+
+          // Add to defs
+          defs.children.push(externalSvg);
+
+          // Update use href
+          const newHref = fragment ? '#' + uniquePrefix + fragment : '#' + svgId;
+          if (useEl.getAttribute('href')) useEl.setAttribute('href', newHref);
+          if (useEl.getAttribute('xlink:href')) useEl.setAttribute('xlink:href', newHref);
+        }
+      } catch (e) {
+        handleMissingResource(path, e);
+      }
+
+      if (onProgress) onProgress('externalSVGs', i + 1, useArray.length);
+    }
+  }
+
+  // Phase 3: Embed CSS (including @import and url() in stylesheets)
+  if (embedCSS || embedFonts) {
+    const styleElements = doc.getElementsByTagName('style');
+    const styleArray = [...styleElements];
+    if (onProgress) onProgress('stylesheets', 0, styleArray.length);
+
+    // Build font character map for subsetting (if subsetFonts option is enabled)
+    const fontCharMap = subsetFonts ? extractFontCharacterMap(doc) : null;
+
+    for (let i = 0; i < styleArray.length; i++) {
+      const styleEl = styleArray[i];
+      let css = styleEl.textContent || '';
+
+      // Process @import rules
+      if (embedCSS) {
+        const { imports } = parseCSSUrls(css);
+
+        // Process imports in reverse order to maintain positions
+        for (const imp of imports.reverse()) {
+          try {
+            let importUrl = imp.url;
+
+            // Apply Google Fonts subsetting if enabled
+            if (fontCharMap && isGoogleFontsUrl(importUrl)) {
+              const fontFamily = extractFontFamilyFromGoogleUrl(importUrl);
+              if (fontFamily && fontCharMap.has(fontFamily)) {
+                const textParam = charsToTextParam(fontCharMap.get(fontFamily));
+                importUrl = addTextParamToGoogleFontsUrl(importUrl, textParam);
+                if (verbose) {
+                  console.log(`Font subsetting: ${fontFamily} -> ${fontCharMap.get(fontFamily).size} chars`);
+                }
+              }
+            }
+
+            const resolvedURL = resolveURL(importUrl, basePath);
+            const { content } = await fetchResource(resolvedURL, 'text', timeout);
+            // Replace @import with inline content
+            css = css.substring(0, imp.index) + content + css.substring(imp.index + imp.fullMatch.length);
+          } catch (e) {
+            handleMissingResource(imp.url, e);
+          }
+        }
+      }
+
+      // Process url() references (for fonts and images in CSS)
+      if (embedCSS || embedFonts) {
+        const { urls } = parseCSSUrls(css);
+
+        // Process in reverse order
+        for (const urlRef of urls.reverse()) {
+          const mimeType = detectMimeType(urlRef.url);
+          const isFont = mimeType.startsWith('font/') || mimeType.includes('fontobject');
+
+          // Skip fonts if embedFonts is false
+          if (isFont && !embedFonts) continue;
+          // Skip non-fonts if embedCSS is false (images in CSS)
+          if (!isFont && !embedCSS) continue;
+
+          try {
+            const resolvedURL = resolveURL(urlRef.url, basePath);
+            const { content, contentType } = await fetchResource(resolvedURL, 'binary', timeout);
+            const dataURI = toDataURI(content, contentType.split(';')[0]);
+
+            // Replace url() with data URI
+            const newUrl = `url("${dataURI}")`;
+            css = css.substring(0, urlRef.index) + newUrl + css.substring(urlRef.index + urlRef.fullMatch.length);
+          } catch (e) {
+            handleMissingResource(urlRef.url, e);
+          }
+        }
+      }
+
+      styleEl.textContent = css;
+      if (onProgress) onProgress('stylesheets', i + 1, styleArray.length);
+    }
+  }
+
+  // Phase 4: Embed Scripts
+  if (embedScripts) {
+    const scripts = doc.getElementsByTagName('script');
+    const scriptArray = [...scripts];
+    if (onProgress) onProgress('scripts', 0, scriptArray.length);
+
+    for (let i = 0; i < scriptArray.length; i++) {
+      const scriptEl = scriptArray[i];
+      // Check for src, href, or xlink:href attributes (SVG uses xlink:href for scripts)
+      const src = scriptEl.getAttribute('src') ||
+                  scriptEl.getAttribute('href') ||
+                  scriptEl.getAttribute('xlink:href');
+
+      if (!src) continue; // Already inline
+      if (src.startsWith('data:')) continue; // Already embedded
+
+      try {
+        const resolvedURL = resolveURL(src, basePath);
+        const { content } = await fetchResource(resolvedURL, 'text', timeout);
+
+        // Remove all source attributes
+        scriptEl.removeAttribute('src');
+        scriptEl.removeAttribute('href');
+        scriptEl.removeAttribute('xlink:href');
+
+        // Set inline content with proper CDATA section node
+        setCDATAContent(scriptEl, content, doc);
+      } catch (e) {
+        handleMissingResource(src, e);
+      }
+
+      if (onProgress) onProgress('scripts', i + 1, scriptArray.length);
+    }
+  }
+
+  // Phase 5: Embed resources referenced in JavaScript/HTML/CSS
+  // This catches audio files, JSON data, etc. that are loaded dynamically
+  if (embedScripts) {
+    // Collect all text content that might contain file references
+    const allTextContent = [];
+
+    // Scan all script elements
+    const allScripts = doc.getElementsByTagName('script');
+    for (const script of allScripts) {
+      if (script.textContent) {
+        allTextContent.push(script.textContent);
+      }
+    }
+
+    // Scan all style elements
+    const allStyles = doc.getElementsByTagName('style');
+    for (const style of allStyles) {
+      if (style.textContent) {
+        allTextContent.push(style.textContent);
+      }
+    }
+
+    // Scan foreignObject content (HTML embedded in SVG)
+    const foreignObjects = doc.getElementsByTagName('foreignObject');
+    for (const fo of foreignObjects) {
+      // Get all text content including nested elements
+      const foContent = fo.textContent || '';
+      if (foContent) {
+        allTextContent.push(foContent);
+      }
+    }
+
+    // Extract file references from all content
+    const allRefs = new Set();
+    for (const content of allTextContent) {
+      const refs = extractFileReferences(content);
+      for (const ref of refs) {
+        allRefs.add(ref);
+      }
+    }
+
+    // Fetch and embed each referenced resource
+    if (allRefs.size > 0) {
+      const resourceMap = new Map();
+      if (onProgress) onProgress('resources', 0, allRefs.size);
+
+      let i = 0;
+      for (const ref of allRefs) {
+        try {
+          const resolvedURL = resolveURL(ref, basePath);
+          const { content, contentType } = await fetchResource(resolvedURL, 'binary', timeout);
+          const mimeType = contentType.split(';')[0] || detectMimeType(ref);
+          const dataURI = toDataURI(content, mimeType);
+
+          resourceMap.set(ref, dataURI);
+
+          if (verbose) {
+            const sizeKB = (content.length / 1024).toFixed(1);
+            console.log(`Embedded resource: ${ref} (${sizeKB} KB)`);
+          }
+        } catch (e) {
+          handleMissingResource(ref, e);
+        }
+
+        i++;
+        if (onProgress) onProgress('resources', i, allRefs.size);
+      }
+
+      // If we have embedded resources, inject the interceptor into the first script
+      if (resourceMap.size > 0) {
+        const interceptorCode = generateResourceInterceptor(resourceMap);
+        const firstScript = allScripts[0];
+
+        if (firstScript) {
+          // Prepend interceptor to the first script
+          const existingContent = firstScript.textContent || '';
+          const needsCDATA = interceptorCode.includes('<') || interceptorCode.includes('&') ||
+                            existingContent.includes('<') || existingContent.includes('&');
+
+          if (needsCDATA) {
+            firstScript.setAttribute('data-cdata-pending', 'true');
+          }
+          firstScript.textContent = interceptorCode + existingContent;
+        } else {
+          // No existing script, create a new one
+          const newScript = doc.createElement('script');
+          newScript.setAttribute('type', 'text/javascript');
+          newScript.setAttribute('data-cdata-pending', 'true');
+          newScript.textContent = interceptorCode;
+
+          // Insert at the beginning of the SVG
+          const svgRoot = doc.documentElement || doc;
+          if (svgRoot.firstChild) {
+            svgRoot.insertBefore(newScript, svgRoot.firstChild);
+          } else {
+            svgRoot.appendChild(newScript);
+          }
+        }
+
+        if (verbose) {
+          console.log(`Injected resource interceptor for ${resourceMap.size} embedded resources`);
+        }
+      }
+    }
+  }
+
+  // Phase 6: Ensure proper namespaces
+  const svg = doc.documentElement || doc;
+  if (!svg.getAttribute('xmlns')) {
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  }
+
+  // Add xlink namespace if any xlink: attributes exist
+  const hasXlink = serializeSVG(doc).includes('xlink:');
+  if (hasXlink && !svg.getAttribute('xmlns:xlink')) {
+    svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  }
+
+  // Add warnings as metadata if any
+  if (warnings.length > 0) {
+    doc._embedWarnings = warnings;
+  }
+
+  return doc;
+});
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -7662,7 +8868,7 @@ export default {
   optimize,
   createConfig,
 
-  // Category 7: Bonus (15)
+  // Category 7: Bonus (16)
   flattenClipPaths,
   flattenMasks,
   flattenGradients,
@@ -7674,12 +8880,15 @@ export default {
   measureDistance,
   validateXML,
   validateSVG,
+  fixInvalidSVG,
+  ValidationSeverity,
   flattenAll,
   simplifyPath,
   decomposeTransform,
   optimizeAnimationTiming,
   optimizePaths,
   simplifyPaths,
+  embedExternalDependencies,
 
   // Path optimization utilities (from convert-path-data.js)
   convertPathDataAdvanced,
@@ -7691,6 +8900,7 @@ export default {
   douglasPeucker,
   visvalingamWhyatt,
   simplifyPolyline,
+  simplifyPolylinePath,
   isPurePolyline,
 
   // Animation timing utilities (from animation-optimization.js)

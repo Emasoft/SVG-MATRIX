@@ -7,15 +7,73 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # Unit tests - fast, run on all platforms
+  unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Install
+          cache: 'npm'
+
+      - name: Install dependencies
         run: npm ci
-      - name: Run tests/examples
+
+      - name: Run unit tests
         run: npm test
+
+  # Embed tests - requires network for fetching external resources
+  embed-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run embed tests
+        run: npm run test:embed
+
+  # Browser tests with Playwright - verify embedded SVGs work in real browsers
+  browser-tests:
+    needs: embed-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Generate embedded SVG for testing
+        run: npm run test:embed
+
+      - name: Run Playwright browser tests
+        run: npm run test:embed:browser
+        env:
+          CI: true

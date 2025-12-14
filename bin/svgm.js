@@ -15,12 +15,13 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { join, dirname, basename, extname, resolve, isAbsolute } from 'path';
+import yaml from 'js-yaml';
 
 // Import library modules
 import { VERSION } from '../src/index.js';
 import * as SVGToolbox from '../src/svg-toolbox.js';
 import { parseSVG, serializeSVG } from '../src/svg-parser.js';
-import { injectPolyfills, detectSVG2Features } from '../src/svg2-polyfills.js';
+import { injectPolyfills, detectSVG2Features, setPolyfillMinification } from '../src/svg2-polyfills.js';
 
 // ============================================================================
 // CONSTANTS
@@ -64,8 +65,24 @@ const DEFAULT_CONFIG = {
   quiet: false,
   datauri: null,
   preserveNamespaces: [],
+  preserveVendor: false,
   svg2Polyfills: false,
   showPlugins: false,
+  configFile: null,
+  // Embed options
+  embed: false,
+  embedImages: false,
+  embedExternalSVGs: false,
+  embedExternalSVGMode: 'extract',
+  embedCSS: false,
+  embedFonts: false,
+  embedScripts: false,
+  embedAudio: false,
+  embedSubsetFonts: false,
+  embedRecursive: false,
+  embedMaxRecursionDepth: 10,
+  embedTimeout: 30000,
+  embedOnMissingResource: 'warn',
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -340,8 +357,35 @@ function toDataUri(content, format) {
 // ============================================================================
 async function processFile(inputPath, outputPath, options) {
   try {
-    const content = readFileSync(inputPath, 'utf8');
+    let content = readFileSync(inputPath, 'utf8');
     const originalSize = Buffer.byteLength(content);
+
+    // Apply embedding if enabled
+    if (options.embed) {
+      const doc = parseSVG(content);
+      const embedOptions = {
+        images: options.embedImages,
+        externalSVGs: options.embedExternalSVGs,
+        externalSVGMode: options.embedExternalSVGMode,
+        css: options.embedCSS,
+        fonts: options.embedFonts,
+        scripts: options.embedScripts,
+        audio: options.embedAudio,
+        subsetFonts: options.embedSubsetFonts,
+        recursive: options.embedRecursive,
+        maxRecursionDepth: options.embedMaxRecursionDepth,
+        timeout: options.embedTimeout,
+        onMissingResource: options.embedOnMissingResource,
+        baseDir: dirname(inputPath),
+      };
+
+      if (SVGToolbox.embedExternalDependencies) {
+        await SVGToolbox.embedExternalDependencies(doc, embedOptions);
+        content = serializeSVG(doc);
+      } else {
+        log(`${colors.yellow}Warning:${colors.reset} embedExternalDependencies not available in svg-toolbox`);
+      }
+    }
 
     const optimized = await optimizeSvg(content, options);
     const optimizedSize = Buffer.byteLength(optimized);
@@ -404,16 +448,36 @@ Options:
   --show-plugins             Show available plugins and exit
   --preserve-ns <NS,...>     Preserve vendor namespaces (inkscape, sodipodi,
                              illustrator, figma, etc.). Comma-separated.
+  --preserve-vendor          Keep all vendor prefixes and editor namespaces
   --svg2-polyfills           Inject JavaScript polyfills for SVG 2 features
                              (mesh gradients, hatches) for browser support
+  --no-minify-polyfills      Use full (non-minified) polyfills for debugging
   --no-color                 Output plain text without color
   -h, --help                 Display help for command
+
+Embed Options:
+  --config <path>            Load settings from YAML configuration file
+  --embed, --embed-all       Enable all embedding options
+  --embed-images             Embed external images as data URIs
+  --embed-external-svgs      Embed external SVG files
+  --embed-svg-mode <mode>    Mode for external SVGs: 'extract' or 'full'
+  --embed-css                Embed external CSS files
+  --embed-fonts              Embed external font files
+  --embed-scripts            Embed external JavaScript files
+  --embed-audio              Embed external audio files
+  --embed-subset-fonts       Subset fonts to used glyphs only
+  --embed-recursive          Recursively embed dependencies
+  --embed-max-depth <n>      Maximum recursion depth (default: 10)
+  --embed-timeout <ms>       Timeout for external resources (default: 30000)
+  --embed-on-missing <mode>  Handle missing resources: 'warn', 'fail', 'skip'
 
 Examples:
   svgm input.svg -o output.svg
   svgm -f ./icons/ -o ./optimized/
   svgm input.svg --pretty --indent 4
   svgm -p 2 --multipass input.svg
+  svgm input.svg --embed-all -o output.svg
+  svgm input.svg --config svgm.yml -o output.svg
 
 Docs: https://github.com/Emasoft/SVG-MATRIX#readme`);
 }
@@ -428,6 +492,57 @@ function showPlugins() {
     console.log(`  ${colors.green}${opt.name.padEnd(30)}${colors.reset} ${opt.description}`);
   }
   console.log(`\nTotal: ${OPTIMIZATIONS.length} optimizations\n`);
+}
+
+// ============================================================================
+// CONFIG FILE LOADING
+// ============================================================================
+function loadConfigFile(configPath) {
+  try {
+    const absolutePath = resolvePath(configPath);
+    if (!existsSync(absolutePath)) {
+      logError(`Config file not found: ${configPath}`);
+      process.exit(CONSTANTS.EXIT_ERROR);
+    }
+    const content = readFileSync(absolutePath, 'utf8');
+    const config = yaml.load(content);
+
+    // Convert YAML config structure to CLI config structure
+    const result = {};
+
+    if (config.embed) {
+      const embedCfg = config.embed;
+      if (embedCfg.images !== undefined) result.embedImages = embedCfg.images;
+      if (embedCfg.externalSVGs !== undefined) result.embedExternalSVGs = embedCfg.externalSVGs;
+      if (embedCfg.externalSVGMode !== undefined) result.embedExternalSVGMode = embedCfg.externalSVGMode;
+      if (embedCfg.css !== undefined) result.embedCSS = embedCfg.css;
+      if (embedCfg.fonts !== undefined) result.embedFonts = embedCfg.fonts;
+      if (embedCfg.scripts !== undefined) result.embedScripts = embedCfg.scripts;
+      if (embedCfg.audio !== undefined) result.embedAudio = embedCfg.audio;
+      if (embedCfg.subsetFonts !== undefined) result.embedSubsetFonts = embedCfg.subsetFonts;
+      if (embedCfg.recursive !== undefined) result.embedRecursive = embedCfg.recursive;
+      if (embedCfg.maxRecursionDepth !== undefined) result.embedMaxRecursionDepth = embedCfg.maxRecursionDepth;
+      if (embedCfg.timeout !== undefined) result.embedTimeout = embedCfg.timeout;
+      if (embedCfg.onMissingResource !== undefined) result.embedOnMissingResource = embedCfg.onMissingResource;
+
+      // If any embed option is enabled, set embed flag
+      if (Object.keys(result).some(key => key.startsWith('embed') && result[key] === true)) {
+        result.embed = true;
+      }
+    }
+
+    // Support other config options if present
+    if (config.precision !== undefined) result.precision = config.precision;
+    if (config.multipass !== undefined) result.multipass = config.multipass;
+    if (config.pretty !== undefined) result.pretty = config.pretty;
+    if (config.indent !== undefined) result.indent = config.indent;
+    if (config.quiet !== undefined) result.quiet = config.quiet;
+
+    return result;
+  } catch (error) {
+    logError(`Failed to load config file: ${error.message}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
 }
 
 // ============================================================================
@@ -550,16 +665,102 @@ function parseArgs(args) {
       case '--preserve-ns':
         {
           const val = argValue || args[++i];
-          cfg.preserveNamespaces = val.split(',').map(s => s.trim().toLowerCase());
+          if (!val) {
+            logError('--preserve-ns requires a comma-separated list of namespaces');
+            process.exit(1);
+          }
+          cfg.preserveNamespaces = val.split(',').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
         }
+        break;
+
+      case '--preserve-vendor':
+        cfg.preserveVendor = true;
         break;
 
       case '--svg2-polyfills':
         cfg.svg2Polyfills = true;
         break;
 
+      case '--no-minify-polyfills':
+        cfg.noMinifyPolyfills = true;
+        setPolyfillMinification(false);
+        break;
+
       case '--no-color':
         // Already handled in colors initialization
+        break;
+
+      case '--config':
+        cfg.configFile = args[++i];
+        break;
+
+      case '--embed':
+      case '--embed-all':
+        cfg.embed = true;
+        cfg.embedImages = true;
+        cfg.embedExternalSVGs = true;
+        cfg.embedCSS = true;
+        cfg.embedFonts = true;
+        cfg.embedScripts = true;
+        cfg.embedAudio = true;
+        cfg.embedSubsetFonts = true;
+        cfg.embedRecursive = true;
+        break;
+
+      case '--embed-images':
+        cfg.embed = true;
+        cfg.embedImages = true;
+        break;
+
+      case '--embed-external-svgs':
+        cfg.embed = true;
+        cfg.embedExternalSVGs = true;
+        break;
+
+      case '--embed-svg-mode':
+        cfg.embedExternalSVGMode = args[++i];
+        break;
+
+      case '--embed-css':
+        cfg.embed = true;
+        cfg.embedCSS = true;
+        break;
+
+      case '--embed-fonts':
+        cfg.embed = true;
+        cfg.embedFonts = true;
+        break;
+
+      case '--embed-scripts':
+        cfg.embed = true;
+        cfg.embedScripts = true;
+        break;
+
+      case '--embed-audio':
+        cfg.embed = true;
+        cfg.embedAudio = true;
+        break;
+
+      case '--embed-subset-fonts':
+        cfg.embed = true;
+        cfg.embedSubsetFonts = true;
+        break;
+
+      case '--embed-recursive':
+        cfg.embed = true;
+        cfg.embedRecursive = true;
+        break;
+
+      case '--embed-max-depth':
+        cfg.embedMaxRecursionDepth = parseInt(args[++i], 10);
+        break;
+
+      case '--embed-timeout':
+        cfg.embedTimeout = parseInt(args[++i], 10);
+        break;
+
+      case '--embed-on-missing':
+        cfg.embedOnMissingResource = args[++i];
         break;
 
       default:
@@ -573,6 +774,14 @@ function parseArgs(args) {
   }
 
   cfg.inputs = inputs;
+
+  // Load config file if specified and merge with CLI options (CLI takes precedence)
+  if (cfg.configFile) {
+    const fileConfig = loadConfigFile(cfg.configFile);
+    // Merge: file config first, then CLI overrides
+    cfg = { ...DEFAULT_CONFIG, ...fileConfig, ...cfg };
+  }
+
   return cfg;
 }
 
@@ -604,6 +813,21 @@ async function main() {
     datauri: config.datauri,
     preserveNamespaces: config.preserveNamespaces,
     svg2Polyfills: config.svg2Polyfills,
+    noMinifyPolyfills: config.noMinifyPolyfills, // Pass through for pipeline consistency
+    // Embed options
+    embed: config.embed,
+    embedImages: config.embedImages,
+    embedExternalSVGs: config.embedExternalSVGs,
+    embedExternalSVGMode: config.embedExternalSVGMode,
+    embedCSS: config.embedCSS,
+    embedFonts: config.embedFonts,
+    embedScripts: config.embedScripts,
+    embedAudio: config.embedAudio,
+    embedSubsetFonts: config.embedSubsetFonts,
+    embedRecursive: config.embedRecursive,
+    embedMaxRecursionDepth: config.embedMaxRecursionDepth,
+    embedTimeout: config.embedTimeout,
+    embedOnMissingResource: config.embedOnMissingResource,
   };
 
   // Handle string input

@@ -1,0 +1,47 @@
+# Example SVGM Configuration File
+# This file demonstrates all available embed options for the svgm CLI
+
+# Embedding options
+embed:
+  # Embed external images as data URIs
+  images: true
+
+  # Embed external SVG files
+  externalSVGs: true
+
+  # Mode for external SVGs: 'extract' (extract elements) or 'full' (embed entire SVG)
+  externalSVGMode: 'extract'
+
+  # Embed external CSS files
+  css: true
+
+  # Embed external font files
+  fonts: true
+
+  # Embed external JavaScript files
+  scripts: true
+
+  # Embed external audio files
+  audio: true
+
+  # Subset fonts to include only used glyphs
+  subsetFonts: true
+
+  # Recursively process embedded resources
+  recursive: true
+
+  # Maximum recursion depth for embedded resources
+  maxRecursionDepth: 10
+
+  # Timeout in milliseconds for fetching external resources
+  timeout: 30000
+
+  # How to handle missing resources: 'warn', 'fail', or 'skip'
+  onMissingResource: 'warn'
+
+# Other optimization options
+precision: 6
+multipass: false
+pretty: false
+indent: 2
+quiet: false

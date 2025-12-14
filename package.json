@@ -8,6 +8,8 @@
     "test": "node test/examples.js",
     "test:browser": "node test/browser-verify.mjs",
     "test:playwright": "node test/playwright-diagnose.js",
+    "test:embed": "node test/test-embed-real-world.js",
+    "test:embed:browser": "node test/test-embed-playwright.js",
     "ci-test": "npm ci && npm test",
     "lint": "node bin/svglinter.cjs",
     "lint:fix": "node bin/svglinter.cjs --fix",
@@ -69,7 +71,9 @@
     "README.md"
   ],
   "dependencies": {
-    "decimal.js": "^10.6.0"
+    "decimal.js": "^10.6.0",
+    "js-yaml": "^4.1.0",
+    "jsdom": "^27.3.0"
   },
   "peerDependencies": {
     "playwright": "^1.57.0"
@@ -80,6 +84,7 @@
     }
   },
   "devDependencies": {
+    "playwright": "^1.49.0",
     "svgo": "^4.0.0"
   }
 }
