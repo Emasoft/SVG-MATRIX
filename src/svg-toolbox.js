@@ -4109,6 +4109,11 @@ export const removeXlink = createOperation((doc, _options = {}) => {
   // Track if any xlink:* attributes remain after processing
   let hasRemainingXlinkAttrs = false;
 
+  /**
+   * Process an element and its children to convert xlink attributes.
+   * @param {Element} el - The element to process
+   * @returns {void}
+   */
   const processElement = (el) => {
     for (const attrName of [...el.getAttributeNames()]) {
       if (attrName.startsWith("xlink:")) {
@@ -4215,10 +4220,18 @@ export const prefixIds = createOperation((doc, options = {}) => {
   const idMap = new Map();
   const classMap = new Map();
 
-  // Helper: Escape special regex characters for safe use in RegExp
+  /**
+   * Escape special regex characters for safe use in RegExp.
+   * @param {string} str - String to escape
+   * @returns {string} Escaped string safe for use in RegExp
+   */
   const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // Collect and rename IDs
+  /**
+   * Collect and rename IDs in element and its children.
+   * @param {Element} el - Element to process
+   * @returns {void}
+   */
   const processElement = (el) => {
     const id = el.getAttribute("id");
     if (id) {
@@ -4234,6 +4247,11 @@ export const prefixIds = createOperation((doc, options = {}) => {
 
   // Collect and prefix class names if enabled (default: true)
   if (options.prefixClassNames !== false) {
+    /**
+     * Collect all class names from element and its children.
+     * @param {Element} el - Element to process
+     * @returns {void}
+     */
     const collectClasses = (el) => {
       const classAttr = el.getAttribute("class");
       if (classAttr) {
@@ -4249,7 +4267,11 @@ export const prefixIds = createOperation((doc, options = {}) => {
     };
     collectClasses(doc);
 
-    // Update class attributes with prefixed names
+    /**
+     * Update class attributes with prefixed names.
+     * @param {Element} el - Element to process
+     * @returns {void}
+     */
     const updateClasses = (el) => {
       const classAttr = el.getAttribute("class");
       if (classAttr) {
@@ -4302,7 +4324,11 @@ export const prefixIds = createOperation((doc, options = {}) => {
     style.textContent = css;
   }
 
-  // Update references in element attributes
+  /**
+   * Update references in element attributes (url(#id), href="#id", begin/end timing).
+   * @param {Element} el - Element to process
+   * @returns {void}
+   */
   const updateRefs = (el) => {
     for (const attrName of el.getAttributeNames()) {
       let val = el.getAttribute(attrName);
@@ -4415,6 +4441,11 @@ export const removeAttrs = createOperation((doc, options = {}) => {
   const pattern = options.pattern ? new RegExp(options.pattern) : null;
   const attrs = options.attrs || [];
 
+  /**
+   * Process element and its children to remove matching attributes.
+   * @param {Element} el - Element to process
+   * @returns {void}
+   */
   const processElement = (el) => {
     for (const attrName of [...el.getAttributeNames()]) {
       if (attrs.includes(attrName) || (pattern && pattern.test(attrName))) {
@@ -4439,6 +4470,11 @@ export const removeElementsByAttr = createOperation((doc, options = {}) => {
 
   if (!attrName) return doc;
 
+  /**
+   * Process element to remove children with matching attributes.
+   * @param {Element} el - Element to process
+   * @returns {void}
+   */
   const processElement = (el) => {
     for (const child of [...el.children]) {
       if (!isElement(child)) continue;
@@ -4541,7 +4577,16 @@ export const optimize = createOperation(async (doc, options = {}) => {
 });
 
 /**
- * Create configuration object
+ * Create configuration object with default optimization settings.
+ * @param {Object} [config={}] - Configuration options
+ * @param {number} [config.precision=6] - Numeric precision for values
+ * @param {boolean} [config.removeMetadata=true] - Remove metadata elements
+ * @param {boolean} [config.removeComments=true] - Remove comment nodes
+ * @param {boolean} [config.cleanupNumericValues=true] - Clean up numeric values
+ * @param {boolean} [config.convertColors=true] - Convert colors to shorter format
+ * @param {boolean} [config.removeHiddenElements=true] - Remove hidden elements
+ * @param {boolean} [config.removeEmptyContainers=true] - Remove empty container elements
+ * @returns {Object} Configuration object with defaults applied
  */
 export function createConfig(config = {}) {
   return {
@@ -4612,7 +4657,12 @@ export const flattenGradients = createOperation((doc, options = {}) => {
     return ref?.startsWith("#") ? ref.substring(1) : null;
   };
 
-  // Helper to check if gradient is safe to flatten
+  /**
+   * Check if gradient is safe to flatten (no circular refs, userSpaceOnUse, or transforms).
+   * @param {SVGElement} gradient - The gradient element
+   * @param {string} gradientId - The gradient ID
+   * @returns {boolean} True if safe to flatten
+   */
   const isSafeToFlatten = (gradient, gradientId) => {
     const gradientUnits =
       gradient.getAttribute("gradientUnits") || "objectBoundingBox";
@@ -4992,7 +5042,11 @@ export const flattenPatterns = createOperation(async (doc, options = {}) => {
  * Bake filter effects (partial - simple filters only)
  */
 export const flattenFilters = createOperation((doc, _options = {}) => {
-  // Remove filter references (cannot fully flatten without rendering)
+  /**
+   * Process element and its children to remove filter attributes.
+   * @param {Element} el - Element to process
+   * @returns {void}
+   */
   const processElement = (el) => {
     if (el.hasAttribute("filter")) {
       el.removeAttribute("filter");
@@ -5135,8 +5189,12 @@ export const detectCollisions = createOperation((doc, options = {}) => {
 });
 
 /**
- * Expand a polygon by a given distance (approximation for stroke expansion)
+ * Expand a polygon by a given distance (approximation for stroke expansion).
+ * Moves each vertex outward from the centroid by the specified distance.
  * @private
+ * @param {Array<{x: number, y: number}>} polygon - Array of polygon vertices
+ * @param {number} distance - Distance to expand (typically stroke width)
+ * @returns {Array<{x: number, y: number}>} Expanded polygon vertices
  */
 function expandPolygonByDistance(polygon, distance) {
   // BUG FIX: Check for empty polygon to prevent division by zero
@@ -5208,6 +5266,11 @@ export const validateXML = createOperation((doc, _options = {}) => {
   const usedPrefixes = new Set();
   const declaredPrefixes = new Set();
 
+  /**
+   * Check element and its children for XML validity.
+   * @param {Element} el - Element to check
+   * @returns {void}
+   */
   const checkElement = (el) => {
     // Check tag name for namespace prefix
     if (el.tagName.includes(":")) {
@@ -5335,7 +5398,12 @@ export const validateSVG = createOperation((doc, options = {}) => {
     solidColor: "solidcolor",
   };
 
-  // 4. Check all elements against allowed children
+  /**
+   * Check element and its children for SVG validity (structure, attributes, references).
+   * @param {Element} el - Element to check
+   * @param {number} [depth=0] - Current recursion depth
+   * @returns {void}
+   */
   const checkElementValidity = (el, depth = 0) => {
     // Defensive check: ensure element has tagName property
     if (!el || !el.tagName) {
@@ -5660,7 +5728,11 @@ export const analyzeCompatibility = createOperation((doc, options = {}) => {
     info: [],
   };
 
-  // Helper to find all elements by tag name (case-insensitive)
+  /**
+   * Find all elements by tag name (case-insensitive).
+   * @param {string} tagName - Tag name to search for
+   * @returns {Array<Element>} Array of matching elements
+   */
   const findElements = (tagName) => {
     const results = [];
     const searchTag = tagName.toLowerCase();
@@ -5676,7 +5748,12 @@ export const analyzeCompatibility = createOperation((doc, options = {}) => {
     return results;
   };
 
-  // Helper to get all elements recursively
+  /**
+   * Get all elements recursively.
+   * @param {Element} el - Root element
+   * @param {Array<Element>} [results=[]] - Accumulator array
+   * @returns {Array<Element>} Array of all elements
+   */
   const getAllElements = (el, results = []) => {
     if (el.tagName) results.push(el);
     for (const child of el.children || []) {
@@ -5718,6 +5795,11 @@ export const analyzeCompatibility = createOperation((doc, options = {}) => {
     let hasMedia = false;
     const mediaInFO = [];
 
+    /**
+     * Check element and its children for media elements (audio/video).
+     * @param {Element} el - Element to check
+     * @returns {void}
+     */
     const checkForMedia = (el) => {
       const tag = el.tagName?.toLowerCase();
       if (tag === "audio" || tag === "video") {
@@ -5793,7 +5875,12 @@ export const analyzeCompatibility = createOperation((doc, options = {}) => {
       const beginAttr = el.getAttribute("begin") || "";
       const endAttr = el.getAttribute("end") || "";
 
-      // Parse begin/end values for event triggers
+      /**
+       * Parse SMIL timing values to detect event triggers and timing.
+       * @param {string} value - The timing attribute value (begin or end)
+       * @param {string} attrName - The attribute name ('begin' or 'end')
+       * @returns {void}
+       */
       const parseTimingValue = (value, attrName) => {
         const parts = value
           .split(";")
@@ -7713,6 +7800,11 @@ export const analyzeCompatibilityMatrix = createOperation(
     // HELPER FUNCTIONS
     // ========================================================================
 
+    /**
+     * Find all elements by tag name (case-insensitive).
+     * @param {string} tagName - Tag name to search for
+     * @returns {Array<Element>} Array of matching elements
+     */
     const findElements = (tagName) => {
       const results = [];
       const searchTag = tagName.toLowerCase();
@@ -7728,6 +7820,12 @@ export const analyzeCompatibilityMatrix = createOperation(
       return results;
     };
 
+    /**
+     * Get all elements recursively.
+     * @param {Element} el - Root element
+     * @param {Array<Element>} [results=[]] - Accumulator array
+     * @returns {Array<Element>} Array of all elements
+     */
     const getAllElements = (el, results = []) => {
       if (el.tagName) results.push(el);
       for (const child of el.children || []) {
@@ -7736,6 +7834,12 @@ export const analyzeCompatibilityMatrix = createOperation(
       return results;
     };
 
+    /**
+     * Check if element has any of the specified attributes.
+     * @param {Element} el - Element to check
+     * @param {...string} attrs - Attribute names to check
+     * @returns {boolean} True if element has any of the attributes
+     */
     const _hasAttribute = (el, ...attrs) => {
       for (const attr of attrs) {
         if (el.getAttribute(attr)) return true;
@@ -7937,6 +8041,11 @@ export const analyzeCompatibilityMatrix = createOperation(
     for (const fo of foreignObjects) {
       const foAudio = [];
       const foVideo = [];
+      /**
+       * Check element and its children for audio/video elements.
+       * @param {Element} el - Element to check
+       * @returns {void}
+       */
       const checkMedia = (el) => {
         const tag = el.tagName?.toLowerCase();
         if (tag === "audio") foAudio.push(el);
@@ -9164,9 +9273,19 @@ export const generateFullCompatibilityMatrix = createOperation(
     // HELPER FUNCTIONS
     // ========================================================================
 
+    /**
+     * Find all elements with the specified tag name in the document.
+     * @param {string} tagName - The tag name to search for
+     * @returns {Array<Element>} Array of matching elements
+     */
     const findElements = (tagName) => {
       const results = [];
       const searchTag = tagName.toLowerCase();
+      /**
+       * Recursively traverse the element tree.
+       * @param {Element} el - The element to traverse
+       * @returns {void}
+       */
       const traverse = (el) => {
         if (el.tagName && el.tagName.toLowerCase() === searchTag) {
           results.push(el);
@@ -9179,6 +9298,12 @@ export const generateFullCompatibilityMatrix = createOperation(
       return results;
     };
 
+    /**
+     * Get all elements recursively from a root element.
+     * @param {Element} el - The root element
+     * @param {Array<Element>} results - Accumulator array for results
+     * @returns {Array<Element>} Array of all descendant elements
+     */
     const getAllElements = (el, results = []) => {
       if (el.tagName) results.push(el);
       for (const child of el.children || []) {
@@ -9525,6 +9650,11 @@ export const generateFullCompatibilityMatrix = createOperation(
       detectedCapabilities.add("FOREIGNOBJECT_HTML");
 
       for (const fo of foreignObjects) {
+        /**
+         * Recursively check foreignObject content for specific HTML elements.
+         * @param {Element} el - The element to check
+         * @returns {void}
+         */
         const checkInner = (el) => {
           const tag = el.tagName?.toLowerCase();
           if (tag === "form") detectedCapabilities.add("FOREIGNOBJECT_FORM");
@@ -9550,6 +9680,11 @@ export const generateFullCompatibilityMatrix = createOperation(
 
     // Also check inside foreignObject
     for (const fo of foreignObjects) {
+      /**
+       * Recursively check for audio/video elements inside foreignObject.
+       * @param {Element} el - The element to check
+       * @returns {void}
+       */
       const checkMedia = (el) => {
         const tag = el.tagName?.toLowerCase();
         if (tag === "audio") audioElements.push(el);
@@ -9675,7 +9810,16 @@ export const generateFullCompatibilityMatrix = createOperation(
       cells: [],
     };
 
-    // Helper to evaluate a single capability in a specific context
+    /**
+     * Evaluate a single capability in a specific context configuration.
+     * @param {string} capKey - The capability key to evaluate
+     * @param {Object} display - The display axis value
+     * @param {Object} load - The load protocol axis value
+     * @param {Object} storage - The storage type axis value
+     * @param {Object} syntax - The syntax method axis value
+     * @param {Object} _processing - The processing context axis value (unused)
+     * @returns {Object} Evaluation result with status, note, and browser issues
+     */
     const evaluateCapability = (
       capKey,
       display,
@@ -10643,7 +10787,15 @@ export function printHierarchicalMatrix(matrixData, options = {}) {
   // PRINT MATRIX BODY (3-level row hierarchy)
   // ============================================================================
 
-  // Helper to evaluate cell - returns detailed browser × functionality status
+  /**
+   * Evaluate a cell in the compatibility matrix with detailed browser and functionality status.
+   * @param {string} display - Display environment ID (browser, mobile, renderer)
+   * @param {string} load - Load protocol ID (file, http, data)
+   * @param {string} storage - Storage type ID (embedded, local, remote)
+   * @param {string} syntax - Embedding syntax ID (direct, img, object, embed, inline, css)
+   * @param {string} processing - Processing context ID (script, noscript)
+   * @returns {Object} Cell evaluation result with browser status, function status, overall status
+   */
   const evaluateCell = (display, load, storage, syntax, processing) => {
     // Result: browserStatus[browser][func] = 'ok' | 'warn' | 'block'
     const result = {
@@ -10816,8 +10968,12 @@ export function printHierarchicalMatrix(matrixData, options = {}) {
     return result;
   };
 
-  // Helper to format cell content with browser × functionality detail
-  // Returns array of lines for multi-row cell
+  /**
+   * Format cell content as array of lines for multi-row display.
+   * @param {Object} cellResult - Cell evaluation result
+   * @param {number} width - Cell width in characters
+   * @returns {Array<string>} Array of formatted lines for the cell
+   */
   const formatCellLines = (cellResult, width) => {
     const lines = [];
     const statusIcon = { ok: "✓", warn: "⚠", block: "✗" };
@@ -10871,7 +11027,12 @@ export function printHierarchicalMatrix(matrixData, options = {}) {
     return lines;
   };
 
-  // Simple single-line cell format for compact mode
+  /**
+   * Format cell in compact single-line format (unused in current implementation).
+   * @param {Object} cellResult - Cell evaluation result
+   * @param {number} width - Cell width in characters
+   * @returns {string} Formatted cell content
+   */
   const _formatCell = (cellResult, width) => {
     const _statusIcon = { ok: "✓", warn: "⚠", block: "✗" };
 
@@ -11106,7 +11267,12 @@ export function printHierarchicalMatrix(matrixData, options = {}) {
       "┤",
   );
 
-  // Resource compatibility rules
+  /**
+   * Get the compatibility status of a resource type for a given embedding syntax.
+   * @param {string} resourceId - The resource type ID
+   * @param {string} syntaxId - The embedding syntax ID
+   * @returns {string} Status emoji (✅ supported, ⚠️ partial/CORS, ❌ blocked)
+   */
   const getResourceStatus = (resourceId, syntaxId) => {
     // IMG and CSS block external resources and scripts
     if (syntaxId === "img" || syntaxId === "css") {
@@ -11348,7 +11514,15 @@ export function generateCompatibilityMatrixSVG_legacy(
     block: "#F44336",
   };
 
-  // Evaluate cell function (simplified version)
+  /**
+   * Evaluate a cell for the legacy SVG visualization (simplified version).
+   * @param {string} display - Display environment ID
+   * @param {string} load - Load protocol ID
+   * @param {string} storage - Storage type ID
+   * @param {string} syntax - Embedding syntax ID
+   * @param {string} processing - Processing context ID
+   * @returns {Object} Simplified cell evaluation result
+   */
   const evaluateCell = (display, load, storage, syntax, processing) => {
     const result = { browserStatus: {}, funcStatus: {}, overallStatus: "ok" };
 
@@ -11792,8 +11966,21 @@ export function generateCompatibilityMatrixSVG(matrixData, options = {}) {
   // COMPATIBILITY RULES - Human readable descriptions
   // ============================================================================
 
+  /**
+   * Get list of compatibility problems for a specific configuration.
+   * @param {string} envId - Environment ID (desktop, mobile)
+   * @param {string} protoId - Protocol ID (file, http)
+   * @param {string} scriptId - Script context ID (js, nojs)
+   * @param {string} colId - Column/embedding ID (standalone, img, object, embed, inline, css)
+   * @returns {Array<Object>} Array of problem objects with text property
+   */
   const getProblems = (envId, protoId, scriptId, colId) => {
     const problems = [];
+    /**
+     * Add a problem to the problems list.
+     * @param {string} text - Problem description text
+     * @returns {void}
+     */
     const add = (text) => problems.push({ text });
 
     // =========================================================================
@@ -12942,6 +13129,17 @@ export function generateCompatibilityMatrixFlexible(options = {}) {
   });
 }
 
+/**
+ * Fix common SVG validation errors and compatibility issues.
+ * @param {Document|string} doc - SVG document or string to fix
+ * @param {Object} options - Fix options
+ * @param {boolean} [options.fixInvalidGroupAttrs=true] - Remove invalid attributes from group elements
+ * @param {boolean} [options.fixMissingNamespaces=true] - Add missing namespace declarations
+ * @param {boolean} [options.fixBrokenRefs=true] - Fix broken ID references
+ * @param {boolean} [options.fixAnimationTiming=true] - Fix invalid animation timing values
+ * @param {boolean} [options.verbose=false] - Log detailed fix information
+ * @returns {Document} Fixed SVG document
+ */
 export const fixInvalidSVG = createOperation((doc, options = {}) => {
   // Note: createOperation wrapper handles input normalization (string, file path, URL, DOM element)
   const fixInvalidGroupAttrs = options.fixInvalidGroupAttrs !== false;
@@ -17608,6 +17806,8 @@ export async function validateSVGAsync(input, options = {}) {
 /**
  * Format validation result as plain text report
  * @private
+ * @param {Object} result - Validation result object
+ * @returns {string} Formatted text report
  */
 function formatAsText(result) {
   const lines = [
@@ -17655,6 +17855,8 @@ function formatAsText(result) {
 /**
  * Format validation result as YAML (simple implementation, no external deps)
  * @private
+ * @param {Object} result - Validation result object
+ * @returns {string} Formatted YAML report
  */
 function formatAsYaml(result) {
   const lines = [
@@ -17705,6 +17907,8 @@ function formatAsYaml(result) {
 /**
  * Format validation result as XML
  * @private
+ * @param {Object} result - Validation result object
+ * @returns {string} Formatted XML report
  */
 function formatAsXml(result) {
   const escapeXmlLocal = (str) =>
@@ -17763,6 +17967,8 @@ function formatAsXml(result) {
 /**
  * Count total elements in document
  * @private
+ * @param {Element} el - Root element to count from
+ * @returns {number} Total number of elements
  */
 function countElements(el) {
   let count = 1;
@@ -17775,7 +17981,13 @@ function countElements(el) {
 }
 
 /**
- * Complete flattening pipeline
+ * Complete flattening pipeline that resolves all complex SVG features into basic shapes
+ * @param {Document|string} doc - SVG document or string to flatten
+ * @param {Object} options - Flattening options
+ * @param {number} [options.precision=6] - Number precision for coordinates
+ * @param {number} [options.curveSegments=20] - Number of segments for curve approximation
+ * @param {boolean} [options.minify=true] - Minify output
+ * @returns {Promise<Document>} Flattened SVG document
  */
 export const flattenAll = createOperation(async (doc, options = {}) => {
   const svgString = serializeSVG(doc, { minify: options.minify !== false });
@@ -17796,7 +18008,12 @@ export const flattenAll = createOperation(async (doc, options = {}) => {
 });
 
 /**
- * Bezier curve simplification
+ * Bezier curve simplification - optimizes path data while preserving visual appearance
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} options - Simplification options
+ * @param {number} [options.tolerance=0.01] - Simplification tolerance
+ * @param {number} [options.precision=6] - Number precision for coordinates
+ * @returns {Document} SVG document with simplified paths
  */
 export const simplifyPath = createOperation((doc, options = {}) => {
   const _tolerance = options.tolerance || 0.01;
@@ -17828,14 +18045,16 @@ export const simplifyPath = createOperation((doc, options = {}) => {
 /**
  * Optimize animation timing attributes (keySplines, keyTimes, values)
  *
- * Options:
- * - precision: Max decimal places (default: 3)
- * - removeLinearSplines: Convert calcMode="spline" with linear keySplines to calcMode="linear" (default: true)
- * - optimizeValues: Optimize numeric values in animation values attribute (default: true)
- *
  * Example:
  *   keySplines="0.400 0.000 0.200 1.000" -> keySplines=".4 0 .2 1"
  *   calcMode="spline" keySplines="0 0 1 1" -> calcMode="linear" (keySplines removed)
+ *
+ * @param {Document|string} doc - SVG document or string to optimize
+ * @param {Object} options - Optimization options
+ * @param {number} [options.precision=3] - Max decimal places
+ * @param {boolean} [options.removeLinearSplines=true] - Convert calcMode="spline" with linear keySplines to calcMode="linear"
+ * @param {boolean} [options.optimizeValues=true] - Optimize numeric values in animation values attribute
+ * @returns {Document} SVG document with optimized animation timing
  */
 export const optimizeAnimationTiming = createOperation((doc, options = {}) => {
   optimizeDocumentAnimationTiming(doc, {
@@ -18004,6 +18223,9 @@ export const decomposeTransform = createOperation((doc, _options = {}) => {
 
 /**
  * Convert shape element to polygon for collision detection
+ * @param {Element} el - SVG shape element (path, rect, circle, etc.)
+ * @param {number} samples - Number of sample points for curves
+ * @returns {Array<{x: number, y: number}>|null} Array of polygon vertices or null if conversion fails
  */
 function getShapePolygon(el, samples) {
   const tagName = el.tagName.toLowerCase();
@@ -18122,12 +18344,19 @@ const EMBED_MIME_TYPES = {
   ".js": "text/javascript",
 };
 
-// Check if running in Node.js environment
+/**
+ * Check if running in Node.js environment
+ * @returns {boolean} True if running in Node.js
+ */
 function isNodeEnvironment() {
   return typeof process !== "undefined" && process.versions?.node;
 }
 
-// Check if href is external (not #id or data:)
+/**
+ * Check if href is external (not #id or data:)
+ * @param {string} href - The href attribute value to check
+ * @returns {boolean} True if href is external
+ */
 function isExternalHref(href) {
   if (!href || typeof href !== "string") return false;
   if (href.startsWith("#")) return false;
@@ -18135,7 +18364,11 @@ function isExternalHref(href) {
   return true;
 }
 
-// Parse external SVG reference like "icons.svg#arrow" into {path, fragment}
+/**
+ * Parse external SVG reference like "icons.svg#arrow" into {path, fragment}
+ * @param {string} href - The href to parse
+ * @returns {{path: string, fragment: string|null}} Parsed path and fragment
+ */
 function parseExternalSVGRef(href) {
   const hashIdx = href.indexOf("#");
   if (hashIdx === -1) return { path: href, fragment: null };
@@ -18145,13 +18378,22 @@ function parseExternalSVGRef(href) {
   };
 }
 
-// Detect MIME type from file extension
+/**
+ * Detect MIME type from file extension
+ * @param {string} urlOrPath - URL or file path
+ * @returns {string} MIME type string
+ */
 function detectMimeType(urlOrPath) {
   const ext = (urlOrPath.match(/\.[a-z0-9]+$/i) || [""])[0].toLowerCase();
   return EMBED_MIME_TYPES[ext] || "application/octet-stream";
 }
 
-// Resolve relative URL against base path
+/**
+ * Resolve relative URL against base path
+ * @param {string} url - URL to resolve
+ * @param {string} basePath - Base path for resolution
+ * @returns {string} Resolved absolute URL
+ */
 function resolveURL(url, basePath) {
   if (!url) return url;
   // Already absolute URL
