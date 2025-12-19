@@ -1,0 +1,10 @@
+@import url("imported.css");
+
+.icon {
+  background-image: url("../images/test-icon.svg");
+}
+
+@font-face {
+  font-family: 'TestFont';
+  src: local('Arial'), url('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2');
+}

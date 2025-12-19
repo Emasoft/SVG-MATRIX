@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml"
+     width="500" height="400" viewBox="0 0 500 400">
+  <title>SVG 2.0 HTML Elements in SVG</title>
+  <desc>Tests foreignObject with HTML content</desc>
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect x="0" y="0" width="500" height="400" fill="#f0f0f0"/>
+  <!-- SVG content -->
+  <circle cx="400" cy="80" r="50" fill="url(#cardGrad)"/>
+  <!-- foreignObject with HTML form -->
+  <foreignObject x="20" y="20" width="300" height="200">
+    <xhtml:div style="font-family: Arial, sans-serif; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <xhtml:h3 style="margin: 0 0 10px 0; color: #333;">Contact Form</xhtml:h3>
+      <xhtml:input type="text" placeholder="Name" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;"/>
+      <xhtml:input type="email" placeholder="Email" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;"/>
+      <xhtml:button style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Submit</xhtml:button>
+    </xhtml:div>
+  </foreignObject>
+  <!-- foreignObject with video placeholder -->
+  <foreignObject x="20" y="240" width="220" height="140">
+    <xhtml:div style="width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+      <xhtml:span style="color: #fff; font-size: 14px;">Video Player Area</xhtml:span>
+    </xhtml:div>
+  </foreignObject>
+  <!-- foreignObject with canvas placeholder -->
+  <foreignObject x="260" y="240" width="220" height="140">
+    <xhtml:div style="width: 100%; height: 100%; background: linear-gradient(45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+      <xhtml:span style="color: white; font-weight: bold;">Canvas Area</xhtml:span>
+    </xhtml:div>
+  </foreignObject>
+</svg>

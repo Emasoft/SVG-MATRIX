@@ -503,9 +503,9 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
 
     for (const child of patternData.children) {
       // Combine transforms: tile position + content transform + child transform
-      let M = tileTranslate.mul(contentTransform);
+      const M = tileTranslate.mul(contentTransform);
 
-      let polygon = patternChildToPolygon(child, M, samples);
+      const polygon = patternChildToPolygon(child, M, samples);
 
       if (polygon.length >= 3) {
         result.push({

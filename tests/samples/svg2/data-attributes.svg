@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <title>SVG 2.0 Data Attributes</title>
+  <desc>Tests custom data-* attributes on SVG elements</desc>
+  <style>
+    [data-state="active"] { fill: green; }
+    [data-state="inactive"] { fill: gray; }
+    [data-priority="high"] { stroke: red; stroke-width: 3; }
+    [data-priority="low"] { stroke: blue; stroke-width: 1; }
+  </style>
+  <!-- Elements with data attributes -->
+  <rect x="20" y="20" width="100" height="60" data-id="rect1" data-state="active" data-priority="high"/>
+  <rect x="140" y="20" width="100" height="60" data-id="rect2" data-state="inactive" data-priority="low"/>
+  <rect x="260" y="20" width="100" height="60" data-id="rect3" data-state="active" data-priority="low"/>
+  <!-- Complex data attributes -->
+  <circle cx="70" cy="150" r="40" data-type="button" data-action="submit" data-value="1" fill="steelblue"/>
+  <circle cx="200" cy="150" r="40" data-type="button" data-action="cancel" data-value="0" fill="crimson"/>
+  <!-- Data attributes with JSON-like values -->
+  <g data-config='{"x":100,"y":200}' data-enabled="true">
+    <rect x="280" y="110" width="80" height="80" fill="purple"/>
+    <text x="320" y="155" text-anchor="middle" fill="white" font-size="10">Config</text>
+  </g>
+  <!-- Path with data attributes for animation state -->
+  <path d="M 50,250 Q 100,200 150,250 T 250,250"
+        fill="none" stroke="orange" stroke-width="3"
+        data-animation="wave" data-duration="2s" data-easing="ease-in-out"/>
+  <!-- Text with data attributes -->
+  <text x="300" y="250" font-size="14" data-lang="en" data-translation-key="greeting">Hello World</text>
+</svg>

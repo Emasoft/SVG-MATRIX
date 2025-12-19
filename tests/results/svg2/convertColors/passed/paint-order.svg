@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="500" height="300" viewBox="0 0 500 300"><title>SVG 2.0 Paint Order</title><desc>Tests paint-order property to control fill/stroke/markers rendering order</desc><style>.stroke-first {
+      paint-order: stroke fill markers;
+    }
+    .markers-first {
+      paint-order: markers stroke fill;
+    }
+    .normal {
+      paint-order: fill stroke markers;
+    }</style><defs><marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5"><circle cx="5" cy="5" r="4" fill="#ff0"/></marker></defs><text x="50" y="80" font-size="48" font-weight="bold" fill="#00f" stroke="#f00" stroke-width="3" class="normal">Normal</text><text x="50" y="160" font-size="48" font-weight="bold" fill="#00f" stroke="#f00" stroke-width="3" class="stroke-first">Stroke First</text><path d="M 50,220 Q 150,180 250,220 T 450,220" fill="none" stroke="darkgreen" stroke-width="8" marker-start="url(#dot)" marker-mid="url(#dot)" marker-end="url(#dot)" paint-order="markers stroke"/></svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">
+  <style>
+    @import url("../css/styles.css");
+  </style>
+  <use xlink:href="external-symbols.svg#icon-star" x="10" y="10" width="40" height="40"/>
+  <use xlink:href="external-symbols.svg#icon-heart" x="50" y="50" width="40" height="40"/>
+  <image href="../images/test-icon.svg" x="60" y="10" width="30" height="30"/>
+  <script src="../scripts/script.js"></script>
+</svg>

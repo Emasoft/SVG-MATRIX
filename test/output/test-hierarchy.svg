@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 469" preserveAspectRatio="xMinYMin meet" height="469" width="100%">
+  <title>Multi-Level Hierarchy Test</title>
+
+  <defs>
+    <style>
+      .title { font: bold 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #C8E6C9; }
+      .cell-warn { fill: #FFF9C4; }
+      .cell-bad { fill: #FFCDD2; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .cell-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .section-title { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="230" y="24" text-anchor="middle" class="title">Multi-Level Hierarchy Test</text>
+  
+
+  <g transform="translate(25, 55)">
+    <rect x="260" y="0" width="150" height="60" fill="#1565C0" stroke="#DDD"/>
+    <text x="335" y="25" text-anchor="middle" class="col-header">Data</text>
+    <rect x="0" y="60" width="100" height="228" fill="#E3F2FD" stroke="#DDD"/>
+    <text x="50" y="178" text-anchor="middle" class="row-label-bold">Category A</text>
+    <rect x="100" y="60" width="80" height="152" fill="#BBDEFB" stroke="#DDD"/>
+    <text x="140" y="140" text-anchor="middle" class="row-label">Sub A1</text>
+    <rect x="180" y="60" width="80" height="76" fill="#90CAF9" stroke="#DDD"/>
+    <text x="220" y="102" text-anchor="middle" class="row-label">Item X</text>
+    <rect x="260" y="60" width="150" height="76" class="cell-warn" stroke="#DDD"/>
+    <text x="268" y="85" class="cell-text">• Category A</text>
+    <text x="268" y="98" class="cell-text">• Sub A1</text>
+    <text x="268" y="111" class="cell-text">• Item X</text>
+    <rect x="180" y="136" width="80" height="76" fill="#64B5F6" stroke="#DDD"/>
+    <text x="220" y="178" text-anchor="middle" class="row-label">Item Y</text>
+    <rect x="260" y="136" width="150" height="76" class="cell-warn" stroke="#DDD"/>
+    <text x="268" y="161" class="cell-text">• Category A</text>
+    <text x="268" y="174" class="cell-text">• Sub A1</text>
+    <text x="268" y="187" class="cell-text">• Item Y</text>
+    <rect x="100" y="212" width="80" height="76" fill="#BBDEFB" stroke="#DDD"/>
+    <text x="140" y="254" text-anchor="middle" class="row-label">Sub A2</text>
+    <rect x="180" y="212" width="80" height="76" fill="#90CAF9" stroke="#DDD"/>
+    <text x="220" y="254" text-anchor="middle" class="row-label">Item Z</text>
+    <rect x="260" y="212" width="150" height="76" class="cell-warn" stroke="#DDD"/>
+    <text x="268" y="237" class="cell-text">• Category A</text>
+    <text x="268" y="250" class="cell-text">• Sub A2</text>
+    <text x="268" y="263" class="cell-text">• Item Z</text>
+    <line x1="0" y1="288" x2="410" y2="288" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="288" width="100" height="76" fill="#E8F5E9" stroke="#DDD"/>
+    <text x="50" y="330" text-anchor="middle" class="row-label-bold">Category B</text>
+    <rect x="100" y="288" width="80" height="76" fill="#C8E6C9" stroke="#DDD"/>
+    <text x="140" y="330" text-anchor="middle" class="row-label">Sub B1</text>
+    <rect x="180" y="288" width="80" height="76" fill="#A5D6A7" stroke="#DDD"/>
+    <text x="220" y="330" text-anchor="middle" class="row-label">Item W</text>
+    <rect x="260" y="288" width="150" height="76" class="cell-warn" stroke="#DDD"/>
+    <text x="268" y="313" class="cell-text">• Category B</text>
+    <text x="268" y="326" class="cell-text">• Sub B1</text>
+    <text x="268" y="339" class="cell-text">• Item W</text>
+  </g>
+</svg>

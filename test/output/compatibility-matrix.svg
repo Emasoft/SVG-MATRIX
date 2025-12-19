@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1670 2819" preserveAspectRatio="xMinYMin meet" height="2819" width="100%">
+  <title>SVG Compatibility Matrix</title>
+
+  <defs>
+    <style>
+      .title { font: bold 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #C8E6C9; }
+      .cell-warn { fill: #FFF9C4; }
+      .cell-bad { fill: #FFCDD2; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .problem-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-title { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="835" y="24" text-anchor="middle" class="title">SVG Compatibility Matrix</text>
+  <text x="835" y="42" text-anchor="middle" class="subtitle">What problems will your SVG have in each configuration?</text>
+
+  <g transform="translate(25, 55)">
+    <rect x="300" y="0" width="220" height="60" fill="#1565C0" stroke="#1565C0"/>
+    <text x="410" y="25" text-anchor="middle" class="col-header">Standalone SVG</text>
+    <text x="410" y="42" text-anchor="middle" class="col-desc">Open .svg directly</text>
+    <rect x="520" y="0" width="1100" height="25" fill="#0D47A1"/>
+    <text x="1070" y="17" text-anchor="middle" class="col-header">In HTML Page</text>
+    <rect x="520" y="25" width="220" height="35" fill="#1976D2" stroke="#1976D2"/>
+    <text x="630" y="42" text-anchor="middle" class="col-header">&lt;img&gt;</text>
+    <text x="630" y="55" text-anchor="middle" class="col-desc">Image element</text>
+    <rect x="740" y="25" width="220" height="35" fill="#1E88E5" stroke="#1976D2"/>
+    <text x="850" y="42" text-anchor="middle" class="col-header">&lt;object&gt;</text>
+    <text x="850" y="55" text-anchor="middle" class="col-desc">Object element</text>
+    <rect x="960" y="25" width="220" height="35" fill="#2196F3" stroke="#1976D2"/>
+    <text x="1070" y="42" text-anchor="middle" class="col-header">&lt;embed&gt;</text>
+    <text x="1070" y="55" text-anchor="middle" class="col-desc">Embed element</text>
+    <rect x="1180" y="25" width="220" height="35" fill="#42A5F5" stroke="#1976D2"/>
+    <text x="1290" y="42" text-anchor="middle" class="col-header">Inline &lt;svg&gt;</text>
+    <text x="1290" y="55" text-anchor="middle" class="col-desc">SVG in HTML</text>
+    <rect x="1400" y="25" width="220" height="35" fill="#64B5F6" stroke="#1976D2"/>
+    <text x="1510" y="42" text-anchor="middle" class="col-header">CSS background</text>
+    <text x="1510" y="55" text-anchor="middle" class="col-desc">background-image</text>
+    <rect x="0" y="60" width="130" height="672" fill="#E3F2FD" stroke="#999"/>
+    <text x="65" y="400" text-anchor="middle" class="row-label-bold">Desktop Browser</text>
+    <rect x="130" y="60" width="80" height="336" fill="#BBDEFB" stroke="#CCC"/>
+    <text x="170" y="232" text-anchor="middle" class="row-label">file://</text>
+    <rect x="210" y="60" width="90" height="168" fill="#DCEDC8" stroke="#DDD"/>
+    <text x="255" y="148" text-anchor="middle" class="row-label">JS enabled</text>
+    <rect x="300" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="76" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="308" y="89" class="problem-text">• No remote images (Chrome)</text>
+    <text x="308" y="102" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="308" y="115" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="308" y="128" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="308" y="141" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="308" y="154" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="520" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="76" class="problem-text">• No scripts</text>
+    <text x="528" y="89" class="problem-text">• No events</text>
+    <text x="528" y="102" class="problem-text">• No audio/video</text>
+    <text x="528" y="115" class="problem-text">• No links</text>
+    <text x="528" y="128" class="problem-text">• No foreignObject</text>
+    <text x="528" y="141" class="problem-text">• No external resources</text>
+    <rect x="740" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="76" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="748" y="89" class="problem-text">• No remote images (Chrome)</text>
+    <text x="748" y="102" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="748" y="115" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="128" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="748" y="141" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="748" y="154" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="748" y="167" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="960" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="76" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="968" y="89" class="problem-text">• No remote images (Chrome)</text>
+    <text x="968" y="102" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="968" y="115" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="128" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="968" y="141" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="968" y="154" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="968" y="167" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="1180" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="76" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="1188" y="89" class="problem-text">• No remote images (Chrome)</text>
+    <text x="1188" y="102" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="1188" y="115" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="1188" y="128" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="1188" y="141" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="1188" y="154" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="1400" y="60" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="76" class="problem-text">• No scripts</text>
+    <text x="1408" y="89" class="problem-text">• No events</text>
+    <text x="1408" y="102" class="problem-text">• No audio/video</text>
+    <text x="1408" y="115" class="problem-text">• No links</text>
+    <text x="1408" y="128" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="141" class="problem-text">• No external resources</text>
+    <rect x="210" y="228" width="90" height="168" fill="#FFCDD2" stroke="#DDD"/>
+    <text x="255" y="316" text-anchor="middle" class="row-label">JS disabled</text>
+    <rect x="300" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="244" class="problem-text">• No scripts</text>
+    <text x="308" y="257" class="problem-text">• No event handlers</text>
+    <text x="308" y="270" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="308" y="283" class="problem-text">• No remote images (Chrome)</text>
+    <text x="308" y="296" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="308" y="309" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="308" y="322" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="520" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="244" class="problem-text">• No scripts</text>
+    <text x="528" y="257" class="problem-text">• No events</text>
+    <text x="528" y="270" class="problem-text">• No audio/video</text>
+    <text x="528" y="283" class="problem-text">• No links</text>
+    <text x="528" y="296" class="problem-text">• No foreignObject</text>
+    <text x="528" y="309" class="problem-text">• No external resources</text>
+    <rect x="740" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="244" class="problem-text">• No scripts</text>
+    <text x="748" y="257" class="problem-text">• No event handlers</text>
+    <text x="748" y="270" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="748" y="283" class="problem-text">• No remote images (Chrome)</text>
+    <text x="748" y="296" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="748" y="309" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="322" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="748" y="335" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="960" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="244" class="problem-text">• No scripts</text>
+    <text x="968" y="257" class="problem-text">• No event handlers</text>
+    <text x="968" y="270" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="968" y="283" class="problem-text">• No remote images (Chrome)</text>
+    <text x="968" y="296" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="968" y="309" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="322" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="968" y="335" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="1180" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="244" class="problem-text">• No scripts</text>
+    <text x="1188" y="257" class="problem-text">• No event handlers</text>
+    <text x="1188" y="270" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="1188" y="283" class="problem-text">• No remote images (Chrome)</text>
+    <text x="1188" y="296" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="1188" y="309" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="1188" y="322" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="1400" y="228" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="244" class="problem-text">• No scripts</text>
+    <text x="1408" y="257" class="problem-text">• No events</text>
+    <text x="1408" y="270" class="problem-text">• No audio/video</text>
+    <text x="1408" y="283" class="problem-text">• No links</text>
+    <text x="1408" y="296" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="309" class="problem-text">• No external resources</text>
+    <rect x="130" y="396" width="80" height="336" fill="#C8E6C9" stroke="#CCC"/>
+    <text x="170" y="568" text-anchor="middle" class="row-label">http(s)://</text>
+    <rect x="210" y="396" width="90" height="168" fill="#DCEDC8" stroke="#DDD"/>
+    <text x="255" y="484" text-anchor="middle" class="row-label">JS enabled</text>
+    <rect x="300" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="412" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="308" y="425" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="308" y="438" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="308" y="451" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="520" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="412" class="problem-text">• No scripts</text>
+    <text x="528" y="425" class="problem-text">• No events</text>
+    <text x="528" y="438" class="problem-text">• No audio/video</text>
+    <text x="528" y="451" class="problem-text">• No links</text>
+    <text x="528" y="464" class="problem-text">• No foreignObject</text>
+    <text x="528" y="477" class="problem-text">• No external resources</text>
+    <rect x="740" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="412" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="425" class="problem-text">• No cross-origin script access</text>
+    <text x="748" y="438" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="748" y="451" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="748" y="464" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="748" y="477" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="960" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="412" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="425" class="problem-text">• No cross-origin script access</text>
+    <text x="968" y="438" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="968" y="451" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="968" y="464" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="968" y="477" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="1180" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="412" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="1188" y="425" class="problem-text">• No CSS variables (IE11 only)</text>
+    <text x="1188" y="438" class="problem-text">• Audio: blocked until user click/tap event</text>
+    <text x="1188" y="451" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <rect x="1400" y="396" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="412" class="problem-text">• No scripts</text>
+    <text x="1408" y="425" class="problem-text">• No events</text>
+    <text x="1408" y="438" class="problem-text">• No audio/video</text>
+    <text x="1408" y="451" class="problem-text">• No links</text>
+    <text x="1408" y="464" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="477" class="problem-text">• No external resources</text>
+    <rect x="210" y="564" width="90" height="168" fill="#FFCDD2" stroke="#DDD"/>
+    <text x="255" y="652" text-anchor="middle" class="row-label">JS disabled</text>
+    <rect x="300" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="580" class="problem-text">• No scripts</text>
+    <text x="308" y="593" class="problem-text">• No event handlers</text>
+    <text x="308" y="606" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="308" y="619" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="520" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="580" class="problem-text">• No scripts</text>
+    <text x="528" y="593" class="problem-text">• No events</text>
+    <text x="528" y="606" class="problem-text">• No audio/video</text>
+    <text x="528" y="619" class="problem-text">• No links</text>
+    <text x="528" y="632" class="problem-text">• No foreignObject</text>
+    <text x="528" y="645" class="problem-text">• No external resources</text>
+    <rect x="740" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="580" class="problem-text">• No scripts</text>
+    <text x="748" y="593" class="problem-text">• No event handlers</text>
+    <text x="748" y="606" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="619" class="problem-text">• No cross-origin script access</text>
+    <text x="748" y="632" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="748" y="645" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="960" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="580" class="problem-text">• No scripts</text>
+    <text x="968" y="593" class="problem-text">• No event handlers</text>
+    <text x="968" y="606" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="619" class="problem-text">• No cross-origin script access</text>
+    <text x="968" y="632" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="968" y="645" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="1180" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="580" class="problem-text">• No scripts</text>
+    <text x="1188" y="593" class="problem-text">• No event handlers</text>
+    <text x="1188" y="606" class="problem-text">• No SMIL (IE11 only)</text>
+    <text x="1188" y="619" class="problem-text">• No CSS variables (IE11 only)</text>
+    <rect x="1400" y="564" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="580" class="problem-text">• No scripts</text>
+    <text x="1408" y="593" class="problem-text">• No events</text>
+    <text x="1408" y="606" class="problem-text">• No audio/video</text>
+    <text x="1408" y="619" class="problem-text">• No links</text>
+    <text x="1408" y="632" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="645" class="problem-text">• No external resources</text>
+    <line x1="0" y1="732" x2="1620" y2="732" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="732" width="130" height="672" fill="#E8F5E9" stroke="#999"/>
+    <text x="65" y="1072" text-anchor="middle" class="row-label-bold">Mobile Browser</text>
+    <rect x="130" y="732" width="80" height="336" fill="#BBDEFB" stroke="#CCC"/>
+    <text x="170" y="904" text-anchor="middle" class="row-label">file://</text>
+    <rect x="210" y="732" width="90" height="168" fill="#DCEDC8" stroke="#DDD"/>
+    <text x="255" y="820" text-anchor="middle" class="row-label">JS enabled</text>
+    <rect x="300" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="748" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="308" y="761" class="problem-text">• No remote images (Chrome)</text>
+    <text x="308" y="774" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="308" y="787" class="problem-text">• No hover/mouseover events</text>
+    <text x="308" y="800" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="308" y="813" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="308" y="826" class="problem-text">• Video autoplay blocked</text>
+    <rect x="520" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="748" class="problem-text">• No scripts</text>
+    <text x="528" y="761" class="problem-text">• No events</text>
+    <text x="528" y="774" class="problem-text">• No audio/video</text>
+    <text x="528" y="787" class="problem-text">• No links</text>
+    <text x="528" y="800" class="problem-text">• No foreignObject</text>
+    <text x="528" y="813" class="problem-text">• No external resources</text>
+    <rect x="740" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="748" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="748" y="761" class="problem-text">• No remote images (Chrome)</text>
+    <text x="748" y="774" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="748" y="787" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="800" class="problem-text">• No hover/mouseover events</text>
+    <text x="748" y="813" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="748" y="826" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="748" y="839" class="problem-text">• Video autoplay blocked</text>
+    <rect x="960" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="748" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="968" y="761" class="problem-text">• No remote images (Chrome)</text>
+    <text x="968" y="774" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="968" y="787" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="800" class="problem-text">• No hover/mouseover events</text>
+    <text x="968" y="813" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="968" y="826" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="968" y="839" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1180" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="748" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="1188" y="761" class="problem-text">• No remote images (Chrome)</text>
+    <text x="1188" y="774" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="1188" y="787" class="problem-text">• No hover/mouseover events</text>
+    <text x="1188" y="800" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="1188" y="813" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="1188" y="826" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1400" y="732" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="748" class="problem-text">• No scripts</text>
+    <text x="1408" y="761" class="problem-text">• No events</text>
+    <text x="1408" y="774" class="problem-text">• No audio/video</text>
+    <text x="1408" y="787" class="problem-text">• No links</text>
+    <text x="1408" y="800" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="813" class="problem-text">• No external resources</text>
+    <rect x="210" y="900" width="90" height="168" fill="#FFCDD2" stroke="#DDD"/>
+    <text x="255" y="988" text-anchor="middle" class="row-label">JS disabled</text>
+    <rect x="300" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="916" class="problem-text">• No scripts</text>
+    <text x="308" y="929" class="problem-text">• No event handlers</text>
+    <text x="308" y="942" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="308" y="955" class="problem-text">• No remote images (Chrome)</text>
+    <text x="308" y="968" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="308" y="981" class="problem-text">• No hover/mouseover events</text>
+    <text x="308" y="994" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="308" y="1007" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="308" y="1020" class="problem-text">• Video autoplay blocked</text>
+    <rect x="520" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="916" class="problem-text">• No scripts</text>
+    <text x="528" y="929" class="problem-text">• No events</text>
+    <text x="528" y="942" class="problem-text">• No audio/video</text>
+    <text x="528" y="955" class="problem-text">• No links</text>
+    <text x="528" y="968" class="problem-text">• No foreignObject</text>
+    <text x="528" y="981" class="problem-text">• No external resources</text>
+    <rect x="740" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="916" class="problem-text">• No scripts</text>
+    <text x="748" y="929" class="problem-text">• No event handlers</text>
+    <text x="748" y="942" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="748" y="955" class="problem-text">• No remote images (Chrome)</text>
+    <text x="748" y="968" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="748" y="981" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="994" class="problem-text">• No hover/mouseover events</text>
+    <text x="748" y="1007" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="748" y="1020" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="748" y="1033" class="problem-text">• Video autoplay blocked</text>
+    <rect x="960" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="916" class="problem-text">• No scripts</text>
+    <text x="968" y="929" class="problem-text">• No event handlers</text>
+    <text x="968" y="942" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="968" y="955" class="problem-text">• No remote images (Chrome)</text>
+    <text x="968" y="968" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="968" y="981" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="994" class="problem-text">• No hover/mouseover events</text>
+    <text x="968" y="1007" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="968" y="1020" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="968" y="1033" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1180" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="916" class="problem-text">• No scripts</text>
+    <text x="1188" y="929" class="problem-text">• No event handlers</text>
+    <text x="1188" y="942" class="problem-text">• No remote fonts (Chrome, Safari)</text>
+    <text x="1188" y="955" class="problem-text">• No remote images (Chrome)</text>
+    <text x="1188" y="968" class="problem-text">• No fetch/XHR to remote URLs</text>
+    <text x="1188" y="981" class="problem-text">• No hover/mouseover events</text>
+    <text x="1188" y="994" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="1188" y="1007" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="1188" y="1020" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1400" y="900" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="916" class="problem-text">• No scripts</text>
+    <text x="1408" y="929" class="problem-text">• No events</text>
+    <text x="1408" y="942" class="problem-text">• No audio/video</text>
+    <text x="1408" y="955" class="problem-text">• No links</text>
+    <text x="1408" y="968" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="981" class="problem-text">• No external resources</text>
+    <rect x="130" y="1068" width="80" height="336" fill="#C8E6C9" stroke="#CCC"/>
+    <text x="170" y="1240" text-anchor="middle" class="row-label">http(s)://</text>
+    <rect x="210" y="1068" width="90" height="168" fill="#DCEDC8" stroke="#DDD"/>
+    <text x="255" y="1156" text-anchor="middle" class="row-label">JS enabled</text>
+    <rect x="300" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="1084" class="problem-text">• No hover/mouseover events</text>
+    <text x="308" y="1097" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="308" y="1110" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="308" y="1123" class="problem-text">• Video autoplay blocked</text>
+    <rect x="520" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="1084" class="problem-text">• No scripts</text>
+    <text x="528" y="1097" class="problem-text">• No events</text>
+    <text x="528" y="1110" class="problem-text">• No audio/video</text>
+    <text x="528" y="1123" class="problem-text">• No links</text>
+    <text x="528" y="1136" class="problem-text">• No foreignObject</text>
+    <text x="528" y="1149" class="problem-text">• No external resources</text>
+    <rect x="740" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="1084" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="1097" class="problem-text">• No cross-origin script access</text>
+    <text x="748" y="1110" class="problem-text">• No hover/mouseover events</text>
+    <text x="748" y="1123" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="748" y="1136" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="748" y="1149" class="problem-text">• Video autoplay blocked</text>
+    <rect x="960" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="1084" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="1097" class="problem-text">• No cross-origin script access</text>
+    <text x="968" y="1110" class="problem-text">• No hover/mouseover events</text>
+    <text x="968" y="1123" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="968" y="1136" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="968" y="1149" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1180" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="1084" class="problem-text">• No hover/mouseover events</text>
+    <text x="1188" y="1097" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="1188" y="1110" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="1188" y="1123" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1400" y="1068" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="1084" class="problem-text">• No scripts</text>
+    <text x="1408" y="1097" class="problem-text">• No events</text>
+    <text x="1408" y="1110" class="problem-text">• No audio/video</text>
+    <text x="1408" y="1123" class="problem-text">• No links</text>
+    <text x="1408" y="1136" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="1149" class="problem-text">• No external resources</text>
+    <rect x="210" y="1236" width="90" height="168" fill="#FFCDD2" stroke="#DDD"/>
+    <text x="255" y="1324" text-anchor="middle" class="row-label">JS disabled</text>
+    <rect x="300" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="308" y="1252" class="problem-text">• No scripts</text>
+    <text x="308" y="1265" class="problem-text">• No event handlers</text>
+    <text x="308" y="1278" class="problem-text">• No hover/mouseover events</text>
+    <text x="308" y="1291" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="308" y="1304" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="308" y="1317" class="problem-text">• Video autoplay blocked</text>
+    <rect x="520" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="528" y="1252" class="problem-text">• No scripts</text>
+    <text x="528" y="1265" class="problem-text">• No events</text>
+    <text x="528" y="1278" class="problem-text">• No audio/video</text>
+    <text x="528" y="1291" class="problem-text">• No links</text>
+    <text x="528" y="1304" class="problem-text">• No foreignObject</text>
+    <text x="528" y="1317" class="problem-text">• No external resources</text>
+    <rect x="740" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="748" y="1252" class="problem-text">• No scripts</text>
+    <text x="748" y="1265" class="problem-text">• No event handlers</text>
+    <text x="748" y="1278" class="problem-text">• No event bubbling to parent</text>
+    <text x="748" y="1291" class="problem-text">• No cross-origin script access</text>
+    <text x="748" y="1304" class="problem-text">• No hover/mouseover events</text>
+    <text x="748" y="1317" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="748" y="1330" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="748" y="1343" class="problem-text">• Video autoplay blocked</text>
+    <rect x="960" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="968" y="1252" class="problem-text">• No scripts</text>
+    <text x="968" y="1265" class="problem-text">• No event handlers</text>
+    <text x="968" y="1278" class="problem-text">• No event bubbling to parent</text>
+    <text x="968" y="1291" class="problem-text">• No cross-origin script access</text>
+    <text x="968" y="1304" class="problem-text">• No hover/mouseover events</text>
+    <text x="968" y="1317" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="968" y="1330" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="968" y="1343" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1180" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1188" y="1252" class="problem-text">• No scripts</text>
+    <text x="1188" y="1265" class="problem-text">• No event handlers</text>
+    <text x="1188" y="1278" class="problem-text">• No hover/mouseover events</text>
+    <text x="1188" y="1291" class="problem-text">• Audio: blocked until user tap event</text>
+    <text x="1188" y="1304" class="problem-text">• Audio: once blocked, won&apos;t auto-retry</text>
+    <text x="1188" y="1317" class="problem-text">• Video autoplay blocked</text>
+    <rect x="1400" y="1236" width="220" height="168" class="cell-bad" stroke="#DDD"/>
+    <text x="1408" y="1252" class="problem-text">• No scripts</text>
+    <text x="1408" y="1265" class="problem-text">• No events</text>
+    <text x="1408" y="1278" class="problem-text">• No audio/video</text>
+    <text x="1408" y="1291" class="problem-text">• No links</text>
+    <text x="1408" y="1304" class="problem-text">• No foreignObject</text>
+    <text x="1408" y="1317" class="problem-text">• No external resources</text>
+    <line x1="0" y1="1404" x2="1620" y2="1404" stroke="#999" stroke-width="2"/>
+
+    <text x="0" y="1444" class="legend-title">SERVER-SIDE SVG RENDERERS (no HTML embedding)</text>
+    <rect x="0" y="1464" width="150" height="26" fill="#FFF3E0" stroke="#999"/>
+    <text x="10" y="1482" class="row-label-bold">Node.js (JSDOM)</text>
+    <text x="160" y="1482" class="problem-text">No rendering • No animations • No interaction</text>
+    <rect x="0" y="1494" width="150" height="26" fill="#EFEBE9" stroke="#999"/>
+    <text x="10" y="1512" class="row-label-bold">ImageMagick</text>
+    <text x="160" y="1512" class="problem-text">No animations • No scripts • No foreignObject • No web fonts</text>
+    <rect x="0" y="1524" width="150" height="26" fill="#F3E5F5" stroke="#999"/>
+    <text x="10" y="1542" class="row-label-bold">Inkscape CLI</text>
+    <text x="160" y="1542" class="problem-text">No animations • No scripts</text>
+    <rect x="0" y="1554" width="150" height="26" fill="#E0F2F1" stroke="#999"/>
+    <text x="10" y="1572" class="row-label-bold">librsvg</text>
+    <text x="160" y="1572" class="problem-text">No animations • No scripts • Limited filters</text>
+    <rect x="0" y="1584" width="150" height="26" fill="#FBE9E7" stroke="#999"/>
+    <text x="10" y="1602" class="row-label-bold">Cairo</text>
+    <text x="160" y="1602" class="problem-text">No animations • No scripts • No filters • No foreignObject</text>
+    <rect x="0" y="1614" width="150" height="26" fill="#F3E5F5" stroke="#999"/>
+    <text x="10" y="1632" class="row-label-bold">Apache Batik</text>
+    <text x="160" y="1632" class="problem-text">No CSS animations • Limited SMIL • No web fonts</text>
+
+    <g transform="translate(0, 1694)">
+      <text x="0" y="0" class="legend-title">LEGEND</text>
+
+      <rect x="0" y="15" width="18" height="14" class="cell-ok" stroke="#4CAF50"/>
+      <text x="24" y="26" class="legend-text">No issues - full SVG support</text>
+
+      <rect x="200" y="15" width="18" height="14" class="cell-warn" stroke="#FFC107"/>
+      <text x="224" y="26" class="legend-text">Some limitations - check details</text>
+
+      <rect x="450" y="15" width="18" height="14" class="cell-bad" stroke="#F44336"/>
+      <text x="474" y="26" class="legend-text">Many restrictions - features blocked</text>
+
+      <text x="0" y="55" class="legend-title">HOW TO READ THIS MATRIX</text>
+      <text x="0" y="73" class="legend-text">1. COLUMNS = How the SVG is embedded (Standalone, img tag, object tag, embed tag, inline, CSS background)</text>
+      <text x="0" y="89" class="legend-text">2. ROWS = Environment (Desktop/Mobile) + Protocol (file:// or http://) + JavaScript (enabled/disabled)</text>
+      <text x="0" y="105" class="legend-text">3. CELL CONTENT = Issues in that configuration. Browser names in parentheses = browser-specific issue.</text>
+
+      <text x="0" y="135" class="legend-title">SMIL "begin" ATTRIBUTE - HOW TO TRIGGER ANIMATIONS</text>
+      <text x="0" y="153" class="legend-text">The begin attribute defines when an animation becomes active. Use it on: &lt;animate&gt;, &lt;animateMotion&gt;, &lt;animateTransform&gt;, &lt;set&gt;</text>
+      <text x="0" y="169" class="legend-text">Values can be semicolon-separated. Each value can be one of:</text>
+
+      <text x="0" y="189" class="legend-text" style="font-weight:bold">&lt;offset-value&gt;</text>
+      <text x="140" y="189" class="legend-text">Clock-value relative to document load. Example: begin="2s" (start 2 seconds after load)</text>
+
+      <text x="0" y="205" class="legend-text" style="font-weight:bold">&lt;syncbase-value&gt;</text>
+      <text x="140" y="205" class="legend-text">Sync with another animation. Example: begin="anim1.end" or begin="anim1.begin+1s"</text>
+
+      <text x="0" y="221" class="legend-text" style="font-weight:bold">&lt;event-value&gt;</text>
+      <text x="140" y="221" class="legend-text">Start on DOM event. Example: begin="click" or begin="myRect.click" or begin="mouseover"</text>
+
+      <text x="0" y="237" class="legend-text" style="font-weight:bold">&lt;repeat-value&gt;</text>
+      <text x="140" y="237" class="legend-text">Start when another animation repeats. Example: begin="anim1.repeat(2)"</text>
+
+      <text x="0" y="253" class="legend-text" style="font-weight:bold">&lt;accessKey-value&gt;</text>
+      <text x="140" y="253" class="legend-text">Start on keypress. Example: begin="accessKey(s)" (start when 's' key is pressed)</text>
+
+      <text x="0" y="269" class="legend-text" style="font-weight:bold">indefinite</text>
+      <text x="140" y="269" class="legend-text">Only starts via JavaScript beginElement() call or hyperlink. Example: begin="indefinite"</text>
+
+      <text x="0" y="295" class="legend-title">EVENTS THAT SATISFY USER ACTIVATION (allow audio/video playback)</text>
+      <text x="0" y="313" class="legend-text" style="fill:#2E7D32">click - YES, allows audio. Direct user click/tap.</text>
+      <text x="0" y="329" class="legend-text" style="fill:#2E7D32">dblclick - YES, allows audio. Direct user double-click.</text>
+      <text x="0" y="345" class="legend-text" style="fill:#2E7D32">mousedown - YES, allows audio. User pressed mouse button.</text>
+      <text x="0" y="361" class="legend-text" style="fill:#2E7D32">mouseup - YES, allows audio. User released mouse button.</text>
+      <text x="0" y="377" class="legend-text" style="fill:#2E7D32">keydown - YES, allows audio. User pressed a key.</text>
+      <text x="0" y="393" class="legend-text" style="fill:#2E7D32">keyup - YES, allows audio. User released a key.</text>
+      <text x="0" y="409" class="legend-text" style="fill:#2E7D32">touchstart - YES, allows audio. User touched screen (mobile).</text>
+      <text x="0" y="425" class="legend-text" style="fill:#2E7D32">touchend - YES, allows audio. User lifted finger (mobile).</text>
+
+      <text x="0" y="455" class="legend-title">EVENTS THAT DO NOT SATISFY USER ACTIVATION (audio will fail)</text>
+      <text x="0" y="473" class="legend-text" style="fill:#C62828">mouseover, mouseout, mouseenter, mouseleave - NO, passive cursor movement.</text>
+      <text x="0" y="489" class="legend-text" style="fill:#C62828">mousemove - NO, passive cursor tracking.</text>
+      <text x="0" y="505" class="legend-text" style="fill:#C62828">scroll, wheel - NO, passive scrolling.</text>
+      <text x="0" y="521" class="legend-text" style="fill:#C62828">focus, blur, focusin, focusout - NO, can be triggered programmatically.</text>
+      <text x="0" y="537" class="legend-text" style="fill:#C62828">load - NO, programmatic document event.</text>
+      <text x="0" y="553" class="legend-text" style="fill:#C62828">DOMActivate - DEPRECATED, behavior varies. Do not use.</text>
+      <text x="0" y="569" class="legend-text" style="fill:#C62828">beginEvent, endEvent, repeatEvent - NO, SMIL internal events.</text>
+
+      <text x="0" y="599" class="legend-title">AUDIO AUTOPLAY BLOCKING - CRITICAL</text>
+      <text x="0" y="617" class="legend-text">If audio.play() is called WITHOUT prior user activation, it FAILS silently and will NOT auto-retry.</text>
+      <text x="0" y="633" class="legend-text">SMIL animations START IMMEDIATELY regardless of audio failure - they are NOT synchronized.</text>
+      <text x="0" y="649" class="legend-text">To play audio with animation: BOTH must use begin="elementId.click" (or other activation event).</text>
+
+      <text x="0" y="679" class="legend-title">EVENT SYNTAX: begin="event" vs begin="elementId.event"</text>
+      <text x="0" y="697" class="legend-text" style="font-weight:bold">begin="click"</text>
+      <text x="140" y="697" class="legend-text">Listens for click ON THE ANIMATION'S PARENT ELEMENT (the element being animated).</text>
+      <text x="140" y="713" class="legend-text">The user must click directly on the animated shape. If shape is small/invisible, hard to trigger.</text>
+
+      <text x="0" y="737" class="legend-text" style="font-weight:bold">begin="myBtn.click"</text>
+      <text x="140" y="737" class="legend-text">Listens for click ON THE ELEMENT WITH id="myBtn" (any element in the SVG).</text>
+      <text x="140" y="753" class="legend-text">Create a dedicated button/area for the user to click. Multiple animations can share the same trigger.</text>
+
+      <text x="0" y="777" class="legend-title">CLICK ANYWHERE ON SVG (recommended for audio)</text>
+      <text x="0" y="795" class="legend-text">To trigger animation/audio when user clicks ANYWHERE on the SVG, use the SVG root element id directly:</text>
+      <text x="0" y="815" class="legend-text" style="font-family:monospace;font-size:9px">&lt;svg id="mySvg" viewBox="0 0 800 600"&gt;</text>
+      <text x="0" y="831" class="legend-text" style="font-family:monospace;font-size:9px">  &lt;circle&gt;&lt;animate begin="mySvg.click" .../&gt;&lt;/circle&gt;</text>
+      <text x="0" y="847" class="legend-text" style="font-family:monospace;font-size:9px">  &lt;audio&gt;&lt;animate attributeName="..." begin="mySvg.click" .../&gt;&lt;/audio&gt;</text>
+      <text x="0" y="863" class="legend-text" style="font-family:monospace;font-size:9px">&lt;/svg&gt;</text>
+      <text x="0" y="883" class="legend-text">The SVG root element receives all click events that occur anywhere within the SVG viewport.</text>
+      <text x="0" y="899" class="legend-text">No transparent rect needed - the SVG document root itself can be the trigger element.</text>
+
+      <text x="0" y="929" class="legend-title">BEST PRACTICE FOR AUDIO+ANIMATION</text>
+      <text x="0" y="947" class="legend-text">1. Add an id attribute to the &lt;svg&gt; root element (e.g., id="mySvg")</text>
+      <text x="0" y="963" class="legend-text">2. Set ALL animations AND audio to begin="mySvg.click"</text>
+      <text x="0" y="979" class="legend-text">3. User clicks anywhere on SVG → user activation satisfied → audio plays → animations start</text>
+      <text x="0" y="995" class="legend-text">4. All animations and audio are synchronized because they share the same trigger event</text>
+    </g>
+  </g>
+</svg>

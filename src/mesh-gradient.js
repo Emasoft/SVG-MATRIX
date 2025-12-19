@@ -7,14 +7,14 @@
  * @module mesh-gradient
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as PolygonClip from './polygon-clip.js';
+import Decimal from "decimal.js";
+import { Matrix as _Matrix } from "./matrix.js";
+import * as _Transforms2D from "./transforms2d.js";
+import * as PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Default samples per patch edge for rasterization
 const DEFAULT_PATCH_SAMPLES = 16;
@@ -66,7 +66,12 @@ export function point(x, y) {
  * const blue = color(0, 0, 255, 128);
  */
 export function color(r, g, b, a = 255) {
-  return { r: Math.round(r), g: Math.round(g), b: Math.round(b), a: Math.round(a) };
+  return {
+    r: Math.round(r),
+    g: Math.round(g),
+    b: Math.round(b),
+    a: Math.round(a),
+  };
 }
 
 /**
@@ -103,14 +108,16 @@ export function parseColor(colorStr, opacity = 1) {
   if (!colorStr) return color(0, 0, 0, 255);
 
   // Handle rgb() and rgba()
-  const rgbMatch = colorStr.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i);
+  const rgbMatch = colorStr.match(
+    /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i,
+  );
   if (rgbMatch) {
     const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) * 255 : 255;
     return color(
-      parseInt(rgbMatch[1]),
-      parseInt(rgbMatch[2]),
-      parseInt(rgbMatch[3]),
-      a * opacity
+      parseInt(rgbMatch[1], 10),
+      parseInt(rgbMatch[2], 10),
+      parseInt(rgbMatch[3], 10),
+      a * opacity,
     );
   }
 
@@ -123,30 +130,36 @@ export function parseColor(colorStr, opacity = 1) {
         parseInt(hex[0] + hex[0], 16),
         parseInt(hex[1] + hex[1], 16),
         parseInt(hex[2] + hex[2], 16),
-        255 * opacity
+        255 * opacity,
       );
     } else if (hex.length === 6) {
       return color(
         parseInt(hex.slice(0, 2), 16),
         parseInt(hex.slice(2, 4), 16),
         parseInt(hex.slice(4, 6), 16),
-        255 * opacity
+        255 * opacity,
       );
     } else if (hex.length === 8) {
       return color(
         parseInt(hex.slice(0, 2), 16),
         parseInt(hex.slice(2, 4), 16),
         parseInt(hex.slice(4, 6), 16),
-        parseInt(hex.slice(6, 8), 16) * opacity
+        parseInt(hex.slice(6, 8), 16) * opacity,
       );
     }
   }
 
   // Named colors (subset for common ones)
   const namedColors = {
-    black: [0, 0, 0], white: [255, 255, 255], red: [255, 0, 0],
-    green: [0, 128, 0], blue: [0, 0, 255], yellow: [255, 255, 0],
-    cyan: [0, 255, 255], magenta: [255, 0, 255], transparent: [0, 0, 0, 0]
+    black: [0, 0, 0],
+    white: [255, 255, 255],
+    red: [255, 0, 0],
+    green: [0, 128, 0],
+    blue: [0, 0, 255],
+    yellow: [255, 255, 0],
+    cyan: [0, 255, 255],
+    magenta: [255, 0, 255],
+    transparent: [0, 0, 0, 0],
   };
   const named = namedColors[colorStr.toLowerCase()];
   if (named) {
@@ -192,7 +205,7 @@ export function lerpColor(c1, c2, t) {
     c1.r * mt + c2.r * tNum,
     c1.g * mt + c2.g * tNum,
     c1.b * mt + c2.b * tNum,
-    c1.a * mt + c2.a * tNum
+    c1.a * mt + c2.a * tNum,
   );
 }
 
@@ -231,10 +244,22 @@ export function bilinearColor(c00, c10, c01, c11, u, v) {
   const mv = 1 - vNum;
 
   return color(
-    mu * mv * c00.r + uNum * mv * c10.r + mu * vNum * c01.r + uNum * vNum * c11.r,
-    mu * mv * c00.g + uNum * mv * c10.g + mu * vNum * c01.g + uNum * vNum * c11.g,
-    mu * mv * c00.b + uNum * mv * c10.b + mu * vNum * c01.b + uNum * vNum * c11.b,
-    mu * mv * c00.a + uNum * mv * c10.a + mu * vNum * c01.a + uNum * vNum * c11.a
+    mu * mv * c00.r +
+      uNum * mv * c10.r +
+      mu * vNum * c01.r +
+      uNum * vNum * c11.r,
+    mu * mv * c00.g +
+      uNum * mv * c10.g +
+      mu * vNum * c01.g +
+      uNum * vNum * c11.g,
+    mu * mv * c00.b +
+      uNum * mv * c10.b +
+      mu * vNum * c01.b +
+      uNum * vNum * c11.b,
+    mu * mv * c00.a +
+      uNum * mv * c10.a +
+      mu * vNum * c01.a +
+      uNum * vNum * c11.a,
   );
 }
 
@@ -284,10 +309,16 @@ export function evalCubicBezier(p0, p1, p2, p3, t) {
   const t3 = t2.mul(t);
 
   return {
-    x: mt3.mul(p0.x).plus(D(3).mul(mt2).mul(t).mul(p1.x))
-       .plus(D(3).mul(mt).mul(t2).mul(p2.x)).plus(t3.mul(p3.x)),
-    y: mt3.mul(p0.y).plus(D(3).mul(mt2).mul(t).mul(p1.y))
-       .plus(D(3).mul(mt).mul(t2).mul(p2.y)).plus(t3.mul(p3.y))
+    x: mt3
+      .mul(p0.x)
+      .plus(D(3).mul(mt2).mul(t).mul(p1.x))
+      .plus(D(3).mul(mt).mul(t2).mul(p2.x))
+      .plus(t3.mul(p3.x)),
+    y: mt3
+      .mul(p0.y)
+      .plus(D(3).mul(mt2).mul(t).mul(p1.y))
+      .plus(D(3).mul(mt).mul(t2).mul(p2.y))
+      .plus(t3.mul(p3.y)),
   };
 }
 
@@ -332,7 +363,7 @@ export function splitBezier(curve) {
   // De Casteljau subdivision at t=0.5
   const mid = (a, b) => ({
     x: a.x.plus(b.x).div(2),
-    y: a.y.plus(b.y).div(2)
+    y: a.y.plus(b.y).div(2),
   });
 
   const q0 = p0;
@@ -345,7 +376,10 @@ export function splitBezier(curve) {
   const r2 = mid(p2, p3);
   const r3 = p3;
 
-  return [[q0, q1, q2, q3], [r0, r1, r2, r3]];
+  return [
+    [q0, q1, q2, q3],
+    [r0, r1, r2, r3],
+  ];
 }
 
 // ============================================================================
@@ -449,10 +483,10 @@ export class CoonsPatch {
    */
   evaluate(u, v) {
     // Boundary curves
-    const Lc = evalCubicBezier(...this.top, u);      // L_c(u,0)
-    const Ld = evalCubicBezier(...this.bottom, u);   // L_d(u,1)
-    const La = evalCubicBezier(...this.left, v);     // L_a(0,v)
-    const Lb = evalCubicBezier(...this.right, v);    // L_b(1,v)
+    const Lc = evalCubicBezier(...this.top, u); // L_c(u,0)
+    const Ld = evalCubicBezier(...this.bottom, u); // L_d(u,1)
+    const La = evalCubicBezier(...this.left, v); // L_a(0,v)
+    const Lb = evalCubicBezier(...this.right, v); // L_b(1,v)
 
     // Corner points
     const P00 = this.top[0];
@@ -474,11 +508,15 @@ export class CoonsPatch {
     const Sd_y = mu.mul(La.y).plus(u.mul(Lb.y));
 
     // Bilinear interpolation of corners
-    const B_x = mu.mul(mv).mul(P00.x)
+    const B_x = mu
+      .mul(mv)
+      .mul(P00.x)
       .plus(u.mul(mv).mul(P10.x))
       .plus(mu.mul(v).mul(P01.x))
       .plus(u.mul(v).mul(P11.x));
-    const B_y = mu.mul(mv).mul(P00.y)
+    const B_y = mu
+      .mul(mv)
+      .mul(P00.y)
       .plus(u.mul(mv).mul(P10.y))
       .plus(mu.mul(v).mul(P01.y))
       .plus(u.mul(v).mul(P11.y));
@@ -486,14 +524,17 @@ export class CoonsPatch {
     // Coons formula: Sc + Sd - B
     const pt = {
       x: Sc_x.plus(Sd_x).minus(B_x),
-      y: Sc_y.plus(Sd_y).minus(B_y)
+      y: Sc_y.plus(Sd_y).minus(B_y),
     };
 
     // Color interpolation (bilinear)
     const col = bilinearColor(
-      this.colors[0][0], this.colors[0][1],
-      this.colors[1][0], this.colors[1][1],
-      u, v
+      this.colors[0][0],
+      this.colors[0][1],
+      this.colors[1][0],
+      this.colors[1][1],
+      u,
+      v,
     );
 
     return { point: pt, color: col };
@@ -550,7 +591,12 @@ export class CoonsPatch {
     const midH = [midLeft.point, midLeft.point, center.point, center.point];
     const midH2 = [center.point, center.point, midRight.point, midRight.point];
     const midV = [midTop.point, midTop.point, center.point, center.point];
-    const midV2 = [center.point, center.point, midBottom.point, midBottom.point];
+    const midV2 = [
+      center.point,
+      center.point,
+      midBottom.point,
+      midBottom.point,
+    ];
 
     // Colors at subdivided corners
     const c00 = this.colors[0][0];
@@ -565,13 +611,25 @@ export class CoonsPatch {
 
     return [
       // Top-left
-      new CoonsPatch(topL, midV, midH, leftT, [[c00, cTop], [cLeft, cMid]]),
+      new CoonsPatch(topL, midV, midH, leftT, [
+        [c00, cTop],
+        [cLeft, cMid],
+      ]),
       // Top-right
-      new CoonsPatch(topR, rightT, midH2, midV, [[cTop, c10], [cMid, cRight]]),
+      new CoonsPatch(topR, rightT, midH2, midV, [
+        [cTop, c10],
+        [cMid, cRight],
+      ]),
       // Bottom-left
-      new CoonsPatch(midH, midV2, bottomL, leftB, [[cLeft, cMid], [c01, cBottom]]),
+      new CoonsPatch(midH, midV2, bottomL, leftB, [
+        [cLeft, cMid],
+        [c01, cBottom],
+      ]),
       // Bottom-right
-      new CoonsPatch(midH2, rightB, bottomR, midV2, [[cMid, cRight], [cBottom, c11]])
+      new CoonsPatch(midH2, rightB, bottomR, midV2, [
+        [cMid, cRight],
+        [cBottom, c11],
+      ]),
     ];
   }
 
@@ -614,15 +672,27 @@ export class CoonsPatch {
       const len2 = dx.mul(dx).plus(dy.mul(dy));
       if (len2.lt(1e-10)) return true;
 
-      const dist1 = dx.mul(p1.y.minus(p0.y)).minus(dy.mul(p1.x.minus(p0.x))).abs();
-      const dist2 = dx.mul(p2.y.minus(p0.y)).minus(dy.mul(p2.x.minus(p0.x))).abs();
+      const dist1 = dx
+        .mul(p1.y.minus(p0.y))
+        .minus(dy.mul(p1.x.minus(p0.x)))
+        .abs();
+      const dist2 = dx
+        .mul(p2.y.minus(p0.y))
+        .minus(dy.mul(p2.x.minus(p0.x)))
+        .abs();
 
-      return dist1.div(len2.sqrt()).lt(SUBDIVISION_THRESHOLD) &&
-             dist2.div(len2.sqrt()).lt(SUBDIVISION_THRESHOLD);
+      return (
+        dist1.div(len2.sqrt()).lt(SUBDIVISION_THRESHOLD) &&
+        dist2.div(len2.sqrt()).lt(SUBDIVISION_THRESHOLD)
+      );
     };
 
-    return curveFlat(this.top) && curveFlat(this.right) &&
-           curveFlat(this.bottom) && curveFlat(this.left);
+    return (
+      curveFlat(this.top) &&
+      curveFlat(this.right) &&
+      curveFlat(this.bottom) &&
+      curveFlat(this.left)
+    );
   }
 
   /**
@@ -647,9 +717,16 @@ export class CoonsPatch {
    *                 bbox.maxY >= 0 && bbox.minY <= viewportHeight;
    */
   getBBox() {
-    const allPoints = [...this.top, ...this.right, ...this.bottom, ...this.left];
-    let minX = allPoints[0].x, maxX = allPoints[0].x;
-    let minY = allPoints[0].y, maxY = allPoints[0].y;
+    const allPoints = [
+      ...this.top,
+      ...this.right,
+      ...this.bottom,
+      ...this.left,
+    ];
+    let minX = allPoints[0].x,
+      maxX = allPoints[0].x;
+    let minY = allPoints[0].y,
+      maxY = allPoints[0].y;
 
     for (const p of allPoints) {
       if (p.x.lt(minX)) minX = p.x;
@@ -722,8 +799,8 @@ export class CoonsPatch {
 export function parseMeshGradient(meshGradientDef) {
   const x = D(meshGradientDef.x || 0);
   const y = D(meshGradientDef.y || 0);
-  const type = meshGradientDef.type || 'bilinear';
-  const gradientUnits = meshGradientDef.gradientUnits || 'userSpaceOnUse';
+  const type = meshGradientDef.type || "bilinear";
+  const gradientUnits = meshGradientDef.gradientUnits || "userSpaceOnUse";
   const gradientTransform = meshGradientDef.gradientTransform || null;
 
   const patches = [];
@@ -734,8 +811,8 @@ export function parseMeshGradient(meshGradientDef) {
   const nodes = [[point(x, y)]];
   const colors = [[]];
 
-  let currentX = x;
-  let currentY = y;
+  const _currentX = x;
+  const _currentY = y;
 
   for (let rowIdx = 0; rowIdx < meshRows.length; rowIdx++) {
     const row = meshRows[rowIdx];
@@ -753,23 +830,28 @@ export function parseMeshGradient(meshGradientDef) {
       // Each patch has up to 4 stops defining edges
       for (let stopIdx = 0; stopIdx < stops.length; stopIdx++) {
         const stop = stops[stopIdx];
-        const pathData = stop.path || '';
-        const stopColor = stop.color ? parseColor(stop.color, stop.opacity || 1) : null;
+        const pathData = stop.path || "";
+        const stopColor = stop.color
+          ? parseColor(stop.color, stop.opacity || 1)
+          : null;
 
         // Parse path command (c/C/l/L for bezier/line)
         const pathMatch = pathData.match(/^\s*([cClL])\s*(.*)/);
         if (pathMatch) {
           const cmd = pathMatch[1];
-          const coords = pathMatch[2].trim().split(/[\s,]+/).map(Number);
+          const _coords = pathMatch[2]
+            .trim()
+            .split(/[\s,]+/)
+            .map(Number);
 
-          if (cmd === 'c' || cmd === 'C') {
+          if (cmd === "c" || cmd === "C") {
             // Cubic bezier: c x1,y1 x2,y2 x3,y3 (relative)
             // or C x1,y1 x2,y2 x3,y3 (absolute)
-            const isRelative = cmd === 'c';
+            const _isRelative = cmd === "c";
             // Store bezier control points for patch construction
-          } else if (cmd === 'l' || cmd === 'L') {
+          } else if (cmd === "l" || cmd === "L") {
             // Line: l dx,dy (relative) or L x,y (absolute)
-            const isRelative = cmd === 'l';
+            const _isRelative = cmd === "l";
           }
         }
 
@@ -787,7 +869,7 @@ export function parseMeshGradient(meshGradientDef) {
     gradientUnits,
     gradientTransform,
     x: Number(x),
-    y: Number(y)
+    y: Number(y),
   };
 }
 
@@ -822,32 +904,32 @@ export function parseMeshGradient(meshGradientDef) {
  */
 export function parseMeshGradientElement(element) {
   const data = {
-    x: element.getAttribute('x') || '0',
-    y: element.getAttribute('y') || '0',
-    type: element.getAttribute('type') || 'bilinear',
-    gradientUnits: element.getAttribute('gradientUnits') || 'userSpaceOnUse',
-    gradientTransform: element.getAttribute('gradientTransform'),
-    meshrows: []
+    x: element.getAttribute("x") || "0",
+    y: element.getAttribute("y") || "0",
+    type: element.getAttribute("type") || "bilinear",
+    gradientUnits: element.getAttribute("gradientUnits") || "userSpaceOnUse",
+    gradientTransform: element.getAttribute("gradientTransform"),
+    meshrows: [],
   };
 
-  const meshRows = element.querySelectorAll('meshrow');
-  meshRows.forEach(row => {
+  const meshRows = element.querySelectorAll("meshrow");
+  meshRows.forEach((row) => {
     const rowData = { meshpatches: [] };
-    const meshPatches = row.querySelectorAll('meshpatch');
+    const meshPatches = row.querySelectorAll("meshpatch");
 
-    meshPatches.forEach(patch => {
+    meshPatches.forEach((patch) => {
       const patchData = { stops: [] };
-      const stops = patch.querySelectorAll('stop');
+      const stops = patch.querySelectorAll("stop");
 
-      stops.forEach(stop => {
-        const style = stop.getAttribute('style') || '';
+      stops.forEach((stop) => {
+        const style = stop.getAttribute("style") || "";
         const colorMatch = style.match(/stop-color:\s*([^;]+)/);
         const opacityMatch = style.match(/stop-opacity:\s*([^;]+)/);
 
         patchData.stops.push({
-          path: stop.getAttribute('path') || '',
+          path: stop.getAttribute("path") || "",
           color: colorMatch ? colorMatch[1].trim() : null,
-          opacity: opacityMatch ? parseFloat(opacityMatch[1]) : 1
+          opacity: opacityMatch ? parseFloat(opacityMatch[1]) : 1,
         });
       });
 
@@ -975,22 +1057,31 @@ function renderPatchQuad(patch, imageData, width, height) {
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       // Convert pixel to patch (u,v) coordinates
-      const u = D(x).minus(bbox.minX).div(bbox.maxX.minus(bbox.minX) || D(1));
-      const v = D(y).minus(bbox.minY).div(bbox.maxY.minus(bbox.minY) || D(1));
+      const u = D(x)
+        .minus(bbox.minX)
+        .div(bbox.maxX.minus(bbox.minX) || D(1));
+      const v = D(y)
+        .minus(bbox.minY)
+        .div(bbox.maxY.minus(bbox.minY) || D(1));
 
       if (u.gte(0) && u.lte(1) && v.gte(0) && v.lte(1)) {
-        const { color } = patch.evaluate(u, v);
+        const { color: patchColor } = patch.evaluate(u, v);
         const idx = (y * width + x) * 4;
 
         // Alpha blending
-        const srcA = color.a / 255;
+        const srcA = patchColor.a / 255;
         const dstA = imageData[idx + 3] / 255;
         const outA = srcA + dstA * (1 - srcA);
 
         if (outA > 0) {
-          imageData[idx] = (color.r * srcA + imageData[idx] * dstA * (1 - srcA)) / outA;
-          imageData[idx + 1] = (color.g * srcA + imageData[idx + 1] * dstA * (1 - srcA)) / outA;
-          imageData[idx + 2] = (color.b * srcA + imageData[idx + 2] * dstA * (1 - srcA)) / outA;
+          imageData[idx] =
+            (patchColor.r * srcA + imageData[idx] * dstA * (1 - srcA)) / outA;
+          imageData[idx + 1] =
+            (patchColor.g * srcA + imageData[idx + 1] * dstA * (1 - srcA)) /
+            outA;
+          imageData[idx + 2] =
+            (patchColor.b * srcA + imageData[idx + 2] * dstA * (1 - srcA)) /
+            outA;
           imageData[idx + 3] = outA * 255;
         }
       }
@@ -1082,7 +1173,7 @@ function patchToPolygons(patch, subdivisions) {
         r: (p00.color.r + p10.color.r + p01.color.r + p11.color.r) / 4,
         g: (p00.color.g + p10.color.g + p01.color.g + p11.color.g) / 4,
         b: (p00.color.b + p10.color.b + p01.color.b + p11.color.b) / 4,
-        a: (p00.color.a + p10.color.a + p01.color.a + p11.color.a) / 4
+        a: (p00.color.a + p10.color.a + p01.color.a + p11.color.a) / 4,
       };
 
       result.push({
@@ -1090,9 +1181,9 @@ function patchToPolygons(patch, subdivisions) {
           PolygonClip.point(p00.point.x, p00.point.y),
           PolygonClip.point(p10.point.x, p10.point.y),
           PolygonClip.point(p11.point.x, p11.point.y),
-          PolygonClip.point(p01.point.x, p01.point.y)
+          PolygonClip.point(p01.point.x, p01.point.y),
         ],
-        color: avgColor
+        color: avgColor,
       });
     }
   }
@@ -1151,12 +1242,12 @@ export function clipMeshGradient(meshData, clipPolygon, options = {}) {
   // Clip each polygon
   const clippedPolygons = [];
 
-  for (const { polygon, color } of meshPolygons) {
+  for (const { polygon, color: polyColor } of meshPolygons) {
     const clipped = PolygonClip.polygonIntersection(polygon, clipPolygon);
 
     for (const clippedPoly of clipped) {
       if (clippedPoly.length >= 3) {
-        clippedPolygons.push({ polygon: clippedPoly, color });
+        clippedPolygons.push({ polygon: clippedPoly, color: polyColor });
       }
     }
   }
@@ -1196,8 +1287,8 @@ export function clipMeshGradient(meshData, clipPolygon, options = {}) {
  * ).join('\n');
  */
 export function clippedMeshToSVG(clippedPolygons) {
-  return clippedPolygons.map(({ polygon, color }) => {
-    let pathData = '';
+  return clippedPolygons.map(({ polygon, color: polyColor }) => {
+    let pathData = "";
     for (let i = 0; i < polygon.length; i++) {
       const p = polygon[i];
       if (i === 0) {
@@ -1206,9 +1297,9 @@ export function clippedMeshToSVG(clippedPolygons) {
         pathData += ` L ${Number(p.x).toFixed(6)} ${Number(p.y).toFixed(6)}`;
       }
     }
-    pathData += ' Z';
+    pathData += " Z";
 
-    const fill = `rgba(${Math.round(color.r)},${Math.round(color.g)},${Math.round(color.b)},${(color.a / 255).toFixed(3)})`;
+    const fill = `rgba(${Math.round(polyColor.r)},${Math.round(polyColor.g)},${Math.round(polyColor.b)},${(polyColor.a / 255).toFixed(3)})`;
 
     return { pathData, fill };
   });

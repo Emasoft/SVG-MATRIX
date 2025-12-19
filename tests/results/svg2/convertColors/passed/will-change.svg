@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><title>SVG 2.0 Will-Change Optimization</title><desc>Tests will-change CSS property for GPU acceleration hints</desc><style>.animated-transform {
+      will-change: transform;
+      animation: spin 4s linear infinite;
+    }
+    .animated-opacity {
+      will-change: opacity;
+      animation: fade 2s ease-in-out infinite alternate;
+    }
+    .animated-contents {
+      will-change: contents;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fade {
+      from { opacity: 1; }
+      to { opacity: 0.3; }
+    }</style><g transform="translate(100, 100)"><rect x="-40" y="-40" width="80" height="80" fill="crimson" class="animated-transform"/></g><circle cx="250" cy="100" r="40" fill="dodgerblue" class="animated-opacity"/><g class="animated-contents" transform="translate(100, 220)"><rect x="0" y="0" width="200" height="50" fill="forestgreen" rx="10"/><text x="100" y="30" text-anchor="middle" fill="#fff" font-size="14">Dynamic content</text></g></svg>

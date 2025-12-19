@@ -31,9 +31,9 @@
  * @module svg-flatten
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
 
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
@@ -69,11 +69,14 @@ Decimal.set({ precision: 80 });
  * // Shows region from (-50,-50) to (150,150) in user space
  */
 export function parseViewBox(viewBoxStr) {
-  if (!viewBoxStr || viewBoxStr.trim() === '') {
+  if (!viewBoxStr || viewBoxStr.trim() === "") {
     return null;
   }
 
-  const parts = viewBoxStr.trim().split(/[\s,]+/).map(s => new Decimal(s));
+  const parts = viewBoxStr
+    .trim()
+    .split(/[\s,]+/)
+    .map((s) => new Decimal(s));
   if (parts.length !== 4) {
     console.warn(`Invalid viewBox: ${viewBoxStr}`);
     return null;
@@ -83,7 +86,7 @@ export function parseViewBox(viewBoxStr) {
     minX: parts[0],
     minY: parts[1],
     width: parts[2],
-    height: parts[3]
+    height: parts[3],
   };
 }
 
@@ -123,11 +126,11 @@ export function parseViewBox(viewBoxStr) {
 export function parsePreserveAspectRatio(parStr) {
   const result = {
     defer: false,
-    align: 'xMidYMid',  // default
-    meetOrSlice: 'meet' // default
+    align: "xMidYMid", // default
+    meetOrSlice: "meet", // default
   };
 
-  if (!parStr || parStr.trim() === '') {
+  if (!parStr || parStr.trim() === "") {
     return result;
   }
 
@@ -135,7 +138,7 @@ export function parsePreserveAspectRatio(parStr) {
   let idx = 0;
 
   // Check for 'defer' (only applies to <image>)
-  if (parts[idx] === 'defer') {
+  if (parts[idx] === "defer") {
     result.defer = true;
     idx++;
   }
@@ -206,8 +209,13 @@ export function parsePreserveAspectRatio(parStr) {
  * const matrix = computeViewBoxTransform(vb, 800, 400, par);
  * // Uniform scale of 8 (max(800/100, 400/100)), centered, top/bottom cropped
  */
-export function computeViewBoxTransform(viewBox, viewportWidth, viewportHeight, par = null) {
-  const D = x => new Decimal(x);
+export function computeViewBoxTransform(
+  viewBox,
+  viewportWidth,
+  viewportHeight,
+  par = null,
+) {
+  const D = (x) => new Decimal(x);
 
   if (!viewBox) {
     return Matrix.identity(3);
@@ -221,12 +229,10 @@ export function computeViewBoxTransform(viewBox, viewportWidth, viewportHeight, 
   const vpH = D(viewportHeight);
 
   // Default preserveAspectRatio
-  if (!par) {
-    par = { align: 'xMidYMid', meetOrSlice: 'meet' };
-  }
+  const parValue = par || { align: "xMidYMid", meetOrSlice: "meet" };
 
   // Handle 'none' - stretch to fill
-  if (par.align === 'none') {
+  if (parValue.align === "none") {
     const scaleX = vpW.div(vbW);
     const scaleY = vpH.div(vbH);
     // translate(-minX, -minY) then scale
@@ -236,11 +242,11 @@ export function computeViewBoxTransform(viewBox, viewportWidth, viewportHeight, 
   }
 
   // Compute uniform scale factor
-  let scaleX = vpW.div(vbW);
-  let scaleY = vpH.div(vbH);
+  const scaleX = vpW.div(vbW);
+  const scaleY = vpH.div(vbH);
   let scale;
 
-  if (par.meetOrSlice === 'slice') {
+  if (parValue.meetOrSlice === "slice") {
     // Use larger scale (content may overflow)
     scale = Decimal.max(scaleX, scaleY);
   } else {
@@ -256,20 +262,20 @@ export function computeViewBoxTransform(viewBox, viewportWidth, viewportHeight, 
   let translateY = D(0);
 
   // Parse alignment string (e.g., 'xMidYMid', 'xMinYMax')
-  const align = par.align;
+  const align = parValue.align;
 
   // X alignment
-  if (align.includes('xMid')) {
+  if (align.includes("xMid")) {
     translateX = vpW.minus(scaledW).div(2);
-  } else if (align.includes('xMax')) {
+  } else if (align.includes("xMax")) {
     translateX = vpW.minus(scaledW);
   }
   // xMin is default (translateX = 0)
 
   // Y alignment
-  if (align.includes('YMid')) {
+  if (align.includes("YMid")) {
     translateY = vpH.minus(scaledH).div(2);
-  } else if (align.includes('YMax')) {
+  } else if (align.includes("YMax")) {
     translateY = vpH.minus(scaledH);
   }
   // YMin is default (translateY = 0)
@@ -327,7 +333,13 @@ export class SVGViewport {
    *   "rotate(45 50 25)"
    * );
    */
-  constructor(width, height, viewBox = null, preserveAspectRatio = null, transform = null) {
+  constructor(
+    width,
+    height,
+    viewBox = null,
+    preserveAspectRatio = null,
+    transform = null,
+  ) {
     this.width = new Decimal(width);
     this.height = new Decimal(height);
     this.viewBox = viewBox ? parseViewBox(viewBox) : null;
@@ -361,7 +373,7 @@ export class SVGViewport {
         this.viewBox,
         this.width,
         this.height,
-        this.preserveAspectRatio
+        this.preserveAspectRatio,
       );
       result = result.mul(vbTransform);
     }
@@ -429,23 +441,23 @@ export function buildFullCTM(hierarchy) {
   let ctm = Matrix.identity(3);
 
   for (const item of hierarchy) {
-    if (typeof item === 'string') {
+    if (typeof item === "string") {
       // Backwards compatibility: treat string as transform attribute
       if (item) {
         const matrix = parseTransformAttribute(item);
         ctm = ctm.mul(matrix);
       }
-    } else if (item.type === 'svg') {
+    } else if (item.type === "svg") {
       // SVG viewport with potential viewBox
       const viewport = new SVGViewport(
         item.width,
         item.height,
         item.viewBox || null,
         item.preserveAspectRatio || null,
-        item.transform || null
+        item.transform || null,
       );
       ctm = ctm.mul(viewport.getTransformMatrix());
-    } else if (item.type === 'g' || item.type === 'element') {
+    } else if (item.type === "g" || item.type === "element") {
       // Group or element with optional transform
       if (item.transform) {
         const matrix = parseTransformAttribute(item.transform);
@@ -506,16 +518,16 @@ export function buildFullCTM(hierarchy) {
  * // Returns: Decimal(32)  // 2 × 16px
  */
 export function resolveLength(value, referenceSize, dpi = 96) {
-  const D = x => new Decimal(x);
+  const D = (x) => new Decimal(x);
 
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return D(value);
   }
 
   const str = String(value).trim();
 
   // Percentage
-  if (str.endsWith('%')) {
+  if (str.endsWith("%")) {
     const pct = D(str.slice(0, -1));
     return pct.div(100).mul(referenceSize);
   }
@@ -527,26 +539,26 @@ export function resolveLength(value, referenceSize, dpi = 96) {
   }
 
   const num = D(match[1]);
-  const unit = (match[2] || '').toLowerCase().trim();
+  const unit = (match[2] || "").toLowerCase().trim();
 
   // Convert to user units (px)
   switch (unit) {
-    case '':
-    case 'px':
+    case "":
+    case "px":
       return num;
-    case 'em':
+    case "em":
       return num.mul(16); // Assume 16px font-size
-    case 'rem':
+    case "rem":
       return num.mul(16);
-    case 'pt':
+    case "pt":
       return num.mul(dpi).div(72);
-    case 'pc':
+    case "pc":
       return num.mul(dpi).div(6);
-    case 'in':
+    case "in":
       return num.mul(dpi);
-    case 'cm':
+    case "cm":
       return num.mul(dpi).div(2.54);
-    case 'mm':
+    case "mm":
       return num.mul(dpi).div(25.4);
     default:
       return num; // Unknown unit, treat as px
@@ -563,10 +575,15 @@ export function resolveLength(value, referenceSize, dpi = 96) {
  * @param {Decimal} viewportHeight - Viewport height for reference
  * @returns {{x: Decimal, y: Decimal}} Resolved coordinates
  */
-export function resolvePercentages(xOrWidth, yOrHeight, viewportWidth, viewportHeight) {
+export function resolvePercentages(
+  xOrWidth,
+  yOrHeight,
+  viewportWidth,
+  viewportHeight,
+) {
   return {
     x: resolveLength(xOrWidth, viewportWidth),
-    y: resolveLength(yOrHeight, viewportHeight)
+    y: resolveLength(yOrHeight, viewportHeight),
   };
 }
 
@@ -641,8 +658,13 @@ export function normalizedDiagonal(width, height) {
  * const transform = objectBoundingBoxTransform(bbox.x, bbox.y, bbox.width, bbox.height);
  * // Gradient with x1="0" y1="0" x2="1" y2="1" spans from (0,0) to (100,100)
  */
-export function objectBoundingBoxTransform(bboxX, bboxY, bboxWidth, bboxHeight) {
-  const D = x => new Decimal(x);
+export function objectBoundingBoxTransform(
+  bboxX,
+  bboxY,
+  bboxWidth,
+  bboxHeight,
+) {
+  const _D = (x) => new Decimal(x);
   // Transform: scale(bboxWidth, bboxHeight) then translate(bboxX, bboxY)
   const scaleM = Transforms2D.scale(bboxWidth, bboxHeight);
   const translateM = Transforms2D.translation(bboxX, bboxY);
@@ -708,20 +730,27 @@ export function circleToPath(cx, cy, r) {
  * // Equivalent to circleToPath(50, 50, 25)
  */
 export function ellipseToPath(cx, cy, rx, ry) {
-  const D = x => new Decimal(x);
-  const cxD = D(cx), cyD = D(cy), rxD = D(rx), ryD = D(ry);
+  const D = (x) => new Decimal(x);
+  const cxD = D(cx),
+    cyD = D(cy),
+    rxD = D(rx),
+    ryD = D(ry);
 
   // Kappa for bezier approximation of circle/ellipse: 4 * (sqrt(2) - 1) / 3
-  const kappa = D('0.5522847498307936');
+  const kappa = D("0.5522847498307936");
   const kx = rxD.mul(kappa);
   const ky = ryD.mul(kappa);
 
   // Four bezier curves forming the ellipse
   // Start at (cx + rx, cy) and go counterclockwise
-  const x1 = cxD.plus(rxD), y1 = cyD;
-  const x2 = cxD, y2 = cyD.minus(ryD);
-  const x3 = cxD.minus(rxD), y3 = cyD;
-  const x4 = cxD, y4 = cyD.plus(ryD);
+  const x1 = cxD.plus(rxD),
+    y1 = cyD;
+  const x2 = cxD,
+    y2 = cyD.minus(ryD);
+  const x3 = cxD.minus(rxD),
+    y3 = cyD;
+  const x4 = cxD,
+    y4 = cyD.plus(ryD);
 
   return [
     `M ${x1.toFixed(6)} ${y1.toFixed(6)}`,
@@ -729,8 +758,8 @@ export function ellipseToPath(cx, cy, rx, ry) {
     `C ${x2.minus(kx).toFixed(6)} ${y2.toFixed(6)} ${x3.toFixed(6)} ${y3.minus(ky).toFixed(6)} ${x3.toFixed(6)} ${y3.toFixed(6)}`,
     `C ${x3.toFixed(6)} ${y3.plus(ky).toFixed(6)} ${x4.minus(kx).toFixed(6)} ${y4.toFixed(6)} ${x4.toFixed(6)} ${y4.toFixed(6)}`,
     `C ${x4.plus(kx).toFixed(6)} ${y4.toFixed(6)} ${x1.toFixed(6)} ${y1.plus(ky).toFixed(6)} ${x1.toFixed(6)} ${y1.toFixed(6)}`,
-    'Z'
-  ].join(' ');
+    "Z",
+  ].join(" ");
 }
 
 /**
@@ -776,8 +805,11 @@ export function ellipseToPath(cx, cy, rx, ry) {
  * // rx is clamped to 10 (half of 20)
  */
 export function rectToPath(x, y, width, height, rx = 0, ry = null) {
-  const D = n => new Decimal(n);
-  const xD = D(x), yD = D(y), wD = D(width), hD = D(height);
+  const D = (n) => new Decimal(n);
+  const xD = D(x),
+    yD = D(y),
+    wD = D(width),
+    hD = D(height);
   let rxD = D(rx);
   let ryD = ry !== null ? D(ry) : rxD;
 
@@ -796,8 +828,8 @@ export function rectToPath(x, y, width, height, rx = 0, ry = null) {
       `L ${xD.plus(wD).toFixed(6)} ${yD.toFixed(6)}`,
       `L ${xD.plus(wD).toFixed(6)} ${yD.plus(hD).toFixed(6)}`,
       `L ${xD.toFixed(6)} ${yD.plus(hD).toFixed(6)}`,
-      'Z'
-    ].join(' ');
+      "Z",
+    ].join(" ");
   }
 
   // Rounded rectangle using arcs
@@ -810,8 +842,8 @@ export function rectToPath(x, y, width, height, rx = 0, ry = null) {
     `L ${xD.plus(rxD).toFixed(6)} ${yD.plus(hD).toFixed(6)}`,
     `A ${rxD.toFixed(6)} ${ryD.toFixed(6)} 0 0 1 ${xD.toFixed(6)} ${yD.plus(hD).minus(ryD).toFixed(6)}`,
     `L ${xD.toFixed(6)} ${yD.plus(ryD).toFixed(6)}`,
-    `A ${rxD.toFixed(6)} ${ryD.toFixed(6)} 0 0 1 ${xD.plus(rxD).toFixed(6)} ${yD.toFixed(6)}`
-  ].join(' ');
+    `A ${rxD.toFixed(6)} ${ryD.toFixed(6)} 0 0 1 ${xD.plus(rxD).toFixed(6)} ${yD.toFixed(6)}`,
+  ].join(" ");
 }
 
 /**
@@ -824,7 +856,7 @@ export function rectToPath(x, y, width, height, rx = 0, ry = null) {
  * @returns {string} Path data string
  */
 export function lineToPath(x1, y1, x2, y2) {
-  const D = n => new Decimal(n);
+  const D = (n) => new Decimal(n);
   return `M ${D(x1).toFixed(6)} ${D(y1).toFixed(6)} L ${D(x2).toFixed(6)} ${D(y2).toFixed(6)}`;
 }
 
@@ -856,12 +888,12 @@ export function lineToPath(x1, y1, x2, y2) {
  */
 export function polygonToPath(points) {
   const pairs = parsePointPairs(points);
-  if (pairs.length === 0) return '';
+  if (pairs.length === 0) return "";
   let d = `M ${pairs[0][0]} ${pairs[0][1]}`;
   for (let i = 1; i < pairs.length; i++) {
     d += ` L ${pairs[i][0]} ${pairs[i][1]}`;
   }
-  return d + ' Z';
+  return d + " Z";
 }
 
 /**
@@ -889,7 +921,7 @@ export function polygonToPath(points) {
  */
 export function polylineToPath(points) {
   const pairs = parsePointPairs(points);
-  if (pairs.length === 0) return '';
+  if (pairs.length === 0) return "";
   let d = `M ${pairs[0][0]} ${pairs[0][1]}`;
   for (let i = 1; i < pairs.length; i++) {
     d += ` L ${pairs[i][0]} ${pairs[i][1]}`;
@@ -916,9 +948,12 @@ export function polylineToPath(points) {
 function parsePointPairs(points) {
   let coords;
   if (Array.isArray(points)) {
-    coords = points.flat().map(n => new Decimal(n).toFixed(6));
+    coords = points.flat().map((n) => new Decimal(n).toFixed(6));
   } else {
-    coords = points.trim().split(/[\s,]+/).map(s => new Decimal(s).toFixed(6));
+    coords = points
+      .trim()
+      .split(/[\s,]+/)
+      .map((s) => new Decimal(s).toFixed(6));
   }
   const pairs = [];
   for (let i = 0; i < coords.length - 1; i += 2) {
@@ -999,9 +1034,18 @@ function parsePointPairs(points) {
  * const arc = transformArc(10, 10, 0, 0, 1, 100, 0, matrix);
  * // Result: sweepFlag flipped from 1 to 0 (direction reversed)
  */
-export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, y, matrix) {
-  const D = n => new Decimal(n);
-  const NEAR_ZERO = D('1e-16');
+export function transformArc(
+  rx,
+  ry,
+  xAxisRotation,
+  largeArcFlag,
+  sweepFlag,
+  x,
+  y,
+  matrix,
+) {
+  const D = (n) => new Decimal(n);
+  const NEAR_ZERO = D("1e-16");
 
   // Get matrix components
   const a = matrix.data[0][0];
@@ -1012,7 +1056,8 @@ export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, 
   const f = matrix.data[1][2];
 
   // Transform the endpoint
-  const xD = D(x), yD = D(y);
+  const xD = D(x),
+    yD = D(y);
   const newX = a.mul(xD).plus(c.mul(yD)).plus(e);
   const newY = b.mul(xD).plus(d.mul(yD)).plus(f);
 
@@ -1021,7 +1066,8 @@ export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, 
   const sinRot = Decimal.sin(rotRad);
   const cosRot = Decimal.cos(rotRad);
 
-  const rxD = D(rx), ryD = D(ry);
+  const rxD = D(rx),
+    ryD = D(ry);
 
   // Transform the ellipse axes using the algorithm from lean-svg
   // m0, m1 represent the transformed X-axis direction of the ellipse
@@ -1049,12 +1095,14 @@ export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, 
     C2 = C;
   } else if (AC.abs().lt(NEAR_ZERO)) {
     // 45 degree case
-    A2 = A.plus(B.mul('0.5'));
-    C2 = A.minus(B.mul('0.5'));
+    A2 = A.plus(B.mul("0.5"));
+    C2 = A.minus(B.mul("0.5"));
     newRotRad = D(Math.PI).div(4);
   } else {
     // General case - compute eigenvalues
-    const K = D(1).plus(B.mul(B).div(AC.mul(AC))).sqrt();
+    const K = D(1)
+      .plus(B.mul(B).div(AC.mul(AC)))
+      .sqrt();
     A2 = A.plus(C).plus(K.mul(AC)).div(2);
     C2 = A.plus(C).minus(K.mul(AC)).div(2);
     newRotRad = Decimal.atan(B.div(AC)).div(2);
@@ -1102,7 +1150,7 @@ export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, 
     largeArcFlag: largeArcFlag,
     sweepFlag: newSweepFlag,
     x: newX.toNumber(),
-    y: newY.toNumber()
+    y: newY.toNumber(),
   };
 }
 
@@ -1162,22 +1210,22 @@ export function transformArc(rx, ry, xAxisRotation, largeArcFlag, sweepFlag, x, 
  * // Translation by (50, 50) specified in matrix form
  */
 export function parseTransformFunction(func, args) {
-  const D = x => new Decimal(x);
+  const D = (x) => new Decimal(x);
 
   switch (func.toLowerCase()) {
-    case 'translate': {
+    case "translate": {
       const tx = args[0] || 0;
       const ty = args[1] || 0;
       return Transforms2D.translation(tx, ty);
     }
 
-    case 'scale': {
+    case "scale": {
       const sx = args[0] || 1;
       const sy = args[1] !== undefined ? args[1] : sx;
       return Transforms2D.scale(sx, sy);
     }
 
-    case 'rotate': {
+    case "rotate": {
       // SVG rotate is in degrees, can have optional cx, cy
       const angleDeg = args[0] || 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
@@ -1191,29 +1239,29 @@ export function parseTransformFunction(func, args) {
       return Transforms2D.rotate(angleRad);
     }
 
-    case 'skewx': {
+    case "skewx": {
       const angleDeg = args[0] || 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
       const tanVal = Decimal.tan(angleRad);
       return Transforms2D.skew(tanVal, 0);
     }
 
-    case 'skewy': {
+    case "skewy": {
       const angleDeg = args[0] || 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
       const tanVal = Decimal.tan(angleRad);
       return Transforms2D.skew(0, tanVal);
     }
 
-    case 'matrix': {
+    case "matrix": {
       // matrix(a, b, c, d, e, f) -> | a c e |
       //                             | b d f |
       //                             | 0 0 1 |
-      const [a, b, c, d, e, f] = args.map(x => D(x || 0));
+      const [a, b, c, d, e, f] = args.map((x) => D(x || 0));
       return Matrix.from([
         [a, c, e],
         [b, d, f],
-        [D(0), D(0), D(1)]
+        [D(0), D(0), D(1)],
       ]);
     }
 
@@ -1267,7 +1315,7 @@ export function parseTransformFunction(func, args) {
  * // Returns: Identity matrix (no transformation)
  */
 export function parseTransformAttribute(transformStr) {
-  if (!transformStr || transformStr.trim() === '') {
+  if (!transformStr || transformStr.trim() === "") {
     return Matrix.identity(3);
   }
 
@@ -1283,8 +1331,8 @@ export function parseTransformAttribute(transformStr) {
     // Parse arguments (comma or space separated)
     const args = argsStr
       .split(/[\s,]+/)
-      .filter(s => s.length > 0)
-      .map(s => parseFloat(s));
+      .filter((s) => s.length > 0)
+      .map((s) => parseFloat(s));
 
     const matrix = parseTransformFunction(func, args);
     // Transforms are applied left-to-right in SVG, so we multiply in order
@@ -1470,7 +1518,7 @@ export function toSVGMatrix(ctm, precision = 6) {
  * const result = isIdentity(translation);
  * // Returns: false
  */
-export function isIdentity(m, tolerance = '1e-10') {
+export function isIdentity(m, tolerance = "1e-10") {
   const identity = Matrix.identity(3);
   return m.equals(identity, tolerance);
 }
@@ -1538,89 +1586,118 @@ export function isIdentity(m, tolerance = '1e-10') {
  */
 export function transformPathData(pathData, ctm, options = {}) {
   const { toAbsolute = true, precision = 6 } = options;
-  const D = x => new Decimal(x);
+  const D = (x) => new Decimal(x);
 
   // Parse path into commands
   const commands = parsePathCommands(pathData);
   const result = [];
 
   // Track current position for relative commands
-  let curX = D(0), curY = D(0);
-  let subpathStartX = D(0), subpathStartY = D(0);
+  let curX = D(0),
+    curY = D(0);
+  let subpathStartX = D(0),
+    subpathStartY = D(0);
 
   for (const { cmd, args } of commands) {
     const isRelative = cmd === cmd.toLowerCase();
     const cmdUpper = cmd.toUpperCase();
 
     switch (cmdUpper) {
-      case 'M': {
+      case "M": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 2) {
-          let x = D(args[i]), y = D(args[i + 1]);
-          if (isRelative) { x = x.plus(curX); y = y.plus(curY); }
+          let x = D(args[i]),
+            y = D(args[i + 1]);
+          if (isRelative) {
+            x = x.plus(curX);
+            y = y.plus(curY);
+          }
 
           const pt = applyToPoint(ctm, x, y);
           transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
 
-          curX = x; curY = y;
-          if (i === 0) { subpathStartX = x; subpathStartY = y; }
+          curX = x;
+          curY = y;
+          if (i === 0) {
+            subpathStartX = x;
+            subpathStartY = y;
+          }
         }
-        result.push((toAbsolute ? 'M' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "M" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'L': {
+      case "L": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 2) {
-          let x = D(args[i]), y = D(args[i + 1]);
-          if (isRelative) { x = x.plus(curX); y = y.plus(curY); }
+          let x = D(args[i]),
+            y = D(args[i + 1]);
+          if (isRelative) {
+            x = x.plus(curX);
+            y = y.plus(curY);
+          }
 
           const pt = applyToPoint(ctm, x, y);
           transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'L' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "L" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'H': {
+      case "H": {
         // Horizontal line becomes L after transform (may have Y component)
         let x = D(args[0]);
-        if (isRelative) { x = x.plus(curX); }
+        if (isRelative) {
+          x = x.plus(curX);
+        }
         const y = curY;
 
         const pt = applyToPoint(ctm, x, y);
-        result.push('L ' + pt.x.toFixed(precision) + ' ' + pt.y.toFixed(precision));
+        result.push(
+          "L " + pt.x.toFixed(precision) + " " + pt.y.toFixed(precision),
+        );
 
         curX = x;
         break;
       }
 
-      case 'V': {
+      case "V": {
         // Vertical line becomes L after transform (may have X component)
         const x = curX;
         let y = D(args[0]);
-        if (isRelative) { y = y.plus(curY); }
+        if (isRelative) {
+          y = y.plus(curY);
+        }
 
         const pt = applyToPoint(ctm, x, y);
-        result.push('L ' + pt.x.toFixed(precision) + ' ' + pt.y.toFixed(precision));
+        result.push(
+          "L " + pt.x.toFixed(precision) + " " + pt.y.toFixed(precision),
+        );
 
         curY = y;
         break;
       }
 
-      case 'C': {
+      case "C": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 6) {
-          let x1 = D(args[i]), y1 = D(args[i + 1]);
-          let x2 = D(args[i + 2]), y2 = D(args[i + 3]);
-          let x = D(args[i + 4]), y = D(args[i + 5]);
+          let x1 = D(args[i]),
+            y1 = D(args[i + 1]);
+          let x2 = D(args[i + 2]),
+            y2 = D(args[i + 3]);
+          let x = D(args[i + 4]),
+            y = D(args[i + 5]);
 
           if (isRelative) {
-            x1 = x1.plus(curX); y1 = y1.plus(curY);
-            x2 = x2.plus(curX); y2 = y2.plus(curY);
-            x = x.plus(curX); y = y.plus(curY);
+            x1 = x1.plus(curX);
+            y1 = y1.plus(curY);
+            x2 = x2.plus(curX);
+            y2 = y2.plus(curY);
+            x = x.plus(curX);
+            y = y.plus(curY);
           }
 
           const p1 = applyToPoint(ctm, x1, y1);
@@ -1628,83 +1705,106 @@ export function transformPathData(pathData, ctm, options = {}) {
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p1.x.toFixed(precision), p1.y.toFixed(precision),
-            p2.x.toFixed(precision), p2.y.toFixed(precision),
-            p.x.toFixed(precision), p.y.toFixed(precision)
+            p1.x.toFixed(precision),
+            p1.y.toFixed(precision),
+            p2.x.toFixed(precision),
+            p2.y.toFixed(precision),
+            p.x.toFixed(precision),
+            p.y.toFixed(precision),
           );
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'C' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "C" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'S': {
+      case "S": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 4) {
-          let x2 = D(args[i]), y2 = D(args[i + 1]);
-          let x = D(args[i + 2]), y = D(args[i + 3]);
+          let x2 = D(args[i]),
+            y2 = D(args[i + 1]);
+          let x = D(args[i + 2]),
+            y = D(args[i + 3]);
 
           if (isRelative) {
-            x2 = x2.plus(curX); y2 = y2.plus(curY);
-            x = x.plus(curX); y = y.plus(curY);
+            x2 = x2.plus(curX);
+            y2 = y2.plus(curY);
+            x = x.plus(curX);
+            y = y.plus(curY);
           }
 
           const p2 = applyToPoint(ctm, x2, y2);
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p2.x.toFixed(precision), p2.y.toFixed(precision),
-            p.x.toFixed(precision), p.y.toFixed(precision)
+            p2.x.toFixed(precision),
+            p2.y.toFixed(precision),
+            p.x.toFixed(precision),
+            p.y.toFixed(precision),
           );
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'S' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "S" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'Q': {
+      case "Q": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 4) {
-          let x1 = D(args[i]), y1 = D(args[i + 1]);
-          let x = D(args[i + 2]), y = D(args[i + 3]);
+          let x1 = D(args[i]),
+            y1 = D(args[i + 1]);
+          let x = D(args[i + 2]),
+            y = D(args[i + 3]);
 
           if (isRelative) {
-            x1 = x1.plus(curX); y1 = y1.plus(curY);
-            x = x.plus(curX); y = y.plus(curY);
+            x1 = x1.plus(curX);
+            y1 = y1.plus(curY);
+            x = x.plus(curX);
+            y = y.plus(curY);
           }
 
           const p1 = applyToPoint(ctm, x1, y1);
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p1.x.toFixed(precision), p1.y.toFixed(precision),
-            p.x.toFixed(precision), p.y.toFixed(precision)
+            p1.x.toFixed(precision),
+            p1.y.toFixed(precision),
+            p.x.toFixed(precision),
+            p.y.toFixed(precision),
           );
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'Q' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "Q" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'T': {
+      case "T": {
         const transformed = [];
         for (let i = 0; i < args.length; i += 2) {
-          let x = D(args[i]), y = D(args[i + 1]);
-          if (isRelative) { x = x.plus(curX); y = y.plus(curY); }
+          let x = D(args[i]),
+            y = D(args[i + 1]);
+          if (isRelative) {
+            x = x.plus(curX);
+            y = y.plus(curY);
+          }
 
           const pt = applyToPoint(ctm, x, y);
           transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'T' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "T" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'A': {
+      case "A": {
         // Use proper arc transformation
         const transformed = [];
         for (let i = 0; i < args.length; i += 7) {
@@ -1713,11 +1813,24 @@ export function transformPathData(pathData, ctm, options = {}) {
           const rotation = args[i + 2];
           const largeArc = args[i + 3];
           const sweep = args[i + 4];
-          let x = D(args[i + 5]), y = D(args[i + 6]);
+          let x = D(args[i + 5]),
+            y = D(args[i + 6]);
 
-          if (isRelative) { x = x.plus(curX); y = y.plus(curY); }
+          if (isRelative) {
+            x = x.plus(curX);
+            y = y.plus(curY);
+          }
 
-          const arc = transformArc(rx, ry, rotation, largeArc, sweep, x.toNumber(), y.toNumber(), ctm);
+          const arc = transformArc(
+            rx,
+            ry,
+            rotation,
+            largeArc,
+            sweep,
+            x.toNumber(),
+            y.toNumber(),
+            ctm,
+          );
 
           transformed.push(
             arc.rx.toFixed(precision),
@@ -1726,17 +1839,18 @@ export function transformPathData(pathData, ctm, options = {}) {
             arc.largeArcFlag,
             arc.sweepFlag,
             arc.x.toFixed(precision),
-            arc.y.toFixed(precision)
+            arc.y.toFixed(precision),
           );
 
-          curX = x; curY = y;
+          curX = x;
+          curY = y;
         }
-        result.push((toAbsolute ? 'A' : cmd) + ' ' + transformed.join(' '));
+        result.push((toAbsolute ? "A" : cmd) + " " + transformed.join(" "));
         break;
       }
 
-      case 'Z': {
-        result.push('Z');
+      case "Z": {
+        result.push("Z");
         curX = subpathStartX;
         curY = subpathStartY;
         break;
@@ -1744,11 +1858,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       default:
         // Keep unknown commands as-is
-        result.push(cmd + ' ' + args.join(' '));
+        result.push(cmd + " " + args.join(" "));
     }
   }
 
-  return result.join(' ');
+  return result.join(" ");
 }
 
 /**
@@ -1792,9 +1906,13 @@ function parsePathCommands(pathData) {
   while ((match = commandRegex.exec(pathData)) !== null) {
     const cmd = match[1];
     const argsStr = match[2].trim();
-    const args = argsStr.length > 0
-      ? argsStr.split(/[\s,]+/).filter(s => s.length > 0).map(s => parseFloat(s))
-      : [];
+    const args =
+      argsStr.length > 0
+        ? argsStr
+            .split(/[\s,]+/)
+            .filter((s) => s.length > 0)
+            .map((s) => parseFloat(s))
+        : [];
     commands.push({ cmd, args });
   }
 
@@ -1833,11 +1951,11 @@ function parsePathCommands(pathData) {
  * @property {string} improvementFactorGIS - Improvement for GIS/CAD ('1e+93')
  */
 export const PRECISION_INFO = {
-  floatErrorGIS: 1.69e-7,       // Error with 1e6+ scale coordinates
-  floatErrorTypical: 1.14e-13,  // Error with typical 6-level SVG hierarchy
+  floatErrorGIS: 1.69e-7, // Error with 1e6+ scale coordinates
+  floatErrorTypical: 1.14e-13, // Error with typical 6-level SVG hierarchy
   decimalPrecision: 80,
-  typicalRoundTripError: '1e-77',
-  improvementFactorGIS: '1e+93'
+  typicalRoundTripError: "1e-77",
+  improvementFactorGIS: "1e+93",
 };
 
 export default {
@@ -1870,5 +1988,5 @@ export default {
   toSVGMatrix,
   isIdentity,
   transformPathData,
-  PRECISION_INFO
+  PRECISION_INFO,
 };

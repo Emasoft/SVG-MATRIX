@@ -28,26 +28,39 @@
  * @module animation-references
  */
 
-import { SVGElement } from './svg-parser.js';
+import { SVGElement } from "./svg-parser.js";
 
 // Animation elements that can reference other elements
-const ANIMATION_ELEMENTS = ['animate', 'animateTransform', 'animateMotion', 'animateColor', 'set'];
+const ANIMATION_ELEMENTS = [
+  "animate",
+  "animateTransform",
+  "animateMotion",
+  "animateColor",
+  "set",
+];
 
 // Attributes that can contain ID references
-const HREF_ATTRIBUTES = ['href', 'xlink:href'];
+const HREF_ATTRIBUTES = ["href", "xlink:href"];
 
 // Attributes that use url(#id) syntax
 const URL_ATTRIBUTES = [
-  'fill', 'stroke', 'clip-path', 'mask', 'filter',
-  'marker-start', 'marker-mid', 'marker-end',
-  'cursor', 'color-profile'
+  "fill",
+  "stroke",
+  "clip-path",
+  "mask",
+  "filter",
+  "marker-start",
+  "marker-mid",
+  "marker-end",
+  "cursor",
+  "color-profile",
 ];
 
 // Animation timing attributes that can reference other elements by ID
-const TIMING_ATTRIBUTES = ['begin', 'end'];
+const TIMING_ATTRIBUTES = ["begin", "end"];
 
 // Animation value attributes that can contain ID references
-const VALUE_ATTRIBUTES = ['values', 'from', 'to', 'by'];
+const VALUE_ATTRIBUTES = ["values", "from", "to", "by"];
 
 /**
  * Parse ID from url(#id) or url("#id") syntax
@@ -55,7 +68,7 @@ const VALUE_ATTRIBUTES = ['values', 'from', 'to', 'by'];
  * @returns {string|null} Parsed ID or null
  */
 export function parseUrlId(value) {
-  if (!value || typeof value !== 'string') return null;
+  if (!value || typeof value !== "string") return null;
 
   // Match url(#id) or url("#id") or url('#id') with optional whitespace
   const match = value.match(/url\(\s*["']?#([^"')\s]+)\s*["']?\s*\)/);
@@ -68,8 +81,8 @@ export function parseUrlId(value) {
  * @returns {string|null} Parsed ID or null
  */
 export function parseHrefId(value) {
-  if (!value || typeof value !== 'string') return null;
-  if (value.startsWith('#')) {
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("#")) {
     return value.substring(1);
   }
   return null;
@@ -82,14 +95,14 @@ export function parseHrefId(value) {
  * @returns {string[]} Array of parsed IDs
  */
 export function parseAnimationValueIds(value) {
-  if (!value || typeof value !== 'string') return [];
+  if (!value || typeof value !== "string") return [];
 
   const ids = [];
   // Split by semicolon and find #id references
-  const parts = value.split(';');
+  const parts = value.split(";");
   for (const part of parts) {
     const trimmed = part.trim();
-    if (trimmed.startsWith('#')) {
+    if (trimmed.startsWith("#")) {
       ids.push(trimmed.substring(1));
     }
     // Also check for url(#id) within values
@@ -111,17 +124,19 @@ export function parseAnimationValueIds(value) {
  * @returns {string[]} Array of parsed IDs
  */
 export function parseTimingIds(value) {
-  if (!value || typeof value !== 'string') return [];
+  if (!value || typeof value !== "string") return [];
 
   const ids = [];
   // Split by semicolon for multiple timing values
-  const parts = value.split(';');
+  const parts = value.split(";");
 
   for (const part of parts) {
     const trimmed = part.trim();
     // Match patterns like "id.event" or "id.begin" or "id.end"
     // Events: click, mousedown, mouseup, mouseover, mouseout, focusin, focusout, etc.
-    const match = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)/);
+    const match = trimmed.match(
+      /^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)/,
+    );
     if (match) {
       ids.push(match[1]);
     }
@@ -135,7 +150,7 @@ export function parseTimingIds(value) {
  * @returns {string[]} Array of parsed IDs
  */
 export function parseCSSIds(css) {
-  if (!css || typeof css !== 'string') return [];
+  if (!css || typeof css !== "string") return [];
 
   const ids = [];
 
@@ -155,7 +170,7 @@ export function parseCSSIds(css) {
  * @returns {string[]} Array of parsed IDs
  */
 export function parseJavaScriptIds(js) {
-  if (!js || typeof js !== 'string') return [];
+  if (!js || typeof js !== "string") return [];
 
   const ids = [];
 
@@ -167,7 +182,8 @@ export function parseJavaScriptIds(js) {
   }
 
   // querySelector('#id') or querySelector("#id")
-  const querySelectorRegex = /querySelector(?:All)?\(\s*["']#([^"'#\s]+)["']\s*\)/g;
+  const querySelectorRegex =
+    /querySelector(?:All)?\(\s*["']#([^"'#\s]+)["']\s*\)/g;
   while ((match = querySelectorRegex.exec(js)) !== null) {
     ids.push(match[1]);
   }
@@ -185,10 +201,10 @@ export function collectElementReferences(el) {
     static: new Set(),
     animation: new Set(),
     css: new Set(),
-    js: new Set()
+    js: new Set(),
   };
 
-  const tagName = el.tagName?.toLowerCase() || '';
+  const tagName = el.tagName?.toLowerCase() || "";
   const isAnimationElement = ANIMATION_ELEMENTS.includes(tagName);
 
   for (const attrName of el.getAttributeNames()) {
@@ -208,36 +224,36 @@ export function collectElementReferences(el) {
     }
 
     // Check url() attributes
-    if (URL_ATTRIBUTES.includes(attrName) || attrName === 'style') {
+    if (URL_ATTRIBUTES.includes(attrName) || attrName === "style") {
       const id = parseUrlId(value);
       if (id) refs.static.add(id);
 
       // For style attribute, also parse CSS IDs
-      if (attrName === 'style') {
-        parseCSSIds(value).forEach(id => refs.css.add(id));
+      if (attrName === "style") {
+        parseCSSIds(value).forEach((cssId) => refs.css.add(cssId));
       }
     }
 
     // Check animation timing attributes (begin, end)
     if (TIMING_ATTRIBUTES.includes(attrName)) {
-      parseTimingIds(value).forEach(id => refs.animation.add(id));
+      parseTimingIds(value).forEach((id) => refs.animation.add(id));
     }
 
     // Check animation value attributes (values, from, to, by)
     if (VALUE_ATTRIBUTES.includes(attrName)) {
-      parseAnimationValueIds(value).forEach(id => refs.animation.add(id));
+      parseAnimationValueIds(value).forEach((id) => refs.animation.add(id));
     }
 
     // Also check for url() in any attribute (some custom attributes may use it)
-    if (!URL_ATTRIBUTES.includes(attrName) && value.includes('url(')) {
+    if (!URL_ATTRIBUTES.includes(attrName) && value.includes("url(")) {
       const id = parseUrlId(value);
       if (id) refs.static.add(id);
     }
   }
 
   // Check <mpath> element inside <animateMotion>
-  if (tagName === 'animatemotion') {
-    const mpaths = el.getElementsByTagName('mpath');
+  if (tagName === "animatemotion") {
+    const mpaths = el.getElementsByTagName("mpath");
     for (const mpath of mpaths) {
       for (const attr of HREF_ATTRIBUTES) {
         const value = mpath.getAttribute(attr);
@@ -271,7 +287,7 @@ export function collectAllReferences(root) {
     animation: new Set(),
     css: new Set(),
     js: new Set(),
-    details: new Map()  // ID -> { sources: [], type: 'static'|'animation'|'css'|'js' }
+    details: new Map(), // ID -> { sources: [], type: 'static'|'animation'|'css'|'js' }
   };
 
   // Type priority: animation > js > css > static
@@ -294,30 +310,32 @@ export function collectAllReferences(root) {
     result.details.get(id).sources.push(source);
   };
 
-  const processElement = (el, path = '') => {
-    const tagName = el.tagName?.toLowerCase() || '';
+  const processElement = (el, path = "") => {
+    const tagName = el.tagName?.toLowerCase() || "";
     const currentPath = path ? `${path}>${tagName}` : tagName;
-    const elId = el.getAttribute('id');
+    const elId = el.getAttribute("id");
     const elPath = elId ? `${tagName}#${elId}` : currentPath;
 
     // Collect element references
     const refs = collectElementReferences(el);
 
-    refs.static.forEach(id => addRef(id, 'static', elPath));
-    refs.animation.forEach(id => addRef(id, 'animation', elPath));
-    refs.css.forEach(id => addRef(id, 'css', elPath));
-    refs.js.forEach(id => addRef(id, 'js', elPath));
+    refs.static.forEach((id) => addRef(id, "static", elPath));
+    refs.animation.forEach((id) => addRef(id, "animation", elPath));
+    refs.css.forEach((id) => addRef(id, "css", elPath));
+    refs.js.forEach((id) => addRef(id, "js", elPath));
 
     // Process <style> elements
-    if (tagName === 'style') {
-      const cssContent = el.textContent || '';
-      parseCSSIds(cssContent).forEach(id => addRef(id, 'css', `<style>`));
+    if (tagName === "style") {
+      const cssContent = el.textContent || "";
+      parseCSSIds(cssContent).forEach((id) => addRef(id, "css", `<style>`));
     }
 
     // Process <script> elements
-    if (tagName === 'script') {
-      const jsContent = el.textContent || '';
-      parseJavaScriptIds(jsContent).forEach(id => addRef(id, 'js', `<script>`));
+    if (tagName === "script") {
+      const jsContent = el.textContent || "";
+      parseJavaScriptIds(jsContent).forEach((id) =>
+        addRef(id, "js", `<script>`),
+      );
     }
 
     // Recurse to children
@@ -357,7 +375,7 @@ export function getIdReferenceInfo(root, id) {
   return {
     referenced: refs.all.has(id),
     type: details?.type || null,
-    sources: details?.sources || []
+    sources: details?.sources || [],
   };
 }
 
@@ -376,11 +394,11 @@ export function findUnreferencedDefs(root) {
   const animationReferenced = [];
 
   // Scan all defs
-  const defsElements = root.getElementsByTagName('defs');
+  const defsElements = root.getElementsByTagName("defs");
   for (const defs of defsElements) {
     for (const child of defs.children) {
       if (child instanceof SVGElement) {
-        const id = child.getAttribute('id');
+        const id = child.getAttribute("id");
         if (!id) continue;
 
         if (refs.animation.has(id)) {
@@ -405,16 +423,17 @@ export function findUnreferencedDefs(root) {
  * @returns {{removed: string[], kept: string[], keptForAnimation: string[]}}
  */
 export function removeUnreferencedDefsSafe(root) {
-  const { safeToRemove, referenced, animationReferenced } = findUnreferencedDefs(root);
+  const { safeToRemove, referenced, animationReferenced } =
+    findUnreferencedDefs(root);
 
   const removed = [];
 
   // Only remove elements that are truly unreferenced
-  const defsElements = root.getElementsByTagName('defs');
+  const defsElements = root.getElementsByTagName("defs");
   for (const defs of defsElements) {
     for (const child of [...defs.children]) {
       if (child instanceof SVGElement) {
-        const id = child.getAttribute('id');
+        const id = child.getAttribute("id");
         if (id && safeToRemove.includes(id)) {
           defs.removeChild(child);
           removed.push(id);
@@ -426,7 +445,7 @@ export function removeUnreferencedDefsSafe(root) {
   return {
     removed,
     kept: referenced,
-    keptForAnimation: animationReferenced
+    keptForAnimation: animationReferenced,
   };
 }
 
@@ -436,5 +455,5 @@ export {
   HREF_ATTRIBUTES,
   URL_ATTRIBUTES,
   TIMING_ATTRIBUTES,
-  VALUE_ATTRIBUTES
+  VALUE_ATTRIBUTES,
 };

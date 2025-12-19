@@ -1,0 +1,2056 @@
+{
+  "generated": "2025-12-12T21:08:56.989Z",
+  "totalFunctions": 60,
+  "totalReportsParsed": 60,
+  "summary": {
+    "passed": 41,
+    "failed": 12,
+    "unknown": 7,
+    "error": 0
+  },
+  "functions": {
+    "addAttributesToSVGElement": {
+      "functionName": "addAttributesToSVGElement",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "addClassesToSVGElement": {
+      "functionName": "addClassesToSVGElement",
+      "status": "pass",
+      "totalFiles": 1139,
+      "passedFiles": 1139,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "cleanupAttributes": {
+      "functionName": "cleanupAttributes",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "cleanupEnableBackground": {
+      "functionName": "cleanupEnableBackground",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "cleanupIds": {
+      "functionName": "cleanupIds",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "cleanupListOfValues": {
+      "functionName": "cleanupListOfValues",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 67,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "cleanupNumericValues": {
+      "functionName": "cleanupNumericValues",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "collapseGroups": {
+      "functionName": "collapseGroups",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 522,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "convertColors": {
+      "functionName": "convertColors",
+      "status": "pass",
+      "totalFiles": 152,
+      "passedFiles": 150,
+      "failedFiles": 2,
+      "errors": [],
+      "details": {}
+    },
+    "convertEllipseToCircle": {
+      "functionName": "convertEllipseToCircle",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "convertPathData": {
+      "functionName": "convertPathData",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "convertShapesToPath": {
+      "functionName": "convertShapesToPath",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 520,
+      "failedFiles": 5,
+      "errors": [
+        {
+          "filename": "linking-a-04-t.svg",
+          "type": "VALIDATION_ERROR",
+          "message": "Unescaped < and > in href attribute (pre-existing SVG issue, not caused by convertShapesToPath)",
+          "shapesConverted": true
+        },
+        {
+          "filename": "linking-a-05-t.svg",
+          "type": "VALIDATION_ERROR",
+          "message": "Unescaped < and > in href and transform attributes (pre-existing SVG issue, not caused by convertShapesToPath)",
+          "shapesConverted": true
+        },
+        {
+          "filename": "linking-a-07-t.svg",
+          "type": "VALIDATION_ERROR",
+          "message": "Unescaped < and > in href attribute (pre-existing SVG issue, not caused by convertShapesToPath)",
+          "shapesConverted": true
+        },
+        {
+          "filename": "paths-data-01-t.svg",
+          "type": "VALIDATION_ERROR",
+          "message": "Path data contains Infinity (pre-existing in test file, not caused by convertShapesToPath)",
+          "shapesConverted": false
+        },
+        {
+          "filename": "paths-data-18-f.svg",
+          "type": "VALIDATION_ERROR",
+          "message": "Invalid number format in path data: 40.5.6 (pre-existing in test file, not caused by convertShapesToPath)",
+          "shapesConverted": false
+        }
+      ],
+      "details": {}
+    },
+    "convertStyleToAttrs": {
+      "functionName": "convertStyleToAttrs",
+      "status": "pass",
+      "totalFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "convertTransform": {
+      "functionName": "convertTransform",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 1573,
+      "failedFiles": 2,
+      "errors": [],
+      "details": {}
+    },
+    "decomposeTransform": {
+      "functionName": "decomposeTransform",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 1374,
+      "failedFiles": 28,
+      "errors": [],
+      "details": {}
+    },
+    "flattenClipPaths": {
+      "functionName": "flattenClipPaths",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 0,
+      "failedFiles": 17,
+      "errors": [
+        {
+          "file": "animate-elem-91-t.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/animate-elem-91-t.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "interact-pointer-02-t.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/interact-pointer-02-t.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "interact-pointer-03-t.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/interact-pointer-03-t.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-intro-01-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-intro-01-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-01-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-01-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-02-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-02-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-04-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-04-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-05-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-05-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-07-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-07-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-08-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-08-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-09-b.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-09-b.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-12-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-12-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-13-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-13-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "masking-path-14-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/masking-path-14-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "painting-control-05-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/painting-control-05-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "painting-marker-02-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/painting-marker-02-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        },
+        {
+          "file": "styling-pres-02-f.svg",
+          "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/styling-pres-02-f.svg",
+          "error": "root.serialize is not a function",
+          "stack": "TypeError: root.serialize is not a function\n    at serializeSVG (file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-parser.js:879:37)\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:3510:21\n    at file:///Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js:437:26\n    at async testFlattenClipPaths (file:///private/tmp/svg-function-tests/flattenClipPaths/test.mjs:140:22)"
+        }
+      ],
+      "details": {}
+    },
+    "flattenFilters": {
+      "functionName": "flattenFilters",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "flattenGradients": {
+      "functionName": "flattenGradients",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "flattenMasks": {
+      "functionName": "flattenMasks",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 0,
+      "failedFiles": 2,
+      "errors": [],
+      "details": {}
+    },
+    "flattenPatterns": {
+      "functionName": "flattenPatterns",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "flattenUseElements": {
+      "functionName": "flattenUseElements",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "imageToPath": {
+      "functionName": "imageToPath",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "inlineStyles": {
+      "functionName": "inlineStyles",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 501,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "mergePaths": {
+      "functionName": "mergePaths",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "minifyStyles": {
+      "functionName": "minifyStyles",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "moveElemsAttrsToGroup": {
+      "functionName": "moveElemsAttrsToGroup",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 412,
+      "failedFiles": 113,
+      "errors": [
+        {
+          "filename": "animate-elem-91-t.svg",
+          "error": "Broken references: c1, f1, f2, c2, g1, g2",
+          "brokenRefs": [
+            "c1",
+            "f1",
+            "f2",
+            "c2",
+            "g1",
+            "g2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "animate-pservers-grad-01-b.svg",
+          "error": "Broken references: MyGradient1, MyGradient2, MyGradient3, MyGradient4",
+          "brokenRefs": [
+            "MyGradient1",
+            "MyGradient2",
+            "MyGradient3",
+            "MyGradient4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "color-prop-01-b.svg",
+          "error": "Broken references: grad",
+          "brokenRefs": [
+            "grad"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "coords-units-01-b.svg",
+          "error": "Broken references: linearBoundingBoxPercentage, linearBoundingBoxFraction, linearUserSpace, radialBoundingBoxPercentage, radialBoundingBoxFraction, radialUserSpace, patternBoundingBoxPercentage, patternBoundingBoxFraction, patternUserSpace",
+          "brokenRefs": [
+            "linearBoundingBoxPercentage",
+            "linearBoundingBoxFraction",
+            "linearUserSpace",
+            "radialBoundingBoxPercentage",
+            "radialBoundingBoxFraction",
+            "radialUserSpace",
+            "patternBoundingBoxPercentage",
+            "patternBoundingBoxFraction",
+            "patternUserSpace"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-background-01-f.svg",
+          "error": "Broken references: ShiftBGAndBlur, ShiftBGAndBlur_WithSourceGraphic",
+          "brokenRefs": [
+            "ShiftBGAndBlur",
+            "ShiftBGAndBlur_WithSourceGraphic"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-blend-01-b.svg",
+          "error": "Broken references: BlendNormal, BlendMultiply, BlendScreen, BlendDarken, BlendLighten",
+          "brokenRefs": [
+            "BlendNormal",
+            "BlendMultiply",
+            "BlendScreen",
+            "BlendDarken",
+            "BlendLighten"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-color-01-b.svg",
+          "error": "Broken references: MyGradient, Matrix, Saturate40, HueRotate90, LuminanceToAlpha",
+          "brokenRefs": [
+            "MyGradient",
+            "Matrix",
+            "Saturate40",
+            "HueRotate90",
+            "LuminanceToAlpha"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-color-02-b.svg",
+          "error": "Broken references: MyGradient, Reference, Default",
+          "brokenRefs": [
+            "MyGradient",
+            "Reference",
+            "Default"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-composite-02-b.svg",
+          "error": "Broken references: over, over50, in, in50, out, out50, atop, atop50, xor, xor50, arithmetic, arithmetic50",
+          "brokenRefs": [
+            "over",
+            "over50",
+            "in",
+            "in50",
+            "out",
+            "out50",
+            "atop",
+            "atop50",
+            "xor",
+            "xor50",
+            "arithmetic",
+            "arithmetic50"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-composite-03-f.svg",
+          "error": "Broken references: composite-ident, composite-negative, composite-mixed, composite-clamped",
+          "brokenRefs": [
+            "composite-ident",
+            "composite-negative",
+            "composite-mixed",
+            "composite-clamped"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-composite-04-f.svg",
+          "error": "Broken references: dissolve1, dissolve2, dissolve3, dissolve4",
+          "brokenRefs": [
+            "dissolve1",
+            "dissolve2",
+            "dissolve3",
+            "dissolve4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-composite-05-f.svg",
+          "error": "Broken references: dissolve",
+          "brokenRefs": [
+            "dissolve"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-comptran-01-b.svg",
+          "error": "Broken references: MyGradient, Identity, Table, Linear, Gamma",
+          "brokenRefs": [
+            "MyGradient",
+            "Identity",
+            "Table",
+            "Linear",
+            "Gamma"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-conv-01-f.svg",
+          "error": "Broken references: convolve1, convolve2, convolve3, convolve4, convolve5, convolve6",
+          "brokenRefs": [
+            "convolve1",
+            "convolve2",
+            "convolve3",
+            "convolve4",
+            "convolve5",
+            "convolve6"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-conv-02-f.svg",
+          "error": "Broken references: convolve-without-order, convolve-with-order1, convolve-with-order2",
+          "brokenRefs": [
+            "convolve-without-order",
+            "convolve-with-order1",
+            "convolve-with-order2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-conv-03-f.svg",
+          "error": "Broken references: sharpenAnim, sharpenScript",
+          "brokenRefs": [
+            "sharpenAnim",
+            "sharpenScript"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-conv-04-f.svg",
+          "error": "Broken references: convolve-without-bias, convolve-with-bias05, convolve-with-bias1, test_linear_gradient",
+          "brokenRefs": [
+            "convolve-without-bias",
+            "convolve-with-bias05",
+            "convolve-with-bias1",
+            "test_linear_gradient"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-conv-05-f.svg",
+          "error": "Broken references: emNone, emWrap, emDuplicate",
+          "brokenRefs": [
+            "emNone",
+            "emWrap",
+            "emDuplicate"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-diffuse-01-f.svg",
+          "error": "Broken references: surfaceScaleA, surfaceScaleB, surfaceScaleC, diffuseConstantA, diffuseConstantB, diffuseConstantC, lightingColorA, lightingColorB, lightingColorC",
+          "brokenRefs": [
+            "surfaceScaleA",
+            "surfaceScaleB",
+            "surfaceScaleC",
+            "diffuseConstantA",
+            "diffuseConstantB",
+            "diffuseConstantC",
+            "lightingColorA",
+            "lightingColorB",
+            "lightingColorC"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-displace-01-f.svg",
+          "error": "Broken references: DispMapChecker, RotateMap, RotateMapTest, SphereMap, SphereMapTest",
+          "brokenRefs": [
+            "DispMapChecker",
+            "RotateMap",
+            "RotateMapTest",
+            "SphereMap",
+            "SphereMapTest"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-displace-02-f.svg",
+          "error": "Broken references: fade, slide, bend",
+          "brokenRefs": [
+            "fade",
+            "slide",
+            "bend"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-example-01-b.svg",
+          "error": "Broken references: MyFilter",
+          "brokenRefs": [
+            "MyFilter"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-felem-01-b.svg",
+          "error": "Broken references: null, notthere, nullreg",
+          "brokenRefs": [
+            "null",
+            "notthere",
+            "nullreg"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-felem-02-f.svg",
+          "error": "Broken references: usou1, obb1, default1, usou2, obb2, default2, usou3, obb3, default3",
+          "brokenRefs": [
+            "usou1",
+            "obb1",
+            "default1",
+            "usou2",
+            "obb2",
+            "default2",
+            "usou3",
+            "obb3",
+            "default3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-gauss-01-b.svg",
+          "error": "Broken references: blur, blurxy",
+          "brokenRefs": [
+            "blur",
+            "blurxy"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-gauss-02-f.svg",
+          "error": "Broken references: blury, blurx",
+          "brokenRefs": [
+            "blury",
+            "blurx"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-gauss-03-f.svg",
+          "error": "Broken references: identity",
+          "brokenRefs": [
+            "identity"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-image-01-b.svg",
+          "error": "Broken references: image",
+          "brokenRefs": [
+            "image"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-image-02-b.svg",
+          "error": "Broken references: feimage",
+          "brokenRefs": [
+            "feimage"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-image-03-f.svg",
+          "error": "Broken references: default, all_specified_relative, all_specified_absolute, y_specified, width_specified, height_specified, width_height_specified, x_y_specified",
+          "brokenRefs": [
+            "default",
+            "all_specified_relative",
+            "all_specified_absolute",
+            "y_specified",
+            "width_specified",
+            "height_specified",
+            "width_height_specified",
+            "x_y_specified"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-image-04-f.svg",
+          "error": "Broken references: default, all_specified_relative, all_specified_absolute, y_specified, width_specified, height_specified, width_height_specified, x_y_specified",
+          "brokenRefs": [
+            "default",
+            "all_specified_relative",
+            "all_specified_absolute",
+            "y_specified",
+            "width_specified",
+            "height_specified",
+            "width_height_specified",
+            "x_y_specified"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-image-05-f.svg",
+          "error": "Broken references: default, xMinYMinMeet, xMidYMidMeet, xMaxYMaxMeet, xMinYMinSlice, xMidYMidSlice, xMaxYMaxSlice",
+          "brokenRefs": [
+            "default",
+            "xMinYMinMeet",
+            "xMidYMidMeet",
+            "xMaxYMaxMeet",
+            "xMinYMinSlice",
+            "xMidYMidSlice",
+            "xMaxYMaxSlice"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-light-01-f.svg",
+          "error": "Broken references: distantLightA, distantLightB, distantLightC, distantLightD, pointLightA, pointLightB, pointLightC, pointLightD, spotLightA, spotLightB, spotLightC, spotLightD",
+          "brokenRefs": [
+            "distantLightA",
+            "distantLightB",
+            "distantLightC",
+            "distantLightD",
+            "pointLightA",
+            "pointLightB",
+            "pointLightC",
+            "pointLightD",
+            "spotLightA",
+            "spotLightB",
+            "spotLightC",
+            "spotLightD"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-light-02-f.svg",
+          "error": "Broken references: right, down, left, up, arrow",
+          "brokenRefs": [
+            "right",
+            "down",
+            "left",
+            "up",
+            "arrow"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-light-03-f.svg",
+          "error": "Broken references: light-primobjbbox, light-primobjbbox-rect, light-primusou, light-primdefault",
+          "brokenRefs": [
+            "light-primobjbbox",
+            "light-primobjbbox-rect",
+            "light-primusou",
+            "light-primdefault"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-light-04-f.svg",
+          "error": "Broken references: spotLightA, spotLightB, spotLightC, spotLightD, spotLightE, spotLightF, spotLightG, spotLightH",
+          "brokenRefs": [
+            "spotLightA",
+            "spotLightB",
+            "spotLightC",
+            "spotLightD",
+            "spotLightE",
+            "spotLightF",
+            "spotLightG",
+            "spotLightH"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-light-05-f.svg",
+          "error": "Broken references: distantLightUp, distantLightDown, distantLightLeft, distantLightRight, specularLightUp, specularLightDown, specularLightLeft, specularLightRight, combinedUp, combinedDown, combinedLeft, combinedRight",
+          "brokenRefs": [
+            "distantLightUp",
+            "distantLightDown",
+            "distantLightLeft",
+            "distantLightRight",
+            "specularLightUp",
+            "specularLightDown",
+            "specularLightLeft",
+            "specularLightRight",
+            "combinedUp",
+            "combinedDown",
+            "combinedLeft",
+            "combinedRight"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-morph-01-f.svg",
+          "error": "Broken references: erode1, erode2, dilate1, dilate2",
+          "brokenRefs": [
+            "erode1",
+            "erode2",
+            "dilate1",
+            "dilate2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-offset-01-b.svg",
+          "error": "Broken references: FOMTest",
+          "brokenRefs": [
+            "FOMTest"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-offset-02-b.svg",
+          "error": "Broken references: feoffset1, feoffset2, feoffset3",
+          "brokenRefs": [
+            "feoffset1",
+            "feoffset2",
+            "feoffset3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-overview-01-b.svg",
+          "error": "Broken references: GaussianBlur1, GaussianBlur2, GaussianBlur3, GaussianBlur4, GaussianBlur5, GaussianBlur6",
+          "brokenRefs": [
+            "GaussianBlur1",
+            "GaussianBlur2",
+            "GaussianBlur3",
+            "GaussianBlur4",
+            "GaussianBlur5",
+            "GaussianBlur6"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-overview-02-b.svg",
+          "error": "Broken references: GaussianBlur1, GaussianBlur2, GaussianBlur3, GaussianBlur4, grad1, GaussianBlur5, grad2, GaussianBlur6",
+          "brokenRefs": [
+            "GaussianBlur1",
+            "GaussianBlur2",
+            "GaussianBlur3",
+            "GaussianBlur4",
+            "grad1",
+            "GaussianBlur5",
+            "grad2",
+            "GaussianBlur6"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-overview-03-b.svg",
+          "error": "Broken references: GaussianBlur1, GaussianBlur2, GaussianBlur3, GaussianBlur4, grad1, GaussianBlur5, GaussianBlur6",
+          "brokenRefs": [
+            "GaussianBlur1",
+            "GaussianBlur2",
+            "GaussianBlur3",
+            "GaussianBlur4",
+            "grad1",
+            "GaussianBlur5",
+            "GaussianBlur6"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-specular-01-f.svg",
+          "error": "Broken references: surfaceScaleA, surfaceScaleB, surfaceScaleC, specularConstantA, specularConstantB, specularConstantC, specularExponentA, specularExponentB, specularExponentC, lightingColorA, lightingColorB, lightingColorC",
+          "brokenRefs": [
+            "surfaceScaleA",
+            "surfaceScaleB",
+            "surfaceScaleC",
+            "specularConstantA",
+            "specularConstantB",
+            "specularConstantC",
+            "specularExponentA",
+            "specularExponentB",
+            "specularExponentC",
+            "lightingColorA",
+            "lightingColorB",
+            "lightingColorC"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-tile-01-b.svg",
+          "error": "Broken references: feTileFilter",
+          "brokenRefs": [
+            "feTileFilter"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-turb-01-f.svg",
+          "error": "Broken references: Turb1, Turb2, Turb3, Turb4, Turb5, Turb6",
+          "brokenRefs": [
+            "Turb1",
+            "Turb2",
+            "Turb3",
+            "Turb4",
+            "Turb5",
+            "Turb6"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "filters-turb-02-f.svg",
+          "error": "Broken references: turbneg3, turbneg2, turbneg1, turbzero, turbpos1, turbpos2, turbpos3, turbneg4, turbneg5, turbneg6, turbneg7",
+          "brokenRefs": [
+            "turbneg3",
+            "turbneg2",
+            "turbneg1",
+            "turbzero",
+            "turbpos1",
+            "turbpos2",
+            "turbpos3",
+            "turbneg4",
+            "turbneg5",
+            "turbneg6",
+            "turbneg7"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "imp-path-01-f.svg",
+          "error": "Broken references: testMarker",
+          "brokenRefs": [
+            "testMarker"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "interact-cursor-01-f.svg",
+          "error": "Broken references: magglass",
+          "brokenRefs": [
+            "magglass"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "interact-pointer-01-t.svg",
+          "error": "Broken references: m",
+          "brokenRefs": [
+            "m"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "interact-pointer-02-t.svg",
+          "error": "Broken references: c",
+          "brokenRefs": [
+            "c"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "interact-pointer-03-t.svg",
+          "error": "Broken references: c, invalid",
+          "brokenRefs": [
+            "c",
+            "invalid"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "interact-pointer-04-f.svg",
+          "error": "Broken references: normalMask, opacityMask",
+          "brokenRefs": [
+            "normalMask",
+            "opacityMask"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "linking-a-10-f.svg",
+          "error": "Broken references: testGradient, testMarker, testPattern",
+          "brokenRefs": [
+            "testGradient",
+            "testMarker",
+            "testPattern"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-filter-01-f.svg",
+          "error": "Broken references: f, m",
+          "brokenRefs": [
+            "f",
+            "m"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-intro-01-f.svg",
+          "error": "Broken references: one, two",
+          "brokenRefs": [
+            "one",
+            "two"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-mask-01-b.svg",
+          "error": "Broken references: Grad1, mask1, mask2, mask3",
+          "brokenRefs": [
+            "Grad1",
+            "mask1",
+            "mask2",
+            "mask3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-mask-02-f.svg",
+          "error": "Broken references: testMask",
+          "brokenRefs": [
+            "testMask"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-01-b.svg",
+          "error": "Broken references: clip1, clip2",
+          "brokenRefs": [
+            "clip1",
+            "clip2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-02-b.svg",
+          "error": "Broken references: clip1, clip2",
+          "brokenRefs": [
+            "clip1",
+            "clip2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-04-b.svg",
+          "error": "Broken references: sample",
+          "brokenRefs": [
+            "sample"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-05-f.svg",
+          "error": "Broken references: clip1, clip2",
+          "brokenRefs": [
+            "clip1",
+            "clip2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-07-b.svg",
+          "error": "Broken references: clipTwoCircles, clipCircle1, pattern, clipCircle2, clipInClip1, clipOnClip1",
+          "brokenRefs": [
+            "clipTwoCircles",
+            "clipCircle1",
+            "pattern",
+            "clipCircle2",
+            "clipInClip1",
+            "clipOnClip1"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-08-b.svg",
+          "error": "Broken references: emptyclip, hiddenclip, displayclip, unknown, opacityclip, strokefillclip, strokewidthclip, strokeopacityclip, fillopacityclip",
+          "brokenRefs": [
+            "emptyclip",
+            "hiddenclip",
+            "displayclip",
+            "unknown",
+            "opacityclip",
+            "strokefillclip",
+            "strokewidthclip",
+            "strokeopacityclip",
+            "fillopacityclip"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-09-b.svg",
+          "error": "Broken references: c",
+          "brokenRefs": [
+            "c"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-10-b.svg",
+          "error": "Broken references: emptymask, hiddenmask, displaymask, unknown, opacitymask, strokefillmask, strokewidthmask, strokeopacitymask, fillopacitymask",
+          "brokenRefs": [
+            "emptymask",
+            "hiddenmask",
+            "displaymask",
+            "unknown",
+            "opacitymask",
+            "strokefillmask",
+            "strokewidthmask",
+            "strokeopacitymask",
+            "fillopacitymask"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-11-b.svg",
+          "error": "Broken references: maskedtext",
+          "brokenRefs": [
+            "maskedtext"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "masking-path-14-f.svg",
+          "error": "Broken references: testClipPathAncestor, testClipPath",
+          "brokenRefs": [
+            "testClipPathAncestor",
+            "testClipPath"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-control-05-f.svg",
+          "error": "Broken references: testMask1, testMask2, testMask3, testMask4, testClip1, testClip2, testClip3, testClip4",
+          "brokenRefs": [
+            "testMask1",
+            "testMask2",
+            "testMask3",
+            "testMask4",
+            "testClip1",
+            "testClip2",
+            "testClip3",
+            "testClip4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-01-f.svg",
+          "error": "Broken references: marker1, markerStart, markerMiddle, markerEnd, marker2",
+          "brokenRefs": [
+            "marker1",
+            "markerStart",
+            "markerMiddle",
+            "markerEnd",
+            "marker2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-02-f.svg",
+          "error": "Broken references: marker1, overflowHiddenClip1, marker2, overflowHiddenClip, marker3, marker4",
+          "brokenRefs": [
+            "marker1",
+            "overflowHiddenClip1",
+            "marker2",
+            "overflowHiddenClip",
+            "marker3",
+            "marker4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-03-f.svg",
+          "error": "Broken references: marker1",
+          "brokenRefs": [
+            "marker1"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-04-f.svg",
+          "error": "Broken references: marker2, marker1",
+          "brokenRefs": [
+            "marker2",
+            "marker1"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-05-f.svg",
+          "error": "Broken references: marker1, markerStart, markerMiddle, markerEnd, marker2, vmarker1, vmarkerStart, vmarkerMiddle, vmarkerEnd, vmarker2, amarker1, amarkerStart, amarkerMiddle, amarkerEnd, amarker2, smarker1, smarkerStart, smarkerMiddle, smarkerEnd, smarker2, hmarker1, hmarkerStart, hmarkerMiddle, hmarkerEnd, hmarker2",
+          "brokenRefs": [
+            "marker1",
+            "markerStart",
+            "markerMiddle",
+            "markerEnd",
+            "marker2",
+            "vmarker1",
+            "vmarkerStart",
+            "vmarkerMiddle",
+            "vmarkerEnd",
+            "vmarker2",
+            "amarker1",
+            "amarkerStart",
+            "amarkerMiddle",
+            "amarkerEnd",
+            "amarker2",
+            "smarker1",
+            "smarkerStart",
+            "smarkerMiddle",
+            "smarkerEnd",
+            "smarker2",
+            "hmarker1",
+            "hmarkerStart",
+            "hmarkerMiddle",
+            "hmarkerEnd",
+            "hmarker2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-06-f.svg",
+          "error": "Broken references: marker1, markerStart, markerMiddle, markerEnd, marker2",
+          "brokenRefs": [
+            "marker1",
+            "markerStart",
+            "markerMiddle",
+            "markerEnd",
+            "marker2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-07-f.svg",
+          "error": "Broken references: testMarker, testMarker2",
+          "brokenRefs": [
+            "testMarker",
+            "testMarker2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-marker-properties-01-f.svg",
+          "error": "Broken references: markerTest",
+          "brokenRefs": [
+            "markerTest"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "painting-render-01-b.svg",
+          "error": "Broken references: gradientDefault, gradientSRGB, gradientLinearRGB",
+          "brokenRefs": [
+            "gradientDefault",
+            "gradientSRGB",
+            "gradientLinearRGB"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-01-b.svg",
+          "error": "Broken references: Grad1a, Grad1b",
+          "brokenRefs": [
+            "Grad1a",
+            "Grad1b"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-02-b.svg",
+          "error": "Broken references: Grad2a, Grad2b",
+          "brokenRefs": [
+            "Grad2a",
+            "Grad2b"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-03-b.svg",
+          "error": "Broken references: Pat3a, Pat3b",
+          "brokenRefs": [
+            "Pat3a",
+            "Pat3b"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-04-b.svg",
+          "error": "Broken references: Grad1, Grad2",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-05-b.svg",
+          "error": "Broken references: Grad1, Grad2",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-06-b.svg",
+          "error": "Broken references: Grad1, Grad2, Pat3",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2",
+            "Pat3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-07-b.svg",
+          "error": "Broken references:   , Gradient",
+          "brokenRefs": [
+            "  ",
+            "Gradient"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-08-b.svg",
+          "error": "Broken references: Gradient",
+          "brokenRefs": [
+            "Gradient"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-09-b.svg",
+          "error": "Broken references: Grad1, Grad2, Grad3",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2",
+            "Grad3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-10-b.svg",
+          "error": "Broken references: Grad1, Grad2, Grad3",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2",
+            "Grad3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-11-b.svg",
+          "error": "Broken references:   , Grad1, Grad2, Grad3, Grad4",
+          "brokenRefs": [
+            "  ",
+            "Grad1",
+            "Grad2",
+            "Grad3",
+            "Grad4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-12-b.svg",
+          "error": "Broken references: Grad1, Grad2, Grad3",
+          "brokenRefs": [
+            "Grad1",
+            "Grad2",
+            "Grad3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-13-b.svg",
+          "error": "Broken references: grad1a, grad2a, grad4a, grad6a, grad1b, grad2b, grad4b, grad6b, grad1c, grad2c, grad4c, grad6c, grad1d, grad2d, grad4d, grad6d",
+          "brokenRefs": [
+            "grad1a",
+            "grad2a",
+            "grad4a",
+            "grad6a",
+            "grad1b",
+            "grad2b",
+            "grad4b",
+            "grad6b",
+            "grad1c",
+            "grad2c",
+            "grad4c",
+            "grad6c",
+            "grad1d",
+            "grad2d",
+            "grad4d",
+            "grad6d"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-14-b.svg",
+          "error": "Broken references: lgSpreadPad, lgSpreadReflect, lgSpreadRepeat, lgSpreadDefault, rgSpreadPad, rgSpreadReflect, rgSpreadRepeat, rgSpreadDefault",
+          "brokenRefs": [
+            "lgSpreadPad",
+            "lgSpreadReflect",
+            "lgSpreadRepeat",
+            "lgSpreadDefault",
+            "rgSpreadPad",
+            "rgSpreadReflect",
+            "rgSpreadRepeat",
+            "rgSpreadDefault"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-15-b.svg",
+          "error": "Broken references: defs1, defs2",
+          "brokenRefs": [
+            "defs1",
+            "defs2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-16-b.svg",
+          "error": "Broken references: defs1, defs2, defs3",
+          "brokenRefs": [
+            "defs1",
+            "defs2",
+            "defs3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-17-b.svg",
+          "error": "Broken references: grad",
+          "brokenRefs": [
+            "grad"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-18-b.svg",
+          "error": "Broken references: MyGradient1, MyGradient2, MyGradient3, MyGradient4",
+          "brokenRefs": [
+            "MyGradient1",
+            "MyGradient2",
+            "MyGradient3",
+            "MyGradient4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-20-b.svg",
+          "error": "Broken references: grad",
+          "brokenRefs": [
+            "grad"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-21-b.svg",
+          "error": "Broken references: grad1, grad2, grad1-ref, grad2-ref, grad3, grad4, grad3-ref, grad4-ref, grad5, grad6, grad5-ref, grad6-ref",
+          "brokenRefs": [
+            "grad1",
+            "grad2",
+            "grad1-ref",
+            "grad2-ref",
+            "grad3",
+            "grad4",
+            "grad3-ref",
+            "grad4-ref",
+            "grad5",
+            "grad6",
+            "grad5-ref",
+            "grad6-ref"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-22-b.svg",
+          "error": "Broken references: g1, g2, g3, g4",
+          "brokenRefs": [
+            "g1",
+            "g2",
+            "g3",
+            "g4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-23-f.svg",
+          "error": "Broken references: testLinear, testRadial",
+          "brokenRefs": [
+            "testLinear",
+            "testRadial"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-24-f.svg",
+          "error": "Broken references: testLinear, testRadial",
+          "brokenRefs": [
+            "testLinear",
+            "testRadial"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-grad-stops-01-f.svg",
+          "error": "Broken references: gradient1, gradient2, gradient3, gradient4",
+          "brokenRefs": [
+            "gradient1",
+            "gradient2",
+            "gradient3",
+            "gradient4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-01-b.svg",
+          "error": "Broken references: pat1, pat2, pat3, pat4",
+          "brokenRefs": [
+            "pat1",
+            "pat2",
+            "pat3",
+            "pat4"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-02-f.svg",
+          "error": "Broken references: pattern",
+          "brokenRefs": [
+            "pattern"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-03-f.svg",
+          "error": "Broken references: invisible1, invisible2, invisible3, invisible4, invisible5, invisible6, invisible7, invisible8",
+          "brokenRefs": [
+            "invisible1",
+            "invisible2",
+            "invisible3",
+            "invisible4",
+            "invisible5",
+            "invisible6",
+            "invisible7",
+            "invisible8"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-04-f.svg",
+          "error": "Broken references: pattern1, pattern2",
+          "brokenRefs": [
+            "pattern1",
+            "pattern2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-05-f.svg",
+          "error": "Broken references: Pattern3",
+          "brokenRefs": [
+            "Pattern3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-06-f.svg",
+          "error": "Broken references: testPattern",
+          "brokenRefs": [
+            "testPattern"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-07-f.svg",
+          "error": "Broken references: pattern1, pattern2",
+          "brokenRefs": [
+            "pattern1",
+            "pattern2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-08-f.svg",
+          "error": "Broken references: pattern1, pattern2",
+          "brokenRefs": [
+            "pattern1",
+            "pattern2"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "pservers-pattern-09-f.svg",
+          "error": "Broken references: pattern1, pattern2, pattern3",
+          "brokenRefs": [
+            "pattern1",
+            "pattern2",
+            "pattern3"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "struct-use-05-b.svg",
+          "error": "Broken references: linearGrad1",
+          "brokenRefs": [
+            "linearGrad1"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        },
+        {
+          "filename": "styling-inherit-01-b.svg",
+          "error": "Broken references: ygw, yrw",
+          "brokenRefs": [
+            "ygw",
+            "yrw"
+          ],
+          "xmlValid": true,
+          "referencesValid": false
+        }
+      ],
+      "details": {}
+    },
+    "moveGroupAttrsToElems": {
+      "functionName": "moveGroupAttrsToElems",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "optimizeAnimationTiming": {
+      "functionName": "optimizeAnimationTiming",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "optimizePaths": {
+      "functionName": "optimizePaths",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "prefixIds": {
+      "functionName": "prefixIds",
+      "status": "fail",
+      "totalFiles": 4806,
+      "passedFiles": 3189,
+      "failedFiles": 1617,
+      "errors": [],
+      "details": {}
+    },
+    "removeAttributesBySelector": {
+      "functionName": "removeAttributesBySelector",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeAttrs": {
+      "functionName": "removeAttrs",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeComments": {
+      "functionName": "removeComments",
+      "status": "fail",
+      "totalFiles": 1139,
+      "passedFiles": 0,
+      "failedFiles": 15,
+      "errors": [],
+      "details": {}
+    },
+    "removeDesc": {
+      "functionName": "removeDesc",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeDimensions": {
+      "functionName": "removeDimensions",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeDoctype": {
+      "functionName": "removeDoctype",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeEditorsNSData": {
+      "functionName": "removeEditorsNSData",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeElementsByAttr": {
+      "functionName": "removeElementsByAttr",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeEmptyAttrs": {
+      "functionName": "removeEmptyAttrs",
+      "status": "pass",
+      "totalFiles": 533,
+      "passedFiles": 533,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeEmptyContainers": {
+      "functionName": "removeEmptyContainers",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeEmptyText": {
+      "functionName": "removeEmptyText",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeHiddenElements": {
+      "functionName": "removeHiddenElements",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeMetadata": {
+      "functionName": "removeMetadata",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeNonInheritableGroupAttrs": {
+      "functionName": "removeNonInheritableGroupAttrs",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeOffCanvasPath": {
+      "functionName": "removeOffCanvasPath",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeRasterImages": {
+      "functionName": "removeRasterImages",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeScriptElement": {
+      "functionName": "removeScriptElement",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 521,
+      "failedFiles": 4,
+      "errors": [],
+      "details": {}
+    },
+    "removeStyleElement": {
+      "functionName": "removeStyleElement",
+      "status": "fail",
+      "errors": [],
+      "details": {}
+    },
+    "removeTitle": {
+      "functionName": "removeTitle",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeUnknownsAndDefaults": {
+      "functionName": "removeUnknownsAndDefaults",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 512,
+      "failedFiles": 0,
+      "errors": 13,
+      "details": {}
+    },
+    "removeUselessDefs": {
+      "functionName": "removeUselessDefs",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": [],
+      "errors": [],
+      "details": {}
+    },
+    "removeViewBox": {
+      "functionName": "removeViewBox",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 512,
+      "failedFiles": 13,
+      "errors": [],
+      "details": {}
+    },
+    "removeXMLNS": {
+      "functionName": "removeXMLNS",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "removeXMLProcInst": {
+      "functionName": "removeXMLProcInst",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 459,
+      "failedFiles": 66,
+      "errors": [],
+      "details": {}
+    },
+    "removeXlink": {
+      "functionName": "removeXlink",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "reusePaths": {
+      "functionName": "reusePaths",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "simplifyPath": {
+      "functionName": "simplifyPath",
+      "status": "fail",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": [],
+      "errors": [],
+      "details": {}
+    },
+    "simplifyPaths": {
+      "functionName": "simplifyPaths",
+      "status": "unknown",
+      "totalFiles": 0,
+      "passedFiles": 0,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "sortAttrs": {
+      "functionName": "sortAttrs",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    },
+    "sortDefsChildren": {
+      "functionName": "sortDefsChildren",
+      "status": "pass",
+      "totalFiles": 525,
+      "passedFiles": 525,
+      "failedFiles": 0,
+      "errors": [],
+      "details": {}
+    }
+  }
+}

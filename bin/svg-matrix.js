@@ -14,17 +14,29 @@
  * @license MIT
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, appendFileSync, unlinkSync, openSync, readSync, closeSync } from 'fs';
-import { join, dirname, basename, extname, resolve, isAbsolute } from 'path';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  appendFileSync,
+  unlinkSync,
+  openSync,
+  readSync,
+  closeSync,
+} from "fs";
+import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
 
 // Import library modules
-import * as SVGFlatten from '../src/svg-flatten.js';
-import * as GeometryToPath from '../src/geometry-to-path.js';
-import * as FlattenPipeline from '../src/flatten-pipeline.js';
-import { VERSION } from '../src/index.js';
-import * as SVGToolbox from '../src/svg-toolbox.js';
-import { parseSVG, serializeSVG } from '../src/svg-parser.js';
-import { setPolyfillMinification } from '../src/svg2-polyfills.js';
+import * as SVGFlatten from "../src/svg-flatten.js";
+import * as GeometryToPath from "../src/geometry-to-path.js";
+import * as FlattenPipeline from "../src/flatten-pipeline.js";
+import { VERSION } from "../src/index.js";
+import * as SVGToolbox from "../src/svg-toolbox.js";
+import { parseSVG, serializeSVG } from "../src/svg-parser.js";
+import { setPolyfillMinification } from "../src/svg2-polyfills.js";
 
 // ============================================================================
 // CONSTANTS
@@ -53,7 +65,7 @@ const CONSTANTS = {
   EXIT_INTERRUPTED: 130, // 128 + SIGINT(2)
 
   // SVG file extensions recognized
-  SVG_EXTENSIONS: ['.svg', '.svgz'],
+  SVG_EXTENSIONS: [".svg", ".svgz"],
 
   // SVG header pattern for validation
   SVG_HEADER_PATTERN: /<svg[\s>]/i,
@@ -96,7 +108,7 @@ let currentOutputFile = null; // Track for cleanup on interrupt
  */
 
 const DEFAULT_CONFIG = {
-  command: 'help',
+  command: "help",
   inputs: [],
   output: null,
   listFile: null,
@@ -107,23 +119,23 @@ const DEFAULT_CONFIG = {
   recursive: false,
   overwrite: false,
   dryRun: false,
-  showCommandHelp: false,     // Track if --help was requested for a specific command
+  showCommandHelp: false, // Track if --help was requested for a specific command
   // Full flatten options - all enabled by default for TRUE flattening
-  transformOnly: false,       // If true, skip all resolvers (legacy behavior)
-  resolveClipPaths: true,     // Apply clipPath boolean intersection
-  resolveMasks: true,         // Convert masks to clipped geometry
-  resolveUse: true,           // Expand use/symbol elements inline
-  resolveMarkers: true,       // Instantiate markers as path geometry
-  resolvePatterns: true,      // Expand pattern fills to tiled geometry
-  bakeGradients: true,        // Bake gradientTransform into gradient coords
+  transformOnly: false, // If true, skip all resolvers (legacy behavior)
+  resolveClipPaths: true, // Apply clipPath boolean intersection
+  resolveMasks: true, // Convert masks to clipped geometry
+  resolveUse: true, // Expand use/symbol elements inline
+  resolveMarkers: true, // Instantiate markers as path geometry
+  resolvePatterns: true, // Expand pattern fills to tiled geometry
+  bakeGradients: true, // Bake gradientTransform into gradient coords
   // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
   // E2E verification precision controls
-  clipSegments: 64,           // Polygon samples for clip operations (higher = more precise)
-  bezierArcs: 8,              // Bezier arcs for circles/ellipses (multiple of 4; 8=π/4 optimal)
-  e2eTolerance: '1e-10',      // E2E verification tolerance (tighter with more segments)
-  preserveVendor: false,      // If true, preserve vendor-prefixed properties and editor namespaces
-  preserveNamespaces: [],     // Array of namespace prefixes to preserve (e.g., ['inkscape', 'sodipodi'])
-  svg2Polyfills: false,       // If true, inject JavaScript polyfills for SVG 2 features
+  clipSegments: 64, // Polygon samples for clip operations (higher = more precise)
+  bezierArcs: 8, // Bezier arcs for circles/ellipses (multiple of 4; 8=π/4 optimal)
+  e2eTolerance: "1e-10", // E2E verification tolerance (tighter with more segments)
+  preserveVendor: false, // If true, preserve vendor-prefixed properties and editor namespaces
+  preserveNamespaces: [], // Array of namespace prefixes to preserve (e.g., ['inkscape', 'sodipodi'])
+  svg2Polyfills: false, // If true, inject JavaScript polyfills for SVG 2 features
 };
 
 /** @type {CLIConfig} */
@@ -141,12 +153,26 @@ function getLogLevel() {
   return LogLevel.INFO;
 }
 
-const colors = process.env.NO_COLOR !== undefined ? {
-  reset: '', red: '', yellow: '', green: '', cyan: '', dim: '', bright: '',
-} : {
-  reset: '\x1b[0m', red: '\x1b[31m', yellow: '\x1b[33m',
-  green: '\x1b[32m', cyan: '\x1b[36m', dim: '\x1b[2m', bright: '\x1b[1m',
-};
+const colors =
+  process.env.NO_COLOR !== undefined
+    ? {
+        reset: "",
+        red: "",
+        yellow: "",
+        green: "",
+        cyan: "",
+        dim: "",
+        bright: "",
+      }
+    : {
+        reset: "\x1b[0m",
+        red: "\x1b[31m",
+        yellow: "\x1b[33m",
+        green: "\x1b[32m",
+        cyan: "\x1b[36m",
+        dim: "\x1b[2m",
+        bright: "\x1b[1m",
+      };
 
 // ============================================================================
 // SIGNAL HANDLING (handlers)
@@ -160,19 +186,27 @@ function handleGracefulExit(signal) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  console.log(`\n${colors.yellow}Received ${signal}, cleaning up...${colors.reset}`);
+  console.log(
+    `\n${colors.yellow}Received ${signal}, cleaning up...${colors.reset}`,
+  );
 
   // Why: Remove partial output file if interrupt occurred during processing
   if (currentOutputFile && existsSync(currentOutputFile)) {
     try {
       unlinkSync(currentOutputFile);
-      console.log(`${colors.dim}Removed partial output: ${basename(currentOutputFile)}${colors.reset}`);
-    } catch { /* ignore cleanup errors */ }
+      console.log(
+        `${colors.dim}Removed partial output: ${basename(currentOutputFile)}${colors.reset}`,
+      );
+    } catch {
+      /* ignore cleanup errors */
+    }
   }
 
   // Log the interruption for debugging
   if (config.logFile) {
-    writeToLogFile(`INTERRUPTED: Received ${signal} while processing ${currentInputFile || 'unknown'}`);
+    writeToLogFile(
+      `INTERRUPTED: Received ${signal} while processing ${currentInputFile || "unknown"}`,
+    );
   }
 
   // Why: Give async operations time to complete, but don't hang indefinitely
@@ -182,8 +216,8 @@ function handleGracefulExit(signal) {
 }
 
 // Register signal handlers - must be done before any async operations
-process.on('SIGINT', () => handleGracefulExit('SIGINT'));   // Ctrl+C
-process.on('SIGTERM', () => handleGracefulExit('SIGTERM')); // kill command
+process.on("SIGINT", () => handleGracefulExit("SIGINT")); // Ctrl+C
+process.on("SIGTERM", () => handleGracefulExit("SIGTERM")); // kill command
 // Note: SIGTERM is not fully supported on Windows. On Windows, SIGINT (Ctrl+C) works,
 // but SIGTERM requires special handling or third-party libraries. This is acceptable
 // for a CLI tool as Ctrl+C is the primary interrupt mechanism on all platforms.
@@ -192,9 +226,12 @@ function writeToLogFile(message) {
   if (config.logFile) {
     try {
       const timestamp = new Date().toISOString();
-      const cleanMessage = message.replace(/\x1b\[[0-9;]*m/g, '');
+      // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for log stripping
+      const cleanMessage = message.replace(/\x1b\[[0-9;]*m/g, "");
       appendFileSync(config.logFile, `[${timestamp}] ${cleanMessage}\n`);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -204,7 +241,8 @@ function logError(msg) {
 }
 
 function logWarn(msg) {
-  if (getLogLevel() >= LogLevel.WARN) console.warn(`${colors.yellow}WARN:${colors.reset} ${msg}`);
+  if (getLogLevel() >= LogLevel.WARN)
+    console.warn(`${colors.yellow}WARN:${colors.reset} ${msg}`);
   writeToLogFile(`WARN: ${msg}`);
 }
 
@@ -214,12 +252,14 @@ function logInfo(msg) {
 }
 
 function logDebug(msg) {
-  if (getLogLevel() >= LogLevel.DEBUG) console.log(`${colors.dim}DEBUG: ${msg}${colors.reset}`);
+  if (getLogLevel() >= LogLevel.DEBUG)
+    console.log(`${colors.dim}DEBUG: ${msg}${colors.reset}`);
   writeToLogFile(`DEBUG: ${msg}`);
 }
 
 function logSuccess(msg) {
-  if (getLogLevel() >= LogLevel.INFO) console.log(`${colors.green}OK${colors.reset} ${msg}`);
+  if (getLogLevel() >= LogLevel.INFO)
+    console.log(`${colors.green}OK${colors.reset} ${msg}`);
   writeToLogFile(`SUCCESS: ${msg}`);
 }
 
@@ -235,21 +275,25 @@ function showProgress(current, total, filename) {
 
   // Why: In verbose mode, newline before progress to avoid overwriting debug output
   if (config.verbose && current > 1) {
-    process.stdout.write('\n');
+    process.stdout.write("\n");
   }
 
   const percent = Math.round((current / total) * 100);
-  const bar = '█'.repeat(Math.floor(percent / 5)) + '░'.repeat(20 - Math.floor(percent / 5));
+  const bar =
+    "█".repeat(Math.floor(percent / 5)) +
+    "░".repeat(20 - Math.floor(percent / 5));
 
   // Why: Use \r to overwrite the same line, keeping terminal clean
-  process.stdout.write(`\r${colors.cyan}[${bar}]${colors.reset} ${percent}% (${current}/${total}) ${basename(filename)}`);
+  process.stdout.write(
+    `\r${colors.cyan}[${bar}]${colors.reset} ${percent}% (${current}/${total}) ${basename(filename)}`,
+  );
 
   // Why: Clear to end of line to remove any leftover characters from longer filenames
-  process.stdout.write('\x1b[K');
+  process.stdout.write("\x1b[K");
 
   // Why: Print newline when complete so next output starts on new line
   if (current === total) {
-    process.stdout.write('\n');
+    process.stdout.write("\n");
   }
 }
 
@@ -263,19 +307,21 @@ function validateSvgFile(filePath) {
 
   // Why: Prevent memory exhaustion from huge files
   if (stats.size > CONSTANTS.MAX_FILE_SIZE_BYTES) {
-    throw new Error(`File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Max: ${CONSTANTS.MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`);
+    throw new Error(
+      `File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Max: ${CONSTANTS.MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`,
+    );
   }
 
   // Why: Read only first 1KB to check header - don't load entire file
-  const fd = openSync(filePath, 'r');
+  const fd = openSync(filePath, "r");
   const buffer = Buffer.alloc(1024);
   readSync(fd, buffer, 0, 1024, 0);
   closeSync(fd);
-  const header = buffer.toString('utf8');
+  const header = buffer.toString("utf8");
 
   // Why: SVG files must have an <svg> element - if not, it's not a valid SVG
   if (!CONSTANTS.SVG_HEADER_PATTERN.test(header)) {
-    throw new Error('Not a valid SVG file (missing <svg> element)');
+    throw new Error("Not a valid SVG file (missing <svg> element)");
   }
 
   return true;
@@ -287,18 +333,20 @@ function validateSvgFile(filePath) {
 // shares) may appear to write successfully but fail to persist data.
 // Verification catches this immediately rather than discovering corruption later.
 // ============================================================================
-function verifyWriteSuccess(filePath, expectedContent) {
+function _verifyWriteSuccess(filePath, expectedContent) {
   // Why: Read back what was written and compare
-  const actualContent = readFileSync(filePath, 'utf8');
+  const actualContent = readFileSync(filePath, "utf8");
 
   // Why: Compare lengths first (fast), then content if needed
   if (actualContent.length !== expectedContent.length) {
-    throw new Error(`Write verification failed: size mismatch (expected ${expectedContent.length}, got ${actualContent.length})`);
+    throw new Error(
+      `Write verification failed: size mismatch (expected ${expectedContent.length}, got ${actualContent.length})`,
+    );
   }
 
   // Why: Full content comparison to catch bit flips or encoding issues
   if (actualContent !== expectedContent) {
-    throw new Error('Write verification failed: content mismatch');
+    throw new Error("Write verification failed: content mismatch");
   }
 
   return true;
@@ -311,8 +359,8 @@ function verifyWriteSuccess(filePath, expectedContent) {
 // with full context about what was being processed when the crash occurred.
 // ============================================================================
 function generateCrashLog(error, context = {}) {
-  const crashDir = join(process.cwd(), '.svg-matrix-crashes');
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const crashDir = join(process.cwd(), ".svg-matrix-crashes");
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const crashFile = join(crashDir, `crash-${timestamp}.log`);
 
   try {
@@ -336,10 +384,10 @@ Stack:
 ${error.stack}
 
 Config:
-${JSON.stringify({ ...config, logFile: config.logFile ? '[redacted]' : null }, null, 2)}
+${JSON.stringify({ ...config, logFile: config.logFile ? "[redacted]" : null }, null, 2)}
 `;
 
-    writeFileSync(crashFile, crashContent, 'utf8');
+    writeFileSync(crashFile, crashContent, "utf8");
     logError(`Crash log written to: ${crashFile}`);
     return crashFile;
   } catch (e) {
@@ -353,14 +401,30 @@ ${JSON.stringify({ ...config, logFile: config.logFile ? '[redacted]' : null }, n
 // PATH UTILITIES
 // ============================================================================
 
-function normalizePath(p) { return p.replace(/\\/g, '/'); }
-
-function resolvePath(p) {
-  return isAbsolute(p) ? normalizePath(p) : normalizePath(resolve(process.cwd(), p));
+function normalizePath(p) {
+  return p.replace(/\\/g, "/");
 }
 
-function isDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
-function isFile(p) { try { return statSync(p).isFile(); } catch { return false; } }
+function resolvePath(p) {
+  return isAbsolute(p)
+    ? normalizePath(p)
+    : normalizePath(resolve(process.cwd(), p));
+}
+
+function isDir(p) {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+function isFile(p) {
+  try {
+    return statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
 
 function ensureDir(dir) {
   if (!existsSync(dir)) {
@@ -376,7 +440,11 @@ function getSvgFiles(dir, recursive = false) {
       const fullPath = join(d, entry.name);
       if (entry.isDirectory() && recursive) scan(fullPath);
       // Why: Support both .svg and .svgz as defined in CONSTANTS.SVG_EXTENSIONS
-      else if (entry.isFile() && CONSTANTS.SVG_EXTENSIONS.includes(extname(entry.name).toLowerCase())) files.push(normalizePath(fullPath));
+      else if (
+        entry.isFile() &&
+        CONSTANTS.SVG_EXTENSIONS.includes(extname(entry.name).toLowerCase())
+      )
+        files.push(normalizePath(fullPath));
     }
   }
   scan(dir);
@@ -384,14 +452,15 @@ function getSvgFiles(dir, recursive = false) {
 }
 
 function parseFileList(listPath) {
-  const content = readFileSync(listPath, 'utf8');
+  const content = readFileSync(listPath, "utf8");
   const files = [];
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+    if (!trimmed || trimmed.startsWith("#")) continue;
     const resolved = resolvePath(trimmed);
     if (isFile(resolved)) files.push(resolved);
-    else if (isDir(resolved)) files.push(...getSvgFiles(resolved, config.recursive));
+    else if (isDir(resolved))
+      files.push(...getSvgFiles(resolved, config.recursive));
     else logWarn(`File not found: ${trimmed}`);
   }
   return files;
@@ -413,7 +482,7 @@ function parseFileList(listPath) {
  */
 function extractNumericAttr(attrs, attrName, defaultValue = 0) {
   // Why: Use word boundary \b to avoid matching 'rx' when looking for 'x'
-  const regex = new RegExp(`\\b${attrName}\\s*=\\s*["']([^"']+)["']`, 'i');
+  const regex = new RegExp(`\\b${attrName}\\s*=\\s*["']([^"']+)["']`, "i");
   const match = attrs.match(regex);
   return match ? parseFloat(match[1]) : defaultValue;
 }
@@ -427,45 +496,58 @@ function extractNumericAttr(attrs, attrName, defaultValue = 0) {
  */
 function extractShapeAsPath(shapeType, attrs, precision) {
   switch (shapeType) {
-    case 'rect': {
-      const x = extractNumericAttr(attrs, 'x');
-      const y = extractNumericAttr(attrs, 'y');
-      const w = extractNumericAttr(attrs, 'width');
-      const h = extractNumericAttr(attrs, 'height');
-      const rx = extractNumericAttr(attrs, 'rx');
-      const ry = extractNumericAttr(attrs, 'ry', rx); // ry defaults to rx per SVG spec
+    case "rect": {
+      const x = extractNumericAttr(attrs, "x");
+      const y = extractNumericAttr(attrs, "y");
+      const w = extractNumericAttr(attrs, "width");
+      const h = extractNumericAttr(attrs, "height");
+      const rx = extractNumericAttr(attrs, "rx");
+      const ry = extractNumericAttr(attrs, "ry", rx); // ry defaults to rx per SVG spec
       if (w <= 0 || h <= 0) return null;
-      return GeometryToPath.rectToPathData(x, y, w, h, rx, ry, false, precision);
+      return GeometryToPath.rectToPathData(
+        x,
+        y,
+        w,
+        h,
+        rx,
+        ry,
+        false,
+        precision,
+      );
     }
-    case 'circle': {
-      const cx = extractNumericAttr(attrs, 'cx');
-      const cy = extractNumericAttr(attrs, 'cy');
-      const r = extractNumericAttr(attrs, 'r');
+    case "circle": {
+      const cx = extractNumericAttr(attrs, "cx");
+      const cy = extractNumericAttr(attrs, "cy");
+      const r = extractNumericAttr(attrs, "r");
       if (r <= 0) return null;
       return GeometryToPath.circleToPathData(cx, cy, r, precision);
     }
-    case 'ellipse': {
-      const cx = extractNumericAttr(attrs, 'cx');
-      const cy = extractNumericAttr(attrs, 'cy');
-      const rx = extractNumericAttr(attrs, 'rx');
-      const ry = extractNumericAttr(attrs, 'ry');
+    case "ellipse": {
+      const cx = extractNumericAttr(attrs, "cx");
+      const cy = extractNumericAttr(attrs, "cy");
+      const rx = extractNumericAttr(attrs, "rx");
+      const ry = extractNumericAttr(attrs, "ry");
       if (rx <= 0 || ry <= 0) return null;
       return GeometryToPath.ellipseToPathData(cx, cy, rx, ry, precision);
     }
-    case 'line': {
-      const x1 = extractNumericAttr(attrs, 'x1');
-      const y1 = extractNumericAttr(attrs, 'y1');
-      const x2 = extractNumericAttr(attrs, 'x2');
-      const y2 = extractNumericAttr(attrs, 'y2');
+    case "line": {
+      const x1 = extractNumericAttr(attrs, "x1");
+      const y1 = extractNumericAttr(attrs, "y1");
+      const x2 = extractNumericAttr(attrs, "x2");
+      const y2 = extractNumericAttr(attrs, "y2");
       return GeometryToPath.lineToPathData(x1, y1, x2, y2, precision);
     }
-    case 'polygon': {
+    case "polygon": {
       const points = attrs.match(/points\s*=\s*["']([^"']+)["']/)?.[1];
-      return points ? GeometryToPath.polygonToPathData(points, precision) : null;
+      return points
+        ? GeometryToPath.polygonToPathData(points, precision)
+        : null;
     }
-    case 'polyline': {
+    case "polyline": {
       const points = attrs.match(/points\s*=\s*["']([^"']+)["']/)?.[1];
-      return points ? GeometryToPath.polylineToPathData(points, precision) : null;
+      return points
+        ? GeometryToPath.polylineToPathData(points, precision)
+        : null;
     }
     default:
       return null;
@@ -479,12 +561,12 @@ function extractShapeAsPath(shapeType, attrs, precision) {
  */
 function getShapeSpecificAttrs(shapeType) {
   const attrMap = {
-    rect: ['x', 'y', 'width', 'height', 'rx', 'ry'],
-    circle: ['cx', 'cy', 'r'],
-    ellipse: ['cx', 'cy', 'rx', 'ry'],
-    line: ['x1', 'y1', 'x2', 'y2'],
-    polygon: ['points'],
-    polyline: ['points'],
+    rect: ["x", "y", "width", "height", "rx", "ry"],
+    circle: ["cx", "cy", "r"],
+    ellipse: ["cx", "cy", "rx", "ry"],
+    line: ["x1", "y1", "x2", "y2"],
+    polygon: ["points"],
+    polyline: ["points"],
   };
   return attrMap[shapeType] || [];
 }
@@ -498,7 +580,10 @@ function getShapeSpecificAttrs(shapeType) {
 function removeShapeAttrs(attrs, attrsToRemove) {
   let result = attrs;
   for (const attrName of attrsToRemove) {
-    result = result.replace(new RegExp(`\\b${attrName}\\s*=\\s*["'][^"']*["']`, 'gi'), '');
+    result = result.replace(
+      new RegExp(`\\b${attrName}\\s*=\\s*["'][^"']*["']`, "gi"),
+      "",
+    );
   }
   return result.trim();
 }
@@ -513,32 +598,37 @@ function removeShapeAttrs(attrs, attrsToRemove) {
 
 // Box drawing helpers
 const supportsUnicode = () => {
-  if (process.platform === 'win32') {
-    return !!(process.env.WT_SESSION || process.env.CHCP === '65001' ||
-              process.env.ConEmuANSI === 'ON' || process.env.TERM_PROGRAM);
+  if (process.platform === "win32") {
+    return !!(
+      process.env.WT_SESSION ||
+      process.env.CHCP === "65001" ||
+      process.env.ConEmuANSI === "ON" ||
+      process.env.TERM_PROGRAM
+    );
   }
   return true;
 };
 
 const B = supportsUnicode()
-  ? { tl: '╭', tr: '╮', bl: '╰', br: '╯', h: '─', v: '│', dot: '•', arr: '→' }
-  : { tl: '+', tr: '+', bl: '+', br: '+', h: '-', v: '|', dot: '*', arr: '->' };
+  ? { tl: "╭", tr: "╮", bl: "╰", br: "╯", h: "─", v: "│", dot: "•", arr: "→" }
+  : { tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|", dot: "*", arr: "->" };
 
 function stripAnsi(s) {
-  return s.replace(/\x1b\[[0-9;]*m/g, '');
+  // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for terminal color stripping
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 function boxLine(content, width = 70) {
   const visible = stripAnsi(content).length;
   const padding = Math.max(0, width - visible - 2);
-  return `${colors.cyan}${B.v}${colors.reset} ${content}${' '.repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+  return `${colors.cyan}${B.v}${colors.reset} ${content}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
 function boxHeader(title, width = 70) {
-  const hr = B.h.repeat(width);
+  const _hr = B.h.repeat(width); // Reserved for future use (horizontal rule)
   const visible = stripAnsi(title).length;
   const padding = Math.max(0, width - visible - 2);
-  return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${title}${colors.reset}${' '.repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+  return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${title}${colors.reset}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
 function boxDivider(width = 70) {
@@ -554,36 +644,36 @@ ${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
 ${boxLine(`${colors.bright}@emasoft/svg-matrix${colors.reset} v${VERSION}`, W)}
 ${boxLine(`${colors.dim}Arbitrary-precision SVG transforms with decimal.js${colors.reset}`, W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('USAGE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("USAGE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix <command> [options] <input> [-o <output>]`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('COMMANDS', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("COMMANDS", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}flatten${colors.reset}     TRUE flatten: resolve ALL transform dependencies`, W)}
 ${boxLine(`              ${colors.dim}Bakes transforms, applies clipPaths, expands use/markers${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}convert${colors.reset}     Convert shapes (rect, circle, ellipse, line) to paths`, W)}
 ${boxLine(`              ${colors.dim}Preserves all style attributes${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}normalize${colors.reset}   Convert all paths to absolute cubic Bezier curves`, W)}
 ${boxLine(`              ${colors.dim}Ideal for animation and path morphing${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}info${colors.reset}        Show SVG file information and element counts`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}test-toolbox${colors.reset} Test all svg-toolbox functions on an SVG file`, W)}
 ${boxLine(`              ${colors.dim}Creates timestamped folder with all processed versions${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}help${colors.reset}        Show this help (or: svg-matrix <command> --help)`, W)}
 ${boxLine(`  ${colors.green}version${colors.reset}     Show version number`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('GLOBAL OPTIONS', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("GLOBAL OPTIONS", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}-o, --output <path>${colors.reset}     Output file or directory`, W)}
 ${boxLine(`  ${colors.dim}-l, --list <file>${colors.reset}       Read input files from text file`, W)}
 ${boxLine(`  ${colors.dim}-r, --recursive${colors.reset}         Process directories recursively`, W)}
@@ -593,11 +683,11 @@ ${boxLine(`  ${colors.dim}-n, --dry-run${colors.reset}           Show what would
 ${boxLine(`  ${colors.dim}-q, --quiet${colors.reset}             Suppress all output except errors`, W)}
 ${boxLine(`  ${colors.dim}-v, --verbose${colors.reset}           Enable verbose/debug output`, W)}
 ${boxLine(`  ${colors.dim}--log-file <path>${colors.reset}       Write log to file`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('FLATTEN OPTIONS', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("FLATTEN OPTIONS", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}--transform-only${colors.reset}        Only flatten transforms (skip resolvers)`, W)}
 ${boxLine(`  ${colors.dim}--no-clip-paths${colors.reset}         Skip clipPath boolean operations`, W)}
 ${boxLine(`  ${colors.dim}--no-masks${colors.reset}              Skip mask to clip conversion`, W)}
@@ -611,46 +701,46 @@ ${boxLine(`  ${colors.dim}--preserve-ns <list>${colors.reset}     Preserve speci
 ${boxLine(`                          ${colors.dim}Example: --preserve-ns inkscape,sodipodi${colors.reset}`, W)}
 ${boxLine(`  ${colors.dim}--svg2-polyfills${colors.reset}        Inject JavaScript polyfills for SVG 2 features`, W)}
 ${boxLine(`  ${colors.dim}--no-minify-polyfills${colors.reset}   Use full (non-minified) polyfills for debugging`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('PRECISION OPTIONS', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("PRECISION OPTIONS", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}--clip-segments <n>${colors.reset}     Polygon samples for clipping (default: 64)`, W)}
 ${boxLine(`                          ${colors.dim}64=balanced, 128=high, 256=very high${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}--bezier-arcs <n>${colors.reset}       Bezier arcs for curves (default: 8)`, W)}
 ${boxLine(`                          ${colors.dim}Must be multiple of 4. Error rates:${colors.reset}`, W)}
 ${boxLine(`                          ${colors.dim}8: 0.0004%, 16: 0.000007%, 64: 0.00000001%${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}--e2e-tolerance <exp>${colors.reset}   Verification tolerance (default: 1e-10)`, W)}
 ${boxLine(`                          ${colors.dim}Examples: 1e-8, 1e-10, 1e-12, 1e-14${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.yellow}${B.dot} Mathematical verification is ALWAYS enabled${colors.reset}`, W)}
 ${boxLine(`  ${colors.yellow}${B.dot} Precision is non-negotiable in this library${colors.reset}`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('EXAMPLES', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("EXAMPLES", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o output.svg`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} ./svgs/ -o ./out/ --transform-only`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} --list files.txt -o ./out/ --no-patterns`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o out.svg --preserve-ns inkscape,sodipodi`, W)}
 ${boxLine(`  ${colors.green}svg-matrix convert${colors.reset} input.svg -o output.svg -p 10`, W)}
 ${boxLine(`  ${colors.green}svg-matrix info${colors.reset} input.svg`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxDivider(W)}
-${boxLine('', W)}
-${boxHeader('JAVASCRIPT API', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("JAVASCRIPT API", W)}
+${boxLine("", W)}
 ${boxLine(`  import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix'`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}${B.dot} Matrix${colors.reset}        Arbitrary-precision matrix operations`, W)}
 ${boxLine(`  ${colors.green}${B.dot} Vector${colors.reset}        High-precision vector math`, W)}
 ${boxLine(`  ${colors.green}${B.dot} Transforms2D${colors.reset}  rotate, scale, translate, skew, reflect`, W)}
 ${boxLine(`  ${colors.green}${B.dot} Transforms3D${colors.reset}  3D affine transformations`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 
   ${colors.cyan}Docs:${colors.reset} https://github.com/Emasoft/SVG-MATRIX#readme
@@ -666,12 +756,12 @@ function showCommandHelp(command) {
 ${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
 ${boxLine(`${colors.bright}svg-matrix flatten${colors.reset} - TRUE SVG Flattening`, W)}
 ${boxDivider(W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`Resolves ALL transform dependencies to produce a "flat" SVG where`, W)}
 ${boxLine(`every coordinate is in the root coordinate system.`, W)}
-${boxLine('', W)}
-${boxHeader('WHAT IT DOES', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("WHAT IT DOES", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Bakes transform attributes into path coordinates`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Applies clipPath as boolean intersection operations`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts masks to equivalent clipped geometry`, W)}
@@ -679,110 +769,110 @@ ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands <use> and <symbol> r
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Instantiates markers as actual path geometry`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands pattern fills to tiled geometry`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Bakes gradientTransform into gradient coordinates`, W)}
-${boxLine('', W)}
-${boxHeader('USAGE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("USAGE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix flatten <input> [options]`, W)}
-${boxLine('', W)}
-${boxHeader('EXAMPLES', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("EXAMPLES", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}# Full flatten (all resolvers enabled)${colors.reset}`, W)}
 ${boxLine(`  svg-matrix flatten input.svg -o output.svg`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}# Transform-only mode (legacy, faster)${colors.reset}`, W)}
 ${boxLine(`  svg-matrix flatten input.svg -o out.svg --transform-only`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}# High-precision mode for complex curves${colors.reset}`, W)}
 ${boxLine(`  svg-matrix flatten in.svg -o out.svg --clip-segments 128`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.dim}# Skip specific resolvers${colors.reset}`, W)}
 ${boxLine(`  svg-matrix flatten in.svg -o out.svg --no-patterns --no-markers`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 `,
     convert: `
 ${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
 ${boxLine(`${colors.bright}svg-matrix convert${colors.reset} - Shape to Path Conversion`, W)}
 ${boxDivider(W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`Converts all basic shapes to <path> elements while preserving`, W)}
 ${boxLine(`all style and presentation attributes.`, W)}
-${boxLine('', W)}
-${boxHeader('SUPPORTED SHAPES', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("SUPPORTED SHAPES", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}${B.dot} rect${colors.reset}       ${B.arr} path (with optional rounded corners)`, W)}
 ${boxLine(`  ${colors.green}${B.dot} circle${colors.reset}     ${B.arr} path (4 cubic Bezier arcs)`, W)}
 ${boxLine(`  ${colors.green}${B.dot} ellipse${colors.reset}    ${B.arr} path (4 cubic Bezier arcs)`, W)}
 ${boxLine(`  ${colors.green}${B.dot} line${colors.reset}       ${B.arr} path (M...L command)`, W)}
 ${boxLine(`  ${colors.green}${B.dot} polygon${colors.reset}    ${B.arr} path (closed polyline)`, W)}
 ${boxLine(`  ${colors.green}${B.dot} polyline${colors.reset}   ${B.arr} path (open polyline)`, W)}
-${boxLine('', W)}
-${boxHeader('USAGE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("USAGE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix convert <input> -o <output> [-p <precision>]`, W)}
-${boxLine('', W)}
-${boxHeader('EXAMPLE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("EXAMPLE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix convert shapes.svg -o paths.svg --precision 8`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 `,
     normalize: `
 ${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
 ${boxLine(`${colors.bright}svg-matrix normalize${colors.reset} - Path Normalization`, W)}
 ${boxDivider(W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`Converts all path commands to absolute cubic Bezier curves.`, W)}
 ${boxLine(`Ideal for path morphing, animation, and consistent processing.`, W)}
-${boxLine('', W)}
-${boxHeader('WHAT IT DOES', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("WHAT IT DOES", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts relative commands (m,l,c,s,q,t,a) to absolute`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts all curves to cubic Beziers (C commands)`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Expands shorthand (S,T) to full curves`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts arcs (A) to cubic Bezier approximations`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Converts lines (L,H,V) to degenerate cubics`, W)}
-${boxLine('', W)}
-${boxHeader('OUTPUT FORMAT', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("OUTPUT FORMAT", W)}
+${boxLine("", W)}
 ${boxLine(`  All paths become: M x y C x1 y1 x2 y2 x y C ... Z`, W)}
-${boxLine('', W)}
-${boxHeader('USAGE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("USAGE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix normalize <input> -o <output>`, W)}
-${boxLine('', W)}
-${boxHeader('EXAMPLE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("EXAMPLE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix normalize complex.svg -o normalized.svg`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 `,
     info: `
 ${colors.cyan}${B.tl}${hr}${B.tr}${colors.reset}
 ${boxLine(`${colors.bright}svg-matrix info${colors.reset} - SVG File Information`, W)}
 ${boxDivider(W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${boxLine(`Displays detailed information about an SVG file including`, W)}
 ${boxLine(`dimensions, element counts, and structure analysis.`, W)}
-${boxLine('', W)}
-${boxHeader('INFORMATION SHOWN', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("INFORMATION SHOWN", W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} File path and size`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Dimensions (viewBox, width, height)`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Element counts (paths, shapes, groups)`, W)}
 ${boxLine(`  ${colors.green}${B.dot}${colors.reset} Transform attribute count`, W)}
-${boxLine('', W)}
-${boxHeader('USAGE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("USAGE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix info <input>`, W)}
 ${boxLine(`  svg-matrix info <folder> -r    ${colors.dim}# recursive${colors.reset}`, W)}
-${boxLine('', W)}
-${boxHeader('EXAMPLE', W)}
-${boxLine('', W)}
+${boxLine("", W)}
+${boxHeader("EXAMPLE", W)}
+${boxLine("", W)}
 ${boxLine(`  svg-matrix info logo.svg`, W)}
-${boxLine('', W)}
+${boxLine("", W)}
 ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
-`
+`,
   };
 
   if (commandHelp[command]) {
@@ -792,7 +882,9 @@ ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
   }
 }
 
-function showVersion() { console.log(`@emasoft/svg-matrix v${VERSION}`); }
+function showVersion() {
+  console.log(`@emasoft/svg-matrix v${VERSION}`);
+}
 
 /**
  * Extract transform attribute value from element attributes string.
@@ -810,7 +902,7 @@ function extractTransform(attrs) {
  * @returns {string} Attributes without transform
  */
 function removeTransform(attrs) {
-  return attrs.replace(/\s*transform\s*=\s*["'][^"']*["']/gi, '');
+  return attrs.replace(/\s*transform\s*=\s*["'][^"']*["']/gi, "");
 }
 
 /**
@@ -854,7 +946,7 @@ function replacePathD(attrs, newD) {
 function processFlatten(inputPath, outputPath) {
   try {
     logDebug(`Processing: ${inputPath}`);
-    const svgContent = readFileSync(inputPath, 'utf8');
+    const svgContent = readFileSync(inputPath, "utf8");
 
     // Use legacy transform-only mode if requested
     if (config.transformOnly) {
@@ -865,9 +957,9 @@ function processFlatten(inputPath, outputPath) {
     const pipelineOptions = {
       precision: config.precision,
       curveSegments: 20,
-      clipSegments: config.clipSegments,     // Higher segments for clip accuracy (default 64)
-      bezierArcs: config.bezierArcs,         // Bezier arcs for circles/ellipses (default 8)
-      e2eTolerance: config.e2eTolerance,     // Configurable E2E tolerance (default 1e-10)
+      clipSegments: config.clipSegments, // Higher segments for clip accuracy (default 64)
+      bezierArcs: config.bezierArcs, // Bezier arcs for circles/ellipses (default 8)
+      e2eTolerance: config.e2eTolerance, // Configurable E2E tolerance (default 1e-10)
       resolveUse: config.resolveUse,
       resolveMarkers: config.resolveMarkers,
       resolvePatterns: config.resolvePatterns,
@@ -877,27 +969,35 @@ function processFlatten(inputPath, outputPath) {
       bakeGradients: config.bakeGradients,
       removeUnusedDefs: true,
       preserveNamespaces: config.preserveNamespaces, // Pass namespace preservation to pipeline
-      svg2Polyfills: config.svg2Polyfills,           // Pass SVG 2 polyfills flag to pipeline
+      svg2Polyfills: config.svg2Polyfills, // Pass SVG 2 polyfills flag to pipeline
       // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
     };
 
     // Run the full flatten pipeline
-    const { svg: flattenedSvg, stats } = FlattenPipeline.flattenSVG(svgContent, pipelineOptions);
+    const { svg: flattenedSvg, stats } = FlattenPipeline.flattenSVG(
+      svgContent,
+      pipelineOptions,
+    );
 
     // Report statistics
     const parts = [];
-    if (stats.transformsFlattened > 0) parts.push(`${stats.transformsFlattened} transforms`);
+    if (stats.transformsFlattened > 0)
+      parts.push(`${stats.transformsFlattened} transforms`);
     if (stats.useResolved > 0) parts.push(`${stats.useResolved} use`);
-    if (stats.markersResolved > 0) parts.push(`${stats.markersResolved} markers`);
-    if (stats.patternsResolved > 0) parts.push(`${stats.patternsResolved} patterns`);
+    if (stats.markersResolved > 0)
+      parts.push(`${stats.markersResolved} markers`);
+    if (stats.patternsResolved > 0)
+      parts.push(`${stats.patternsResolved} patterns`);
     if (stats.masksResolved > 0) parts.push(`${stats.masksResolved} masks`);
-    if (stats.clipPathsApplied > 0) parts.push(`${stats.clipPathsApplied} clipPaths`);
-    if (stats.gradientsProcessed > 0) parts.push(`${stats.gradientsProcessed} gradients`);
+    if (stats.clipPathsApplied > 0)
+      parts.push(`${stats.clipPathsApplied} clipPaths`);
+    if (stats.gradientsProcessed > 0)
+      parts.push(`${stats.gradientsProcessed} gradients`);
 
     if (parts.length > 0) {
-      logInfo(`Flattened: ${parts.join(', ')}`);
+      logInfo(`Flattened: ${parts.join(", ")}`);
     } else {
-      logInfo('No transform dependencies found');
+      logInfo("No transform dependencies found");
     }
 
     // Report verification results (ALWAYS - precision is non-negotiable)
@@ -913,28 +1013,46 @@ function processFlatten(inputPath, outputPath) {
         // Show detailed results in verbose mode
         if (config.verbose) {
           if (v.matrices.length > 0) {
-            logDebug(`  Matrix verifications: ${v.matrices.filter(m => m.valid).length}/${v.matrices.length} passed`);
+            logDebug(
+              `  Matrix verifications: ${v.matrices.filter((m) => m.valid).length}/${v.matrices.length} passed`,
+            );
           }
           if (v.transforms.length > 0) {
-            logDebug(`  Transform round-trips: ${v.transforms.filter(t => t.valid).length}/${v.transforms.length} passed`);
+            logDebug(
+              `  Transform round-trips: ${v.transforms.filter((t) => t.valid).length}/${v.transforms.length} passed`,
+            );
           }
           if (v.polygons.length > 0) {
-            logDebug(`  Polygon intersections: ${v.polygons.filter(p => p.valid).length}/${v.polygons.length} passed`);
+            logDebug(
+              `  Polygon intersections: ${v.polygons.filter((p) => p.valid).length}/${v.polygons.length} passed`,
+            );
           }
           if (v.gradients.length > 0) {
-            logDebug(`  Gradient transforms: ${v.gradients.filter(g => g.valid).length}/${v.gradients.length} passed`);
+            logDebug(
+              `  Gradient transforms: ${v.gradients.filter((g) => g.valid).length}/${v.gradients.length} passed`,
+            );
           }
           if (v.e2e && v.e2e.length > 0) {
-            logDebug(`  E2E area conservation: ${v.e2e.filter(e => e.valid).length}/${v.e2e.length} passed`);
+            logDebug(
+              `  E2E area conservation: ${v.e2e.filter((e) => e.valid).length}/${v.e2e.length} passed`,
+            );
           }
         }
 
         // Always show failed verifications (not just in verbose mode)
-        const allVerifications = [...v.matrices, ...v.transforms, ...v.polygons, ...v.gradients, ...(v.e2e || [])];
-        const failed = allVerifications.filter(vr => !vr.valid);
+        const allVerifications = [
+          ...v.matrices,
+          ...v.transforms,
+          ...v.polygons,
+          ...v.gradients,
+          ...(v.e2e || []),
+        ];
+        const failed = allVerifications.filter((vr) => !vr.valid);
         if (failed.length > 0) {
           for (const f of failed.slice(0, 3)) {
-            logError(`${colors.red}VERIFICATION FAILED:${colors.reset} ${f.message}`);
+            logError(
+              `${colors.red}VERIFICATION FAILED:${colors.reset} ${f.message}`,
+            );
           }
           if (failed.length > 3) {
             logError(`...and ${failed.length - 3} more failed verifications`);
@@ -955,7 +1073,7 @@ function processFlatten(inputPath, outputPath) {
 
     if (!config.dryRun) {
       ensureDir(dirname(outputPath));
-      writeFileSync(outputPath, flattenedSvg, 'utf8');
+      writeFileSync(outputPath, flattenedSvg, "utf8");
     }
     logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
     return true;
@@ -988,12 +1106,14 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
 
     try {
       const ctm = SVGFlatten.parseTransformAttribute(transform);
-      const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
+      const transformedD = SVGFlatten.transformPathData(pathD, ctm, {
+        precision: config.precision,
+      });
       const newAttrs = removeTransform(replacePathD(attrs, transformedD));
       transformCount++;
       pathCount++;
       logDebug(`Flattened path transform: ${transform}`);
-      return `<path ${newAttrs.trim()}${match.endsWith('/>') ? '/>' : '>'}`;
+      return `<path ${newAttrs.trim()}${match.endsWith("/>") ? "/>" : ">"}`;
     } catch (e) {
       logWarn(`Failed to flatten path: ${e.message}`);
       return match;
@@ -1001,10 +1121,17 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
   });
 
   // Step 2: Convert shapes with transforms to flattened paths
-  const shapeTypes = ['rect', 'circle', 'ellipse', 'line', 'polygon', 'polyline'];
+  const shapeTypes = [
+    "rect",
+    "circle",
+    "ellipse",
+    "line",
+    "polygon",
+    "polyline",
+  ];
 
   for (const shapeType of shapeTypes) {
-    const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, 'gi');
+    const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, "gi");
 
     result = result.replace(shapeRegex, (match, attrs) => {
       const transform = extractTransform(attrs);
@@ -1019,13 +1146,18 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
         }
 
         const ctm = SVGFlatten.parseTransformAttribute(transform);
-        const transformedD = SVGFlatten.transformPathData(pathD, ctm, { precision: config.precision });
+        const transformedD = SVGFlatten.transformPathData(pathD, ctm, {
+          precision: config.precision,
+        });
         const attrsToRemove = getShapeSpecificAttrs(shapeType);
-        const styleAttrs = removeShapeAttrs(removeTransform(attrs), attrsToRemove);
+        const styleAttrs = removeShapeAttrs(
+          removeTransform(attrs),
+          attrsToRemove,
+        );
         transformCount++;
         shapeCount++;
         logDebug(`Flattened ${shapeType} transform: ${transform}`);
-        return `<path d="${transformedD}"${styleAttrs ? ' ' + styleAttrs : ''}/>`;
+        return `<path d="${transformedD}"${styleAttrs ? " " + styleAttrs : ""}/>`;
       } catch (e) {
         logWarn(`Failed to flatten ${shapeType}: ${e.message}`);
         return match;
@@ -1046,33 +1178,47 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
           let modifiedContent = content;
           let childrenModified = false;
 
-          modifiedContent = modifiedContent.replace(/<path\s+([^>]*?)\s*\/?>/gi, (pathMatch, pathAttrs) => {
-            const pathD = extractPathD(pathAttrs);
-            if (!pathD) return pathMatch;
+          modifiedContent = modifiedContent.replace(
+            /<path\s+([^>]*?)\s*\/?>/gi,
+            (pathMatch, pathAttrs) => {
+              const pathD = extractPathD(pathAttrs);
+              if (!pathD) return pathMatch;
 
-            try {
-              const childTransform = extractTransform(pathAttrs);
-              let combinedCtm = groupCtm;
+              try {
+                const childTransform = extractTransform(pathAttrs);
+                let combinedCtm = groupCtm;
 
-              if (childTransform) {
-                const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
-                combinedCtm = groupCtm.mul(childCtm);
+                if (childTransform) {
+                  const childCtm =
+                    SVGFlatten.parseTransformAttribute(childTransform);
+                  combinedCtm = groupCtm.mul(childCtm);
+                }
+
+                const transformedD = SVGFlatten.transformPathData(
+                  pathD,
+                  combinedCtm,
+                  { precision: config.precision },
+                );
+                const newAttrs = removeTransform(
+                  replacePathD(pathAttrs, transformedD),
+                );
+                childrenModified = true;
+                transformCount++;
+                return `<path ${newAttrs.trim()}${pathMatch.endsWith("/>") ? "/>" : ">"}`;
+              } catch (e) {
+                logWarn(
+                  `Failed to apply group transform to path: ${e.message}`,
+                );
+                return pathMatch;
               }
-
-              const transformedD = SVGFlatten.transformPathData(pathD, combinedCtm, { precision: config.precision });
-              const newAttrs = removeTransform(replacePathD(pathAttrs, transformedD));
-              childrenModified = true;
-              transformCount++;
-              return `<path ${newAttrs.trim()}${pathMatch.endsWith('/>') ? '/>' : '>'}`;
-            } catch (e) {
-              logWarn(`Failed to apply group transform to path: ${e.message}`);
-              return pathMatch;
-            }
-          });
+            },
+          );
 
           if (childrenModified) {
             const newGAttrs = removeTransform(gAttrs);
-            logDebug(`Propagated group transform to children: ${groupTransform}`);
+            logDebug(
+              `Propagated group transform to children: ${groupTransform}`,
+            );
             return `<g${newGAttrs}>${modifiedContent}</g>`;
           }
           return match;
@@ -1080,7 +1226,7 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
           logWarn(`Failed to process group: ${e.message}`);
           return match;
         }
-      }
+      },
     );
 
     if (result === beforeResult) {
@@ -1089,11 +1235,13 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
     groupIterations++;
   }
 
-  logInfo(`Flattened ${transformCount} transforms (${pathCount} paths, ${shapeCount} shapes) [legacy mode]`);
+  logInfo(
+    `Flattened ${transformCount} transforms (${pathCount} paths, ${shapeCount} shapes) [legacy mode]`,
+  );
 
   if (!config.dryRun) {
     ensureDir(dirname(outputPath));
-    writeFileSync(outputPath, result, 'utf8');
+    writeFileSync(outputPath, result, "utf8");
   }
   logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
   return true;
@@ -1102,18 +1250,29 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
 function processConvert(inputPath, outputPath) {
   try {
     logDebug(`Converting: ${inputPath}`);
-    let result = readFileSync(inputPath, 'utf8');
+    let result = readFileSync(inputPath, "utf8");
 
     // Convert all shape types to paths
-    const shapeTypes = ['rect', 'circle', 'ellipse', 'line', 'polygon', 'polyline'];
+    const shapeTypes = [
+      "rect",
+      "circle",
+      "ellipse",
+      "line",
+      "polygon",
+      "polyline",
+    ];
 
     for (const shapeType of shapeTypes) {
-      const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, 'gi');
+      const shapeRegex = new RegExp(`<${shapeType}([^>]*)\\/>`, "gi");
 
       result = result.replace(shapeRegex, (match, attrs) => {
         try {
           // Extract shape as path using helper
-          const pathData = extractShapeAsPath(shapeType, attrs, config.precision);
+          const pathData = extractShapeAsPath(
+            shapeType,
+            attrs,
+            config.precision,
+          );
 
           if (!pathData) {
             return match; // Couldn't convert to path
@@ -1123,7 +1282,7 @@ function processConvert(inputPath, outputPath) {
           const attrsToRemove = getShapeSpecificAttrs(shapeType);
           const otherAttrs = removeShapeAttrs(attrs, attrsToRemove);
 
-          return `<path d="${pathData}"${otherAttrs ? ' ' + otherAttrs : ''}/>`;
+          return `<path d="${pathData}"${otherAttrs ? " " + otherAttrs : ""}/>`;
         } catch (e) {
           logWarn(`Failed to convert ${shapeType}: ${e.message}`);
           return match;
@@ -1133,7 +1292,7 @@ function processConvert(inputPath, outputPath) {
 
     if (!config.dryRun) {
       ensureDir(dirname(outputPath));
-      writeFileSync(outputPath, result, 'utf8');
+      writeFileSync(outputPath, result, "utf8");
     }
     logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
     return true;
@@ -1146,18 +1305,20 @@ function processConvert(inputPath, outputPath) {
 function processNormalize(inputPath, outputPath) {
   try {
     logDebug(`Normalizing: ${inputPath}`);
-    let result = readFileSync(inputPath, 'utf8');
+    let result = readFileSync(inputPath, "utf8");
 
     result = result.replace(/d\s*=\s*["']([^"']+)["']/gi, (match, pathData) => {
       try {
         const normalized = GeometryToPath.pathToCubics(pathData);
         return `d="${normalized}"`;
-      } catch { return match; }
+      } catch {
+        return match;
+      }
     });
 
     if (!config.dryRun) {
       ensureDir(dirname(outputPath));
-      writeFileSync(outputPath, result, 'utf8');
+      writeFileSync(outputPath, result, "utf8");
     }
     logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
     return true;
@@ -1169,10 +1330,12 @@ function processNormalize(inputPath, outputPath) {
 
 function processInfo(inputPath) {
   try {
-    const svg = readFileSync(inputPath, 'utf8');
-    const vb = svg.match(/viewBox\s*=\s*["']([^"']+)["']/i)?.[1] || 'not set';
-    const w = svg.match(/<svg[^>]*\swidth\s*=\s*["']([^"']+)["']/i)?.[1] || 'not set';
-    const h = svg.match(/<svg[^>]*\sheight\s*=\s*["']([^"']+)["']/i)?.[1] || 'not set';
+    const svg = readFileSync(inputPath, "utf8");
+    const vb = svg.match(/viewBox\s*=\s*["']([^"']+)["']/i)?.[1] || "not set";
+    const w =
+      svg.match(/<svg[^>]*\swidth\s*=\s*["']([^"']+)["']/i)?.[1] || "not set";
+    const h =
+      svg.match(/<svg[^>]*\sheight\s*=\s*["']([^"']+)["']/i)?.[1] || "not set";
 
     console.log(`
 ${colors.cyan}File:${colors.reset} ${inputPath}
@@ -1199,41 +1362,127 @@ ${colors.bright}Elements:${colors.reset}
 
 // All testable functions from svg-toolbox.js organized by category
 const TOOLBOX_FUNCTIONS = {
-  cleanup: ['cleanupIds', 'cleanupNumericValues', 'cleanupListOfValues', 'cleanupAttributes', 'cleanupEnableBackground'],
-  remove: ['removeUnknownsAndDefaults', 'removeNonInheritableGroupAttrs', 'removeUselessDefs', 'removeHiddenElements', 'removeEmptyText', 'removeEmptyContainers', 'removeDoctype', 'removeXMLProcInst', 'removeComments', 'removeMetadata', 'removeTitle', 'removeDesc', 'removeEditorsNSData', 'removeEmptyAttrs', 'removeViewBox', 'removeXMLNS', 'removeRasterImages', 'removeScriptElement', 'removeStyleElement', 'removeXlink', 'removeDimensions', 'removeAttrs', 'removeElementsByAttr', 'removeAttributesBySelector', 'removeOffCanvasPath'],
-  convert: ['convertShapesToPath', 'convertPathData', 'convertTransform', 'convertColors', 'convertStyleToAttrs', 'convertEllipseToCircle'],
-  collapse: ['collapseGroups', 'mergePaths'],
-  move: ['moveGroupAttrsToElems', 'moveElemsAttrsToGroup'],
-  style: ['minifyStyles', 'inlineStyles'],
-  sort: ['sortAttrs', 'sortDefsChildren'],
-  pathOptimization: ['optimizePaths', 'simplifyPaths', 'simplifyPath', 'reusePaths'],
-  flatten: ['flattenClipPaths', 'flattenMasks', 'flattenGradients', 'flattenPatterns', 'flattenFilters', 'flattenUseElements', 'flattenAll'],
-  transform: ['decomposeTransform'],
-  other: ['addAttributesToSVGElement', 'addClassesToSVGElement', 'prefixIds', 'optimizeAnimationTiming'],
-  validation: ['validateXML', 'validateSVG', 'fixInvalidSvg'],
-  detection: ['detectCollisions', 'measureDistance'],
+  cleanup: [
+    "cleanupIds",
+    "cleanupNumericValues",
+    "cleanupListOfValues",
+    "cleanupAttributes",
+    "cleanupEnableBackground",
+  ],
+  remove: [
+    "removeUnknownsAndDefaults",
+    "removeNonInheritableGroupAttrs",
+    "removeUselessDefs",
+    "removeHiddenElements",
+    "removeEmptyText",
+    "removeEmptyContainers",
+    "removeDoctype",
+    "removeXMLProcInst",
+    "removeComments",
+    "removeMetadata",
+    "removeTitle",
+    "removeDesc",
+    "removeEditorsNSData",
+    "removeEmptyAttrs",
+    "removeViewBox",
+    "removeXMLNS",
+    "removeRasterImages",
+    "removeScriptElement",
+    "removeStyleElement",
+    "removeXlink",
+    "removeDimensions",
+    "removeAttrs",
+    "removeElementsByAttr",
+    "removeAttributesBySelector",
+    "removeOffCanvasPath",
+  ],
+  convert: [
+    "convertShapesToPath",
+    "convertPathData",
+    "convertTransform",
+    "convertColors",
+    "convertStyleToAttrs",
+    "convertEllipseToCircle",
+  ],
+  collapse: ["collapseGroups", "mergePaths"],
+  move: ["moveGroupAttrsToElems", "moveElemsAttrsToGroup"],
+  style: ["minifyStyles", "inlineStyles"],
+  sort: ["sortAttrs", "sortDefsChildren"],
+  pathOptimization: [
+    "optimizePaths",
+    "simplifyPaths",
+    "simplifyPath",
+    "reusePaths",
+  ],
+  flatten: [
+    "flattenClipPaths",
+    "flattenMasks",
+    "flattenGradients",
+    "flattenPatterns",
+    "flattenFilters",
+    "flattenUseElements",
+    "flattenAll",
+  ],
+  transform: ["decomposeTransform"],
+  other: [
+    "addAttributesToSVGElement",
+    "addClassesToSVGElement",
+    "prefixIds",
+    "optimizeAnimationTiming",
+  ],
+  validation: ["validateXML", "validateSVG", "fixInvalidSvg"],
+  detection: ["detectCollisions", "measureDistance"],
 };
 
-const SKIP_TOOLBOX_FUNCTIONS = ['imageToPath', 'detectCollisions', 'measureDistance'];
+const SKIP_TOOLBOX_FUNCTIONS = [
+  "imageToPath",
+  "detectCollisions",
+  "measureDistance",
+];
 
 function getTimestamp() {
   const now = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
+  const pad = (n) => String(n).padStart(2, "0");
   return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
-async function testToolboxFunction(fnName, originalContent, originalSize, outputDir) {
-  const result = { name: fnName, status: 'unknown', outputSize: 0, sizeDiff: 0, sizeDiffPercent: 0, error: null, outputFile: null, timeMs: 0 };
+async function testToolboxFunction(
+  fnName,
+  originalContent,
+  originalSize,
+  outputDir,
+) {
+  const result = {
+    name: fnName,
+    status: "unknown",
+    outputSize: 0,
+    sizeDiff: 0,
+    sizeDiffPercent: 0,
+    error: null,
+    outputFile: null,
+    timeMs: 0,
+  };
 
   try {
     const fn = SVGToolbox[fnName];
-    if (!fn) { result.status = 'not_found'; result.error = `Function not found`; return result; }
-    if (SKIP_TOOLBOX_FUNCTIONS.includes(fnName)) { result.status = 'skipped'; result.error = 'Requires special handling'; return result; }
+    if (!fn) {
+      result.status = "not_found";
+      result.error = `Function not found`;
+      return result;
+    }
+    if (SKIP_TOOLBOX_FUNCTIONS.includes(fnName)) {
+      result.status = "skipped";
+      result.error = "Requires special handling";
+      return result;
+    }
 
     const startTime = Date.now();
     const doc = parseSVG(originalContent);
     // Pass preserveVendor and preserveNamespaces options from config to toolbox functions
-    await fn(doc, { preserveVendor: config.preserveVendor, preserveNamespaces: config.preserveNamespaces });
+    await fn(doc, {
+      preserveVendor: config.preserveVendor,
+      preserveNamespaces: config.preserveNamespaces,
+    });
     const output = serializeSVG(doc);
     const outputSize = Buffer.byteLength(output);
     result.timeMs = Date.now() - startTime;
@@ -1241,15 +1490,21 @@ async function testToolboxFunction(fnName, originalContent, originalSize, output
     const outputFile = join(outputDir, `${fnName}.svg`);
     writeFileSync(outputFile, output);
 
-    result.status = 'success';
+    result.status = "success";
     result.outputSize = outputSize;
     result.sizeDiff = outputSize - originalSize;
-    result.sizeDiffPercent = ((outputSize - originalSize) / originalSize * 100).toFixed(1);
+    result.sizeDiffPercent = (
+      ((outputSize - originalSize) / originalSize) *
+      100
+    ).toFixed(1);
     result.outputFile = outputFile;
 
-    if (output.length < 100) { result.status = 'warning'; result.error = 'Output suspiciously small'; }
+    if (output.length < 100) {
+      result.status = "warning";
+      result.error = "Output suspiciously small";
+    }
   } catch (err) {
-    result.status = 'error';
+    result.status = "error";
     result.error = err.message;
   }
   return result;
@@ -1257,8 +1512,14 @@ async function testToolboxFunction(fnName, originalContent, originalSize, output
 
 async function processTestToolbox() {
   const files = gatherInputFiles();
-  if (files.length === 0) { logError('No input file specified'); process.exit(CONSTANTS.EXIT_ERROR); }
-  if (files.length > 1) { logError('test-toolbox only accepts one input file'); process.exit(CONSTANTS.EXIT_ERROR); }
+  if (files.length === 0) {
+    logError("No input file specified");
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  if (files.length > 1) {
+    logError("test-toolbox only accepts one input file");
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
 
   const inputFile = files[0];
   validateSvgFile(inputFile);
@@ -1270,11 +1531,11 @@ async function processTestToolbox() {
   const outputDir = join(outputBase, outputDirName);
   mkdirSync(outputDir, { recursive: true });
 
-  console.log('\n' + '='.repeat(70));
+  console.log("\n" + "=".repeat(70));
   console.log(`${colors.bright}SVG-TOOLBOX FUNCTION TEST${colors.reset}`);
-  console.log('='.repeat(70) + '\n');
+  console.log("=".repeat(70) + "\n");
 
-  const originalContent = readFileSync(inputFile, 'utf8');
+  const originalContent = readFileSync(inputFile, "utf8");
   const originalSize = Buffer.byteLength(originalContent);
 
   logInfo(`Input:  ${colors.cyan}${inputFile}${colors.reset}`);
@@ -1282,24 +1543,39 @@ async function processTestToolbox() {
   logInfo(`Output: ${colors.cyan}${outputDir}/${colors.reset}\n`);
 
   const allResults = [];
-  let total = 0, success = 0, errors = 0, skipped = 0;
+  let total = 0,
+    success = 0,
+    errors = 0,
+    skipped = 0;
 
   for (const [category, functions] of Object.entries(TOOLBOX_FUNCTIONS)) {
-    console.log(`\n${colors.bright}--- ${category.toUpperCase()} ---${colors.reset}`);
+    console.log(
+      `\n${colors.bright}--- ${category.toUpperCase()} ---${colors.reset}`,
+    );
     for (const fnName of functions) {
       total++;
       process.stdout.write(`  Testing ${fnName.padEnd(30)}... `);
-      const result = await testToolboxFunction(fnName, originalContent, originalSize, outputDir);
+      const result = await testToolboxFunction(
+        fnName,
+        originalContent,
+        originalSize,
+        outputDir,
+      );
       allResults.push({ category, ...result });
 
-      if (result.status === 'success') {
+      if (result.status === "success") {
         success++;
-        const sizeStr = result.sizeDiff >= 0 ? `+${result.sizeDiffPercent}%` : `${result.sizeDiffPercent}%`;
-        console.log(`${colors.green}OK${colors.reset} (${sizeStr}, ${result.timeMs}ms)`);
-      } else if (result.status === 'skipped' || result.status === 'not_found') {
+        const sizeStr =
+          result.sizeDiff >= 0
+            ? `+${result.sizeDiffPercent}%`
+            : `${result.sizeDiffPercent}%`;
+        console.log(
+          `${colors.green}OK${colors.reset} (${sizeStr}, ${result.timeMs}ms)`,
+        );
+      } else if (result.status === "skipped" || result.status === "not_found") {
         skipped++;
         console.log(`${colors.yellow}SKIP${colors.reset}: ${result.error}`);
-      } else if (result.status === 'warning') {
+      } else if (result.status === "warning") {
         success++;
         console.log(`${colors.yellow}WARN${colors.reset}: ${result.error}`);
       } else {
@@ -1309,41 +1585,60 @@ async function processTestToolbox() {
     }
   }
 
-  console.log('\n' + '='.repeat(70));
+  console.log("\n" + "=".repeat(70));
   console.log(`${colors.bright}SUMMARY${colors.reset}`);
-  console.log('='.repeat(70));
-  console.log(`Total: ${total}  ${colors.green}Success: ${success}${colors.reset}  ${colors.red}Errors: ${errors}${colors.reset}  ${colors.yellow}Skipped: ${skipped}${colors.reset}`);
+  console.log("=".repeat(70));
+  console.log(
+    `Total: ${total}  ${colors.green}Success: ${success}${colors.reset}  ${colors.red}Errors: ${errors}${colors.reset}  ${colors.yellow}Skipped: ${skipped}${colors.reset}`,
+  );
 
-  console.log('\n' + '-'.repeat(70));
+  console.log("\n" + "-".repeat(70));
   console.log(`${colors.bright}TOP SIZE REDUCERS${colors.reset}`);
-  console.log('-'.repeat(70));
+  console.log("-".repeat(70));
 
-  const successResults = allResults.filter(r => r.status === 'success' || r.status === 'warning').sort((a, b) => a.sizeDiff - b.sizeDiff).slice(0, 10);
-  console.log('\nFunction                              Output Size    Diff');
-  console.log('-'.repeat(60));
+  const successResults = allResults
+    .filter((r) => r.status === "success" || r.status === "warning")
+    .sort((a, b) => a.sizeDiff - b.sizeDiff)
+    .slice(0, 10);
+  console.log("\nFunction                              Output Size    Diff");
+  console.log("-".repeat(60));
   for (const r of successResults) {
     const name = r.name.padEnd(38);
-    const size = ((r.outputSize / 1024 / 1024).toFixed(2) + ' MB').padStart(10);
-    const diff = (r.sizeDiff >= 0 ? '+' : '') + r.sizeDiffPercent + '%';
+    const size = ((r.outputSize / 1024 / 1024).toFixed(2) + " MB").padStart(10);
+    const diff = (r.sizeDiff >= 0 ? "+" : "") + r.sizeDiffPercent + "%";
     console.log(`${name} ${size}    ${diff}`);
   }
 
   if (errors > 0) {
-    console.log('\n' + '-'.repeat(70));
+    console.log("\n" + "-".repeat(70));
     console.log(`${colors.red}${colors.bright}ERROR DETAILS${colors.reset}`);
-    console.log('-'.repeat(70));
-    for (const r of allResults.filter(r => r.status === 'error')) {
+    console.log("-".repeat(70));
+    for (const r of allResults.filter((item) => item.status === "error")) {
       console.log(`\n${colors.red}${r.name}:${colors.reset} ${r.error}`);
     }
   }
 
-  const resultsFile = join(outputDir, '_test-results.json');
-  writeFileSync(resultsFile, JSON.stringify({ timestamp: new Date().toISOString(), inputFile, originalSize, outputDir, summary: { total, success, errors, skipped }, results: allResults }, null, 2));
+  const resultsFile = join(outputDir, "_test-results.json");
+  writeFileSync(
+    resultsFile,
+    JSON.stringify(
+      {
+        timestamp: new Date().toISOString(),
+        inputFile,
+        originalSize,
+        outputDir,
+        summary: { total, success, errors, skipped },
+        results: allResults,
+      },
+      null,
+      2,
+    ),
+  );
 
-  console.log('\n' + '='.repeat(70));
+  console.log("\n" + "=".repeat(70));
   logInfo(`Results: ${colors.cyan}${resultsFile}${colors.reset}`);
   logInfo(`Output:  ${colors.cyan}${outputDir}${colors.reset}`);
-  console.log('='.repeat(70) + '\n');
+  console.log("=".repeat(70) + "\n");
 
   if (errors > 0) process.exit(CONSTANTS.EXIT_ERROR);
 }
@@ -1362,89 +1657,148 @@ function parseArgs(args) {
     let argValue = null;
 
     // Handle --arg=value format
-    if (arg.includes('=') && arg.startsWith('--')) {
-      const eqIdx = arg.indexOf('=');
+    if (arg.includes("=") && arg.startsWith("--")) {
+      const eqIdx = arg.indexOf("=");
       argValue = arg.substring(eqIdx + 1);
       arg = arg.substring(0, eqIdx);
     }
 
     switch (arg) {
-      case '-o': case '--output': cfg.output = args[++i]; break;
-      case '-l': case '--list': cfg.listFile = args[++i]; break;
-      case '-r': case '--recursive': cfg.recursive = true; break;
-      case '-p': case '--precision': {
+      case "-o":
+      case "--output":
+        cfg.output = args[++i];
+        break;
+      case "-l":
+      case "--list":
+        cfg.listFile = args[++i];
+        break;
+      case "-r":
+      case "--recursive":
+        cfg.recursive = true;
+        break;
+      case "-p":
+      case "--precision": {
         const precision = parseInt(args[++i], 10);
-        if (isNaN(precision) || precision < CONSTANTS.MIN_PRECISION || precision > CONSTANTS.MAX_PRECISION) {
-          logError(`Precision must be between ${CONSTANTS.MIN_PRECISION} and ${CONSTANTS.MAX_PRECISION}`);
+        if (
+          isNaN(precision) ||
+          precision < CONSTANTS.MIN_PRECISION ||
+          precision > CONSTANTS.MAX_PRECISION
+        ) {
+          logError(
+            `Precision must be between ${CONSTANTS.MIN_PRECISION} and ${CONSTANTS.MAX_PRECISION}`,
+          );
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.precision = precision;
         break;
       }
-      case '-f': case '--force': cfg.overwrite = true; break;
-      case '-n': case '--dry-run': cfg.dryRun = true; break;
-      case '-q': case '--quiet': cfg.quiet = true; break;
-      case '-v': case '--verbose': cfg.verbose = true; break;
-      case '--log-file': cfg.logFile = args[++i]; break;
-      case '-h': case '--help':
+      case "-f":
+      case "--force":
+        cfg.overwrite = true;
+        break;
+      case "-n":
+      case "--dry-run":
+        cfg.dryRun = true;
+        break;
+      case "-q":
+      case "--quiet":
+        cfg.quiet = true;
+        break;
+      case "-v":
+      case "--verbose":
+        cfg.verbose = true;
+        break;
+      case "--log-file":
+        cfg.logFile = args[++i];
+        break;
+      case "-h":
+      case "--help":
         // If a command is already set (not 'help'), show command-specific help
-        if (cfg.command !== 'help' && ['flatten', 'convert', 'normalize', 'info', 'test-toolbox'].includes(cfg.command)) {
+        if (
+          cfg.command !== "help" &&
+          ["flatten", "convert", "normalize", "info", "test-toolbox"].includes(
+            cfg.command,
+          )
+        ) {
           cfg.showCommandHelp = true;
         } else {
-          cfg.command = 'help';
+          cfg.command = "help";
         }
         break;
-      case '--version': cfg.command = 'version'; break;
+      case "--version":
+        cfg.command = "version";
+        break;
       // Full flatten pipeline options
-      case '--transform-only': cfg.transformOnly = true; break;
-      case '--no-clip-paths': cfg.resolveClipPaths = false; break;
-      case '--no-masks': cfg.resolveMasks = false; break;
-      case '--no-use': cfg.resolveUse = false; break;
-      case '--no-markers': cfg.resolveMarkers = false; break;
-      case '--no-patterns': cfg.resolvePatterns = false; break;
-      case '--no-gradients': cfg.bakeGradients = false; break;
+      case "--transform-only":
+        cfg.transformOnly = true;
+        break;
+      case "--no-clip-paths":
+        cfg.resolveClipPaths = false;
+        break;
+      case "--no-masks":
+        cfg.resolveMasks = false;
+        break;
+      case "--no-use":
+        cfg.resolveUse = false;
+        break;
+      case "--no-markers":
+        cfg.resolveMarkers = false;
+        break;
+      case "--no-patterns":
+        cfg.resolvePatterns = false;
+        break;
+      case "--no-gradients":
+        cfg.bakeGradients = false;
+        break;
       // Vendor preservation option
-      case '--preserve-vendor': cfg.preserveVendor = true; break;
+      case "--preserve-vendor":
+        cfg.preserveVendor = true;
+        break;
       // Namespace preservation option (comma-separated list)
-      case '--preserve-ns': {
+      case "--preserve-ns": {
         const namespaces = argValue || args[++i];
         if (!namespaces) {
-          logError('--preserve-ns requires a comma-separated list of namespaces');
+          logError(
+            "--preserve-ns requires a comma-separated list of namespaces",
+          );
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.preserveNamespaces = namespaces.split(',').map(ns => ns.trim().toLowerCase()).filter(ns => ns.length > 0);
+        cfg.preserveNamespaces = namespaces
+          .split(",")
+          .map((ns) => ns.trim().toLowerCase())
+          .filter((ns) => ns.length > 0);
         break;
       }
-      case '--svg2-polyfills':
+      case "--svg2-polyfills":
         cfg.svg2Polyfills = true;
         break;
-      case '--no-minify-polyfills':
+      case "--no-minify-polyfills":
         cfg.noMinifyPolyfills = true;
         setPolyfillMinification(false);
         break;
       // E2E verification precision options
-      case '--clip-segments': {
+      case "--clip-segments": {
         const segs = parseInt(args[++i], 10);
         if (isNaN(segs) || segs < 8 || segs > 512) {
-          logError('clip-segments must be between 8 and 512');
+          logError("clip-segments must be between 8 and 512");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.clipSegments = segs;
         break;
       }
-      case '--bezier-arcs': {
+      case "--bezier-arcs": {
         const arcs = parseInt(args[++i], 10);
         if (isNaN(arcs) || arcs < 4 || arcs > 128) {
-          logError('bezier-arcs must be between 4 and 128');
+          logError("bezier-arcs must be between 4 and 128");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.bezierArcs = arcs;
         break;
       }
-      case '--e2e-tolerance': {
+      case "--e2e-tolerance": {
         const tol = args[++i];
         if (!/^1e-\d+$/.test(tol)) {
-          logError('e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)');
+          logError("e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.e2eTolerance = tol;
@@ -1452,8 +1806,22 @@ function parseArgs(args) {
       }
       // NOTE: --verify removed - verification is ALWAYS enabled
       default:
-        if (arg.startsWith('-')) { logError(`Unknown option: ${arg}`); process.exit(CONSTANTS.EXIT_ERROR); }
-        if (['flatten', 'convert', 'normalize', 'info', 'test-toolbox', 'help', 'version'].includes(arg) && cfg.command === 'help') {
+        if (arg.startsWith("-")) {
+          logError(`Unknown option: ${arg}`);
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        if (
+          [
+            "flatten",
+            "convert",
+            "normalize",
+            "info",
+            "test-toolbox",
+            "help",
+            "version",
+          ].includes(arg) &&
+          cfg.command === "help"
+        ) {
           cfg.command = arg;
         } else {
           inputs.push(arg);
@@ -1470,13 +1838,17 @@ function gatherInputFiles() {
   if (config.listFile) {
     const listPath = resolvePath(config.listFile);
     // Why: Use CONSTANTS.EXIT_ERROR for consistency with all other error exits
-    if (!isFile(listPath)) { logError(`List file not found: ${config.listFile}`); process.exit(CONSTANTS.EXIT_ERROR); }
+    if (!isFile(listPath)) {
+      logError(`List file not found: ${config.listFile}`);
+      process.exit(CONSTANTS.EXIT_ERROR);
+    }
     files.push(...parseFileList(listPath));
   }
   for (const input of config.inputs) {
     const resolved = resolvePath(input);
     if (isFile(resolved)) files.push(resolved);
-    else if (isDir(resolved)) files.push(...getSvgFiles(resolved, config.recursive));
+    else if (isDir(resolved))
+      files.push(...getSvgFiles(resolved, config.recursive));
     else logWarn(`Input not found: ${input}`);
   }
   return files;
@@ -1485,7 +1857,7 @@ function gatherInputFiles() {
 function getOutputPath(inputPath) {
   if (!config.output) {
     const dir = dirname(inputPath);
-    const base = basename(inputPath, '.svg');
+    const base = basename(inputPath, ".svg");
     return join(dir, `${base}-processed.svg`);
   }
   const output = resolvePath(config.output);
@@ -1502,7 +1874,10 @@ function getOutputPath(inputPath) {
 async function main() {
   try {
     const args = process.argv.slice(2);
-    if (args.length === 0) { showHelp(); process.exit(CONSTANTS.EXIT_SUCCESS); }
+    if (args.length === 0) {
+      showHelp();
+      process.exit(CONSTANTS.EXIT_SUCCESS);
+    }
 
     config = parseArgs(args);
 
@@ -1516,25 +1891,40 @@ async function main() {
       try {
         if (existsSync(config.logFile)) unlinkSync(config.logFile);
         writeToLogFile(`=== svg-matrix v${VERSION} ===`);
-      } catch (e) { logWarn(`Could not init log: ${e.message}`); }
+      } catch (e) {
+        logWarn(`Could not init log: ${e.message}`);
+      }
     }
 
     switch (config.command) {
-      case 'help': showHelp(); break;
-      case 'version': showVersion(); break;
-      case 'info': {
+      case "help":
+        showHelp();
+        break;
+      case "version":
+        showVersion();
+        break;
+      case "info": {
         const files = gatherInputFiles();
-        if (files.length === 0) { logError('No input files'); process.exit(CONSTANTS.EXIT_ERROR); }
+        if (files.length === 0) {
+          logError("No input files");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         for (const f of files) processInfo(f);
         break;
       }
-      case 'flatten': case 'convert': case 'normalize': {
+      case "flatten":
+      case "convert":
+      case "normalize": {
         const files = gatherInputFiles();
-        if (files.length === 0) { logError('No input files'); process.exit(CONSTANTS.EXIT_ERROR); }
+        if (files.length === 0) {
+          logError("No input files");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         logInfo(`Processing ${files.length} file(s)...`);
-        if (config.dryRun) logInfo('(dry run)');
+        if (config.dryRun) logInfo("(dry run)");
 
-        let ok = 0, fail = 0;
+        let ok = 0,
+          fail = 0;
         for (let i = 0; i < files.length; i++) {
           const f = files[i];
           currentInputFile = f; // Track for crash log
@@ -1553,8 +1943,12 @@ async function main() {
             // Why: Track output file for cleanup on interrupt
             currentOutputFile = out;
 
-            const fn = config.command === 'flatten' ? processFlatten :
-                       config.command === 'convert' ? processConvert : processNormalize;
+            const fn =
+              config.command === "flatten"
+                ? processFlatten
+                : config.command === "convert"
+                  ? processConvert
+                  : processNormalize;
 
             if (fn(f, out)) {
               // Verify write if not dry run
@@ -1563,9 +1957,9 @@ async function main() {
                 // 1. Full verification requires double memory (storing content before write)
                 // 2. Empty file is the most common silent failure mode
                 // 3. Full content already written, re-reading only to check existence/size
-                const written = readFileSync(out, 'utf8');
+                const written = readFileSync(out, "utf8");
                 if (written.length === 0) {
-                  throw new Error('Output file is empty after write');
+                  throw new Error("Output file is empty after write");
                 }
               }
               // Why: Clear output file tracker after successful processing
@@ -1581,12 +1975,14 @@ async function main() {
         }
         currentInputFile = null;
         currentOutputFile = null;
-        logInfo(`\n${colors.bright}Done:${colors.reset} ${ok} ok, ${fail} failed`);
+        logInfo(
+          `\n${colors.bright}Done:${colors.reset} ${ok} ok, ${fail} failed`,
+        );
         if (config.logFile) logInfo(`Log: ${config.logFile}`);
         if (fail > 0) process.exit(CONSTANTS.EXIT_ERROR);
         break;
       }
-      case 'test-toolbox': {
+      case "test-toolbox": {
         await processTestToolbox();
         break;
       }
@@ -1598,7 +1994,7 @@ async function main() {
   } catch (error) {
     generateCrashLog(error, {
       currentFile: currentInputFile,
-      args: process.argv.slice(2)
+      args: process.argv.slice(2),
     });
     logError(`Fatal error: ${error.message}`);
     process.exit(CONSTANTS.EXIT_ERROR);
@@ -1606,11 +2002,17 @@ async function main() {
 }
 
 // Why: Catch unhandled promise rejections which would otherwise cause silent failures
-process.on('unhandledRejection', (reason, promise) => {
+process.on("unhandledRejection", (reason, _promise) => {
   const error = reason instanceof Error ? reason : new Error(String(reason));
-  generateCrashLog(error, { type: 'unhandledRejection', currentFile: currentInputFile });
+  generateCrashLog(error, {
+    type: "unhandledRejection",
+    currentFile: currentInputFile,
+  });
   logError(`Unhandled rejection: ${error.message}`);
   process.exit(CONSTANTS.EXIT_ERROR);
 });
 
-main().catch((e) => { logError(`Error: ${e.message}`); process.exit(CONSTANTS.EXIT_ERROR); });
+main().catch((e) => {
+  logError(`Error: ${e.message}`);
+  process.exit(CONSTANTS.EXIT_ERROR);
+});

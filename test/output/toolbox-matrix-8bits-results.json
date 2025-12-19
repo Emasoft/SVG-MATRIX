@@ -1,0 +1,1117 @@
+{
+  "timestamp": "2025-12-19T17:45:13.461Z",
+  "duration": "0.39s",
+  "summary": {
+    "preEmbed": {
+      "passed": 70,
+      "failed": 0,
+      "skipped": 0
+    },
+    "postEmbed": {
+      "passed": 70,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "preEmbedResults": [
+    {
+      "function": "cleanupIds",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "cleanupNumericValues",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16159,
+      "sizeChange": "7.0%"
+    },
+    {
+      "function": "cleanupListOfValues",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "cleanupAttributes",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "cleanupEnableBackground",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeUnknownsAndDefaults",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16115,
+      "sizeChange": "6.7%"
+    },
+    {
+      "function": "removeNonInheritableGroupAttrs",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeUselessDefs",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16175,
+      "sizeChange": "7.1%"
+    },
+    {
+      "function": "removeHiddenElements",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeEmptyText",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeEmptyContainers",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16120,
+      "sizeChange": "6.7%"
+    },
+    {
+      "function": "removeDoctype",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeXMLProcInst",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeComments",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeMetadata",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 15941,
+      "sizeChange": "5.5%"
+    },
+    {
+      "function": "removeTitle",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeDesc",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeEditorsNSData",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 15527,
+      "sizeChange": "2.8%"
+    },
+    {
+      "function": "removeEmptyAttrs",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16186,
+      "sizeChange": "7.1%"
+    },
+    {
+      "function": "removeViewBox",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeXMLNS",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16160,
+      "sizeChange": "7.0%"
+    },
+    {
+      "function": "removeRasterImages",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeScriptElement",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 15983,
+      "sizeChange": "5.8%"
+    },
+    {
+      "function": "convertShapesToPath",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 17669,
+      "sizeChange": "17.0%"
+    },
+    {
+      "function": "convertPathData",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "convertTransform",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "convertColors",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16154,
+      "sizeChange": "6.9%"
+    },
+    {
+      "function": "convertStyleToAttrs",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 14486,
+      "sizeChange": "-4.1%"
+    },
+    {
+      "function": "convertEllipseToCircle",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "collapseGroups",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "mergePaths",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "moveGroupAttrsToElems",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "moveElemsAttrsToGroup",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "minifyStyles",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "inlineStyles",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 15140,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "sortAttrs",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "sortDefsChildren",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "reusePaths",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16080,
+      "sizeChange": "6.4%"
+    },
+    {
+      "function": "removeOffCanvasPath",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeStyleElement",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 14475,
+      "sizeChange": "-4.2%"
+    },
+    {
+      "function": "removeXlink",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "addAttributesToSVGElement",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16216,
+      "sizeChange": "7.3%"
+    },
+    {
+      "function": "addClassesToSVGElement",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16208,
+      "sizeChange": "7.3%"
+    },
+    {
+      "function": "prefixIds",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16274,
+      "sizeChange": "7.7%"
+    },
+    {
+      "function": "removeDimensions",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16171,
+      "sizeChange": "7.1%"
+    },
+    {
+      "function": "removeAttributesBySelector",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeAttrs",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "removeElementsByAttr",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "presetDefault",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Preset object available"
+    },
+    {
+      "function": "presetNone",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Preset object available"
+    },
+    {
+      "function": "applyPreset",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 13392,
+      "sizeChange": "-11.3%"
+    },
+    {
+      "function": "optimize",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 15777,
+      "sizeChange": "4.4%"
+    },
+    {
+      "function": "createConfig",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Config object created with 7 keys"
+    },
+    {
+      "function": "flattenClipPaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16198,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenMasks",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16198,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenGradients",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenPatterns",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16198,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenFilters",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenUseElements",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16198,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "flattenAll",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 17552,
+      "sizeChange": "16.2%"
+    },
+    {
+      "function": "validateXML",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "result": "Validation returned result"
+    },
+    {
+      "function": "validateSVG",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "result": "Validation returned result"
+    },
+    {
+      "function": "fixInvalidSVG",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16171,
+      "sizeChange": "7.1%"
+    },
+    {
+      "function": "simplifyPath",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "decomposeTransform",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 18834,
+      "sizeChange": "24.7%"
+    },
+    {
+      "function": "optimizeAnimationTiming",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "optimizePaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16085,
+      "sizeChange": "6.5%"
+    },
+    {
+      "function": "simplifyPaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 16199,
+      "sizeChange": "7.2%"
+    },
+    {
+      "function": "embedExternalDependencies",
+      "category": "Category 8: Embedding",
+      "status": "passed",
+      "inputSize": 15106,
+      "outputSize": 14721,
+      "sizeChange": "-2.5%"
+    },
+    {
+      "function": "exportEmbeddedResources",
+      "category": "Category 8: Embedding",
+      "status": "passed",
+      "result": "Extracted 0 resources"
+    }
+  ],
+  "postEmbedResults": [
+    {
+      "function": "cleanupIds",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "cleanupNumericValues",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570165,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "cleanupListOfValues",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "cleanupAttributes",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "cleanupEnableBackground",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeUnknownsAndDefaults",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570121,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "removeNonInheritableGroupAttrs",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeUselessDefs",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570181,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeHiddenElements",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeEmptyText",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeEmptyContainers",
+      "category": "Category 1: Cleanup",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570126,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "removeDoctype",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeXMLProcInst",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeComments",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeMetadata",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 569947,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "removeTitle",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeDesc",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeEditorsNSData",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 569533,
+      "sizeChange": "0.1%"
+    },
+    {
+      "function": "removeEmptyAttrs",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570192,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeViewBox",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeXMLNS",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570166,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeRasterImages",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeScriptElement",
+      "category": "Category 2: Removal",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 258343,
+      "sizeChange": "-54.6%"
+    },
+    {
+      "function": "convertShapesToPath",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 571675,
+      "sizeChange": "0.5%"
+    },
+    {
+      "function": "convertPathData",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "convertTransform",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "convertColors",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570160,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "convertStyleToAttrs",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 568492,
+      "sizeChange": "-0.0%"
+    },
+    {
+      "function": "convertEllipseToCircle",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "collapseGroups",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "mergePaths",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "moveGroupAttrsToElems",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "moveElemsAttrsToGroup",
+      "category": "Category 3: Conversion",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "minifyStyles",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "inlineStyles",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 569238,
+      "sizeChange": "0.1%"
+    },
+    {
+      "function": "sortAttrs",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "sortDefsChildren",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "reusePaths",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570086,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "removeOffCanvasPath",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeStyleElement",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 520884,
+      "sizeChange": "-8.4%"
+    },
+    {
+      "function": "removeXlink",
+      "category": "Category 4: Optimization",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "addAttributesToSVGElement",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570222,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "addClassesToSVGElement",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570214,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "prefixIds",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570280,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeDimensions",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570177,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeAttributesBySelector",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeAttrs",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "removeElementsByAttr",
+      "category": "Category 5: Adding/Modification",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "presetDefault",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Preset object available"
+    },
+    {
+      "function": "presetNone",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Preset object available"
+    },
+    {
+      "function": "applyPreset",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 567398,
+      "sizeChange": "-0.2%"
+    },
+    {
+      "function": "optimize",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 569783,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "createConfig",
+      "category": "Category 6: Presets",
+      "status": "passed",
+      "result": "Config object created with 7 keys"
+    },
+    {
+      "function": "flattenClipPaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenMasks",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenGradients",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenPatterns",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenFilters",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenUseElements",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "flattenAll",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 571559,
+      "sizeChange": "0.5%"
+    },
+    {
+      "function": "validateXML",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "result": "Validation returned result"
+    },
+    {
+      "function": "validateSVG",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "result": "Validation returned result"
+    },
+    {
+      "function": "fixInvalidSVG",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570177,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "simplifyPath",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "decomposeTransform",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 572840,
+      "sizeChange": "0.7%"
+    },
+    {
+      "function": "optimizeAnimationTiming",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "optimizePaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570091,
+      "sizeChange": "0.2%"
+    },
+    {
+      "function": "simplifyPaths",
+      "category": "Category 7: Bonus",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 570205,
+      "sizeChange": "0.3%"
+    },
+    {
+      "function": "embedExternalDependencies",
+      "category": "Category 8: Embedding",
+      "status": "passed",
+      "inputSize": 568725,
+      "outputSize": 568727,
+      "sizeChange": "0.0%"
+    },
+    {
+      "function": "exportEmbeddedResources",
+      "category": "Category 8: Embedding",
+      "status": "passed",
+      "result": "Extracted 1 resources"
+    }
+  ],
+  "errors": []
+}

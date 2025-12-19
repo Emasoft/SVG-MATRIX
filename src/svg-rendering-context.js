@@ -27,82 +27,84 @@
  * @module svg-rendering-context
  */
 
-import Decimal from 'decimal.js';
-import { FillRule, pointInPolygonWithRule, offsetPolygon, strokeToFilledPolygon } from './svg-boolean-ops.js';
-import * as PolygonClip from './polygon-clip.js';
+import Decimal from "decimal.js";
+import {
+  FillRule,
+  pointInPolygonWithRule,
+  offsetPolygon as _offsetPolygon,
+  strokeToFilledPolygon,
+} from "./svg-boolean-ops.js";
+import * as _PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Default SVG property values per SVG 1.1/2.0 specification
  */
 export const SVG_DEFAULTS = {
   // Fill properties
-  fill: 'black',
-  'fill-rule': 'nonzero',
-  'fill-opacity': 1,
+  fill: "black",
+  "fill-rule": "nonzero",
+  "fill-opacity": 1,
 
   // Stroke properties
-  stroke: 'none',
-  'stroke-width': 1,
-  'stroke-linecap': 'butt',      // butt | round | square
-  'stroke-linejoin': 'miter',    // miter | round | bevel
-  'stroke-miterlimit': 4,
-  'stroke-dasharray': 'none',
-  'stroke-dashoffset': 0,
-  'stroke-opacity': 1,
+  stroke: "none",
+  "stroke-width": 1,
+  "stroke-linecap": "butt", // butt | round | square
+  "stroke-linejoin": "miter", // miter | round | bevel
+  "stroke-miterlimit": 4,
+  "stroke-dasharray": "none",
+  "stroke-dashoffset": 0,
+  "stroke-opacity": 1,
 
   // Markers
-  'marker-start': 'none',
-  'marker-mid': 'none',
-  'marker-end': 'none',
+  "marker-start": "none",
+  "marker-mid": "none",
+  "marker-end": "none",
 
   // Paint order (SVG 2)
-  'paint-order': 'normal',       // normal = fill stroke markers
+  "paint-order": "normal", // normal = fill stroke markers
 
   // Clipping
-  'clip-path': 'none',
-  'clip-rule': 'nonzero',
+  "clip-path": "none",
+  "clip-rule": "nonzero",
 
   // Masking
-  'mask': 'none',
-  'mask-type': 'luminance',      // luminance | alpha
+  mask: "none",
+  "mask-type": "luminance", // luminance | alpha
 
   // Opacity
-  'opacity': 1,
+  opacity: 1,
 
   // Transform
-  'transform': 'none',
-  'vector-effect': 'none',       // none | non-scaling-stroke
+  transform: "none",
+  "vector-effect": "none", // none | non-scaling-stroke
 
   // Filter
-  'filter': 'none'
+  filter: "none",
 };
 
 /**
  * Properties that affect the geometric extent of an element
  */
 export const GEOMETRY_AFFECTING_PROPERTIES = [
-  'stroke-width',
-  'stroke-linecap',
-  'stroke-linejoin',
-  'stroke-miterlimit',
-  'marker-start',
-  'marker-mid',
-  'marker-end',
-  'filter',
-  'transform'
+  "stroke-width",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-miterlimit",
+  "marker-start",
+  "marker-mid",
+  "marker-end",
+  "filter",
+  "transform",
 ];
 
 /**
  * Properties that affect what's considered "inside" a shape
  */
-export const FILL_AFFECTING_PROPERTIES = [
-  'fill-rule',
-  'clip-rule'
-];
+export const FILL_AFFECTING_PROPERTIES = ["fill-rule", "clip-rule"];
 
 /**
  * SVG Rendering Context class
@@ -125,27 +127,29 @@ export class SVGRenderingContext {
     this.properties = this._extractProperties(element, inherited);
 
     // Parse stroke-dasharray into array
-    this.dashArray = this._parseDashArray(this.properties['stroke-dasharray']);
-    this.dashOffset = D(this.properties['stroke-dashoffset'] || 0);
+    this.dashArray = this._parseDashArray(this.properties["stroke-dasharray"]);
+    this.dashOffset = D(this.properties["stroke-dashoffset"] || 0);
 
     // Parse marker references
     this.markers = {
-      start: this._parseMarkerRef(this.properties['marker-start']),
-      mid: this._parseMarkerRef(this.properties['marker-mid']),
-      end: this._parseMarkerRef(this.properties['marker-end'])
+      start: this._parseMarkerRef(this.properties["marker-start"]),
+      mid: this._parseMarkerRef(this.properties["marker-mid"]),
+      end: this._parseMarkerRef(this.properties["marker-end"]),
     };
 
     // Determine if element has visible fill
-    this.hasFill = this.properties.fill !== 'none' &&
-                   this.properties['fill-opacity'] > 0;
+    this.hasFill =
+      this.properties.fill !== "none" && this.properties["fill-opacity"] > 0;
 
     // Determine if element has visible stroke
-    this.hasStroke = this.properties.stroke !== 'none' &&
-                     D(this.properties['stroke-width']).gt(0) &&
-                     this.properties['stroke-opacity'] > 0;
+    this.hasStroke =
+      this.properties.stroke !== "none" &&
+      D(this.properties["stroke-width"]).gt(0) &&
+      this.properties["stroke-opacity"] > 0;
 
     // Determine if element has markers
-    this.hasMarkers = this.markers.start || this.markers.mid || this.markers.end;
+    this.hasMarkers =
+      this.markers.start || this.markers.mid || this.markers.end;
   }
 
   /**
@@ -172,10 +176,16 @@ export class SVGRenderingContext {
     }
 
     // Convert numeric properties
-    const numericProps = ['stroke-width', 'stroke-miterlimit', 'stroke-dashoffset',
-                          'opacity', 'fill-opacity', 'stroke-opacity'];
+    const numericProps = [
+      "stroke-width",
+      "stroke-miterlimit",
+      "stroke-dashoffset",
+      "opacity",
+      "fill-opacity",
+      "stroke-opacity",
+    ];
     for (const prop of numericProps) {
-      if (typeof props[prop] === 'string') {
+      if (typeof props[prop] === "string") {
         const parsed = parseFloat(props[prop]);
         if (!isNaN(parsed)) {
           props[prop] = parsed;
@@ -194,9 +204,9 @@ export class SVGRenderingContext {
     const props = {};
     if (!style) return props;
 
-    const declarations = style.split(';');
+    const declarations = style.split(";");
     for (const decl of declarations) {
-      const [prop, value] = decl.split(':').map(s => s.trim());
+      const [prop, value] = decl.split(":").map((s) => s.trim());
       if (prop && value) {
         props[prop] = value;
       }
@@ -209,10 +219,13 @@ export class SVGRenderingContext {
    * @private
    */
   _parseDashArray(dasharray) {
-    if (!dasharray || dasharray === 'none') return null;
+    if (!dasharray || dasharray === "none") return null;
 
-    const parts = dasharray.toString().split(/[\s,]+/).filter(s => s);
-    const values = parts.map(s => D(parseFloat(s)));
+    const parts = dasharray
+      .toString()
+      .split(/[\s,]+/)
+      .filter((s) => s);
+    const values = parts.map((s) => D(parseFloat(s)));
 
     // Per SVG spec, if odd number of values, duplicate the array
     if (values.length % 2 === 1) {
@@ -226,7 +239,7 @@ export class SVGRenderingContext {
    * @private
    */
   _parseMarkerRef(value) {
-    if (!value || value === 'none') return null;
+    if (!value || value === "none") return null;
     const match = value.match(/url\(#?([^)]+)\)/);
     return match ? match[1] : null;
   }
@@ -236,7 +249,7 @@ export class SVGRenderingContext {
    * @returns {string} 'nonzero' or 'evenodd'
    */
   get fillRule() {
-    return this.properties['fill-rule'] || 'nonzero';
+    return this.properties["fill-rule"] || "nonzero";
   }
 
   /**
@@ -244,7 +257,7 @@ export class SVGRenderingContext {
    * @returns {string} 'nonzero' or 'evenodd'
    */
   get clipRule() {
-    return this.properties['clip-rule'] || 'nonzero';
+    return this.properties["clip-rule"] || "nonzero";
   }
 
   /**
@@ -252,7 +265,7 @@ export class SVGRenderingContext {
    * @returns {Decimal}
    */
   get strokeWidth() {
-    return D(this.properties['stroke-width'] || 0);
+    return D(this.properties["stroke-width"] || 0);
   }
 
   /**
@@ -260,7 +273,7 @@ export class SVGRenderingContext {
    * @returns {string} 'butt', 'round', or 'square'
    */
   get strokeLinecap() {
-    return this.properties['stroke-linecap'] || 'butt';
+    return this.properties["stroke-linecap"] || "butt";
   }
 
   /**
@@ -268,7 +281,7 @@ export class SVGRenderingContext {
    * @returns {string} 'miter', 'round', or 'bevel'
    */
   get strokeLinejoin() {
-    return this.properties['stroke-linejoin'] || 'miter';
+    return this.properties["stroke-linejoin"] || "miter";
   }
 
   /**
@@ -276,7 +289,7 @@ export class SVGRenderingContext {
    * @returns {Decimal}
    */
   get strokeMiterlimit() {
-    return D(this.properties['stroke-miterlimit'] || 4);
+    return D(this.properties["stroke-miterlimit"] || 4);
   }
 
   /**
@@ -297,12 +310,12 @@ export class SVGRenderingContext {
     let extent = halfWidth;
 
     // Miter joins can extend further
-    if (this.strokeLinejoin === 'miter') {
+    if (this.strokeLinejoin === "miter") {
       extent = halfWidth.times(this.strokeMiterlimit);
     }
 
     // Square linecaps extend by half stroke width beyond endpoints
-    if (this.strokeLinecap === 'square') {
+    if (this.strokeLinecap === "square") {
       const capExtent = halfWidth;
       if (capExtent.gt(extent)) {
         extent = capExtent;
@@ -327,7 +340,7 @@ export class SVGRenderingContext {
       x: bbox.x.minus(extent),
       y: bbox.y.minus(extent),
       width: bbox.width.plus(extent.times(2)),
-      height: bbox.height.plus(extent.times(2))
+      height: bbox.height.plus(extent.times(2)),
     };
   }
 
@@ -348,8 +361,8 @@ export class SVGRenderingContext {
 
     if (markerSizes) {
       const sizes = [markerSizes.start, markerSizes.mid, markerSizes.end]
-        .filter(s => s)
-        .map(s => D(s));
+        .filter((s) => s)
+        .map((s) => D(s));
       if (sizes.length > 0) {
         maxMarkerSize = Decimal.max(...sizes);
       }
@@ -366,7 +379,7 @@ export class SVGRenderingContext {
       x: bbox.x.minus(extent),
       y: bbox.y.minus(extent),
       width: bbox.width.plus(extent.times(2)),
-      height: bbox.height.plus(extent.times(2))
+      height: bbox.height.plus(extent.times(2)),
     };
   }
 
@@ -381,12 +394,12 @@ export class SVGRenderingContext {
    */
   expandBBoxForFilter(bbox, filterDef = null) {
     const filterRef = this.properties.filter;
-    if (!filterRef || filterRef === 'none') return bbox;
+    if (!filterRef || filterRef === "none") return bbox;
 
     // Default filter region is 10% larger on each side (per SVG spec)
     // filterUnits="objectBoundingBox" x="-10%" y="-10%" width="120%" height="120%"
-    let extentX = bbox.width.times('0.1');
-    let extentY = bbox.height.times('0.1');
+    let extentX = bbox.width.times("0.1");
+    let extentY = bbox.height.times("0.1");
 
     // If filter definition provided with explicit bounds, use those
     if (filterDef) {
@@ -398,7 +411,7 @@ export class SVGRenderingContext {
       x: bbox.x.minus(extentX),
       y: bbox.y.minus(extentY),
       width: bbox.width.plus(extentX.times(2)),
-      height: bbox.height.plus(extentY.times(2))
+      height: bbox.height.plus(extentY.times(2)),
     };
   }
 
@@ -438,7 +451,7 @@ export class SVGRenderingContext {
       areas.push({
         polygon: polygon,
         fillRule: this.fillRule,
-        type: 'fill'
+        type: "fill",
       });
     }
 
@@ -448,14 +461,14 @@ export class SVGRenderingContext {
         width: this.strokeWidth.toNumber(),
         linecap: this.strokeLinecap,
         linejoin: this.strokeLinejoin,
-        miterlimit: this.strokeMiterlimit.toNumber()
+        miterlimit: this.strokeMiterlimit.toNumber(),
       });
 
       if (strokePolygon && strokePolygon.length > 0) {
         areas.push({
           polygon: strokePolygon,
-          fillRule: 'nonzero', // Stroke is always nonzero
-          type: 'stroke'
+          fillRule: "nonzero", // Stroke is always nonzero
+          type: "stroke",
         });
       }
     }
@@ -473,7 +486,8 @@ export class SVGRenderingContext {
   isPointInRenderedArea(point, polygon) {
     // Check fill area
     if (this.hasFill) {
-      const fillRule = this.fillRule === 'evenodd' ? FillRule.EVENODD : FillRule.NONZERO;
+      const fillRule =
+        this.fillRule === "evenodd" ? FillRule.EVENODD : FillRule.NONZERO;
       const inFill = pointInPolygonWithRule(point, polygon, fillRule);
       if (inFill >= 0) return true;
     }
@@ -484,11 +498,15 @@ export class SVGRenderingContext {
         width: this.strokeWidth.toNumber(),
         linecap: this.strokeLinecap,
         linejoin: this.strokeLinejoin,
-        miterlimit: this.strokeMiterlimit.toNumber()
+        miterlimit: this.strokeMiterlimit.toNumber(),
       });
 
       if (strokePolygon && strokePolygon.length > 0) {
-        const inStroke = pointInPolygonWithRule(point, strokePolygon, FillRule.NONZERO);
+        const inStroke = pointInPolygonWithRule(
+          point,
+          strokePolygon,
+          FillRule.NONZERO,
+        );
         if (inStroke >= 0) return true;
       }
     }
@@ -507,45 +525,51 @@ export class SVGRenderingContext {
   canMergeWith(other) {
     // Fill rules must match
     if (this.fillRule !== other.fillRule) {
-      return { canMerge: false, reason: 'Different fill-rule' };
+      return { canMerge: false, reason: "Different fill-rule" };
     }
 
     // Stroke properties must match if either has stroke
     if (this.hasStroke || other.hasStroke) {
       if (this.hasStroke !== other.hasStroke) {
-        return { canMerge: false, reason: 'Different stroke presence' };
+        return { canMerge: false, reason: "Different stroke presence" };
       }
 
       if (!this.strokeWidth.eq(other.strokeWidth)) {
-        return { canMerge: false, reason: 'Different stroke-width' };
+        return { canMerge: false, reason: "Different stroke-width" };
       }
 
       if (this.strokeLinecap !== other.strokeLinecap) {
-        return { canMerge: false, reason: 'Different stroke-linecap' };
+        return { canMerge: false, reason: "Different stroke-linecap" };
       }
 
       if (this.strokeLinejoin !== other.strokeLinejoin) {
-        return { canMerge: false, reason: 'Different stroke-linejoin' };
+        return { canMerge: false, reason: "Different stroke-linejoin" };
       }
     }
 
     // Neither can have markers (markers break continuity)
     if (this.hasMarkers || other.hasMarkers) {
-      return { canMerge: false, reason: 'Has markers' };
+      return { canMerge: false, reason: "Has markers" };
     }
 
     // Neither can have clip-path or mask
-    if (this.properties['clip-path'] !== 'none' || other.properties['clip-path'] !== 'none') {
-      return { canMerge: false, reason: 'Has clip-path' };
+    if (
+      this.properties["clip-path"] !== "none" ||
+      other.properties["clip-path"] !== "none"
+    ) {
+      return { canMerge: false, reason: "Has clip-path" };
     }
 
-    if (this.properties.mask !== 'none' || other.properties.mask !== 'none') {
-      return { canMerge: false, reason: 'Has mask' };
+    if (this.properties.mask !== "none" || other.properties.mask !== "none") {
+      return { canMerge: false, reason: "Has mask" };
     }
 
     // Neither can have filter
-    if (this.properties.filter !== 'none' || other.properties.filter !== 'none') {
-      return { canMerge: false, reason: 'Has filter' };
+    if (
+      this.properties.filter !== "none" ||
+      other.properties.filter !== "none"
+    ) {
+      return { canMerge: false, reason: "Has filter" };
     }
 
     return { canMerge: true, reason: null };
@@ -565,8 +589,8 @@ export class SVGRenderingContext {
       strokeExtent: this.getStrokeExtent().toNumber(),
       linecap: this.strokeLinecap,
       linejoin: this.strokeLinejoin,
-      clipPath: this.properties['clip-path'],
-      filter: this.properties.filter
+      clipPath: this.properties["clip-path"],
+      filter: this.properties.filter,
     };
   }
 }
@@ -579,7 +603,11 @@ export class SVGRenderingContext {
  * @param {Map} defsMap - Definitions map
  * @returns {SVGRenderingContext}
  */
-export function createRenderingContext(element, inherited = {}, defsMap = null) {
+export function createRenderingContext(
+  element,
+  inherited = {},
+  defsMap = null,
+) {
   return new SVGRenderingContext(element, inherited, defsMap);
 }
 
@@ -594,11 +622,26 @@ export function getInheritedProperties(element) {
 
   // Inheritable properties per SVG spec
   const inheritableProps = [
-    'fill', 'fill-rule', 'fill-opacity',
-    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
-    'stroke-miterlimit', 'stroke-dasharray', 'stroke-dashoffset', 'stroke-opacity',
-    'marker-start', 'marker-mid', 'marker-end',
-    'clip-rule', 'opacity', 'font-family', 'font-size', 'font-style', 'font-weight'
+    "fill",
+    "fill-rule",
+    "fill-opacity",
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-miterlimit",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-opacity",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
+    "clip-rule",
+    "opacity",
+    "font-family",
+    "font-size",
+    "font-style",
+    "font-weight",
   ];
 
   let current = element.parentNode;
@@ -623,5 +666,5 @@ export default {
   GEOMETRY_AFFECTING_PROPERTIES,
   FILL_AFFECTING_PROPERTIES,
   createRenderingContext,
-  getInheritedProperties
+  getInheritedProperties,
 };

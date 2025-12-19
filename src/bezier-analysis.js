@@ -18,7 +18,7 @@
  * - Handles extreme coordinate ranges
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 // Ensure high precision is set
 Decimal.set({ precision: 80 });
@@ -28,7 +28,7 @@ Decimal.set({ precision: 80 });
  * @param {number|string|Decimal} x - Value to convert
  * @returns {Decimal}
  */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Validate that a value is a finite number (not NaN or Infinity).
@@ -38,7 +38,7 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
  * @param {string} context - Function name for error message
  * @throws {Error} If value is not finite
  */
-function assertFinite(val, context) {
+function _assertFinite(val, context) {
   if (!val.isFinite()) {
     throw new Error(`${context}: encountered non-finite value ${val}`);
   }
@@ -52,50 +52,50 @@ function assertFinite(val, context) {
 
 /** Threshold below which derivative magnitude is considered zero (cusp detection).
  * WHY: Prevents division by zero in tangent/normal calculations at cusps. */
-const DERIVATIVE_ZERO_THRESHOLD = new Decimal('1e-50');
+const DERIVATIVE_ZERO_THRESHOLD = new Decimal("1e-50");
 
 /** Threshold for curvature denominator to detect cusps.
  * WHY: Curvature formula has (x'^2 + y'^2)^(3/2) in denominator; this threshold
  * prevents division by near-zero values that would produce spurious infinities. */
-const CURVATURE_SINGULARITY_THRESHOLD = new Decimal('1e-100');
+const CURVATURE_SINGULARITY_THRESHOLD = new Decimal("1e-100");
 
 /** Threshold for finite difference step size.
  * WHY: Used in numerical derivative approximations. Balance between truncation error
  * (too large) and cancellation error (too small). */
-const FINITE_DIFFERENCE_STEP = new Decimal('1e-8');
+const FINITE_DIFFERENCE_STEP = new Decimal("1e-8");
 
 /** Newton-Raphson convergence threshold.
  * WHY: Iteration stops when change is below this threshold, indicating convergence. */
-const NEWTON_CONVERGENCE_THRESHOLD = new Decimal('1e-40');
+const NEWTON_CONVERGENCE_THRESHOLD = new Decimal("1e-40");
 
 /** Near-zero threshold for general comparisons.
  * WHY: Used throughout for detecting effectively zero values in high-precision arithmetic. */
-const NEAR_ZERO_THRESHOLD = new Decimal('1e-60');
+const NEAR_ZERO_THRESHOLD = new Decimal("1e-60");
 
 /** Threshold for degenerate quadratic equations.
  * WHY: When 'a' coefficient is below this relative to other coefficients,
  * equation degenerates to linear case, avoiding division by near-zero. */
-const QUADRATIC_DEGENERATE_THRESHOLD = new Decimal('1e-70');
+const QUADRATIC_DEGENERATE_THRESHOLD = new Decimal("1e-70");
 
 /** Subdivision convergence threshold for root finding.
  * WHY: When interval becomes smaller than this, subdivision has converged to a root. */
-const SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal('1e-15');
+const SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal("1e-15");
 
 /** Threshold for arc length comparison in curvature verification.
  * WHY: Arc lengths below this are too small for reliable finite difference approximation. */
-const ARC_LENGTH_THRESHOLD = new Decimal('1e-50');
+const ARC_LENGTH_THRESHOLD = new Decimal("1e-50");
 
 /** Relative error threshold for curvature comparison.
  * WHY: Curvature verification uses relative error; this threshold balances precision vs noise. */
-const CURVATURE_RELATIVE_ERROR_THRESHOLD = new Decimal('1e-10');
+const CURVATURE_RELATIVE_ERROR_THRESHOLD = new Decimal("1e-10");
 
 /** Finite difference step for derivative verification (higher order).
  * WHY: Smaller step than general finite difference for more accurate verification. */
-const DERIVATIVE_VERIFICATION_STEP = new Decimal('1e-10');
+const DERIVATIVE_VERIFICATION_STEP = new Decimal("1e-10");
 
 /** Threshold for magnitude comparison in derivative verification.
  * WHY: Used to determine if derivative magnitude is large enough for relative error. */
-const DERIVATIVE_MAGNITUDE_THRESHOLD = new Decimal('1e-20');
+const DERIVATIVE_MAGNITUDE_THRESHOLD = new Decimal("1e-20");
 
 /**
  * 2D Point represented as [Decimal, Decimal]
@@ -130,7 +130,9 @@ export function bezierPoint(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Empty or invalid arrays would cause crashes in the de Casteljau iteration
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierPoint: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierPoint: points must be an array with at least 2 control points",
+    );
   }
 
   const tD = D(t);
@@ -177,7 +179,9 @@ export function bezierPointHorner(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Horner's rule requires at least 2 points; invalid arrays cause index errors
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierPointHorner: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierPointHorner: points must be an array with at least 2 control points",
+    );
   }
 
   const tD = D(t);
@@ -187,10 +191,7 @@ export function bezierPointHorner(points, t) {
     // Line: P0 + t(P1 - P0)
     const [x0, y0] = [D(points[0][0]), D(points[0][1])];
     const [x1, y1] = [D(points[1][0]), D(points[1][1])];
-    return [
-      x0.plus(tD.times(x1.minus(x0))),
-      y0.plus(tD.times(y1.minus(y0)))
-    ];
+    return [x0.plus(tD.times(x1.minus(x0))), y0.plus(tD.times(y1.minus(y0)))];
   }
 
   if (n === 2) {
@@ -206,7 +207,7 @@ export function bezierPointHorner(points, t) {
 
     return [
       x0.plus(tD.times(c1x.plus(tD.times(c2x)))),
-      y0.plus(tD.times(c1y.plus(tD.times(c2y))))
+      y0.plus(tD.times(c1y.plus(tD.times(c2y)))),
     ];
   }
 
@@ -231,7 +232,7 @@ export function bezierPointHorner(points, t) {
 
     return [
       x0.plus(tD.times(c1x.plus(tD.times(c2x.plus(tD.times(c3x)))))),
-      y0.plus(tD.times(c1y.plus(tD.times(c2y.plus(tD.times(c3y))))))
+      y0.plus(tD.times(c1y.plus(tD.times(c2y.plus(tD.times(c3y)))))),
     ];
   }
 
@@ -262,7 +263,9 @@ export function bezierDerivative(points, t, n = 1) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Derivative computation requires iterating over control points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierDerivative: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierDerivative: points must be an array with at least 2 control points",
+    );
   }
 
   if (n === 0) {
@@ -284,8 +287,12 @@ export function bezierDerivative(points, t, n = 1) {
     const newPoints = [];
 
     for (let i = 0; i < currentDegree; i++) {
-      const dx = derivPoints[i + 1][0].minus(derivPoints[i][0]).times(currentDegree);
-      const dy = derivPoints[i + 1][1].minus(derivPoints[i][1]).times(currentDegree);
+      const dx = derivPoints[i + 1][0]
+        .minus(derivPoints[i][0])
+        .times(currentDegree);
+      const dy = derivPoints[i + 1][1]
+        .minus(derivPoints[i][1])
+        .times(currentDegree);
       newPoints.push([dx, dy]);
     }
 
@@ -312,15 +319,21 @@ export function bezierDerivativePoints(points) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Need at least 2 points to compute derivative control points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierDerivativePoints: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierDerivativePoints: points must be an array with at least 2 control points",
+    );
   }
 
   const n = points.length - 1;
   const result = [];
 
   for (let i = 0; i < n; i++) {
-    const dx = D(points[i + 1][0]).minus(D(points[i][0])).times(n);
-    const dy = D(points[i + 1][1]).minus(D(points[i][1])).times(n);
+    const dx = D(points[i + 1][0])
+      .minus(D(points[i][0]))
+      .times(n);
+    const dy = D(points[i + 1][1])
+      .minus(D(points[i][1]))
+      .times(n);
     result.push([dx, dy]);
   }
 
@@ -346,7 +359,9 @@ export function bezierTangent(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Tangent calculation requires derivative computation which needs valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierTangent: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierTangent: points must be an array with at least 2 control points",
+    );
   }
 
   const [dx, dy] = bezierDerivative(points, t, 1);
@@ -364,7 +379,10 @@ export function bezierTangent(points, t) {
     if (mag2.isZero() || mag2.lt(DERIVATIVE_ZERO_THRESHOLD)) {
       // Fallback to direction from start to end
       const [x0, y0] = [D(points[0][0]), D(points[0][1])];
-      const [xn, yn] = [D(points[points.length - 1][0]), D(points[points.length - 1][1])];
+      const [xn, yn] = [
+        D(points[points.length - 1][0]),
+        D(points[points.length - 1][1]),
+      ];
       const ddx = xn.minus(x0);
       const ddy = yn.minus(y0);
       const magFallback = ddx.times(ddx).plus(ddy.times(ddy)).sqrt();
@@ -395,7 +413,9 @@ export function bezierNormal(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Normal is computed from tangent which requires valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierNormal: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierNormal: points must be an array with at least 2 control points",
+    );
   }
 
   const [tx, ty] = bezierTangent(points, t);
@@ -425,7 +445,9 @@ export function bezierCurvature(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Curvature requires first and second derivatives which need valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierCurvature: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierCurvature: points must be an array with at least 2 control points",
+    );
   }
 
   const [dx, dy] = bezierDerivative(points, t, 1);
@@ -438,7 +460,10 @@ export function bezierCurvature(points, t) {
   const speedSquared = dx.times(dx).plus(dy.times(dy));
 
   // WHY: Use named constant for curvature singularity detection
-  if (speedSquared.isZero() || speedSquared.lt(CURVATURE_SINGULARITY_THRESHOLD)) {
+  if (
+    speedSquared.isZero() ||
+    speedSquared.lt(CURVATURE_SINGULARITY_THRESHOLD)
+  ) {
     // At a cusp, curvature is undefined (infinity)
     return new Decimal(Infinity);
   }
@@ -461,7 +486,9 @@ export function bezierRadiusOfCurvature(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Radius computation requires curvature which needs valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierRadiusOfCurvature: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierRadiusOfCurvature: points must be an array with at least 2 control points",
+    );
   }
 
   const k = bezierCurvature(points, t);
@@ -495,7 +522,9 @@ export function bezierSplit(points, t) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: de Casteljau algorithm requires iterating over control points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierSplit: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierSplit: points must be an array with at least 2 control points",
+    );
   }
 
   const tD = D(t);
@@ -512,7 +541,7 @@ export function bezierSplit(points, t) {
   // Convert to Decimal
   let pts = points.map(([x, y]) => [D(x), D(y)]);
 
-  const left = [pts[0]];  // First point of left curve
+  const left = [pts[0]]; // First point of left curve
   const right = [];
 
   // de Casteljau iterations, saving the edges
@@ -553,7 +582,9 @@ export function bezierHalve(points) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: bezierHalve delegates to bezierSplit which needs valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierHalve: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierHalve: points must be an array with at least 2 control points",
+    );
   }
 
   return bezierSplit(points, 0.5);
@@ -573,23 +604,25 @@ export function bezierCrop(points, t0, t1) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: bezierCrop uses bezierSplit which requires valid points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierCrop: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierCrop: points must be an array with at least 2 control points",
+    );
   }
 
   const t0D = D(t0);
   const t1D = D(t1);
 
   if (t0D.gte(t1D)) {
-    throw new Error('bezierCrop: t0 must be less than t1');
+    throw new Error("bezierCrop: t0 must be less than t1");
   }
 
   // PARAMETER BOUNDS: Ensure t0 and t1 are within valid range [0, 1]
   // WHY: Parameters outside [0,1] don't correspond to points on the curve segment
   if (t0D.lt(0) || t0D.gt(1)) {
-    throw new Error('bezierCrop: t0 must be in range [0, 1]');
+    throw new Error("bezierCrop: t0 must be in range [0, 1]");
   }
   if (t1D.lt(0) || t1D.gt(1)) {
-    throw new Error('bezierCrop: t1 must be in range [0, 1]');
+    throw new Error("bezierCrop: t1 must be in range [0, 1]");
   }
 
   // First split at t0, take the right portion
@@ -624,7 +657,9 @@ export function bezierBoundingBox(points) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Bounding box computation requires accessing control points and computing derivatives
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierBoundingBox: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierBoundingBox: points must be an array with at least 2 control points",
+    );
   }
 
   const n = points.length;
@@ -647,9 +682,9 @@ export function bezierBoundingBox(points) {
   const derivPts = bezierDerivativePoints(points);
 
   // Find critical points (where derivative = 0) for x and y separately
-  const criticalTs = findBezierRoots1D(derivPts, 'x')
-    .concat(findBezierRoots1D(derivPts, 'y'))
-    .filter(t => t.gt(0) && t.lt(1));
+  const criticalTs = findBezierRoots1D(derivPts, "x")
+    .concat(findBezierRoots1D(derivPts, "y"))
+    .filter((t) => t.gt(0) && t.lt(1));
 
   // Evaluate at critical points
   for (const t of criticalTs) {
@@ -678,11 +713,11 @@ function findBezierRoots1D(points, component) {
     return []; // No roots possible for empty input
   }
 
-  const idx = component === 'x' ? 0 : 1;
+  const idx = component === "x" ? 0 : 1;
   const roots = [];
 
   // Extract 1D control points
-  const coeffs = points.map(p => D(p[idx]));
+  const coeffs = points.map((p) => D(p[idx]));
 
   // For quadratic (2 points) and cubic (3 points), use analytical solutions
   if (coeffs.length === 2) {
@@ -721,7 +756,7 @@ function findBezierRoots1D(points, component) {
   } else {
     // Higher degree: use subdivision
     const subdivisionRoots = findRootsBySubdivision(coeffs, D(0), D(1), 50);
-    roots.push(...subdivisionRoots.filter(t => t.gt(0) && t.lt(1)));
+    roots.push(...subdivisionRoots.filter((t) => t.gt(0) && t.lt(1)));
   }
 
   return roots;
@@ -746,7 +781,10 @@ function solveQuadratic(a, b, c) {
   // WHY: Absolute thresholds fail when coefficients are scaled; relative threshold adapts
   const coeffMag = Decimal.max(a.abs(), b.abs(), c.abs());
 
-  if (coeffMag.gt(0) && a.abs().div(coeffMag).lt(QUADRATIC_DEGENERATE_THRESHOLD)) {
+  if (
+    coeffMag.gt(0) &&
+    a.abs().div(coeffMag).lt(QUADRATIC_DEGENERATE_THRESHOLD)
+  ) {
     // Linear equation: bx + c = 0
     if (b.isZero()) return [];
     return [c.neg().div(b)];
@@ -805,7 +843,7 @@ function solveQuadratic(a, b, c) {
  */
 function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
   // Check if interval might contain a root (sign change in convex hull)
-  const signs = coeffs.map(c => c.isNegative() ? -1 : (c.isZero() ? 0 : 1));
+  const signs = coeffs.map((c) => (c.isNegative() ? -1 : c.isZero() ? 0 : 1));
   const minSign = Math.min(...signs);
   const maxSign = Math.max(...signs);
 
@@ -837,7 +875,7 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
  */
 function subdivideBezier1D(coeffs) {
   const half = D(0.5);
-  let pts = coeffs.map(c => D(c));
+  let pts = coeffs.map((c) => D(c));
 
   const left = [pts[0]];
   const right = [];
@@ -877,7 +915,9 @@ export function bezierToPolynomial(points) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Polynomial conversion requires accessing control points by index
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('bezierToPolynomial: points must be an array with at least 2 control points');
+    throw new Error(
+      "bezierToPolynomial: points must be an array with at least 2 control points",
+    );
   }
 
   const n = points.length - 1;
@@ -907,12 +947,24 @@ export function bezierToPolynomial(points) {
     xCoeffs.push(P[0][0]);
     xCoeffs.push(P[1][0].minus(P[0][0]).times(3));
     xCoeffs.push(P[0][0].minus(P[1][0].times(2)).plus(P[2][0]).times(3));
-    xCoeffs.push(P[0][0].neg().plus(P[1][0].times(3)).minus(P[2][0].times(3)).plus(P[3][0]));
+    xCoeffs.push(
+      P[0][0]
+        .neg()
+        .plus(P[1][0].times(3))
+        .minus(P[2][0].times(3))
+        .plus(P[3][0]),
+    );
 
     yCoeffs.push(P[0][1]);
     yCoeffs.push(P[1][1].minus(P[0][1]).times(3));
     yCoeffs.push(P[0][1].minus(P[1][1].times(2)).plus(P[2][1]).times(3));
-    yCoeffs.push(P[0][1].neg().plus(P[1][1].times(3)).minus(P[2][1].times(3)).plus(P[3][1]));
+    yCoeffs.push(
+      P[0][1]
+        .neg()
+        .plus(P[1][1].times(3))
+        .minus(P[2][1].times(3))
+        .plus(P[3][1]),
+    );
   } else {
     throw new Error(`Polynomial conversion for degree ${n} not implemented`);
   }
@@ -930,13 +982,19 @@ export function bezierToPolynomial(points) {
 export function polynomialToBezier(xCoeffs, yCoeffs) {
   // INPUT VALIDATION
   if (!xCoeffs || !Array.isArray(xCoeffs) || xCoeffs.length < 2) {
-    throw new Error('polynomialToBezier: xCoeffs must be an array with at least 2 coefficients');
+    throw new Error(
+      "polynomialToBezier: xCoeffs must be an array with at least 2 coefficients",
+    );
   }
   if (!yCoeffs || !Array.isArray(yCoeffs) || yCoeffs.length < 2) {
-    throw new Error('polynomialToBezier: yCoeffs must be an array with at least 2 coefficients');
+    throw new Error(
+      "polynomialToBezier: yCoeffs must be an array with at least 2 coefficients",
+    );
   }
   if (xCoeffs.length !== yCoeffs.length) {
-    throw new Error('polynomialToBezier: xCoeffs and yCoeffs must have the same length');
+    throw new Error(
+      "polynomialToBezier: xCoeffs and yCoeffs must have the same length",
+    );
   }
 
   const n = xCoeffs.length - 1;
@@ -944,7 +1002,7 @@ export function polynomialToBezier(xCoeffs, yCoeffs) {
   if (n === 1) {
     return [
       [xCoeffs[0], yCoeffs[0]],
-      [xCoeffs[0].plus(xCoeffs[1]), yCoeffs[0].plus(yCoeffs[1])]
+      [xCoeffs[0].plus(xCoeffs[1]), yCoeffs[0].plus(yCoeffs[1])],
     ];
   }
 
@@ -957,21 +1015,34 @@ export function polynomialToBezier(xCoeffs, yCoeffs) {
     const y1 = yCoeffs[0].plus(yCoeffs[1].div(2));
     const y2 = yCoeffs[0].plus(yCoeffs[1]).plus(yCoeffs[2]);
 
-    return [[x0, y0], [x1, y1], [x2, y2]];
+    return [
+      [x0, y0],
+      [x1, y1],
+      [x2, y2],
+    ];
   }
 
   if (n === 3) {
     const x0 = xCoeffs[0];
     const x1 = xCoeffs[0].plus(xCoeffs[1].div(3));
-    const x2 = xCoeffs[0].plus(xCoeffs[1].times(2).div(3)).plus(xCoeffs[2].div(3));
+    const x2 = xCoeffs[0]
+      .plus(xCoeffs[1].times(2).div(3))
+      .plus(xCoeffs[2].div(3));
     const x3 = xCoeffs[0].plus(xCoeffs[1]).plus(xCoeffs[2]).plus(xCoeffs[3]);
 
     const y0 = yCoeffs[0];
     const y1 = yCoeffs[0].plus(yCoeffs[1].div(3));
-    const y2 = yCoeffs[0].plus(yCoeffs[1].times(2).div(3)).plus(yCoeffs[2].div(3));
+    const y2 = yCoeffs[0]
+      .plus(yCoeffs[1].times(2).div(3))
+      .plus(yCoeffs[2].div(3));
     const y3 = yCoeffs[0].plus(yCoeffs[1]).plus(yCoeffs[2]).plus(yCoeffs[3]);
 
-    return [[x0, y0], [x1, y1], [x2, y2], [x3, y3]];
+    return [
+      [x0, y0],
+      [x1, y1],
+      [x2, y2],
+      [x3, y3],
+    ];
   }
 
   throw new Error(`Bezier conversion for degree ${n} not implemented`);
@@ -990,11 +1061,13 @@ export function polynomialToBezier(xCoeffs, yCoeffs) {
  * @param {number|string|Decimal} [tolerance='1e-60'] - Maximum difference
  * @returns {{valid: boolean, deCasteljau: Point2D, horner: Point2D, difference: Decimal}}
  */
-export function verifyBezierPoint(points, t, tolerance = '1e-60') {
+export function verifyBezierPoint(points, t, tolerance = "1e-60") {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Verification functions need valid input to produce meaningful results
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyBezierPoint: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyBezierPoint: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1009,7 +1082,7 @@ export function verifyBezierPoint(points, t, tolerance = '1e-60') {
     valid: maxDiff.lte(tol),
     deCasteljau,
     horner,
-    difference: maxDiff
+    difference: maxDiff,
   };
 }
 
@@ -1026,11 +1099,13 @@ export function verifyBezierPoint(points, t, tolerance = '1e-60') {
  * @param {number|string|Decimal} [tolerance='1e-50'] - Maximum error
  * @returns {{valid: boolean, errors: string[], splitPoint: Point2D, leftEnd: Point2D, rightStart: Point2D}}
  */
-export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
+export function verifyBezierSplit(points, splitT, tolerance = "1e-50") {
   // INPUT VALIDATION: Ensure points array and split parameter are valid
   // WHY: Split verification requires valid curve and parameter
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyBezierSplit: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyBezierSplit: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1041,7 +1116,9 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
 
   // Check 1: Left curve ends at split point
   const leftEnd = bezierPoint(left, 1);
-  const leftDiff = D(leftEnd[0]).minus(D(splitPoint[0])).abs()
+  const leftDiff = D(leftEnd[0])
+    .minus(D(splitPoint[0]))
+    .abs()
     .plus(D(leftEnd[1]).minus(D(splitPoint[1])).abs());
   if (leftDiff.gt(tol)) {
     errors.push(`Left curve end differs from split point by ${leftDiff}`);
@@ -1049,7 +1126,9 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
 
   // Check 2: Right curve starts at split point
   const rightStart = bezierPoint(right, 0);
-  const rightDiff = D(rightStart[0]).minus(D(splitPoint[0])).abs()
+  const rightDiff = D(rightStart[0])
+    .minus(D(splitPoint[0]))
+    .abs()
     .plus(D(rightStart[1]).minus(D(splitPoint[1])).abs());
   if (rightDiff.gt(tol)) {
     errors.push(`Right curve start differs from split point by ${rightDiff}`);
@@ -1062,7 +1141,9 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
     const origT = D(testT).times(tD);
     const origPt = bezierPoint(points, origT);
     const leftPt = bezierPoint(left, testT);
-    const leftTestDiff = D(origPt[0]).minus(D(leftPt[0])).abs()
+    const leftTestDiff = D(origPt[0])
+      .minus(D(leftPt[0]))
+      .abs()
       .plus(D(origPt[1]).minus(D(leftPt[1])).abs());
     if (leftTestDiff.gt(tol)) {
       errors.push(`Left half at t=${testT} differs by ${leftTestDiff}`);
@@ -1072,7 +1153,9 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
     const origT2 = tD.plus(D(testT).times(D(1).minus(tD)));
     const origPt2 = bezierPoint(points, origT2);
     const rightPt = bezierPoint(right, testT);
-    const rightTestDiff = D(origPt2[0]).minus(D(rightPt[0])).abs()
+    const rightTestDiff = D(origPt2[0])
+      .minus(D(rightPt[0]))
+      .abs()
       .plus(D(origPt2[1]).minus(D(rightPt[1])).abs());
     if (rightTestDiff.gt(tol)) {
       errors.push(`Right half at t=${testT} differs by ${rightTestDiff}`);
@@ -1084,7 +1167,7 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
     errors,
     splitPoint,
     leftEnd,
-    rightStart
+    rightStart,
   };
 }
 
@@ -1097,11 +1180,13 @@ export function verifyBezierSplit(points, splitT, tolerance = '1e-50') {
  * @param {number|string|Decimal} [tolerance='1e-50'] - Maximum error
  * @returns {{valid: boolean, errors: string[], expectedStart: Point2D, actualStart: Point2D, expectedEnd: Point2D, actualEnd: Point2D}}
  */
-export function verifyBezierCrop(points, t0, t1, tolerance = '1e-50') {
+export function verifyBezierCrop(points, t0, t1, tolerance = "1e-50") {
   // INPUT VALIDATION: Ensure points array and parameters are valid
   // WHY: Crop verification requires valid curve and parameter range
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyBezierCrop: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyBezierCrop: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1116,13 +1201,17 @@ export function verifyBezierCrop(points, t0, t1, tolerance = '1e-50') {
   const actualStart = bezierPoint(cropped, 0);
   const actualEnd = bezierPoint(cropped, 1);
 
-  const startDiff = D(expectedStart[0]).minus(D(actualStart[0])).abs()
+  const startDiff = D(expectedStart[0])
+    .minus(D(actualStart[0]))
+    .abs()
     .plus(D(expectedStart[1]).minus(D(actualStart[1])).abs());
   if (startDiff.gt(tol)) {
     errors.push(`Cropped start differs by ${startDiff}`);
   }
 
-  const endDiff = D(expectedEnd[0]).minus(D(actualEnd[0])).abs()
+  const endDiff = D(expectedEnd[0])
+    .minus(D(actualEnd[0]))
+    .abs()
     .plus(D(expectedEnd[1]).minus(D(actualEnd[1])).abs());
   if (endDiff.gt(tol)) {
     errors.push(`Cropped end differs by ${endDiff}`);
@@ -1132,7 +1221,9 @@ export function verifyBezierCrop(points, t0, t1, tolerance = '1e-50') {
   const midT = D(t0).plus(D(t1)).div(2);
   const expectedMid = bezierPoint(points, midT);
   const actualMid = bezierPoint(cropped, 0.5);
-  const midDiff = D(expectedMid[0]).minus(D(actualMid[0])).abs()
+  const midDiff = D(expectedMid[0])
+    .minus(D(actualMid[0]))
+    .abs()
     .plus(D(expectedMid[1]).minus(D(actualMid[1])).abs());
   if (midDiff.gt(tol)) {
     errors.push(`Cropped midpoint differs by ${midDiff}`);
@@ -1144,7 +1235,7 @@ export function verifyBezierCrop(points, t0, t1, tolerance = '1e-50') {
     expectedStart,
     actualStart,
     expectedEnd,
-    actualEnd
+    actualEnd,
   };
 }
 
@@ -1155,11 +1246,13 @@ export function verifyBezierCrop(points, t0, t1, tolerance = '1e-50') {
  * @param {number|string|Decimal} [tolerance='1e-50'] - Maximum error
  * @returns {{valid: boolean, maxError: Decimal, originalPoints: BezierPoints, reconstructedPoints: BezierPoints}}
  */
-export function verifyPolynomialConversion(points, tolerance = '1e-50') {
+export function verifyPolynomialConversion(points, tolerance = "1e-50") {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Polynomial conversion verification requires valid control points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyPolynomialConversion: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyPolynomialConversion: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1189,7 +1282,7 @@ export function verifyPolynomialConversion(points, tolerance = '1e-50') {
     valid: maxError.lte(tol),
     maxError,
     originalPoints: points,
-    reconstructedPoints: reconstructed
+    reconstructedPoints: reconstructed,
   };
 }
 
@@ -1205,11 +1298,13 @@ export function verifyPolynomialConversion(points, tolerance = '1e-50') {
  * @param {number|string|Decimal} [tolerance='1e-50'] - Maximum error
  * @returns {{valid: boolean, errors: string[], tangent: Point2D, normal: Point2D, tangentMagnitude: Decimal, normalMagnitude: Decimal, dotProduct: Decimal}}
  */
-export function verifyTangentNormal(points, t, tolerance = '1e-50') {
+export function verifyTangentNormal(points, t, tolerance = "1e-50") {
   // INPUT VALIDATION: Ensure points array and parameter are valid
   // WHY: Tangent/normal verification requires valid curve and parameter
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyTangentNormal: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyTangentNormal: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1238,7 +1333,9 @@ export function verifyTangentNormal(points, t, tolerance = '1e-50') {
   // Check perpendicularity
   const dotProduct = tx.times(nx).plus(ty.times(ny));
   if (dotProduct.abs().gt(tol)) {
-    errors.push(`Tangent and normal not perpendicular, dot product = ${dotProduct}`);
+    errors.push(
+      `Tangent and normal not perpendicular, dot product = ${dotProduct}`,
+    );
   }
 
   // Check tangent aligns with derivative direction
@@ -1246,7 +1343,10 @@ export function verifyTangentNormal(points, t, tolerance = '1e-50') {
   if (derivMag.gt(tol)) {
     const normalizedDx = dx.div(derivMag);
     const normalizedDy = dy.div(derivMag);
-    const alignDiff = tx.minus(normalizedDx).abs().plus(ty.minus(normalizedDy).abs());
+    const alignDiff = tx
+      .minus(normalizedDx)
+      .abs()
+      .plus(ty.minus(normalizedDy).abs());
     if (alignDiff.gt(tol)) {
       errors.push(`Tangent doesn't align with derivative direction`);
     }
@@ -1259,7 +1359,7 @@ export function verifyTangentNormal(points, t, tolerance = '1e-50') {
     normal,
     tangentMagnitude: tangentMag,
     normalMagnitude: normalMag,
-    dotProduct
+    dotProduct,
   };
 }
 
@@ -1272,11 +1372,13 @@ export function verifyTangentNormal(points, t, tolerance = '1e-50') {
  * @param {number|string|Decimal} [tolerance='1e-10'] - Maximum relative error
  * @returns {{valid: boolean, errors: string[], analyticCurvature: Decimal, finiteDiffCurvature: Decimal, radiusVerified: boolean}}
  */
-export function verifyCurvature(points, t, tolerance = '1e-10') {
+export function verifyCurvature(points, t, tolerance = "1e-10") {
   // INPUT VALIDATION: Ensure points array and parameter are valid
   // WHY: Curvature verification requires valid curve and parameter
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyCurvature: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyCurvature: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1292,7 +1394,7 @@ export function verifyCurvature(points, t, tolerance = '1e-10') {
 
   const t1 = Decimal.max(D(0), tD.minus(h));
   const t2 = Decimal.min(D(1), tD.plus(h));
-  const actualH = t2.minus(t1);
+  const _actualH = t2.minus(t1);
 
   const tan1 = bezierTangent(points, t1);
   const tan2 = bezierTangent(points, t2);
@@ -1310,8 +1412,11 @@ export function verifyCurvature(points, t, tolerance = '1e-10') {
   // Arc length over interval
   const pt1 = bezierPoint(points, t1);
   const pt2 = bezierPoint(points, t2);
-  const arcLen = D(pt2[0]).minus(D(pt1[0])).pow(2)
-    .plus(D(pt2[1]).minus(D(pt1[1])).pow(2)).sqrt();
+  const arcLen = D(pt2[0])
+    .minus(D(pt1[0]))
+    .pow(2)
+    .plus(D(pt2[1]).minus(D(pt1[1])).pow(2))
+    .sqrt();
 
   let finiteDiffCurvature;
   // WHY: Use named constant for arc length threshold in curvature verification
@@ -1326,7 +1431,10 @@ export function verifyCurvature(points, t, tolerance = '1e-10') {
     // Skip comparison for extreme curvatures (cusps)
   } else if (analyticCurvature.abs().gt(CURVATURE_RELATIVE_ERROR_THRESHOLD)) {
     // WHY: Use named constant for curvature magnitude threshold
-    const relError = analyticCurvature.minus(finiteDiffCurvature).abs().div(analyticCurvature.abs());
+    const relError = analyticCurvature
+      .minus(finiteDiffCurvature)
+      .abs()
+      .div(analyticCurvature.abs());
     if (relError.gt(tol)) {
       errors.push(`Curvature relative error ${relError} exceeds tolerance`);
     }
@@ -1352,7 +1460,7 @@ export function verifyCurvature(points, t, tolerance = '1e-10') {
     errors,
     analyticCurvature,
     finiteDiffCurvature,
-    radiusVerified
+    radiusVerified,
   };
 }
 
@@ -1364,11 +1472,13 @@ export function verifyCurvature(points, t, tolerance = '1e-10') {
  * @param {number|string|Decimal} [tolerance='1e-40'] - Maximum error
  * @returns {{valid: boolean, errors: string[], bbox: Object, allPointsInside: boolean, criticalPointsOnEdge: boolean}}
  */
-export function verifyBoundingBox(points, samples = 100, tolerance = '1e-40') {
+export function verifyBoundingBox(points, samples = 100, tolerance = "1e-40") {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: Bounding box verification requires valid control points
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyBoundingBox: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyBoundingBox: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1384,17 +1494,24 @@ export function verifyBoundingBox(points, samples = 100, tolerance = '1e-40') {
     const [x, y] = bezierPoint(points, t);
 
     if (D(x).lt(bbox.xmin.minus(tol)) || D(x).gt(bbox.xmax.plus(tol))) {
-      errors.push(`Point at t=${t} x=${x} outside x bounds [${bbox.xmin}, ${bbox.xmax}]`);
+      errors.push(
+        `Point at t=${t} x=${x} outside x bounds [${bbox.xmin}, ${bbox.xmax}]`,
+      );
       allPointsInside = false;
     }
     if (D(y).lt(bbox.ymin.minus(tol)) || D(y).gt(bbox.ymax.plus(tol))) {
-      errors.push(`Point at t=${t} y=${y} outside y bounds [${bbox.ymin}, ${bbox.ymax}]`);
+      errors.push(
+        `Point at t=${t} y=${y} outside y bounds [${bbox.ymin}, ${bbox.ymax}]`,
+      );
       allPointsInside = false;
     }
   }
 
   // Verify bounding box edges are achieved by some point
-  let xminAchieved = false, xmaxAchieved = false, yminAchieved = false, ymaxAchieved = false;
+  let xminAchieved = false,
+    xmaxAchieved = false,
+    yminAchieved = false,
+    ymaxAchieved = false;
 
   for (let i = 0; i <= samples; i++) {
     const t = D(i).div(samples);
@@ -1408,10 +1525,10 @@ export function verifyBoundingBox(points, samples = 100, tolerance = '1e-40') {
 
   if (!xminAchieved || !xmaxAchieved || !yminAchieved || !ymaxAchieved) {
     criticalPointsOnEdge = false;
-    if (!xminAchieved) errors.push('xmin not achieved by any curve point');
-    if (!xmaxAchieved) errors.push('xmax not achieved by any curve point');
-    if (!yminAchieved) errors.push('ymin not achieved by any curve point');
-    if (!ymaxAchieved) errors.push('ymax not achieved by any curve point');
+    if (!xminAchieved) errors.push("xmin not achieved by any curve point");
+    if (!xmaxAchieved) errors.push("xmax not achieved by any curve point");
+    if (!yminAchieved) errors.push("ymin not achieved by any curve point");
+    if (!ymaxAchieved) errors.push("ymax not achieved by any curve point");
   }
 
   return {
@@ -1419,7 +1536,7 @@ export function verifyBoundingBox(points, samples = 100, tolerance = '1e-40') {
     errors,
     bbox,
     allPointsInside,
-    criticalPointsOnEdge
+    criticalPointsOnEdge,
   };
 }
 
@@ -1432,11 +1549,13 @@ export function verifyBoundingBox(points, samples = 100, tolerance = '1e-40') {
  * @param {number|string|Decimal} [tolerance='1e-8'] - Maximum relative error
  * @returns {{valid: boolean, analytic: Point2D, finiteDiff: Point2D, relativeError: Decimal}}
  */
-export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
+export function verifyDerivative(points, t, order = 1, tolerance = "1e-8") {
   // INPUT VALIDATION: Ensure points array, parameter, and order are valid
   // WHY: Derivative verification requires valid inputs for meaningful results
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyDerivative: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyDerivative: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -1457,7 +1576,7 @@ export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
     const dt = t2.minus(t1);
     finiteDiff = [
       D(pt2[0]).minus(D(pt1[0])).div(dt),
-      D(pt2[1]).minus(D(pt1[1])).div(dt)
+      D(pt2[1]).minus(D(pt1[1])).div(dt),
     ];
   } else if (order === 2) {
     const t0 = tD;
@@ -1470,14 +1589,16 @@ export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
     const h2 = h.pow(2);
     finiteDiff = [
       D(pt2[0]).minus(D(pt0[0]).times(2)).plus(D(pt1[0])).div(h2),
-      D(pt2[1]).minus(D(pt0[1]).times(2)).plus(D(pt1[1])).div(h2)
+      D(pt2[1]).minus(D(pt0[1]).times(2)).plus(D(pt1[1])).div(h2),
     ];
   } else {
     // Higher orders: not implemented in finite difference approximation
     // WHY: Higher order finite differences require more sample points and
     // have increasing numerical instability. For verification purposes,
     // we note this limitation.
-    console.warn(`verifyDerivative: finite difference for order ${order} not implemented`);
+    console.warn(
+      `verifyDerivative: finite difference for order ${order} not implemented`,
+    );
     finiteDiff = analytic; // Use analytic as fallback (always "passes")
   }
 
@@ -1497,7 +1618,7 @@ export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
     valid: relativeError.lte(tol),
     analytic,
     finiteDiff,
-    relativeError
+    relativeError,
   };
 }
 
@@ -1509,14 +1630,18 @@ export function verifyDerivative(points, t, order = 1, tolerance = '1e-8') {
  * @param {number|string|Decimal} [tolerance='1e-30'] - Maximum distance
  * @returns {{valid: boolean, t: Decimal|null, distance: Decimal}}
  */
-export function verifyPointOnCurve(points, testPoint, tolerance = '1e-30') {
+export function verifyPointOnCurve(points, testPoint, tolerance = "1e-30") {
   // INPUT VALIDATION: Ensure points array and test point are valid
   // WHY: Point-on-curve verification requires valid curve and test point
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyPointOnCurve: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyPointOnCurve: points must be an array with at least 2 control points",
+    );
   }
   if (!testPoint || !Array.isArray(testPoint) || testPoint.length < 2) {
-    throw new Error('verifyPointOnCurve: testPoint must be a valid 2D point [x, y]');
+    throw new Error(
+      "verifyPointOnCurve: testPoint must be a valid 2D point [x, y]",
+    );
   }
 
   const [px, py] = [D(testPoint[0]), D(testPoint[1])];
@@ -1555,7 +1680,12 @@ export function verifyPointOnCurve(points, testPoint, tolerance = '1e-30') {
 
     // f''(t) for Newton's method
     const [d2x, d2y] = bezierDerivative(points, bestT, 2);
-    const fDoublePrime = dx.pow(2).plus(dy.pow(2)).plus(diffX.times(d2x)).plus(diffY.times(d2y)).times(2);
+    const fDoublePrime = dx
+      .pow(2)
+      .plus(dy.pow(2))
+      .plus(diffX.times(d2x))
+      .plus(diffY.times(d2y))
+      .times(2);
 
     // WHY: Use named constant for zero second derivative check
     if (fDoublePrime.abs().lt(NEAR_ZERO_THRESHOLD)) break;
@@ -1573,12 +1703,16 @@ export function verifyPointOnCurve(points, testPoint, tolerance = '1e-30') {
 
   // Final distance check
   const [finalX, finalY] = bezierPoint(points, bestT);
-  const finalDist = px.minus(finalX).pow(2).plus(py.minus(finalY).pow(2)).sqrt();
+  const finalDist = px
+    .minus(finalX)
+    .pow(2)
+    .plus(py.minus(finalY).pow(2))
+    .sqrt();
 
   return {
     valid: finalDist.lte(tol),
     t: finalDist.lte(tol) ? bestT : null,
-    distance: finalDist
+    distance: finalDist,
   };
 }
 
@@ -1622,5 +1756,5 @@ export default {
   verifyCurvature,
   verifyBoundingBox,
   verifyDerivative,
-  verifyPointOnCurve
+  verifyPointOnCurve,
 };

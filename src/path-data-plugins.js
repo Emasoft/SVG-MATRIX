@@ -33,7 +33,13 @@
  * @module path-data-plugins
  */
 
-import { parsePath, serializePath, toAbsolute, toRelative, formatNumber } from './convert-path-data.js';
+import {
+  parsePath,
+  serializePath,
+  toAbsolute,
+  toRelative,
+  formatNumber,
+} from "./convert-path-data.js";
 
 // ============================================================================
 // PLUGIN: removeLeadingZero
@@ -52,13 +58,13 @@ export function removeLeadingZero(d, precision = 3) {
   if (commands.length === 0) return d;
 
   // Format numbers with leading zero removal
-  const formatted = commands.map(cmd => ({
+  const formatted = commands.map((cmd) => ({
     command: cmd.command,
-    args: cmd.args.map(n => {
-      let str = formatNumber(n, precision);
+    args: cmd.args.map((n) => {
+      const str = formatNumber(n, precision);
       // formatNumber already handles leading zero removal
       return parseFloat(str);
-    })
+    }),
   }));
 
   return serializePath(formatted, precision);
@@ -99,8 +105,10 @@ export function convertToRelative(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
@@ -111,14 +119,40 @@ export function convertToRelative(d, precision = 3) {
     // Update position using absolute form
     const abs = toAbsolute(cmd, cx, cy);
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -140,8 +174,10 @@ export function convertToAbsolute(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
@@ -151,14 +187,40 @@ export function convertToAbsolute(d, precision = 3) {
 
     // Update position
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -182,28 +244,30 @@ export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
     let newCmd = cmd;
 
-    if (cmd.command === 'L' || cmd.command === 'l') {
-      const isAbs = cmd.command === 'L';
+    if (cmd.command === "L" || cmd.command === "l") {
+      const isAbs = cmd.command === "L";
       const endX = isAbs ? cmd.args[0] : cx + cmd.args[0];
       const endY = isAbs ? cmd.args[1] : cy + cmd.args[1];
 
       if (Math.abs(endY - cy) < tolerance) {
         // Horizontal line
         newCmd = isAbs
-          ? { command: 'H', args: [endX] }
-          : { command: 'h', args: [endX - cx] };
+          ? { command: "H", args: [endX] }
+          : { command: "h", args: [endX - cx] };
       } else if (Math.abs(endX - cx) < tolerance) {
         // Vertical line
         newCmd = isAbs
-          ? { command: 'V', args: [endY] }
-          : { command: 'v', args: [endY - cy] };
+          ? { command: "V", args: [endY] }
+          : { command: "v", args: [endY - cy] };
       }
     }
 
@@ -212,14 +276,40 @@ export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
     // Update position
     const abs = toAbsolute(newCmd, cx, cy);
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -243,8 +333,10 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (let i = 0; i < commands.length; i++) {
@@ -252,14 +344,17 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
     let newCmd = cmd;
 
     // Check if this L command goes back to start
-    if (cmd.command === 'L' || cmd.command === 'l') {
-      const isAbs = cmd.command === 'L';
+    if (cmd.command === "L" || cmd.command === "l") {
+      const isAbs = cmd.command === "L";
       const endX = isAbs ? cmd.args[0] : cx + cmd.args[0];
       const endY = isAbs ? cmd.args[1] : cy + cmd.args[1];
 
-      if (Math.abs(endX - startX) < tolerance && Math.abs(endY - startY) < tolerance) {
+      if (
+        Math.abs(endX - startX) < tolerance &&
+        Math.abs(endY - startY) < tolerance
+      ) {
         // This line closes the path
-        newCmd = { command: 'z', args: [] };
+        newCmd = { command: "z", args: [] };
       }
     }
 
@@ -268,14 +363,40 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
     // Update position
     const abs = toAbsolute(newCmd, cx, cy);
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -298,7 +419,7 @@ function cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const t3 = t2 * t;
   return {
     x: mt3 * p0x + 3 * mt2 * t * p1x + 3 * mt * t2 * p2x + t3 * p3x,
-    y: mt3 * p0y + 3 * mt2 * t * p1y + 3 * mt * t2 * p2y + t3 * p3y
+    y: mt3 * p0y + 3 * mt2 * t * p1y + 3 * mt * t2 * p2y + t3 * p3y,
   };
 }
 
@@ -312,7 +433,7 @@ function cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const t2 = t * t;
   return {
     x: 3 * mt2 * (p1x - p0x) + 6 * mt * t * (p2x - p1x) + 3 * t2 * (p3x - p2x),
-    y: 3 * mt2 * (p1y - p0y) + 6 * mt * t * (p2y - p1y) + 3 * t2 * (p3y - p2y)
+    y: 3 * mt2 * (p1y - p0y) + 6 * mt * t * (p2y - p1y) + 3 * t2 * (p3y - p2y),
   };
 }
 
@@ -324,7 +445,7 @@ function cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const mt = 1 - t;
   return {
     x: 6 * mt * (p2x - 2 * p1x + p0x) + 6 * t * (p3x - 2 * p2x + p1x),
-    y: 6 * mt * (p2y - 2 * p1y + p0y) + 6 * t * (p3y - 2 * p2y + p1y)
+    y: 6 * mt * (p2y - 2 * p1y + p0y) + 6 * t * (p3y - 2 * p2y + p1y),
   };
 }
 
@@ -332,7 +453,19 @@ function cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
  * Find closest t on cubic Bezier to point p using Newton's method.
  * Minimizes |B(t) - p|^2 by finding root of d/dt |B(t)-p|^2 = 2(B(t)-p)·B'(t) = 0
  */
-function closestTOnCubicBezier(px, py, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, tInit = 0.5) {
+function _closestTOnCubicBezier(
+  px,
+  py,
+  p0x,
+  p0y,
+  p1x,
+  p1y,
+  p2x,
+  p2y,
+  p3x,
+  p3y,
+  tInit = 0.5,
+) {
   let t = Math.max(0, Math.min(1, tInit));
 
   for (let iter = 0; iter < 10; iter++) {
@@ -351,7 +484,10 @@ function closestTOnCubicBezier(px, py, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y, t
     if (Math.abs(fp) < 1e-12) break;
 
     const tNext = Math.max(0, Math.min(1, t - f / fp));
-    if (Math.abs(tNext - t) < 1e-9) { t = tNext; break; }
+    if (Math.abs(tNext - t) < 1e-9) {
+      t = tNext;
+      break;
+    }
     t = tNext;
   }
 
@@ -370,7 +506,10 @@ function pointToLineDistance(px, py, x0, y0, x1, y1) {
     return Math.sqrt((px - x0) ** 2 + (py - y0) ** 2);
   }
 
-  const t = Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / lengthSq));
+  const t = Math.max(
+    0,
+    Math.min(1, ((px - x0) * dx + (py - y0) * dy) / lengthSq),
+  );
   const projX = x0 + t * dx;
   const projY = y0 + t * dy;
 
@@ -397,7 +536,17 @@ function maxErrorCurveToLine(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y) {
   // Check midpoints between samples to catch bulges
   for (let i = 0; i < samples.length - 1; i++) {
     const tMid = (samples[i] + samples[i + 1]) / 2;
-    const pt = cubicBezierPoint(tMid, p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y);
+    const pt = cubicBezierPoint(
+      tMid,
+      p0x,
+      p0y,
+      cp1x,
+      cp1y,
+      cp2x,
+      cp2y,
+      p3x,
+      p3y,
+    );
     const dist = pointToLineDistance(pt.x, pt.y, p0x, p0y, p3x, p3y);
     if (dist > maxErr) maxErr = dist;
   }
@@ -438,15 +587,17 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
     let newCmd = cmd;
 
-    if (cmd.command === 'C' || cmd.command === 'c') {
-      const isAbs = cmd.command === 'C';
+    if (cmd.command === "C" || cmd.command === "c") {
+      const isAbs = cmd.command === "C";
       const cp1x = isAbs ? cmd.args[0] : cx + cmd.args[0];
       const cp1y = isAbs ? cmd.args[1] : cy + cmd.args[1];
       const cp2x = isAbs ? cmd.args[2] : cx + cmd.args[2];
@@ -454,10 +605,12 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
       const endX = isAbs ? cmd.args[4] : cx + cmd.args[4];
       const endY = isAbs ? cmd.args[5] : cy + cmd.args[5];
 
-      if (isCurveStraight(cx, cy, cp1x, cp1y, cp2x, cp2y, endX, endY, tolerance)) {
+      if (
+        isCurveStraight(cx, cy, cp1x, cp1y, cp2x, cp2y, endX, endY, tolerance)
+      ) {
         newCmd = isAbs
-          ? { command: 'L', args: [endX, endY] }
-          : { command: 'l', args: [endX - cx, endY - cy] };
+          ? { command: "L", args: [endX, endY] }
+          : { command: "l", args: [endX - cx, endY - cy] };
       }
     }
 
@@ -466,14 +619,40 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
     // Update position
     const abs = toAbsolute(newCmd, cx, cy);
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -518,9 +697,9 @@ export function floatPrecision(d, precision = 3) {
   if (commands.length === 0) return d;
 
   const factor = Math.pow(10, precision);
-  const rounded = commands.map(cmd => ({
+  const rounded = commands.map((cmd) => ({
     command: cmd.command,
-    args: cmd.args.map(n => Math.round(n * factor) / factor)
+    args: cmd.args.map((n) => Math.round(n * factor) / factor),
   }));
 
   return serializePath(rounded, precision);
@@ -543,8 +722,10 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
@@ -553,30 +734,35 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
 
     // Check for zero-length commands
     switch (abs.command) {
-      case 'L': case 'T':
-        if (Math.abs(abs.args[0] - cx) < tolerance &&
-            Math.abs(abs.args[1] - cy) < tolerance) {
+      case "L":
+      case "T":
+        if (
+          Math.abs(abs.args[0] - cx) < tolerance &&
+          Math.abs(abs.args[1] - cy) < tolerance
+        ) {
           keep = false;
         }
         break;
-      case 'H':
+      case "H":
         if (Math.abs(abs.args[0] - cx) < tolerance) {
           keep = false;
         }
         break;
-      case 'V':
+      case "V":
         if (Math.abs(abs.args[0] - cy) < tolerance) {
           keep = false;
         }
         break;
-      case 'C':
+      case "C":
         // Zero-length curve where all points are the same
-        if (Math.abs(abs.args[4] - cx) < tolerance &&
-            Math.abs(abs.args[5] - cy) < tolerance &&
-            Math.abs(abs.args[0] - cx) < tolerance &&
-            Math.abs(abs.args[1] - cy) < tolerance &&
-            Math.abs(abs.args[2] - cx) < tolerance &&
-            Math.abs(abs.args[3] - cy) < tolerance) {
+        if (
+          Math.abs(abs.args[4] - cx) < tolerance &&
+          Math.abs(abs.args[5] - cy) < tolerance &&
+          Math.abs(abs.args[0] - cx) < tolerance &&
+          Math.abs(abs.args[1] - cy) < tolerance &&
+          Math.abs(abs.args[2] - cx) < tolerance &&
+          Math.abs(abs.args[3] - cy) < tolerance
+        ) {
           keep = false;
         }
         break;
@@ -587,14 +773,40 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
 
       // Update position
       switch (abs.command) {
-        case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-        case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-        case 'H': cx = abs.args[0]; break;
-        case 'V': cy = abs.args[0]; break;
-        case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-        case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-        case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-        case 'Z': cx = startX; cy = startY; break;
+        case "M":
+          cx = abs.args[0];
+          cy = abs.args[1];
+          startX = cx;
+          startY = cy;
+          break;
+        case "L":
+        case "T":
+          cx = abs.args[0];
+          cy = abs.args[1];
+          break;
+        case "H":
+          cx = abs.args[0];
+          break;
+        case "V":
+          cy = abs.args[0];
+          break;
+        case "C":
+          cx = abs.args[4];
+          cy = abs.args[5];
+          break;
+        case "S":
+        case "Q":
+          cx = abs.args[2];
+          cy = abs.args[3];
+          break;
+        case "A":
+          cx = abs.args[5];
+          cy = abs.args[6];
+          break;
+        case "Z":
+          cx = startX;
+          cy = startY;
+          break;
       }
     }
   }
@@ -617,7 +829,7 @@ function quadraticBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
   const t2 = t * t;
   return {
     x: mt2 * p0x + 2 * mt * t * p1x + t2 * p2x,
-    y: mt2 * p0y + 2 * mt * t * p1y + t2 * p2y
+    y: mt2 * p0y + 2 * mt * t * p1y + t2 * p2y,
   };
 }
 
@@ -627,16 +839,39 @@ function quadraticBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
  *
  * @returns {number} Maximum distance between corresponding points on both curves
  */
-function maxErrorCubicToQuadratic(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y, qx, qy) {
+function maxErrorCubicToQuadratic(
+  p0x,
+  p0y,
+  cp1x,
+  cp1y,
+  cp2x,
+  cp2y,
+  p3x,
+  p3y,
+  qx,
+  qy,
+) {
   let maxErr = 0;
 
   // Dense sampling including midpoints
-  const samples = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,
-                   0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95];
+  const samples = [
+    0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7,
+    0.75, 0.8, 0.85, 0.9, 0.95,
+  ];
 
   for (const t of samples) {
     // Point on original cubic
-    const cubic = cubicBezierPoint(t, p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y);
+    const cubic = cubicBezierPoint(
+      t,
+      p0x,
+      p0y,
+      cp1x,
+      cp1y,
+      cp2x,
+      cp2y,
+      p3x,
+      p3y,
+    );
     // Point on proposed quadratic
     const quad = quadraticBezierPoint(t, p0x, p0y, qx, qy, p3x, p3y);
 
@@ -653,7 +888,17 @@ function maxErrorCubicToQuadratic(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y, qx
  *
  * @returns {{cpx: number, cpy: number} | null} Quadratic control point or null
  */
-function cubicToQuadraticControlPoint(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, tolerance) {
+function cubicToQuadraticControlPoint(
+  x0,
+  y0,
+  cp1x,
+  cp1y,
+  cp2x,
+  cp2y,
+  x3,
+  y3,
+  tolerance,
+) {
   // Calculate the best-fit quadratic control point
   // For a cubic to be exactly representable as quadratic:
   // Q = (3*(P1 + P2) - P0 - P3) / 4
@@ -661,7 +906,18 @@ function cubicToQuadraticControlPoint(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, to
   const qy = (3 * (cp1y + cp2y) - y0 - y3) / 4;
 
   // VERIFY by computing actual max error between the curves
-  const maxError = maxErrorCubicToQuadratic(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, qx, qy);
+  const maxError = maxErrorCubicToQuadratic(
+    x0,
+    y0,
+    cp1x,
+    cp1y,
+    cp2x,
+    cp2y,
+    x3,
+    y3,
+    qx,
+    qy,
+  );
 
   if (maxError <= tolerance) {
     return { cpx: qx, cpy: qy };
@@ -682,15 +938,17 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
   const result = [];
 
   for (const cmd of commands) {
     let newCmd = cmd;
 
-    if (cmd.command === 'C' || cmd.command === 'c') {
-      const isAbs = cmd.command === 'C';
+    if (cmd.command === "C" || cmd.command === "c") {
+      const isAbs = cmd.command === "C";
       const cp1x = isAbs ? cmd.args[0] : cx + cmd.args[0];
       const cp1y = isAbs ? cmd.args[1] : cy + cmd.args[1];
       const cp2x = isAbs ? cmd.args[2] : cx + cmd.args[2];
@@ -698,12 +956,25 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
       const endX = isAbs ? cmd.args[4] : cx + cmd.args[4];
       const endY = isAbs ? cmd.args[5] : cy + cmd.args[5];
 
-      const quadCP = cubicToQuadraticControlPoint(cx, cy, cp1x, cp1y, cp2x, cp2y, endX, endY, tolerance);
+      const quadCP = cubicToQuadraticControlPoint(
+        cx,
+        cy,
+        cp1x,
+        cp1y,
+        cp2x,
+        cp2y,
+        endX,
+        endY,
+        tolerance,
+      );
 
       if (quadCP) {
         newCmd = isAbs
-          ? { command: 'Q', args: [quadCP.cpx, quadCP.cpy, endX, endY] }
-          : { command: 'q', args: [quadCP.cpx - cx, quadCP.cpy - cy, endX - cx, endY - cy] };
+          ? { command: "Q", args: [quadCP.cpx, quadCP.cpy, endX, endY] }
+          : {
+              command: "q",
+              args: [quadCP.cpx - cx, quadCP.cpy - cy, endX - cx, endY - cy],
+            };
       }
     }
 
@@ -712,14 +983,40 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
     // Update position
     const abs = toAbsolute(newCmd, cx, cy);
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -743,38 +1040,43 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
-  let lastQcpX = null, lastQcpY = null;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
+  let lastQcpX = null,
+    lastQcpY = null;
   const result = [];
 
   for (const cmd of commands) {
     let newCmd = cmd;
     const abs = toAbsolute(cmd, cx, cy);
 
-    if (abs.command === 'Q' && lastQcpX !== null) {
+    if (abs.command === "Q" && lastQcpX !== null) {
       // Calculate reflected control point
       const reflectedCpX = 2 * cx - lastQcpX;
       const reflectedCpY = 2 * cy - lastQcpY;
 
       // Check if current control point matches reflection
-      if (Math.abs(abs.args[0] - reflectedCpX) < tolerance &&
-          Math.abs(abs.args[1] - reflectedCpY) < tolerance) {
+      if (
+        Math.abs(abs.args[0] - reflectedCpX) < tolerance &&
+        Math.abs(abs.args[1] - reflectedCpY) < tolerance
+      ) {
         // Can use T command
-        const isAbs = cmd.command === 'Q';
+        const isAbs = cmd.command === "Q";
         newCmd = isAbs
-          ? { command: 'T', args: [abs.args[2], abs.args[3]] }
-          : { command: 't', args: [abs.args[2] - cx, abs.args[3] - cy] };
+          ? { command: "T", args: [abs.args[2], abs.args[3]] }
+          : { command: "t", args: [abs.args[2] - cx, abs.args[3] - cy] };
       }
     }
 
     result.push(newCmd);
 
     // Track control points for reflection
-    if (abs.command === 'Q') {
+    if (abs.command === "Q") {
       lastQcpX = abs.args[0];
       lastQcpY = abs.args[1];
-    } else if (abs.command === 'T') {
+    } else if (abs.command === "T") {
       // T uses reflected control point
       lastQcpX = 2 * cx - lastQcpX;
       lastQcpY = 2 * cy - lastQcpY;
@@ -785,14 +1087,40 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
 
     // Update position
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -816,38 +1144,54 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  let cx = 0, cy = 0;
-  let startX = 0, startY = 0;
-  let lastCcp2X = null, lastCcp2Y = null;
+  let cx = 0,
+    cy = 0;
+  let startX = 0,
+    startY = 0;
+  let lastCcp2X = null,
+    lastCcp2Y = null;
   const result = [];
 
   for (const cmd of commands) {
     let newCmd = cmd;
     const abs = toAbsolute(cmd, cx, cy);
 
-    if (abs.command === 'C' && lastCcp2X !== null) {
+    if (abs.command === "C" && lastCcp2X !== null) {
       // Calculate reflected control point
       const reflectedCpX = 2 * cx - lastCcp2X;
       const reflectedCpY = 2 * cy - lastCcp2Y;
 
       // Check if first control point matches reflection
-      if (Math.abs(abs.args[0] - reflectedCpX) < tolerance &&
-          Math.abs(abs.args[1] - reflectedCpY) < tolerance) {
+      if (
+        Math.abs(abs.args[0] - reflectedCpX) < tolerance &&
+        Math.abs(abs.args[1] - reflectedCpY) < tolerance
+      ) {
         // Can use S command
-        const isAbs = cmd.command === 'C';
+        const isAbs = cmd.command === "C";
         newCmd = isAbs
-          ? { command: 'S', args: [abs.args[2], abs.args[3], abs.args[4], abs.args[5]] }
-          : { command: 's', args: [abs.args[2] - cx, abs.args[3] - cy, abs.args[4] - cx, abs.args[5] - cy] };
+          ? {
+              command: "S",
+              args: [abs.args[2], abs.args[3], abs.args[4], abs.args[5]],
+            }
+          : {
+              command: "s",
+              args: [
+                abs.args[2] - cx,
+                abs.args[3] - cy,
+                abs.args[4] - cx,
+                abs.args[5] - cy,
+              ],
+            };
       }
     }
 
     result.push(newCmd);
 
     // Track control points for reflection
-    if (abs.command === 'C') {
+    if (abs.command === "C") {
       lastCcp2X = abs.args[2];
       lastCcp2Y = abs.args[3];
-    } else if (abs.command === 'S') {
+    } else if (abs.command === "S") {
       // S uses its control point as the second cubic control point
       lastCcp2X = abs.args[0];
       lastCcp2Y = abs.args[1];
@@ -858,14 +1202,40 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
 
     // Update position
     switch (abs.command) {
-      case 'M': cx = abs.args[0]; cy = abs.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = abs.args[0]; cy = abs.args[1]; break;
-      case 'H': cx = abs.args[0]; break;
-      case 'V': cy = abs.args[0]; break;
-      case 'C': cx = abs.args[4]; cy = abs.args[5]; break;
-      case 'S': case 'Q': cx = abs.args[2]; cy = abs.args[3]; break;
-      case 'A': cx = abs.args[5]; cy = abs.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = abs.args[0];
+        cy = abs.args[1];
+        break;
+      case "H":
+        cx = abs.args[0];
+        break;
+      case "V":
+        cy = abs.args[0];
+        break;
+      case "C":
+        cx = abs.args[4];
+        cy = abs.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = abs.args[2];
+        cy = abs.args[3];
+        break;
+      case "A":
+        cx = abs.args[5];
+        cy = abs.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -889,8 +1259,8 @@ export function arcShorthands(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
-  const result = commands.map(cmd => {
-    if (cmd.command === 'A' || cmd.command === 'a') {
+  const result = commands.map((cmd) => {
+    if (cmd.command === "A" || cmd.command === "a") {
       const args = [...cmd.args];
       // Normalize rotation angle to 0-360
       args[2] = ((args[2] % 360) + 360) % 360;
@@ -924,5 +1294,5 @@ export default {
   convertCubicToQuadratic,
   convertQuadraticToSmooth,
   convertCubicToSmooth,
-  arcShorthands
+  arcShorthands,
 };

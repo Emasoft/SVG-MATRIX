@@ -1,0 +1,98 @@
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+COMPREHENSIVE SVG-MATRIX FUNCTION TEST - Audio & Animation Preservation
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Original SVG Element Counts:
+  - foreignObject elements: 1
+  - audio source elements:  2
+  - animate elements:       692
+  - animateTransform:       991
+  - animateMotion:          0
+  - animateColor:           0
+  - set elements:           2
+  - TOTAL animations:       1685
+
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+FUNCTION                            | STATUS             | VALID  | AUDIO  | ANIM   | F.OBJ  | A.SRC  | ANIM#  | ERROR
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+cleanupIds                          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+cleanupNumericValues                | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+cleanupListOfValues                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+cleanupAttributes                   | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+cleanupEnableBackground             | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeUnknownsAndDefaults           | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeNonInheritableGroupAttrs      | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeUselessDefs                   | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeHiddenElements                | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeEmptyText                     | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeEmptyContainers               | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeDoctype                       | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeXMLProcInst                   | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeComments                      | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeMetadata                      | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeTitle                         | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeDesc                          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeEditorsNSData                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeEmptyAttrs                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeViewBox                       | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeXMLNS                         | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeRasterImages                  | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeScriptElement                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertShapesToPath                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertPathData                     | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertTransform                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertColors                       | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertStyleToAttrs                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+convertEllipseToCircle              | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+collapseGroups                      | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+mergePaths                          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+moveGroupAttrsToElems               | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+moveElemsAttrsToGroup               | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+minifyStyles                        | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+inlineStyles                        | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+sortAttrs                           | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+sortDefsChildren                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+reusePaths                          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeOffCanvasPath                 | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeStyleElement                  | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeXlink                         | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+addAttributesToSVGElement           | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+addClassesToSVGElement              | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+prefixIds                           | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeDimensions                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeAttributesBySelector          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeAttrs                         | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+removeElementsByAttr                | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenClipPaths                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenMasks                        | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenGradients                    | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenPatterns                     | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenFilters                      | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenUseElements                  | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+imageToPath                         | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+flattenAll                          | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+simplifyPath                        | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+optimizeAnimationTiming             | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+optimizePaths                       | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+simplifyPaths                       | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+decomposeTransform                  | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+embedExternalDependencies           | SUCCESS            | YES    | YES    | YES    | 1      | 2      | 1685   | 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+SUMMARY:
+────────────────────────────────────────────────────────────────────────────────
+  SUCCESS                  : 62 functions
+
+LEGEND:
+  SUCCESS              - Function completed and preserved all elements
+  REMOVED_ANIMATIONS   - Function removed SMIL animation elements
+  REMOVED_AUDIO        - Function removed audio/foreignObject elements
+  REMOVED_BOTH         - Function removed both audio and animations
+  INVALID_SVG          - Output is not valid/parseable SVG
+  ERROR                - Function threw an error during execution
+  SERIALIZE_ERROR      - Error serializing the result
+  EXCEPTION            - Unexpected exception occurred
+  NOT_FOUND            - Function not found in SVGToolbox
+
+══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════

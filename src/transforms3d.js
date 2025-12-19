@@ -1,12 +1,12 @@
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
 
 /**
  * Helper to convert any numeric input to Decimal.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
  */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * 3D Affine Transforms using 4x4 homogeneous matrices.
@@ -89,7 +89,7 @@ export function translation(tx, ty, tz) {
     [new Decimal(1), new Decimal(0), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), new Decimal(0), D(ty)],
     [new Decimal(0), new Decimal(0), new Decimal(1), D(tz)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -131,13 +131,13 @@ export function translation(tx, ty, tz) {
  * const mirror = scale(-1, 1, 1); // Flip X axis
  */
 export function scale(sx, sy = null, sz = null) {
-  if (sy === null) sy = sx;
-  if (sz === null) sz = sx;
+  const syValue = sy === null ? sx : sy;
+  const szValue = sz === null ? sx : sz;
   return Matrix.from([
     [D(sx), new Decimal(0), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), D(sy), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), D(sz), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), D(syValue), new Decimal(0), new Decimal(0)],
+    [new Decimal(0), new Decimal(0), D(szValue), new Decimal(0)],
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -180,7 +180,7 @@ export function rotateX(theta) {
     [new Decimal(1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), c, s.negated(), new Decimal(0)],
     [new Decimal(0), s, c, new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -224,7 +224,7 @@ export function rotateY(theta) {
     [c, new Decimal(0), s, new Decimal(0)],
     [new Decimal(0), new Decimal(1), new Decimal(0), new Decimal(0)],
     [s.negated(), new Decimal(0), c, new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -269,7 +269,7 @@ export function rotateZ(theta) {
     [c, s.negated(), new Decimal(0), new Decimal(0)],
     [s, c, new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -329,8 +329,8 @@ export function rotateZ(theta) {
  */
 export function rotateAroundAxis(ux, uy, uz, theta) {
   const u = [D(ux), D(uy), D(uz)];
-  let norm = u[0].mul(u[0]).plus(u[1].mul(u[1])).plus(u[2].mul(u[2])).sqrt();
-  if (norm.isZero()) throw new Error('Rotation axis cannot be zero vector');
+  const norm = u[0].mul(u[0]).plus(u[1].mul(u[1])).plus(u[2].mul(u[2])).sqrt();
+  if (norm.isZero()) throw new Error("Rotation axis cannot be zero vector");
   // Normalize axis
   u[0] = u[0].div(norm);
   u[1] = u[1].div(norm);
@@ -342,7 +342,9 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
   const one = new Decimal(1);
 
   // Rodrigues' rotation formula components
-  const ux2 = u[0].mul(u[0]), uy2 = u[1].mul(u[1]), uz2 = u[2].mul(u[2]);
+  const ux2 = u[0].mul(u[0]),
+    uy2 = u[1].mul(u[1]),
+    uz2 = u[2].mul(u[2]);
   const m00 = ux2.plus(c.mul(one.minus(ux2)));
   const m01 = u[0].mul(u[1]).mul(one.minus(c)).minus(u[2].mul(s));
   const m02 = u[0].mul(u[2]).mul(one.minus(c)).plus(u[1].mul(s));
@@ -357,7 +359,7 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
     [m00, m01, m02, new Decimal(0)],
     [m10, m11, m12, new Decimal(0)],
     [m20, m21, m22, new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -404,7 +406,9 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
  * // Complex rotation around axis (1,1,1) passing through (10,20,30)
  */
 export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
-  const pxD = D(px), pyD = D(py), pzD = D(pz);
+  const pxD = D(px),
+    pyD = D(py),
+    pzD = D(pz);
   return translation(pxD, pyD, pzD)
     .mul(rotateAroundAxis(ux, uy, uz, theta))
     .mul(translation(pxD.negated(), pyD.negated(), pzD.negated()));
@@ -458,7 +462,10 @@ export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
 export function applyTransform(M, x, y, z) {
   const P = Matrix.from([[D(x)], [D(y)], [D(z)], [new Decimal(1)]]);
   const R = M.mul(P);
-  const rx = R.data[0][0], ry = R.data[1][0], rz = R.data[2][0], rw = R.data[3][0];
+  const rx = R.data[0][0],
+    ry = R.data[1][0],
+    rz = R.data[2][0],
+    rw = R.data[3][0];
   // Perspective division (for affine transforms, rw is always 1)
   return [rx.div(rw), ry.div(rw), rz.div(rw)];
 }
@@ -499,7 +506,7 @@ export function reflectXY() {
     [new Decimal(1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(-1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -538,7 +545,7 @@ export function reflectXZ() {
     [new Decimal(1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(-1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -577,7 +584,7 @@ export function reflectYZ() {
     [new Decimal(-1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -627,6 +634,6 @@ export function reflectOrigin() {
     [new Decimal(-1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(-1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(-1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }

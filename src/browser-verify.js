@@ -13,9 +13,9 @@
  * @module browser-verify
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as SVGFlatten from './svg-flatten.js';
+import Decimal from "decimal.js";
+import { Matrix as _Matrix } from "./matrix.js";
+import * as SVGFlatten from "./svg-flatten.js";
 
 // Playwright is loaded dynamically to avoid crashes when not installed
 let chromium = null;
@@ -27,12 +27,12 @@ let chromium = null;
 async function loadPlaywright() {
   if (chromium) return;
   try {
-    const playwright = await import('playwright');
+    const playwright = await import("playwright");
     chromium = playwright.chromium;
-  } catch (e) {
+  } catch (_e) {
     throw new Error(
-      'Playwright is required for browser verification but not installed.\n' +
-      'Install with: npm install playwright && npx playwright install chromium'
+      "Playwright is required for browser verification but not installed.\n" +
+        "Install with: npm install playwright && npx playwright install chromium",
     );
   }
 }
@@ -91,22 +91,26 @@ export class BrowserVerifier {
    */
   async getBrowserCTM(config) {
     if (!this.page) {
-      throw new Error('BrowserVerifier not initialized. Call init() first.');
+      throw new Error("BrowserVerifier not initialized. Call init() first.");
     }
 
     return await this.page.evaluate((cfg) => {
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('width', cfg.width);
-      svg.setAttribute('height', cfg.height);
-      if (cfg.viewBox) svg.setAttribute('viewBox', cfg.viewBox);
-      if (cfg.preserveAspectRatio) svg.setAttribute('preserveAspectRatio', cfg.preserveAspectRatio);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", cfg.width);
+      svg.setAttribute("height", cfg.height);
+      if (cfg.viewBox) svg.setAttribute("viewBox", cfg.viewBox);
+      if (cfg.preserveAspectRatio)
+        svg.setAttribute("preserveAspectRatio", cfg.preserveAspectRatio);
 
-      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', '0');
-      rect.setAttribute('y', '0');
-      rect.setAttribute('width', '10');
-      rect.setAttribute('height', '10');
-      if (cfg.transform) rect.setAttribute('transform', cfg.transform);
+      const rect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect",
+      );
+      rect.setAttribute("x", "0");
+      rect.setAttribute("y", "0");
+      rect.setAttribute("width", "10");
+      rect.setAttribute("height", "10");
+      if (cfg.transform) rect.setAttribute("transform", cfg.transform);
       svg.appendChild(rect);
 
       document.body.appendChild(svg);
@@ -125,22 +129,26 @@ export class BrowserVerifier {
    */
   async getBrowserScreenCTM(config) {
     if (!this.page) {
-      throw new Error('BrowserVerifier not initialized. Call init() first.');
+      throw new Error("BrowserVerifier not initialized. Call init() first.");
     }
 
     return await this.page.evaluate((cfg) => {
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('width', cfg.width);
-      svg.setAttribute('height', cfg.height);
-      if (cfg.viewBox) svg.setAttribute('viewBox', cfg.viewBox);
-      if (cfg.preserveAspectRatio) svg.setAttribute('preserveAspectRatio', cfg.preserveAspectRatio);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", cfg.width);
+      svg.setAttribute("height", cfg.height);
+      if (cfg.viewBox) svg.setAttribute("viewBox", cfg.viewBox);
+      if (cfg.preserveAspectRatio)
+        svg.setAttribute("preserveAspectRatio", cfg.preserveAspectRatio);
 
-      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', '0');
-      rect.setAttribute('y', '0');
-      rect.setAttribute('width', '10');
-      rect.setAttribute('height', '10');
-      if (cfg.transform) rect.setAttribute('transform', cfg.transform);
+      const rect = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "rect",
+      );
+      rect.setAttribute("x", "0");
+      rect.setAttribute("y", "0");
+      rect.setAttribute("width", "10");
+      rect.setAttribute("height", "10");
+      if (cfg.transform) rect.setAttribute("transform", cfg.transform);
       svg.appendChild(rect);
 
       document.body.appendChild(svg);
@@ -161,32 +169,42 @@ export class BrowserVerifier {
    */
   async transformPoint(config, x, y) {
     if (!this.page) {
-      throw new Error('BrowserVerifier not initialized. Call init() first.');
+      throw new Error("BrowserVerifier not initialized. Call init() first.");
     }
 
-    return await this.page.evaluate(({ cfg, px, py }) => {
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('width', cfg.width);
-      svg.setAttribute('height', cfg.height);
-      if (cfg.viewBox) svg.setAttribute('viewBox', cfg.viewBox);
-      if (cfg.preserveAspectRatio) svg.setAttribute('preserveAspectRatio', cfg.preserveAspectRatio);
+    return await this.page.evaluate(
+      ({ cfg, px, py }) => {
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg",
+        );
+        svg.setAttribute("width", cfg.width);
+        svg.setAttribute("height", cfg.height);
+        if (cfg.viewBox) svg.setAttribute("viewBox", cfg.viewBox);
+        if (cfg.preserveAspectRatio)
+          svg.setAttribute("preserveAspectRatio", cfg.preserveAspectRatio);
 
-      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      if (cfg.transform) rect.setAttribute('transform', cfg.transform);
-      svg.appendChild(rect);
+        const rect = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "rect",
+        );
+        if (cfg.transform) rect.setAttribute("transform", cfg.transform);
+        svg.appendChild(rect);
 
-      document.body.appendChild(svg);
+        document.body.appendChild(svg);
 
-      const ctm = rect.getCTM();
-      const point = svg.createSVGPoint();
-      point.x = px;
-      point.y = py;
-      const transformed = point.matrixTransform(ctm);
+        const ctm = rect.getCTM();
+        const point = svg.createSVGPoint();
+        point.x = px;
+        point.y = py;
+        const transformed = point.matrixTransform(ctm);
 
-      document.body.removeChild(svg);
+        document.body.removeChild(svg);
 
-      return { x: transformed.x, y: transformed.y };
-    }, { cfg: config, px: x, py: y });
+        return { x: transformed.x, y: transformed.y };
+      },
+      { cfg: config, px: x, py: y },
+    );
   }
 
   /**
@@ -218,7 +236,7 @@ export class BrowserVerifier {
       f: Math.abs(browserCTM.f - libraryCTM.f),
     };
 
-    const matches = Object.values(differences).every(d => d < tolerance);
+    const matches = Object.values(differences).every((d) => d < tolerance);
 
     return { matches, browserCTM, libraryCTM, differences };
   }
@@ -233,17 +251,27 @@ export class BrowserVerifier {
    * @param {number} [tolerance=1e-10] - Tolerance for comparison
    * @returns {Promise<{matches: boolean, browserCTM: Object, libraryCTM: Object, differences: Object}>}
    */
-  async verifyViewBoxTransform(width, height, viewBox, preserveAspectRatio = 'xMidYMid meet', tolerance = 1e-10) {
+  async verifyViewBoxTransform(
+    width,
+    height,
+    viewBox,
+    preserveAspectRatio = "xMidYMid meet",
+    tolerance = 1e-10,
+  ) {
     const vb = SVGFlatten.parseViewBox(viewBox);
     const par = SVGFlatten.parsePreserveAspectRatio(preserveAspectRatio);
     const matrix = SVGFlatten.computeViewBoxTransform(vb, width, height, par);
 
-    return await this.verifyMatrix(matrix, {
-      width,
-      height,
-      viewBox,
-      preserveAspectRatio
-    }, tolerance);
+    return await this.verifyMatrix(
+      matrix,
+      {
+        width,
+        height,
+        viewBox,
+        preserveAspectRatio,
+      },
+      tolerance,
+    );
   }
 
   /**
@@ -257,11 +285,15 @@ export class BrowserVerifier {
     const matrix = SVGFlatten.parseTransformAttribute(transform);
 
     // Use a simple 100x100 SVG without viewBox to test just the transform
-    return await this.verifyMatrix(matrix, {
-      width: 100,
-      height: 100,
-      transform
-    }, tolerance);
+    return await this.verifyMatrix(
+      matrix,
+      {
+        width: 100,
+        height: 100,
+        transform,
+      },
+      tolerance,
+    );
   }
 
   /**
@@ -280,19 +312,19 @@ export class BrowserVerifier {
 
     const libPt = {
       x: libraryPoint.x.toNumber(),
-      y: libraryPoint.y.toNumber()
+      y: libraryPoint.y.toNumber(),
     };
 
     const difference = Math.sqrt(
       Math.pow(browserPoint.x - libPt.x, 2) +
-      Math.pow(browserPoint.y - libPt.y, 2)
+        Math.pow(browserPoint.y - libPt.y, 2),
     );
 
     return {
       matches: difference < tolerance,
       browserPoint,
       libraryPoint: libPt,
-      difference
+      difference,
     };
   }
 
@@ -313,13 +345,13 @@ export class BrowserVerifier {
         tc.width,
         tc.height,
         tc.viewBox,
-        tc.preserveAspectRatio || 'xMidYMid meet',
-        tolerance
+        tc.preserveAspectRatio || "xMidYMid meet",
+        tolerance,
       );
 
       results.push({
         name: tc.name || `${tc.width}x${tc.height} viewBox="${tc.viewBox}"`,
-        ...result
+        ...result,
       });
 
       if (result.matches) passed++;
@@ -360,12 +392,22 @@ export async function quickVerify(matrix, config, tolerance = 1e-10) {
  * @param {string} [preserveAspectRatio='xMidYMid meet'] - preserveAspectRatio
  * @returns {Promise<{matches: boolean, browserCTM: Object, libraryCTM: Object}>}
  */
-export async function verifyViewBox(width, height, viewBox, preserveAspectRatio = 'xMidYMid meet') {
+export async function verifyViewBox(
+  width,
+  height,
+  viewBox,
+  preserveAspectRatio = "xMidYMid meet",
+) {
   const verifier = new BrowserVerifier();
   await verifier.init({ headless: true });
 
   try {
-    return await verifier.verifyViewBoxTransform(width, height, viewBox, preserveAspectRatio);
+    return await verifier.verifyViewBoxTransform(
+      width,
+      height,
+      viewBox,
+      preserveAspectRatio,
+    );
   } finally {
     await verifier.close();
   }
@@ -399,30 +441,126 @@ export async function verifyTransform(transform) {
 export async function runStandardTests(options = { verbose: true }) {
   const testCases = [
     // W3C SVG WG issue #215 cases
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'none', name: 'Issue #215: none' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMinYMin meet', name: 'Issue #215: xMinYMin meet' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMidYMid meet', name: 'Issue #215: xMidYMid meet' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMaxYMax meet', name: 'Issue #215: xMaxYMax meet' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMinYMin slice', name: 'Issue #215: xMinYMin slice' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMidYMid slice', name: 'Issue #215: xMidYMid slice' },
-    { width: 21, height: 10, viewBox: '11 13 3 2', preserveAspectRatio: 'xMaxYMax slice', name: 'Issue #215: xMaxYMax slice' },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "none",
+      name: "Issue #215: none",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMinYMin meet",
+      name: "Issue #215: xMinYMin meet",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Issue #215: xMidYMid meet",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMaxYMax meet",
+      name: "Issue #215: xMaxYMax meet",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMinYMin slice",
+      name: "Issue #215: xMinYMin slice",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMidYMid slice",
+      name: "Issue #215: xMidYMid slice",
+    },
+    {
+      width: 21,
+      height: 10,
+      viewBox: "11 13 3 2",
+      preserveAspectRatio: "xMaxYMax slice",
+      name: "Issue #215: xMaxYMax slice",
+    },
 
     // Standard cases
-    { width: 200, height: 200, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid meet', name: 'Square 2x scale' },
-    { width: 100, height: 100, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid meet', name: '1:1 identity' },
-    { width: 400, height: 200, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid meet', name: 'Wide viewport' },
-    { width: 200, height: 400, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid meet', name: 'Tall viewport' },
+    {
+      width: 200,
+      height: 200,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Square 2x scale",
+    },
+    {
+      width: 100,
+      height: 100,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "1:1 identity",
+    },
+    {
+      width: 400,
+      height: 200,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Wide viewport",
+    },
+    {
+      width: 200,
+      height: 400,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Tall viewport",
+    },
 
     // Non-zero origins
-    { width: 300, height: 200, viewBox: '50 50 100 100', preserveAspectRatio: 'xMidYMid meet', name: 'Offset origin' },
-    { width: 300, height: 200, viewBox: '-50 -50 200 200', preserveAspectRatio: 'xMidYMid meet', name: 'Negative origin' },
+    {
+      width: 300,
+      height: 200,
+      viewBox: "50 50 100 100",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Offset origin",
+    },
+    {
+      width: 300,
+      height: 200,
+      viewBox: "-50 -50 200 200",
+      preserveAspectRatio: "xMidYMid meet",
+      name: "Negative origin",
+    },
 
     // Stretch
-    { width: 200, height: 100, viewBox: '0 0 100 100', preserveAspectRatio: 'none', name: 'Stretch non-uniform' },
+    {
+      width: 200,
+      height: 100,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "none",
+      name: "Stretch non-uniform",
+    },
 
     // Slice modes
-    { width: 200, height: 400, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid slice', name: 'Tall slice' },
-    { width: 400, height: 200, viewBox: '0 0 100 100', preserveAspectRatio: 'xMidYMid slice', name: 'Wide slice' },
+    {
+      width: 200,
+      height: 400,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid slice",
+      name: "Tall slice",
+    },
+    {
+      width: 400,
+      height: 200,
+      viewBox: "0 0 100 100",
+      preserveAspectRatio: "xMidYMid slice",
+      name: "Wide slice",
+    },
   ];
 
   const verifier = new BrowserVerifier();
@@ -432,19 +570,21 @@ export async function runStandardTests(options = { verbose: true }) {
     const { passed, failed, results } = await verifier.runBatch(testCases);
 
     if (options.verbose) {
-      console.log('\n=== SVG-Matrix Browser Verification ===\n');
+      console.log("\n=== SVG-Matrix Browser Verification ===\n");
 
       for (const r of results) {
-        const icon = r.matches ? '\x1b[32m✓\x1b[0m' : '\x1b[31m✗\x1b[0m';
+        const icon = r.matches ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m";
         console.log(`  ${icon} ${r.name}`);
       }
 
-      console.log('\n' + '─'.repeat(50));
+      console.log("\n" + "─".repeat(50));
       if (failed === 0) {
         console.log(`\x1b[32mAll ${passed} tests PASSED!\x1b[0m`);
-        console.log('Library matches browser\'s W3C SVG2 implementation.\n');
+        console.log("Library matches browser's W3C SVG2 implementation.\n");
       } else {
-        console.log(`\x1b[31m${failed} tests FAILED\x1b[0m, ${passed} passed\n`);
+        console.log(
+          `\x1b[31m${failed} tests FAILED\x1b[0m, ${passed} passed\n`,
+        );
       }
     }
 
@@ -459,5 +599,5 @@ export default {
   quickVerify,
   verifyViewBox,
   verifyTransform,
-  runStandardTests
+  runStandardTests,
 };

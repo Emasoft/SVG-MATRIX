@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><title>SVG 2.0 Tabindex and Focus</title><desc>Tests tabindex attribute for keyboard navigation</desc><style>.focusable:focus {
+      outline: 3px solid orange;
+      outline-offset: 2px;
+    }
+    .button {
+      cursor: pointer;
+    }
+    .button:hover {
+      filter: brightness(1.1);
+    }</style><g class="button focusable" tabindex="1" role="button" aria-label="First button"><rect x="20" y="20" width="100" height="40" fill="steelblue" rx="5"/><text x="70" y="45" text-anchor="middle" fill="white" font-size="12">Button 1</text></g><g class="button focusable" tabindex="2" role="button" aria-label="Second button"><rect x="140" y="20" width="100" height="40" fill="forestgreen" rx="5"/><text x="190" y="45" text-anchor="middle" fill="white" font-size="12">Button 2</text></g><g class="button focusable" tabindex="3" role="button" aria-label="Third button"><rect x="260" y="20" width="100" height="40" fill="crimson" rx="5"/><text x="310" y="45" text-anchor="middle" fill="white" font-size="12">Button 3</text></g><rect x="20" y="100" width="80" height="80" fill="gray" tabindex="-1"/><text x="60" y="145" text-anchor="middle" fill="white" font-size="10">Skip</text><a href="#" tabindex="4" class="focusable"><rect x="120" y="100" width="160" height="80" fill="purple" rx="10"/><text x="200" y="145" text-anchor="middle" fill="white" font-size="14">Focusable Link</text></a><circle cx="60" cy="240" r="30" fill="orange" tabindex="6" class="focusable"/><circle cx="140" cy="240" r="30" fill="teal" tabindex="5" class="focusable"/><text x="100" y="290" text-anchor="middle" font-size="10">Custom order (teal first)</text></svg>

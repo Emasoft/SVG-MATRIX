@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400"><title>SVG 2.0 Text Wrapping</title><desc>Tests inline-size and shape-inside for automatic text wrapping</desc><style>.wrapped-text {
+      inline-size: 150px;
+      font-size: 14px;
+      font-family: sans-serif;
+    }
+    .shape-text {
+      shape-inside: url(#textShape);
+      font-size: 12px;
+    }</style><defs><rect id="textShape" x="250" y="50" width="200" height="150" rx="20"/></defs><text x="20" y="50" class="wrapped-text">This is a long text that should automatically wrap to multiple lines based on the inline-size property.</text><rect x="250" y="50" width="200" height="150" fill="none" stroke="gray" stroke-dasharray="5,5" rx="20"/><text class="shape-text">This text flows inside a rounded rectangle shape using shape-inside property from SVG 2.0.</text><text x="20" y="250" font-size="14" white-space="pre">Preserving    multiple    spaces
+    and line breaks</text><text x="20" y="320" font-size="14" white-space="pre-wrap" style="inline-size: 200px;">Pre-wrap mode preserves spaces but wraps text when needed.</text></svg>

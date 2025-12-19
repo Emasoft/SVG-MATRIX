@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-12-13T15:14:25.638Z",
+  "function": "removeUnknownsAndDefaults",
+  "suite": "SVG 2.0",
+  "total": 39,
+  "passed": 39,
+  "failed": 0,
+  "skipped": 0,
+  "errors": [],
+  "validationFailures": [],
+  "stats": {
+    "avgProcessingTime": 0.3076923076923077,
+    "totalProcessingTime": 12,
+    "totalDuration": 15
+  }
+}

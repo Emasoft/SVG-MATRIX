@@ -12,17 +12,34 @@
  * @module convert-path-data
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const _D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // SVG path command parameters count
 const COMMAND_PARAMS = {
-  M: 2, m: 2, L: 2, l: 2, H: 1, h: 1, V: 1, v: 1,
-  C: 6, c: 6, S: 4, s: 4, Q: 4, q: 4, T: 2, t: 2,
-  A: 7, a: 7, Z: 0, z: 0
+  M: 2,
+  m: 2,
+  L: 2,
+  l: 2,
+  H: 1,
+  h: 1,
+  V: 1,
+  v: 1,
+  C: 6,
+  c: 6,
+  S: 4,
+  s: 4,
+  Q: 4,
+  q: 4,
+  T: 2,
+  t: 2,
+  A: 7,
+  a: 7,
+  Z: 0,
+  z: 0,
 };
 
 /**
@@ -51,8 +68,8 @@ function parseArcArgs(argsStr) {
     if (paramInArc === 3 || paramInArc === 4) {
       // Flags: must be single 0 or 1 (arc flags are always exactly one character)
       // BUG FIX #1: Handle compact notation like "0120" -> "01" (flags) + "20" (next number)
-      if (argsStr[pos] === '0' || argsStr[pos] === '1') {
-        args.push(argsStr[pos] === '1' ? 1 : 0);
+      if (argsStr[pos] === "0" || argsStr[pos] === "1") {
+        args.push(argsStr[pos] === "1" ? 1 : 0);
         pos++;
         arcIndex++;
       } else {
@@ -84,7 +101,7 @@ function parseArcArgs(argsStr) {
  * @returns {Array<{command: string, args: number[]}>} Parsed commands
  */
 export function parsePath(d) {
-  if (!d || typeof d !== 'string') return [];
+  if (!d || typeof d !== "string") return [];
 
   const commands = [];
   const cmdRegex = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
@@ -94,21 +111,24 @@ export function parsePath(d) {
     const cmd = match[1];
     const argsStr = match[2].trim();
 
-    if (cmd === 'Z' || cmd === 'z') {
-      commands.push({ command: 'Z', args: [] });
+    if (cmd === "Z" || cmd === "z") {
+      commands.push({ command: "Z", args: [] });
       // BUG FIX #1: Check for implicit M after Z (numbers after Z should start a new subpath)
       const remainingNums = argsStr.match(/-?\d*\.?\d+(?:[eE][+-]?\d+)?/g);
       if (remainingNums && remainingNums.length >= 2) {
         // Implicit M command after Z
         commands.push({
-          command: 'M',
-          args: [parseFloat(remainingNums[0]), parseFloat(remainingNums[1])]
+          command: "M",
+          args: [parseFloat(remainingNums[0]), parseFloat(remainingNums[1])],
         });
         // Continue parsing remaining args as implicit L
         for (let i = 2; i + 1 < remainingNums.length; i += 2) {
           commands.push({
-            command: 'L',
-            args: [parseFloat(remainingNums[i]), parseFloat(remainingNums[i + 1])]
+            command: "L",
+            args: [
+              parseFloat(remainingNums[i]),
+              parseFloat(remainingNums[i + 1]),
+            ],
           });
         }
       }
@@ -116,13 +136,15 @@ export function parsePath(d) {
     }
 
     let nums;
-    if (cmd === 'A' || cmd === 'a') {
+    if (cmd === "A" || cmd === "a") {
       // Arc commands need special parsing for flags
       nums = parseArcArgs(argsStr);
 
       // BUG FIX #5: If arc parsing failed due to invalid flags, skip this command
       if (nums === null) {
-        console.warn(`Invalid arc command with malformed flags - skipping: ${cmd}${argsStr}`);
+        console.warn(
+          `Invalid arc command with malformed flags - skipping: ${cmd}${argsStr}`,
+        );
         continue; // Skip this command and continue processing the rest
       }
 
@@ -130,7 +152,7 @@ export function parsePath(d) {
       // Process each complete arc (7 parameters)
       for (let i = 0; i < nums.length; i += 7) {
         if (i + 6 < nums.length) {
-          nums[i] = Math.abs(nums[i]);     // rx
+          nums[i] = Math.abs(nums[i]); // rx
           nums[i + 1] = Math.abs(nums[i + 1]); // ry
         }
       }
@@ -152,13 +174,18 @@ export function parsePath(d) {
       for (let i = 0; i < nums.length; i += paramCount) {
         const args = nums.slice(i, i + paramCount);
         if (args.length === paramCount) {
-          const effectiveCmd = (i > 0 && (cmd === 'M' || cmd === 'm'))
-            ? (cmd === 'M' ? 'L' : 'l')
-            : cmd;
+          const effectiveCmd =
+            i > 0 && (cmd === "M" || cmd === "m")
+              ? cmd === "M"
+                ? "L"
+                : "l"
+              : cmd;
           commands.push({ command: effectiveCmd, args });
         } else if (args.length > 0) {
           // BUG FIX #4: Warn when args are incomplete
-          console.warn(`Incomplete ${cmd} command: expected ${paramCount} args, got ${args.length} - remaining args dropped`);
+          console.warn(
+            `Incomplete ${cmd} command: expected ${paramCount} args, got ${args.length} - remaining args dropped`,
+          );
         }
       }
     }
@@ -175,26 +202,26 @@ export function parsePath(d) {
  */
 export function formatNumber(num, precision = 3) {
   // BUG FIX #3: Handle NaN, Infinity, -Infinity
-  if (!isFinite(num)) return '0';
-  if (num === 0) return '0';
+  if (!isFinite(num)) return "0";
+  if (num === 0) return "0";
 
   const factor = Math.pow(10, precision);
   const rounded = Math.round(num * factor) / factor;
 
   let str = rounded.toFixed(precision);
 
-  if (str.includes('.')) {
-    str = str.replace(/\.?0+$/, '');
+  if (str.includes(".")) {
+    str = str.replace(/\.?0+$/, "");
   }
 
-  if (str.startsWith('0.')) {
+  if (str.startsWith("0.")) {
     str = str.substring(1);
-  } else if (str.startsWith('-0.')) {
-    str = '-' + str.substring(2);
+  } else if (str.startsWith("-0.")) {
+    str = "-" + str.substring(2);
   }
 
-  if (str === '' || str === '.' || str === '-.') {
-    str = '0';
+  if (str === "" || str === "." || str === "-.") {
+    str = "0";
   }
 
   return str;
@@ -212,19 +239,37 @@ export function toAbsolute(cmd, cx, cy) {
   const absArgs = [...args];
 
   switch (command) {
-    case 'm': case 'l': case 't':
-      absArgs[0] += cx; absArgs[1] += cy; break;
-    case 'h': absArgs[0] += cx; break;
-    case 'v': absArgs[0] += cy; break;
-    case 'c':
-      absArgs[0] += cx; absArgs[1] += cy;
-      absArgs[2] += cx; absArgs[3] += cy;
-      absArgs[4] += cx; absArgs[5] += cy; break;
-    case 's': case 'q':
-      absArgs[0] += cx; absArgs[1] += cy;
-      absArgs[2] += cx; absArgs[3] += cy; break;
-    case 'a':
-      absArgs[5] += cx; absArgs[6] += cy; break;
+    case "m":
+    case "l":
+    case "t":
+      absArgs[0] += cx;
+      absArgs[1] += cy;
+      break;
+    case "h":
+      absArgs[0] += cx;
+      break;
+    case "v":
+      absArgs[0] += cy;
+      break;
+    case "c":
+      absArgs[0] += cx;
+      absArgs[1] += cy;
+      absArgs[2] += cx;
+      absArgs[3] += cy;
+      absArgs[4] += cx;
+      absArgs[5] += cy;
+      break;
+    case "s":
+    case "q":
+      absArgs[0] += cx;
+      absArgs[1] += cy;
+      absArgs[2] += cx;
+      absArgs[3] += cy;
+      break;
+    case "a":
+      absArgs[5] += cx;
+      absArgs[6] += cy;
+      break;
   }
 
   return { command: absCmd, args: absArgs };
@@ -236,26 +281,44 @@ export function toAbsolute(cmd, cx, cy) {
 export function toRelative(cmd, cx, cy) {
   const { command, args } = cmd;
 
-  if (command === command.toLowerCase() && command !== 'z') return cmd;
-  if (command === 'Z' || command === 'z') return { command: 'z', args: [] };
+  if (command === command.toLowerCase() && command !== "z") return cmd;
+  if (command === "Z" || command === "z") return { command: "z", args: [] };
 
   const relCmd = command.toLowerCase();
   const relArgs = [...args];
 
   switch (command) {
-    case 'M': case 'L': case 'T':
-      relArgs[0] -= cx; relArgs[1] -= cy; break;
-    case 'H': relArgs[0] -= cx; break;
-    case 'V': relArgs[0] -= cy; break;
-    case 'C':
-      relArgs[0] -= cx; relArgs[1] -= cy;
-      relArgs[2] -= cx; relArgs[3] -= cy;
-      relArgs[4] -= cx; relArgs[5] -= cy; break;
-    case 'S': case 'Q':
-      relArgs[0] -= cx; relArgs[1] -= cy;
-      relArgs[2] -= cx; relArgs[3] -= cy; break;
-    case 'A':
-      relArgs[5] -= cx; relArgs[6] -= cy; break;
+    case "M":
+    case "L":
+    case "T":
+      relArgs[0] -= cx;
+      relArgs[1] -= cy;
+      break;
+    case "H":
+      relArgs[0] -= cx;
+      break;
+    case "V":
+      relArgs[0] -= cy;
+      break;
+    case "C":
+      relArgs[0] -= cx;
+      relArgs[1] -= cy;
+      relArgs[2] -= cx;
+      relArgs[3] -= cy;
+      relArgs[4] -= cx;
+      relArgs[5] -= cy;
+      break;
+    case "S":
+    case "Q":
+      relArgs[0] -= cx;
+      relArgs[1] -= cy;
+      relArgs[2] -= cx;
+      relArgs[3] -= cy;
+      break;
+    case "A":
+      relArgs[5] -= cx;
+      relArgs[6] -= cy;
+      break;
   }
 
   return { command: relCmd, args: relArgs };
@@ -266,17 +329,21 @@ export function toRelative(cmd, cx, cy) {
  */
 export function lineToHV(cmd, cx, cy, tolerance = 1e-6) {
   const { command, args } = cmd;
-  if (command !== 'L' && command !== 'l') return null;
+  if (command !== "L" && command !== "l") return null;
 
-  const isAbs = command === 'L';
+  const isAbs = command === "L";
   const endX = isAbs ? args[0] : cx + args[0];
   const endY = isAbs ? args[1] : cy + args[1];
 
   if (Math.abs(endY - cy) < tolerance) {
-    return isAbs ? { command: 'H', args: [endX] } : { command: 'h', args: [endX - cx] };
+    return isAbs
+      ? { command: "H", args: [endX] }
+      : { command: "h", args: [endX - cx] };
   }
   if (Math.abs(endX - cx) < tolerance) {
-    return isAbs ? { command: 'V', args: [endY] } : { command: 'v', args: [endY - cy] };
+    return isAbs
+      ? { command: "V", args: [endY] }
+      : { command: "v", args: [endY - cy] };
   }
   return null;
 }
@@ -286,19 +353,31 @@ export function lineToHV(cmd, cx, cy, tolerance = 1e-6) {
  */
 export function lineToZ(cmd, cx, cy, startX, startY, tolerance = 1e-6) {
   const { command, args } = cmd;
-  if (command !== 'L' && command !== 'l') return false;
+  if (command !== "L" && command !== "l") return false;
 
-  const isAbs = command === 'L';
+  const isAbs = command === "L";
   const endX = isAbs ? args[0] : cx + args[0];
   const endY = isAbs ? args[1] : cy + args[1];
 
-  return Math.abs(endX - startX) < tolerance && Math.abs(endY - startY) < tolerance;
+  return (
+    Math.abs(endX - startX) < tolerance && Math.abs(endY - startY) < tolerance
+  );
 }
 
 /**
  * Check if a cubic bezier is effectively a straight line.
  */
-export function isCurveStraight(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, tolerance = 0.5) {
+export function isCurveStraight(
+  x0,
+  y0,
+  cp1x,
+  cp1y,
+  cp2x,
+  cp2y,
+  x3,
+  y3,
+  tolerance = 0.5,
+) {
   const chordLengthSq = (x3 - x0) ** 2 + (y3 - y0) ** 2;
 
   if (chordLengthSq < 1e-10) {
@@ -308,8 +387,12 @@ export function isCurveStraight(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, toleranc
   }
 
   const chordLength = Math.sqrt(chordLengthSq);
-  const d1 = Math.abs((y3 - y0) * cp1x - (x3 - x0) * cp1y + x3 * y0 - y3 * x0) / chordLength;
-  const d2 = Math.abs((y3 - y0) * cp2x - (x3 - x0) * cp2y + x3 * y0 - y3 * x0) / chordLength;
+  const d1 =
+    Math.abs((y3 - y0) * cp1x - (x3 - x0) * cp1y + x3 * y0 - y3 * x0) /
+    chordLength;
+  const d2 =
+    Math.abs((y3 - y0) * cp2x - (x3 - x0) * cp2y + x3 * y0 - y3 * x0) /
+    chordLength;
 
   return Math.max(d1, d2) < tolerance;
 }
@@ -319,9 +402,9 @@ export function isCurveStraight(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, toleranc
  */
 export function straightCurveToLine(cmd, cx, cy, tolerance = 0.5) {
   const { command, args } = cmd;
-  if (command !== 'C' && command !== 'c') return null;
+  if (command !== "C" && command !== "c") return null;
 
-  const isAbs = command === 'C';
+  const isAbs = command === "C";
   const cp1x = isAbs ? args[0] : cx + args[0];
   const cp1y = isAbs ? args[1] : cy + args[1];
   const cp2x = isAbs ? args[2] : cx + args[2];
@@ -331,8 +414,8 @@ export function straightCurveToLine(cmd, cx, cy, tolerance = 0.5) {
 
   if (isCurveStraight(cx, cy, cp1x, cp1y, cp2x, cp2y, endX, endY, tolerance)) {
     return isAbs
-      ? { command: 'L', args: [endX, endY] }
-      : { command: 'l', args: [endX - cx, endY - cy] };
+      ? { command: "L", args: [endX, endY] }
+      : { command: "l", args: [endX - cx, endY - cy] };
   }
   return null;
 }
@@ -345,87 +428,93 @@ export function straightCurveToLine(cmd, cx, cy, tolerance = 0.5) {
  * @param {boolean} prevLastArgHadDecimal - Whether previous command's last arg had a decimal point
  * @returns {{str: string, lastArgHadDecimal: boolean}} Serialized string and decimal info for next command
  */
-export function serializeCommand(cmd, prevCommand, precision = 3, prevLastArgHadDecimal = false) {
+export function serializeCommand(
+  cmd,
+  prevCommand,
+  precision = 3,
+  prevLastArgHadDecimal = false,
+) {
   const { command, args } = cmd;
 
-  if (command === 'Z' || command === 'z') {
-    return { str: 'z', lastArgHadDecimal: false };
+  if (command === "Z" || command === "z") {
+    return { str: "z", lastArgHadDecimal: false };
   }
 
   // SPECIAL HANDLING FOR ARC COMMANDS
   // Arc format: rx ry rotation large-arc-flag sweep-flag x y
   // Per SVG spec: flags MUST be exactly 0 or 1, arc commands CANNOT be implicitly repeated
-  if (command === 'A' || command === 'a') {
+  if (command === "A" || command === "a") {
     const arcArgs = [
-      formatNumber(args[0], precision),  // rx
-      formatNumber(args[1], precision),  // ry
-      formatNumber(args[2], precision),  // rotation
-      args[3] ? '1' : '0',               // large-arc-flag (FORCE 0/1)
-      args[4] ? '1' : '0',               // sweep-flag (FORCE 0/1)
-      formatNumber(args[5], precision),  // x
-      formatNumber(args[6], precision)   // y
-    ].join(' ');  // ALWAYS use space delimiters for arcs to avoid invalid double-decimals
+      formatNumber(args[0], precision), // rx
+      formatNumber(args[1], precision), // ry
+      formatNumber(args[2], precision), // rotation
+      args[3] ? "1" : "0", // large-arc-flag (FORCE 0/1)
+      args[4] ? "1" : "0", // sweep-flag (FORCE 0/1)
+      formatNumber(args[5], precision), // x
+      formatNumber(args[6], precision), // y
+    ].join(" "); // ALWAYS use space delimiters for arcs to avoid invalid double-decimals
 
     // Arc commands CANNOT be implicitly repeated - always include command letter
     return {
       str: command + arcArgs,
-      lastArgHadDecimal: arcArgs.includes('.')
+      lastArgHadDecimal: arcArgs.includes("."),
     };
   }
 
-  const formattedArgs = args.map(n => formatNumber(n, precision));
+  const formattedArgs = args.map((n) => formatNumber(n, precision));
 
-  let argsStr = '';
+  let argsStr = "";
   for (let i = 0; i < formattedArgs.length; i++) {
     const arg = formattedArgs[i];
     if (i === 0) {
       argsStr = arg;
     } else {
       const prevArg = formattedArgs[i - 1];
-      const prevHasDecimal = prevArg.includes('.');
+      const prevHasDecimal = prevArg.includes(".");
 
-      if (arg.startsWith('-')) {
+      if (arg.startsWith("-")) {
         // Negative sign is always a valid delimiter
         argsStr += arg;
-      } else if (arg.startsWith('.') && prevHasDecimal) {
+      } else if (arg.startsWith(".") && prevHasDecimal) {
         // Decimal point works as delimiter only if prev already has a decimal
         // e.g., "-2.5" + ".3" = "-2.5.3" parses as -2.5 and .3 (number can't have two decimals)
         // but "0" + ".3" = "0.3" would merge into single number 0.3!
         argsStr += arg;
       } else {
         // Need space delimiter
-        argsStr += ' ' + arg;
+        argsStr += " " + arg;
       }
     }
   }
 
   // Track whether our last arg has a decimal (for next command's delimiter decision)
-  const lastArg = formattedArgs[formattedArgs.length - 1] || '';
-  const thisLastArgHadDecimal = lastArg.includes('.');
+  const lastArg = formattedArgs[formattedArgs.length - 1] || "";
+  const thisLastArgHadDecimal = lastArg.includes(".");
 
   // Decide if we need command letter or can use implicit continuation
   // Arc commands CANNOT be implicitly repeated per SVG spec
   let cmdStr = command;
-  if (prevCommand === 'M' && command === 'L') cmdStr = '';
-  else if (prevCommand === 'm' && command === 'l') cmdStr = '';
-  else if (prevCommand === command && command !== 'A' && command !== 'a') cmdStr = '';
+  if (prevCommand === "M" && command === "L") cmdStr = "";
+  else if (prevCommand === "m" && command === "l") cmdStr = "";
+  else if (prevCommand === command && command !== "A" && command !== "a")
+    cmdStr = "";
 
   if (cmdStr) {
     // Explicit command letter - always safe, no delimiter needed
     return { str: cmdStr + argsStr, lastArgHadDecimal: thisLastArgHadDecimal };
   } else {
     // Implicit command - need to check delimiter between commands
-    const firstArg = formattedArgs[0] || '';
+    const firstArg = formattedArgs[0] || "";
 
-    if (firstArg.startsWith('-')) {
+    if (firstArg.startsWith("-")) {
       // Negative sign always works as delimiter
       return { str: argsStr, lastArgHadDecimal: thisLastArgHadDecimal };
-    } else if (firstArg.startsWith('.') && prevLastArgHadDecimal) {
+    } else if (firstArg.startsWith(".") && prevLastArgHadDecimal) {
       // Decimal point works only if prev command's last arg already had a decimal
       return { str: argsStr, lastArgHadDecimal: thisLastArgHadDecimal };
     } else {
       // Need space delimiter
-      return { str: ' ' + argsStr, lastArgHadDecimal: thisLastArgHadDecimal };
+      return { str: " " + argsStr, lastArgHadDecimal: thisLastArgHadDecimal };
     }
   }
 }
@@ -434,14 +523,19 @@ export function serializeCommand(cmd, prevCommand, precision = 3, prevLastArgHad
  * Serialize a complete path to minimal string.
  */
 export function serializePath(commands, precision = 3) {
-  if (commands.length === 0) return '';
+  if (commands.length === 0) return "";
 
-  let result = '';
+  let result = "";
   let prevCommand = null;
   let prevLastArgHadDecimal = false;
 
   for (const cmd of commands) {
-    const { str, lastArgHadDecimal } = serializeCommand(cmd, prevCommand, precision, prevLastArgHadDecimal);
+    const { str, lastArgHadDecimal } = serializeCommand(
+      cmd,
+      prevCommand,
+      precision,
+      prevLastArgHadDecimal,
+    );
     result += str;
     prevCommand = cmd.command;
     prevLastArgHadDecimal = lastArgHadDecimal;
@@ -463,17 +557,20 @@ export function convertPathData(d, options = {}) {
     lineShorthands = true,
     convertToZ = true,
     utilizeAbsolute = true,
-    straightTolerance = 0.5
+    straightTolerance = 0.5,
   } = options;
 
   const originalLength = d.length;
-  let commands = parsePath(d);
+  const commands = parsePath(d);
 
   if (commands.length === 0) {
     return { d, originalLength, optimizedLength: originalLength, savings: 0 };
   }
 
-  let cx = 0, cy = 0, startX = 0, startY = 0;
+  let cx = 0,
+    cy = 0,
+    startX = 0,
+    startY = 0;
   const optimized = [];
 
   for (let i = 0; i < commands.length; i++) {
@@ -481,36 +578,39 @@ export function convertPathData(d, options = {}) {
 
     // BUG FIX #3: Convert zero arc radii to line per SVG spec Section 8.3.4
     // When rx or ry is 0, the arc degenerates to a straight line
-    if ((cmd.command === 'A' || cmd.command === 'a') && (cmd.args[0] === 0 || cmd.args[1] === 0)) {
-      const isAbs = cmd.command === 'A';
+    if (
+      (cmd.command === "A" || cmd.command === "a") &&
+      (cmd.args[0] === 0 || cmd.args[1] === 0)
+    ) {
+      const isAbs = cmd.command === "A";
       const endX = cmd.args[5];
       const endY = cmd.args[6];
       cmd = isAbs
-        ? { command: 'L', args: [endX, endY] }
-        : { command: 'l', args: [endX, endY] };
+        ? { command: "L", args: [endX, endY] }
+        : { command: "l", args: [endX, endY] };
     }
 
     // 1. Straight curve to line
-    if (straightCurves && (cmd.command === 'C' || cmd.command === 'c')) {
+    if (straightCurves && (cmd.command === "C" || cmd.command === "c")) {
       const lineCmd = straightCurveToLine(cmd, cx, cy, straightTolerance);
       if (lineCmd) cmd = lineCmd;
     }
 
     // 2. Line shorthands (L -> H/V)
-    if (lineShorthands && (cmd.command === 'L' || cmd.command === 'l')) {
+    if (lineShorthands && (cmd.command === "L" || cmd.command === "l")) {
       const hvCmd = lineToHV(cmd, cx, cy);
       if (hvCmd) cmd = hvCmd;
     }
 
     // 3. Line to Z
-    if (convertToZ && (cmd.command === 'L' || cmd.command === 'l')) {
+    if (convertToZ && (cmd.command === "L" || cmd.command === "l")) {
       if (lineToZ(cmd, cx, cy, startX, startY)) {
-        cmd = { command: 'z', args: [] };
+        cmd = { command: "z", args: [] };
       }
     }
 
     // 4. Choose shorter form (absolute vs relative)
-    if (utilizeAbsolute && cmd.command !== 'Z' && cmd.command !== 'z') {
+    if (utilizeAbsolute && cmd.command !== "Z" && cmd.command !== "z") {
       const abs = toAbsolute(cmd, cx, cy);
       const rel = toRelative(cmd, cx, cy);
       // Bug fix: serializeCommand returns {str, lastArgHadDecimal} object,
@@ -525,14 +625,40 @@ export function convertPathData(d, options = {}) {
     // Update position
     const finalCmd = toAbsolute(cmd, cx, cy);
     switch (finalCmd.command) {
-      case 'M': cx = finalCmd.args[0]; cy = finalCmd.args[1]; startX = cx; startY = cy; break;
-      case 'L': case 'T': cx = finalCmd.args[0]; cy = finalCmd.args[1]; break;
-      case 'H': cx = finalCmd.args[0]; break;
-      case 'V': cy = finalCmd.args[0]; break;
-      case 'C': cx = finalCmd.args[4]; cy = finalCmd.args[5]; break;
-      case 'S': case 'Q': cx = finalCmd.args[2]; cy = finalCmd.args[3]; break;
-      case 'A': cx = finalCmd.args[5]; cy = finalCmd.args[6]; break;
-      case 'Z': cx = startX; cy = startY; break;
+      case "M":
+        cx = finalCmd.args[0];
+        cy = finalCmd.args[1];
+        startX = cx;
+        startY = cy;
+        break;
+      case "L":
+      case "T":
+        cx = finalCmd.args[0];
+        cy = finalCmd.args[1];
+        break;
+      case "H":
+        cx = finalCmd.args[0];
+        break;
+      case "V":
+        cy = finalCmd.args[0];
+        break;
+      case "C":
+        cx = finalCmd.args[4];
+        cy = finalCmd.args[5];
+        break;
+      case "S":
+      case "Q":
+        cx = finalCmd.args[2];
+        cy = finalCmd.args[3];
+        break;
+      case "A":
+        cx = finalCmd.args[5];
+        cy = finalCmd.args[6];
+        break;
+      case "Z":
+        cx = startX;
+        cy = startY;
+        break;
     }
   }
 
@@ -542,7 +668,7 @@ export function convertPathData(d, options = {}) {
     d: optimizedD,
     originalLength,
     optimizedLength: optimizedD.length,
-    savings: originalLength - optimizedD.length
+    savings: originalLength - optimizedD.length,
   };
 }
 
@@ -557,19 +683,19 @@ export function optimizeDocumentPaths(root, options = {}) {
   const processElement = (el) => {
     const tagName = el.tagName?.toLowerCase();
 
-    if (tagName === 'path') {
-      const d = el.getAttribute('d');
+    if (tagName === "path") {
+      const d = el.getAttribute("d");
       if (d) {
         const result = convertPathData(d, options);
         if (result.savings > 0) {
-          el.setAttribute('d', result.d);
+          el.setAttribute("d", result.d);
           pathsOptimized++;
           totalSavings += result.savings;
           details.push({
-            id: el.getAttribute('id') || null,
+            id: el.getAttribute("id") || null,
             originalLength: result.originalLength,
             optimizedLength: result.optimizedLength,
-            savings: result.savings
+            savings: result.savings,
           });
         }
       }
@@ -585,7 +711,16 @@ export function optimizeDocumentPaths(root, options = {}) {
 }
 
 export default {
-  parsePath, formatNumber, toAbsolute, toRelative,
-  lineToHV, lineToZ, isCurveStraight, straightCurveToLine,
-  serializeCommand, serializePath, convertPathData, optimizeDocumentPaths
+  parsePath,
+  formatNumber,
+  toAbsolute,
+  toRelative,
+  lineToHV,
+  lineToZ,
+  isCurveStraight,
+  straightCurveToLine,
+  serializeCommand,
+  serializePath,
+  convertPathData,
+  optimizeDocumentPaths,
 };

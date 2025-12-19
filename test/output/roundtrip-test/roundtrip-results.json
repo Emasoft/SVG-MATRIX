@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-15T14:16:41.579Z",
+  "success": true,
+  "files": {
+    "original": {
+      "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/samples/SVG_WITH_EMBEDDED_AUDIO/cartoon_sample_with_audio.svg",
+      "size": 4528783,
+      "hash": "407e2c3bdd4dc174315b599d640bbf7da87278a594e1086d3cee3c79af8b8c40"
+    },
+    "stripped": {
+      "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/test/output/roundtrip-test/1-stripped.svg",
+      "size": 3482471
+    },
+    "reembedded": {
+      "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/test/output/roundtrip-test/2-reembedded.svg",
+      "size": 4441697,
+      "hash": "407e2c3bdd4dc174315b599d640bbf7da87278a594e1086d3cee3c79af8b8c40"
+    }
+  },
+  "extractedFiles": [
+    {
+      "filename": "resource_audio_001.mp3",
+      "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/test/output/roundtrip-test/resource_audio_001.mp3",
+      "mimeType": "audio/mpeg",
+      "size": 77873,
+      "type": "audio"
+    },
+    {
+      "filename": "resource_audio_002.mp3",
+      "path": "/Users/emanuelesabetta/Code/SVG-MATRIX/test/output/roundtrip-test/resource_audio_002.mp3",
+      "mimeType": "audio/mpeg",
+      "size": 641546,
+      "type": "audio"
+    }
+  ],
+  "comparison": {
+    "identical": true,
+    "hash1": "407e2c3bdd4dc174315b599d640bbf7da87278a594e1086d3cee3c79af8b8c40",
+    "hash2": "407e2c3bdd4dc174315b599d640bbf7da87278a594e1086d3cee3c79af8b8c40",
+    "size1": 4528783,
+    "size2": 4441697,
+    "normalizedSize1": 4528799,
+    "normalizedSize2": 4528799,
+    "sizeDiff": 87086,
+    "normalizedSizeDiff": 0
+  }
+}

@@ -88,16 +88,16 @@
  * @module polygon-clip
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
 
 // Helper to convert to Decimal
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Near-zero threshold for comparisons
-const EPSILON = new Decimal('1e-40');
+const EPSILON = new Decimal("1e-40");
 
 // ============================================================================
 // Point and Vector Primitives
@@ -153,8 +153,9 @@ export function point(x, y) {
  * pointsEqual(p1, p2); // false
  */
 export function pointsEqual(p1, p2, tolerance = EPSILON) {
-  return p1.x.minus(p2.x).abs().lt(tolerance) &&
-         p1.y.minus(p2.y).abs().lt(tolerance);
+  return (
+    p1.x.minus(p2.x).abs().lt(tolerance) && p1.y.minus(p2.y).abs().lt(tolerance)
+  );
 }
 
 /**
@@ -355,7 +356,7 @@ export function segmentIntersection(a, b, c, d) {
       x: a.x.plus(dx1.mul(t)),
       y: a.y.plus(dy1.mul(t)),
       t: t,
-      s: s
+      s: s,
     };
   }
 
@@ -421,7 +422,7 @@ export function lineSegmentIntersection(lineA, lineB, segA, segB) {
     return {
       x: segA.x.plus(dx2.mul(s)),
       y: segA.y.plus(dy2.mul(s)),
-      s: s
+      s: s,
     };
   }
 
@@ -557,8 +558,12 @@ export function pointOnSegment(pt, a, b) {
   const minY = Decimal.min(a.y, b.y);
   const maxY = Decimal.max(a.y, b.y);
 
-  return pt.x.gte(minX.minus(EPSILON)) && pt.x.lte(maxX.plus(EPSILON)) &&
-         pt.y.gte(minY.minus(EPSILON)) && pt.y.lte(maxY.plus(EPSILON));
+  return (
+    pt.x.gte(minX.minus(EPSILON)) &&
+    pt.x.lte(maxX.plus(EPSILON)) &&
+    pt.y.gte(minY.minus(EPSILON)) &&
+    pt.y.lte(maxY.plus(EPSILON))
+  );
 }
 
 // ============================================================================
@@ -614,8 +619,8 @@ export function clipPolygonSH(subject, clip) {
   }
 
   // Convert all points to Decimal
-  let output = subject.map(p => point(p.x, p.y));
-  const clipPoly = clip.map(p => point(p.x, p.y));
+  let output = subject.map((p) => point(p.x, p.y));
+  const clipPoly = clip.map((p) => point(p.x, p.y));
 
   // Clip against each edge of the clipping polygon
   for (let i = 0; i < clipPoly.length; i++) {
@@ -639,7 +644,12 @@ export function clipPolygonSH(subject, clip) {
       if (currentInside) {
         if (!prevInside) {
           // Entering: add intersection point
-          const intersection = lineIntersection(prev, current, clipEdgeStart, clipEdgeEnd);
+          const intersection = lineIntersection(
+            prev,
+            current,
+            clipEdgeStart,
+            clipEdgeEnd,
+          );
           if (intersection) {
             output.push(intersection);
           }
@@ -647,7 +657,12 @@ export function clipPolygonSH(subject, clip) {
         output.push(current);
       } else if (prevInside) {
         // Leaving: add intersection point
-        const intersection = lineIntersection(prev, current, clipEdgeStart, clipEdgeEnd);
+        const intersection = lineIntersection(
+          prev,
+          current,
+          clipEdgeStart,
+          clipEdgeEnd,
+        );
         if (intersection) {
           output.push(intersection);
         }
@@ -707,7 +722,7 @@ function lineIntersection(a, b, c, d) {
 
   return {
     x: a.x.plus(dx1.mul(t)),
-    y: a.y.plus(dy1.mul(t))
+    y: a.y.plus(dy1.mul(t)),
   };
 }
 
@@ -876,17 +891,19 @@ export function ensureCCW(polygon) {
  */
 export function convexHull(points) {
   if (points.length < 3) {
-    return points.map(p => point(p.x, p.y));
+    return points.map((p) => point(p.x, p.y));
   }
 
   // Convert to Decimal points
-  const pts = points.map(p => point(p.x, p.y));
+  const pts = points.map((p) => point(p.x, p.y));
 
   // Find the lowest point (and leftmost if tie)
   let lowest = 0;
   for (let i = 1; i < pts.length; i++) {
-    if (pts[i].y.lt(pts[lowest].y) ||
-        (pts[i].y.eq(pts[lowest].y) && pts[i].x.lt(pts[lowest].x))) {
+    if (
+      pts[i].y.lt(pts[lowest].y) ||
+      (pts[i].y.eq(pts[lowest].y) && pts[i].x.lt(pts[lowest].x))
+    ) {
       lowest = i;
     }
   }
@@ -911,7 +928,10 @@ export function convexHull(points) {
   const hull = [pivot];
 
   for (const pt of sorted) {
-    while (hull.length > 1 && cross(hull[hull.length - 2], hull[hull.length - 1], pt).lte(0)) {
+    while (
+      hull.length > 1 &&
+      cross(hull[hull.length - 2], hull[hull.length - 1], pt).lte(0)
+    ) {
       hull.pop();
     }
     hull.push(pt);
@@ -996,8 +1016,12 @@ export function boundingBox(polygon) {
  */
 export function bboxIntersects(bb1, bb2) {
   if (!bb1 || !bb2) return false;
-  return !(bb1.maxX.lt(bb2.minX) || bb2.maxX.lt(bb1.minX) ||
-           bb1.maxY.lt(bb2.minY) || bb2.maxY.lt(bb1.minY));
+  return !(
+    bb1.maxX.lt(bb2.minX) ||
+    bb2.maxX.lt(bb1.minX) ||
+    bb1.maxY.lt(bb2.minY) ||
+    bb2.maxY.lt(bb1.minY)
+  );
 }
 
 // ============================================================================
@@ -1044,8 +1068,8 @@ export function bboxIntersects(bb1, bb2) {
  */
 export function polygonIntersection(subject, clip) {
   // Convert to Decimal points
-  const subjectPoly = subject.map(p => point(p.x, p.y));
-  const clipPoly = clip.map(p => point(p.x, p.y));
+  const subjectPoly = subject.map((p) => point(p.x, p.y));
+  const clipPoly = clip.map((p) => point(p.x, p.y));
 
   // Quick bounding box check
   const bb1 = boundingBox(subjectPoly);
@@ -1100,7 +1124,7 @@ export function isConvex(polygon) {
   const n = polygon.length;
   if (n < 3) return false;
 
-  let sign = 0;
+  let crossSign = 0;
 
   for (let i = 0; i < n; i++) {
     const p0 = polygon[i];
@@ -1108,12 +1132,12 @@ export function isConvex(polygon) {
     const p2 = polygon[(i + 2) % n];
 
     const crossVal = cross(p0, p1, p2);
-    const currentSign = crossVal.gt(0) ? 1 : (crossVal.lt(0) ? -1 : 0);
+    const currentSign = crossVal.gt(0) ? 1 : crossVal.lt(0) ? -1 : 0;
 
     if (currentSign !== 0) {
-      if (sign === 0) {
-        sign = currentSign;
-      } else if (sign !== currentSign) {
+      if (crossSign === 0) {
+        crossSign = currentSign;
+      } else if (crossSign !== currentSign) {
         return false;
       }
     }
@@ -1162,10 +1186,10 @@ function generalPolygonIntersection(subject, clip) {
   }
 
   // Find subject vertices inside clip
-  const subjectInside = subject.filter(p => pointInPolygon(p, clip) >= 0);
+  const subjectInside = subject.filter((p) => pointInPolygon(p, clip) >= 0);
 
   // Find clip vertices inside subject
-  const clipInside = clip.filter(p => pointInPolygon(p, subject) >= 0);
+  const clipInside = clip.filter((p) => pointInPolygon(p, subject) >= 0);
 
   // Collect all points
   const allPoints = [...intersectionPoints, ...subjectInside, ...clipInside];
@@ -1253,8 +1277,8 @@ function removeDuplicatePoints(points) {
  * polygonUnion(square1, square2); // [square1, square2]
  */
 export function polygonUnion(polygon1, polygon2) {
-  const poly1 = polygon1.map(p => point(p.x, p.y));
-  const poly2 = polygon2.map(p => point(p.x, p.y));
+  const poly1 = polygon1.map((p) => point(p.x, p.y));
+  const poly2 = polygon2.map((p) => point(p.x, p.y));
 
   const bb1 = boundingBox(poly1);
   const bb2 = boundingBox(poly2);
@@ -1304,19 +1328,25 @@ function traceBoundaryUnion(poly1, poly2) {
   }
 
   // Build augmented polygons with intersection points inserted
-  const aug1 = augmentPolygon(poly1, intersections.map(i => ({
-    edgeIndex: i.edge1,
-    t: i.t1,
-    point: i.point,
-    intersectionId: i.id
-  })));
+  const aug1 = augmentPolygon(
+    poly1,
+    intersections.map((i) => ({
+      edgeIndex: i.edge1,
+      t: i.t1,
+      point: i.point,
+      intersectionId: i.id,
+    })),
+  );
 
-  const aug2 = augmentPolygon(poly2, intersections.map(i => ({
-    edgeIndex: i.edge2,
-    t: i.t2,
-    point: i.point,
-    intersectionId: i.id
-  })));
+  const aug2 = augmentPolygon(
+    poly2,
+    intersections.map((i) => ({
+      edgeIndex: i.edge2,
+      t: i.t2,
+      point: i.point,
+      intersectionId: i.id,
+    })),
+  );
 
   // Build lookup from intersection ID to indices in both polygons
   const intersectionMap = new Map();
@@ -1387,7 +1417,10 @@ function traceBoundaryUnion(poly1, poly2) {
     const vertex = aug[currentIdx];
 
     // Add vertex to result (avoid duplicates)
-    if (result.length === 0 || !pointsEqual(result[result.length - 1], vertex)) {
+    if (
+      result.length === 0 ||
+      !pointsEqual(result[result.length - 1], vertex)
+    ) {
       result.push(point(vertex.x, vertex.y));
     }
 
@@ -1396,7 +1429,10 @@ function traceBoundaryUnion(poly1, poly2) {
     const nextVertex = aug[nextIdx];
 
     // If next vertex is an intersection we haven't used, switch polygons
-    if (nextVertex.intersectionId !== undefined && !usedIntersections.has(nextVertex.intersectionId)) {
+    if (
+      nextVertex.intersectionId !== undefined &&
+      !usedIntersections.has(nextVertex.intersectionId)
+    ) {
       // Add the intersection point
       result.push(point(nextVertex.x, nextVertex.y));
       usedIntersections.add(nextVertex.intersectionId);
@@ -1453,7 +1489,7 @@ function findAllIntersections(poly1, poly2) {
           edge1: i,
           edge2: j,
           t1: intersection.t,
-          t2: intersection.s
+          t2: intersection.s,
         });
       }
     }
@@ -1497,7 +1533,7 @@ function augmentPolygon(polygon, insertions) {
         result.push({
           x: ins.point.x,
           y: ins.point.y,
-          intersectionId: ins.intersectionId
+          intersectionId: ins.intersectionId,
         });
       }
     }
@@ -1547,8 +1583,8 @@ function augmentPolygon(polygon, insertions) {
  * polygonDifference(small, large); // []
  */
 export function polygonDifference(polygon1, polygon2) {
-  const poly1 = polygon1.map(p => point(p.x, p.y));
-  const poly2 = polygon2.map(p => point(p.x, p.y));
+  const poly1 = polygon1.map((p) => point(p.x, p.y));
+  const poly2 = polygon2.map((p) => point(p.x, p.y));
 
   const bb1 = boundingBox(poly1);
   const bb2 = boundingBox(poly2);
@@ -1592,19 +1628,25 @@ function traceBoundaryDifference(poly1, poly2) {
   }
 
   // Build augmented polygons with intersection points inserted
-  const aug1 = augmentPolygon(poly1, intersections.map(i => ({
-    edgeIndex: i.edge1,
-    t: i.t1,
-    point: i.point,
-    intersectionId: i.id
-  })));
+  const aug1 = augmentPolygon(
+    poly1,
+    intersections.map((i) => ({
+      edgeIndex: i.edge1,
+      t: i.t1,
+      point: i.point,
+      intersectionId: i.id,
+    })),
+  );
 
-  const aug2 = augmentPolygon(poly2, intersections.map(i => ({
-    edgeIndex: i.edge2,
-    t: i.t2,
-    point: i.point,
-    intersectionId: i.id
-  })));
+  const aug2 = augmentPolygon(
+    poly2,
+    intersections.map((i) => ({
+      edgeIndex: i.edge2,
+      t: i.t2,
+      point: i.point,
+      intersectionId: i.id,
+    })),
+  );
 
   // Build lookup from intersection ID to indices in both polygons
   const intersectionMap = new Map();
@@ -1655,7 +1697,10 @@ function traceBoundaryDifference(poly1, poly2) {
     const vertex = poly[currentIdx];
 
     // Add vertex to result (avoid duplicates)
-    if (result.length === 0 || !pointsEqual(result[result.length - 1], vertex)) {
+    if (
+      result.length === 0 ||
+      !pointsEqual(result[result.length - 1], vertex)
+    ) {
       result.push(point(vertex.x, vertex.y));
     }
 
@@ -1764,5 +1809,5 @@ export default {
   polygonDifference,
 
   // Constants
-  EPSILON
+  EPSILON,
 };

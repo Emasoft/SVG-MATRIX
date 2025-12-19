@@ -14,15 +14,15 @@
  * @module verification
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import { Vector } from './vector.js';
-import * as Transforms2D from './transforms2d.js';
+import Decimal from "decimal.js";
+import { Matrix as _Matrix } from "./matrix.js";
+import { Vector as _Vector } from "./vector.js";
+import * as Transforms2D from "./transforms2d.js";
 
 // Use high precision for verifications
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 const ZERO = new Decimal(0);
 const ONE = new Decimal(1);
 
@@ -81,8 +81,8 @@ export function verifyTransformRoundTrip(matrix, x, y) {
         valid: false,
         error: new Decimal(Infinity),
         tolerance,
-        message: 'Matrix is not invertible (determinant = 0)',
-        details: { determinant: matrix.determinant() }
+        message: "Matrix is not invertible (determinant = 0)",
+        details: { determinant: matrix.determinant() },
       };
     }
 
@@ -108,15 +108,15 @@ export function verifyTransformRoundTrip(matrix, x, y) {
         transformed: { x: fwdX.toString(), y: fwdY.toString() },
         recovered: { x: revX.toString(), y: revY.toString() },
         errorX: errorX.toExponential(),
-        errorY: errorY.toExponential()
-      }
+        errorY: errorY.toExponential(),
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -140,7 +140,7 @@ export function verifyTransformGeometry(matrix, points) {
       valid: false,
       error: ZERO,
       tolerance,
-      message: 'Need at least 3 points for geometry verification'
+      message: "Need at least 3 points for geometry verification",
     };
   }
 
@@ -149,27 +149,43 @@ export function verifyTransformGeometry(matrix, points) {
     const absdet = det.abs();
 
     // Transform all points
-    const transformed = points.map(p => {
+    const transformed = points.map((p) => {
       const [tx, ty] = Transforms2D.applyTransform(matrix, D(p.x), D(p.y));
       return { x: tx, y: ty };
     });
 
     // Verify area scaling (using first 3 points as triangle)
     const origArea = triangleArea(points[0], points[1], points[2]);
-    const transArea = triangleArea(transformed[0], transformed[1], transformed[2]);
+    const transArea = triangleArea(
+      transformed[0],
+      transformed[1],
+      transformed[2],
+    );
 
     // Expected transformed area = |det| * original area
     const expectedArea = absdet.times(origArea);
     const areaError = transArea.minus(expectedArea).abs();
-    const relativeAreaError = origArea.isZero() ? areaError : areaError.div(origArea);
+    const relativeAreaError = origArea.isZero()
+      ? areaError
+      : areaError.div(origArea);
 
     const areaValid = relativeAreaError.lessThan(tolerance);
 
     // Verify collinearity preservation (if 3+ points are collinear, they should remain so)
     let collinearityValid = true;
     if (points.length >= 3) {
-      const origCollinear = areCollinear(points[0], points[1], points[2], tolerance);
-      const transCollinear = areCollinear(transformed[0], transformed[1], transformed[2], tolerance);
+      const origCollinear = areCollinear(
+        points[0],
+        points[1],
+        points[2],
+        tolerance,
+      );
+      const transCollinear = areCollinear(
+        transformed[0],
+        transformed[1],
+        transformed[2],
+        tolerance,
+      );
       collinearityValid = origCollinear === transCollinear;
     }
 
@@ -181,23 +197,23 @@ export function verifyTransformGeometry(matrix, points) {
       error,
       tolerance,
       message: valid
-        ? 'Geometric properties preserved'
-        : `Geometry verification FAILED: ${!areaValid ? 'area scaling incorrect' : 'collinearity not preserved'}`,
+        ? "Geometric properties preserved"
+        : `Geometry verification FAILED: ${!areaValid ? "area scaling incorrect" : "collinearity not preserved"}`,
       details: {
         determinant: det.toString(),
         originalArea: origArea.toString(),
         transformedArea: transArea.toString(),
         expectedArea: expectedArea.toString(),
         areaError: relativeAreaError.toExponential(),
-        collinearityPreserved: collinearityValid
-      }
+        collinearityPreserved: collinearityValid,
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -225,8 +241,8 @@ export function verifyMatrixInversion(matrix) {
         valid: false,
         error: new Decimal(Infinity),
         tolerance,
-        message: 'Matrix is singular (not invertible)',
-        details: { determinant: matrix.determinant().toString() }
+        message: "Matrix is singular (not invertible)",
+        details: { determinant: matrix.determinant().toString() },
       };
     }
 
@@ -250,7 +266,13 @@ export function verifyMatrixInversion(matrix) {
         }
 
         if (error.greaterThanOrEqualTo(tolerance)) {
-          errors.push({ row: i, col: j, expected: expected.toString(), actual: actual.toString(), error: error.toExponential() });
+          errors.push({
+            row: i,
+            col: j,
+            expected: expected.toString(),
+            actual: actual.toString(),
+            error: error.toExponential(),
+          });
         }
       }
     }
@@ -267,15 +289,15 @@ export function verifyMatrixInversion(matrix) {
       details: {
         matrixSize: `${n}x${n}`,
         maxError: maxError.toExponential(),
-        failedElements: errors.slice(0, 5) // First 5 failures
-      }
+        failedElements: errors.slice(0, 5), // First 5 failures
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -320,14 +342,14 @@ export function verifyMultiplicationAssociativity(A, B, C) {
       tolerance,
       message: valid
         ? `Associativity verified: (A*B)*C = A*(B*C), max error ${maxError.toExponential()}`
-        : `Associativity FAILED: max error ${maxError.toExponential()}`
+        : `Associativity FAILED: max error ${maxError.toExponential()}`,
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -349,17 +371,21 @@ export function verifyMultiplicationAssociativity(A, B, C) {
  * @param {Decimal} [distanceTolerance] - Max distance outside allowed (default: 1e-6)
  * @returns {VerificationResult} Verification result
  */
-export function verifyPolygonContainment(inner, outer, distanceTolerance = null) {
+export function verifyPolygonContainment(
+  inner,
+  outer,
+  distanceTolerance = null,
+) {
   const tolerance = computeTolerance();
   // Distance tolerance for curve approximation - points can be slightly outside
-  const maxDistOutside = distanceTolerance || new Decimal('1e-6');
+  const maxDistOutside = distanceTolerance || new Decimal("1e-6");
 
   if (inner.length < 3 || outer.length < 3) {
     return {
       valid: false,
       error: ZERO,
       tolerance,
-      message: 'Polygons must have at least 3 vertices'
+      message: "Polygons must have at least 3 vertices",
     };
   }
 
@@ -385,7 +411,7 @@ export function verifyPolygonContainment(inner, outer, distanceTolerance = null)
             index: i,
             x: point.x.toString(),
             y: point.y.toString(),
-            distanceOutside: distToEdge.toExponential()
+            distanceOutside: distToEdge.toExponential(),
           });
         }
       }
@@ -402,15 +428,15 @@ export function verifyPolygonContainment(inner, outer, distanceTolerance = null)
         innerVertices: inner.length,
         outerVertices: outer.length,
         maxOutsideDistance: maxOutsideDistance.toExponential(),
-        outsidePoints: outsidePoints.slice(0, 5)
-      }
+        outsidePoints: outsidePoints.slice(0, 5),
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -421,13 +447,17 @@ export function verifyPolygonContainment(inner, outer, distanceTolerance = null)
  */
 function minDistanceToPolygonEdge(point, polygon) {
   let minDist = new Decimal(Infinity);
-  const px = D(point.x), py = D(point.y);
+  const px = D(point.x),
+    py = D(point.y);
 
   for (let i = 0; i < polygon.length; i++) {
     const j = (i + 1) % polygon.length;
-    const p1 = polygon[i], p2 = polygon[j];
-    const x1 = D(p1.x), y1 = D(p1.y);
-    const x2 = D(p2.x), y2 = D(p2.y);
+    const p1 = polygon[i],
+      p2 = polygon[j];
+    const x1 = D(p1.x),
+      y1 = D(p1.y);
+    const x2 = D(p2.x),
+      y2 = D(p2.y);
 
     // Distance from point to line segment [p1, p2]
     const dx = x2.minus(x1);
@@ -440,9 +470,13 @@ function minDistanceToPolygonEdge(point, polygon) {
       dist = pointDistance(point, p1);
     } else {
       // Project point onto line, clamp to segment
-      const t = Decimal.max(ZERO, Decimal.min(ONE,
-        px.minus(x1).times(dx).plus(py.minus(y1).times(dy)).div(lenSq)
-      ));
+      const t = Decimal.max(
+        ZERO,
+        Decimal.min(
+          ONE,
+          px.minus(x1).times(dx).plus(py.minus(y1).times(dy)).div(lenSq),
+        ),
+      );
       const projX = x1.plus(t.times(dx));
       const projY = y1.plus(t.times(dy));
       dist = px.minus(projX).pow(2).plus(py.minus(projY).pow(2)).sqrt();
@@ -476,8 +510,8 @@ export function verifyPolygonIntersection(poly1, poly2, intersection) {
       valid: true,
       error: ZERO,
       tolerance,
-      message: 'Intersection is empty or degenerate (valid result)',
-      details: { intersectionVertices: intersection.length }
+      message: "Intersection is empty or degenerate (valid result)",
+      details: { intersectionVertices: intersection.length },
     };
   }
 
@@ -494,7 +528,9 @@ export function verifyPolygonIntersection(poly1, poly2, intersection) {
     const minArea = Decimal.min(area1, area2);
 
     // Allow small tolerance for floating point in area calculation
-    const areaValid = areaInt.lessThanOrEqualTo(minArea.times(ONE.plus(tolerance)));
+    const areaValid = areaInt.lessThanOrEqualTo(
+      minArea.times(ONE.plus(tolerance)),
+    );
 
     const valid = containment1.valid && containment2.valid && areaValid;
 
@@ -503,23 +539,23 @@ export function verifyPolygonIntersection(poly1, poly2, intersection) {
       error: valid ? ZERO : ONE,
       tolerance,
       message: valid
-        ? 'Intersection verified: contained in both polygons, area valid'
-        : `Intersection FAILED: ${!containment1.valid ? 'not in poly1, ' : ''}${!containment2.valid ? 'not in poly2, ' : ''}${!areaValid ? 'area too large' : ''}`,
+        ? "Intersection verified: contained in both polygons, area valid"
+        : `Intersection FAILED: ${!containment1.valid ? "not in poly1, " : ""}${!containment2.valid ? "not in poly2, " : ""}${!areaValid ? "area too large" : ""}`,
       details: {
         containedInPoly1: containment1.valid,
         containedInPoly2: containment2.valid,
         area1: area1.toString(),
         area2: area2.toString(),
         intersectionArea: areaInt.toString(),
-        areaValid
-      }
+        areaValid,
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -540,15 +576,17 @@ export function verifyPolygonIntersection(poly1, poly2, intersection) {
  */
 export function verifyCircleToPath(cx, cy, r, pathData) {
   const tolerance = computeTolerance();
-  const cxD = D(cx), cyD = D(cy), rD = D(r);
+  const cxD = D(cx),
+    cyD = D(cy),
+    rD = D(r);
 
   try {
     // Expected key points (cardinal points)
     const expectedPoints = [
-      { x: cxD.plus(rD), y: cyD, name: 'right' },
-      { x: cxD, y: cyD.plus(rD), name: 'bottom' },
-      { x: cxD.minus(rD), y: cyD, name: 'left' },
-      { x: cxD, y: cyD.minus(rD), name: 'top' }
+      { x: cxD.plus(rD), y: cyD, name: "right" },
+      { x: cxD, y: cyD.plus(rD), name: "bottom" },
+      { x: cxD.minus(rD), y: cyD, name: "left" },
+      { x: cxD, y: cyD.minus(rD), name: "top" },
     ];
 
     // Extract points from path data
@@ -566,7 +604,10 @@ export function verifyCircleToPath(cx, cy, r, pathData) {
           maxError = error;
         }
         if (error.greaterThanOrEqualTo(tolerance)) {
-          missingPoints.push({ ...expected, nearestError: error.toExponential() });
+          missingPoints.push({
+            ...expected,
+            nearestError: error.toExponential(),
+          });
         }
       } else {
         missingPoints.push(expected);
@@ -587,15 +628,15 @@ export function verifyCircleToPath(cx, cy, r, pathData) {
         center: { x: cxD.toString(), y: cyD.toString() },
         radius: rD.toString(),
         pathPointCount: pathPoints.length,
-        missingPoints: missingPoints.map(p => p.name || `(${p.x}, ${p.y})`)
-      }
+        missingPoints: missingPoints.map((p) => p.name || `(${p.x}, ${p.y})`),
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -612,15 +653,18 @@ export function verifyCircleToPath(cx, cy, r, pathData) {
  */
 export function verifyRectToPath(x, y, width, height, pathData) {
   const tolerance = computeTolerance();
-  const xD = D(x), yD = D(y), wD = D(width), hD = D(height);
+  const xD = D(x),
+    yD = D(y),
+    wD = D(width),
+    hD = D(height);
 
   try {
     // Expected corners
     const expectedCorners = [
-      { x: xD, y: yD, name: 'top-left' },
-      { x: xD.plus(wD), y: yD, name: 'top-right' },
-      { x: xD.plus(wD), y: yD.plus(hD), name: 'bottom-right' },
-      { x: xD, y: yD.plus(hD), name: 'bottom-left' }
+      { x: xD, y: yD, name: "top-left" },
+      { x: xD.plus(wD), y: yD, name: "top-right" },
+      { x: xD.plus(wD), y: yD.plus(hD), name: "bottom-right" },
+      { x: xD, y: yD.plus(hD), name: "bottom-left" },
     ];
 
     const pathPoints = extractPathPoints(pathData);
@@ -636,7 +680,10 @@ export function verifyRectToPath(x, y, width, height, pathData) {
           maxError = error;
         }
         if (error.greaterThanOrEqualTo(tolerance)) {
-          missingCorners.push({ ...corner, nearestError: error.toExponential() });
+          missingCorners.push({
+            ...corner,
+            nearestError: error.toExponential(),
+          });
         }
       } else {
         missingCorners.push(corner);
@@ -654,17 +701,22 @@ export function verifyRectToPath(x, y, width, height, pathData) {
         ? `Rect to path verified: all corners present, max error ${maxError.toExponential()}`
         : `Rect to path FAILED: ${missingCorners.length} corners missing or inaccurate`,
       details: {
-        rect: { x: xD.toString(), y: yD.toString(), width: wD.toString(), height: hD.toString() },
+        rect: {
+          x: xD.toString(),
+          y: yD.toString(),
+          width: wD.toString(),
+          height: hD.toString(),
+        },
         pathPointCount: pathPoints.length,
-        missingCorners: missingCorners.map(c => c.name)
-      }
+        missingCorners: missingCorners.map((c) => c.name),
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -687,8 +739,16 @@ export function verifyLinearGradientTransform(original, baked, matrix) {
 
   try {
     // Transform original points using the provided matrix
-    const [expX1, expY1] = Transforms2D.applyTransform(matrix, D(original.x1 || 0), D(original.y1 || 0));
-    const [expX2, expY2] = Transforms2D.applyTransform(matrix, D(original.x2 || 1), D(original.y2 || 0));
+    const [expX1, expY1] = Transforms2D.applyTransform(
+      matrix,
+      D(original.x1 || 0),
+      D(original.y1 || 0),
+    );
+    const [expX2, expY2] = Transforms2D.applyTransform(
+      matrix,
+      D(original.x2 || 1),
+      D(original.y2 || 0),
+    );
 
     // Compare with baked values
     const errorX1 = D(baked.x1).minus(expX1).abs();
@@ -707,16 +767,21 @@ export function verifyLinearGradientTransform(original, baked, matrix) {
         ? `Linear gradient transform verified: max error ${maxError.toExponential()}`
         : `Linear gradient transform FAILED: max error ${maxError.toExponential()}`,
       details: {
-        expected: { x1: expX1.toString(), y1: expY1.toString(), x2: expX2.toString(), y2: expY2.toString() },
-        actual: baked
-      }
+        expected: {
+          x1: expX1.toString(),
+          y1: expY1.toString(),
+          x2: expX2.toString(),
+          y2: expY2.toString(),
+        },
+        actual: baked,
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Verification error: ${e.message}`
+      message: `Verification error: ${e.message}`,
     };
   }
 }
@@ -730,12 +795,16 @@ export function verifyLinearGradientTransform(original, baked, matrix) {
  * @private
  */
 function triangleArea(p1, p2, p3) {
-  const x1 = D(p1.x), y1 = D(p1.y);
-  const x2 = D(p2.x), y2 = D(p2.y);
-  const x3 = D(p3.x), y3 = D(p3.y);
+  const x1 = D(p1.x),
+    y1 = D(p1.y);
+  const x2 = D(p2.x),
+    y2 = D(p2.y);
+  const x3 = D(p3.x),
+    y3 = D(p3.y);
 
   // Area = 0.5 * |x1(y2-y3) + x2(y3-y1) + x3(y1-y2)|
-  const area = x1.times(y2.minus(y3))
+  const area = x1
+    .times(y2.minus(y3))
     .plus(x2.times(y3.minus(y1)))
     .plus(x3.times(y1.minus(y2)))
     .abs()
@@ -765,8 +834,10 @@ function polygonArea(polygon) {
 
   for (let i = 0; i < n; i++) {
     const j = (i + 1) % n;
-    const xi = D(polygon[i].x), yi = D(polygon[i].y);
-    const xj = D(polygon[j].x), yj = D(polygon[j].y);
+    const xi = D(polygon[i].x),
+      yi = D(polygon[i].y);
+    const xj = D(polygon[j].x),
+      yj = D(polygon[j].y);
     area = area.plus(xi.times(yj).minus(xj.times(yi)));
   }
 
@@ -778,20 +849,24 @@ function polygonArea(polygon) {
  * @private
  */
 function isPointInPolygon(point, polygon) {
-  const px = D(point.x), py = D(point.y);
+  const px = D(point.x),
+    py = D(point.y);
   const n = polygon.length;
   let inside = false;
 
   for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = D(polygon[i].x), yi = D(polygon[i].y);
-    const xj = D(polygon[j].x), yj = D(polygon[j].y);
+    const xi = D(polygon[i].x),
+      yi = D(polygon[i].y);
+    const xj = D(polygon[j].x),
+      yj = D(polygon[j].y);
 
     // Check if point is on the edge (with tolerance)
     const onEdge = isPointOnSegment(point, polygon[i], polygon[j]);
     if (onEdge) return true;
 
     // Ray casting
-    const intersect = yi.greaterThan(py) !== yj.greaterThan(py) &&
+    const intersect =
+      yi.greaterThan(py) !== yj.greaterThan(py) &&
       px.lessThan(xj.minus(xi).times(py.minus(yi)).div(yj.minus(yi)).plus(xi));
 
     if (intersect) inside = !inside;
@@ -806,9 +881,12 @@ function isPointInPolygon(point, polygon) {
  */
 function isPointOnSegment(point, segStart, segEnd) {
   const tolerance = computeTolerance();
-  const px = D(point.x), py = D(point.y);
-  const x1 = D(segStart.x), y1 = D(segStart.y);
-  const x2 = D(segEnd.x), y2 = D(segEnd.y);
+  const px = D(point.x),
+    py = D(point.y);
+  const x1 = D(segStart.x),
+    y1 = D(segStart.y);
+  const x2 = D(segEnd.x),
+    y2 = D(segEnd.y);
 
   // Check if point is within bounding box
   const minX = Decimal.min(x1, x2).minus(tolerance);
@@ -816,12 +894,21 @@ function isPointOnSegment(point, segStart, segEnd) {
   const minY = Decimal.min(y1, y2).minus(tolerance);
   const maxY = Decimal.max(y1, y2).plus(tolerance);
 
-  if (px.lessThan(minX) || px.greaterThan(maxX) || py.lessThan(minY) || py.greaterThan(maxY)) {
+  if (
+    px.lessThan(minX) ||
+    px.greaterThan(maxX) ||
+    py.lessThan(minY) ||
+    py.greaterThan(maxY)
+  ) {
     return false;
   }
 
   // Check collinearity (cross product should be ~0)
-  const cross = x2.minus(x1).times(py.minus(y1)).minus(y2.minus(y1).times(px.minus(x1))).abs();
+  const cross = x2
+    .minus(x1)
+    .times(py.minus(y1))
+    .minus(y2.minus(y1).times(px.minus(x1)))
+    .abs();
   const segLength = pointDistance(segStart, segEnd);
 
   return cross.div(segLength.plus(tolerance)).lessThan(tolerance);
@@ -844,7 +931,8 @@ function pointDistance(p1, p2) {
 function extractPathPoints(pathData) {
   const points = [];
   // Match all number pairs in path data using matchAll
-  const regex = /([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)[,\s]+([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)/g;
+  const regex =
+    /([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)[,\s]+([+-]?\d*\.?\d+(?:[eE][+-]?\d+)?)/g;
   const matches = pathData.matchAll(regex);
 
   for (const match of matches) {
@@ -914,7 +1002,9 @@ export function computePolygonDifference(subject, clip) {
         outsidePoints.push(current);
         if (!nextOutside) {
           // Crossing from outside to inside - add intersection point
-          outsidePoints.push(lineIntersectE2E(current, next, edgeStart, edgeEnd));
+          outsidePoints.push(
+            lineIntersectE2E(current, next, edgeStart, edgeEnd),
+          );
         }
       } else if (nextOutside) {
         // Crossing from inside to outside - add intersection point
@@ -957,9 +1047,17 @@ export function computePolygonDifference(subject, clip) {
  * @param {string|Decimal} [customTolerance='1e-10'] - Custom tolerance (string or Decimal)
  * @returns {VerificationResult} Verification result
  */
-export function verifyClipPathE2E(original, clipped, outsideFragments = [], customTolerance = '1e-10') {
+export function verifyClipPathE2E(
+  original,
+  clipped,
+  outsideFragments = [],
+  customTolerance = "1e-10",
+) {
   // Use configurable tolerance - higher clipSegments allows tighter tolerance
-  const tolerance = customTolerance instanceof Decimal ? customTolerance : new Decimal(customTolerance);
+  const tolerance =
+    customTolerance instanceof Decimal
+      ? customTolerance
+      : new Decimal(customTolerance);
   // Ensure outsideFragments is an array
   const fragments = outsideFragments || [];
 
@@ -976,13 +1074,19 @@ export function verifyClipPathE2E(original, clipped, outsideFragments = [], cust
     // 1. Clipped area must be <= original area (intersection property)
     // 2. Clipped area must be >= 0 (non-negative area)
     // 3. For overlapping polygons, clipped area should be > 0
-    const clippedValid = clippedArea.lessThanOrEqualTo(originalArea.times(ONE.plus(tolerance)));
-    const outsideValid = outsideArea.greaterThanOrEqualTo(ZERO.minus(tolerance.times(originalArea)));
+    const clippedValid = clippedArea.lessThanOrEqualTo(
+      originalArea.times(ONE.plus(tolerance)),
+    );
+    const outsideValid = outsideArea.greaterThanOrEqualTo(
+      ZERO.minus(tolerance.times(originalArea)),
+    );
 
     // The "error" for E2E is how close we are to perfect area conservation
     // Since we compute outside = original - clipped, the error is exactly 0 by construction
     // What we're really verifying is that the clipped area is reasonable
-    const areaRatio = originalArea.isZero() ? ONE : clippedArea.div(originalArea);
+    const areaRatio = originalArea.isZero()
+      ? ONE
+      : clippedArea.div(originalArea);
     const error = ZERO; // By construction, original = clipped + outside is exact
 
     const valid = clippedValid && outsideValid;
@@ -997,19 +1101,19 @@ export function verifyClipPathE2E(original, clipped, outsideFragments = [], cust
       details: {
         originalArea: originalArea.toString(),
         clippedArea: clippedArea.toString(),
-        outsideArea: outsideArea.toString(),  // Computed exactly as original - clipped
+        outsideArea: outsideArea.toString(), // Computed exactly as original - clipped
         areaRatio: areaRatio.toFixed(6),
         fragmentCount: fragments.length,
         clippedValid,
-        outsideValid
-      }
+        outsideValid,
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `E2E verification error: ${e.message}`
+      message: `E2E verification error: ${e.message}`,
     };
   }
 }
@@ -1033,7 +1137,7 @@ export function verifyPipelineE2E(params) {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: 'E2E verification failed: point count mismatch'
+      message: "E2E verification failed: point count mismatch",
     };
   }
 
@@ -1049,7 +1153,7 @@ export function verifyPipelineE2E(params) {
       const [expectedX, expectedY] = Transforms2D.applyTransform(
         expectedTransform,
         D(orig.x),
-        D(orig.y)
+        D(orig.y),
       );
 
       // Compare with actual flattened point
@@ -1066,7 +1170,7 @@ export function verifyPipelineE2E(params) {
           pointIndex: i,
           expected: { x: expectedX.toString(), y: expectedY.toString() },
           actual: { x: flat.x.toString(), y: flat.y.toString() },
-          error: error.toExponential()
+          error: error.toExponential(),
         });
       }
     }
@@ -1083,15 +1187,15 @@ export function verifyPipelineE2E(params) {
       details: {
         pointsChecked: originalPoints.length,
         maxError: maxError.toExponential(),
-        failedPoints: errors.slice(0, 5)
-      }
+        failedPoints: errors.slice(0, 5),
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `E2E verification error: ${e.message}`
+      message: `E2E verification error: ${e.message}`,
     };
   }
 }
@@ -1116,7 +1220,9 @@ export function verifyPolygonUnionArea(polygons, expectedArea) {
     }
 
     const error = totalArea.minus(D(expectedArea)).abs();
-    const relativeError = D(expectedArea).isZero() ? error : error.div(D(expectedArea));
+    const relativeError = D(expectedArea).isZero()
+      ? error
+      : error.div(D(expectedArea));
     const valid = relativeError.lessThan(tolerance);
 
     return {
@@ -1129,15 +1235,15 @@ export function verifyPolygonUnionArea(polygons, expectedArea) {
       details: {
         totalArea: totalArea.toString(),
         expectedArea: expectedArea.toString(),
-        polygonCount: polygons.length
-      }
+        polygonCount: polygons.length,
+      },
     };
   } catch (e) {
     return {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: `Union verification error: ${e.message}`
+      message: `Union verification error: ${e.message}`,
     };
   }
 }
@@ -1156,10 +1262,14 @@ function isInsideEdgeE2E(point, edgeStart, edgeEnd) {
 
 // E2E helper: line intersection for difference computation
 function lineIntersectE2E(p1, p2, p3, p4) {
-  const x1 = D(p1.x).toNumber(), y1 = D(p1.y).toNumber();
-  const x2 = D(p2.x).toNumber(), y2 = D(p2.y).toNumber();
-  const x3 = D(p3.x).toNumber(), y3 = D(p3.y).toNumber();
-  const x4 = D(p4.x).toNumber(), y4 = D(p4.y).toNumber();
+  const x1 = D(p1.x).toNumber(),
+    y1 = D(p1.y).toNumber();
+  const x2 = D(p2.x).toNumber(),
+    y2 = D(p2.y).toNumber();
+  const x3 = D(p3.x).toNumber(),
+    y3 = D(p3.y).toNumber();
+  const x4 = D(p4.x).toNumber(),
+    y4 = D(p4.y).toNumber();
 
   const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
   if (Math.abs(denom) < 1e-10) {
@@ -1170,7 +1280,7 @@ function lineIntersectE2E(p1, p2, p3, p4) {
 
   return {
     x: D(x1 + t * (x2 - x1)),
-    y: D(y1 + t * (y2 - y1))
+    y: D(y1 + t * (y2 - y1)),
   };
 }
 
@@ -1189,29 +1299,37 @@ function lineIntersectE2E(p1, p2, p3, p4) {
  * @returns {Object} Comprehensive verification report
  */
 export function verifyPathTransformation(params) {
-  const { matrix, originalPath, transformedPath, testPoints = [] } = params;
+  const {
+    matrix,
+    originalPath: _originalPath,
+    transformedPath: _transformedPath,
+    testPoints = [],
+  } = params;
   const results = {
     allPassed: true,
-    verifications: []
+    verifications: [],
   };
 
   // Verify matrix is valid
   const invResult = verifyMatrixInversion(matrix);
-  results.verifications.push({ name: 'Matrix Inversion', ...invResult });
+  results.verifications.push({ name: "Matrix Inversion", ...invResult });
   if (!invResult.valid) results.allPassed = false;
 
   // Verify round-trip for test points
   for (let i = 0; i < testPoints.length; i++) {
     const pt = testPoints[i];
     const rtResult = verifyTransformRoundTrip(matrix, pt.x, pt.y);
-    results.verifications.push({ name: `Round-trip Point ${i + 1}`, ...rtResult });
+    results.verifications.push({
+      name: `Round-trip Point ${i + 1}`,
+      ...rtResult,
+    });
     if (!rtResult.valid) results.allPassed = false;
   }
 
   // Verify geometry preservation
   if (testPoints.length >= 3) {
     const geoResult = verifyTransformGeometry(matrix, testPoints);
-    results.verifications.push({ name: 'Geometry Preservation', ...geoResult });
+    results.verifications.push({ name: "Geometry Preservation", ...geoResult });
     if (!geoResult.valid) results.allPassed = false;
   }
 

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 710 250" preserveAspectRatio="xMinYMin meet" height="250" width="100%">
+  <title>Grouped Columns Test</title>
+
+  <defs>
+    <style>
+      .title { font: bold 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #C8E6C9; }
+      .cell-warn { fill: #FFF9C4; }
+      .cell-bad { fill: #FFCDD2; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .cell-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .section-title { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="355" y="24" text-anchor="middle" class="title">Grouped Columns Test</text>
+  
+
+  <g transform="translate(25, 55)">
+    <rect x="210" y="0" width="300" height="25" fill="#0D47A1"/>
+    <text x="360" y="17" text-anchor="middle" class="col-header">Group A</text>
+    <rect x="510" y="0" width="150" height="25" fill="#0D47A1"/>
+    <text x="585" y="17" text-anchor="middle" class="col-header">Group B</text>
+    <rect x="60" y="0" width="150" height="85" fill="#1565C0" stroke="#DDD"/>
+    <text x="135" y="37.5" text-anchor="middle" class="col-header">Standalone</text>
+    <rect x="210" y="25" width="150" height="60" fill="#1976D2" stroke="#DDD"/>
+    <text x="285" y="50" text-anchor="middle" class="col-header">Group Item 1</text>
+    <rect x="360" y="25" width="150" height="60" fill="#1E88E5" stroke="#DDD"/>
+    <text x="435" y="50" text-anchor="middle" class="col-header">Group Item 2</text>
+    <rect x="510" y="25" width="150" height="60" fill="#42A5F5" stroke="#DDD"/>
+    <text x="585" y="50" text-anchor="middle" class="col-header">Group Item 3</text>
+    <rect x="0" y="85" width="60" height="60" fill="#E3F2FD" stroke="#DDD"/>
+    <text x="30" y="119" text-anchor="middle" class="row-label-bold">Row 1</text>
+    <rect x="60" y="85" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="135" y="115" text-anchor="middle" class="ok-text">No issues</text>
+    <rect x="210" y="85" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="285" y="115" text-anchor="middle" class="ok-text">No issues</text>
+    <rect x="360" y="85" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="435" y="115" text-anchor="middle" class="ok-text">No issues</text>
+    <rect x="510" y="85" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="585" y="115" text-anchor="middle" class="ok-text">No issues</text>
+  </g>
+</svg>

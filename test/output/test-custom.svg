@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 385 260" preserveAspectRatio="xMinYMin meet" height="260" width="100%">
+  <title>Custom Styled Table</title>
+
+  <defs>
+    <style>
+      .title { font: bold 24px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #B2DFDB; }
+      .cell-warn { fill: #FFE0B2; }
+      .cell-bad { fill: #FFCCBC; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .cell-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .section-title { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="192.5" y="24" text-anchor="middle" class="title">Custom Styled Table</text>
+  
+
+  <g transform="translate(40, 70)">
+    <rect x="120" y="0" width="200" height="60" fill="#6A1B9A" stroke="#DDD"/>
+    <text x="220" y="25" text-anchor="middle" class="col-header">Data</text>
+    <rect x="0" y="60" width="120" height="80" fill="#F3E5F5" stroke="#DDD"/>
+    <text x="60" y="104" text-anchor="middle" class="row-label-bold">Item One</text>
+    <rect x="120" y="60" width="200" height="80" class="cell-warn" stroke="#DDD"/>
+    <text x="128" y="85" class="cell-text">• Custom styled cell</text>
+  </g>
+</svg>

@@ -31,20 +31,20 @@
  * @module transform-optimization
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
 
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
 
 // Helper to convert to Decimal
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Near-zero threshold for comparisons
-const EPSILON = new Decimal('1e-40');
+const EPSILON = new Decimal("1e-40");
 
 // Verification tolerance (larger than EPSILON for practical use)
-const VERIFICATION_TOLERANCE = new Decimal('1e-30');
+const VERIFICATION_TOLERANCE = new Decimal("1e-30");
 
 // ============================================================================
 // Matrix Utilities (imported patterns)
@@ -68,7 +68,7 @@ export function translationMatrix(tx, ty) {
   return Matrix.from([
     [1, 0, D(tx)],
     [0, 1, D(ty)],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -84,7 +84,7 @@ export function rotationMatrix(angle) {
   return Matrix.from([
     [cos, sin.neg(), 0],
     [sin, cos, 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -114,7 +114,7 @@ export function scaleMatrix(sx, sy) {
   return Matrix.from([
     [D(sx), 0, 0],
     [0, D(sy), 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -194,7 +194,7 @@ export function mergeTranslations(t1, t2) {
     tx,
     ty,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -248,7 +248,7 @@ export function mergeRotations(r1, r2) {
   return {
     angle: normalizedAngle,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -292,7 +292,7 @@ export function mergeScales(s1, s2) {
     sx,
     sy,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -341,7 +341,7 @@ export function matrixToTranslate(matrix) {
       tx: null,
       ty: null,
       verified: false,
-      maxError: D(0)
+      maxError: D(0),
     };
   }
 
@@ -359,7 +359,7 @@ export function matrixToTranslate(matrix) {
     tx,
     ty,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -410,7 +410,7 @@ export function matrixToRotate(matrix) {
       isRotation: false,
       angle: null,
       verified: false,
-      maxError: D(0)
+      maxError: D(0),
     };
   }
 
@@ -420,7 +420,8 @@ export function matrixToRotate(matrix) {
   // Check unit columns: a² + b² = 1, c² + d² = 1
   const col1Norm = a.mul(a).plus(b.mul(b));
   const col2Norm = c.mul(c).plus(d.mul(d));
-  const unitNorm = col1Norm.minus(1).abs().lessThan(EPSILON) &&
+  const unitNorm =
+    col1Norm.minus(1).abs().lessThan(EPSILON) &&
     col2Norm.minus(1).abs().lessThan(EPSILON);
 
   // Check determinant = 1 (no reflection)
@@ -432,7 +433,7 @@ export function matrixToRotate(matrix) {
       isRotation: false,
       angle: null,
       verified: false,
-      maxError: D(0)
+      maxError: D(0),
     };
   }
 
@@ -448,7 +449,7 @@ export function matrixToRotate(matrix) {
     isRotation: true,
     angle,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -501,7 +502,7 @@ export function matrixToScale(matrix) {
       sy: null,
       isUniform: false,
       verified: false,
-      maxError: D(0)
+      maxError: D(0),
     };
   }
 
@@ -513,7 +514,7 @@ export function matrixToScale(matrix) {
       sy: null,
       isUniform: false,
       verified: false,
-      maxError: D(0)
+      maxError: D(0),
     };
   }
 
@@ -535,7 +536,7 @@ export function matrixToScale(matrix) {
     sy,
     isUniform,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -574,28 +575,31 @@ export function removeIdentityTransforms(transforms) {
   const PI = Decimal.acos(-1);
   const TWO_PI = PI.mul(2);
 
-  const filtered = transforms.filter(t => {
+  const filtered = transforms.filter((t) => {
     switch (t.type) {
-      case 'translate': {
+      case "translate": {
         const tx = D(t.params.tx);
         const ty = D(t.params.ty);
         return !tx.abs().lessThan(EPSILON) || !ty.abs().lessThan(EPSILON);
       }
 
-      case 'rotate': {
+      case "rotate": {
         const angle = D(t.params.angle);
         // Normalize angle to [0, 2π)
         const normalized = angle.mod(TWO_PI);
         return !normalized.abs().lessThan(EPSILON);
       }
 
-      case 'scale': {
+      case "scale": {
         const sx = D(t.params.sx);
         const sy = D(t.params.sy);
-        return !sx.minus(1).abs().lessThan(EPSILON) || !sy.minus(1).abs().lessThan(EPSILON);
+        return (
+          !sx.minus(1).abs().lessThan(EPSILON) ||
+          !sy.minus(1).abs().lessThan(EPSILON)
+        );
       }
 
-      case 'matrix': {
+      case "matrix": {
         // Check if matrix is identity
         const m = t.params.matrix;
         const identity = identityMatrix();
@@ -610,7 +614,7 @@ export function removeIdentityTransforms(transforms) {
 
   return {
     transforms: filtered,
-    removedCount: transforms.length - filtered.length
+    removedCount: transforms.length - filtered.length,
   };
 }
 
@@ -670,7 +674,7 @@ export function shortRotate(translateX, translateY, angle, centerX, centerY) {
     cx: cxD,
     cy: cyD,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -712,20 +716,24 @@ export function optimizeTransformList(transforms) {
   for (const t of transforms) {
     let m;
     switch (t.type) {
-      case 'translate':
+      case "translate":
         m = translationMatrix(t.params.tx, t.params.ty);
         break;
-      case 'rotate':
+      case "rotate":
         if (t.params.cx !== undefined && t.params.cy !== undefined) {
-          m = rotationMatrixAroundPoint(t.params.angle, t.params.cx, t.params.cy);
+          m = rotationMatrixAroundPoint(
+            t.params.angle,
+            t.params.cx,
+            t.params.cy,
+          );
         } else {
           m = rotationMatrix(t.params.angle);
         }
         break;
-      case 'scale':
+      case "scale":
         m = scaleMatrix(t.params.sx, t.params.sy);
         break;
-      case 'matrix':
+      case "matrix":
         m = t.params.matrix;
         break;
       default:
@@ -735,8 +743,9 @@ export function optimizeTransformList(transforms) {
   }
 
   // Step 1: Remove identity transforms
-  const { transforms: step1, removedCount } = removeIdentityTransforms(transforms);
-  let optimized = step1.slice();
+  const { transforms: step1, removedCount: _removedCount } =
+    removeIdentityTransforms(transforms);
+  const optimized = step1.slice();
 
   // Step 2: Merge consecutive transforms of the same type
   let i = 0;
@@ -747,31 +756,36 @@ export function optimizeTransformList(transforms) {
     // Try to merge
     let merged = null;
 
-    if (current.type === 'translate' && next.type === 'translate') {
+    if (current.type === "translate" && next.type === "translate") {
       const result = mergeTranslations(current.params, next.params);
       if (result.verified) {
         merged = {
-          type: 'translate',
-          params: { tx: result.tx, ty: result.ty }
+          type: "translate",
+          params: { tx: result.tx, ty: result.ty },
         };
       }
-    } else if (current.type === 'rotate' && next.type === 'rotate') {
+    } else if (current.type === "rotate" && next.type === "rotate") {
       // Only merge if both are around origin
-      if (!current.params.cx && !current.params.cy && !next.params.cx && !next.params.cy) {
+      if (
+        !current.params.cx &&
+        !current.params.cy &&
+        !next.params.cx &&
+        !next.params.cy
+      ) {
         const result = mergeRotations(current.params, next.params);
         if (result.verified) {
           merged = {
-            type: 'rotate',
-            params: { angle: result.angle }
+            type: "rotate",
+            params: { angle: result.angle },
           };
         }
       }
-    } else if (current.type === 'scale' && next.type === 'scale') {
+    } else if (current.type === "scale" && next.type === "scale") {
       const result = mergeScales(current.params, next.params);
       if (result.verified) {
         merged = {
-          type: 'scale',
-          params: { sx: result.sx, sy: result.sy }
+          type: "scale",
+          params: { sx: result.sx, sy: result.sy },
         };
       }
     }
@@ -792,20 +806,27 @@ export function optimizeTransformList(transforms) {
     const t2 = optimized[i + 1];
     const t3 = optimized[i + 2];
 
-    if (t1.type === 'translate' && t2.type === 'rotate' && t3.type === 'translate') {
+    if (
+      t1.type === "translate" &&
+      t2.type === "rotate" &&
+      t3.type === "translate"
+    ) {
       // Check if t3 is inverse of t1
       const tx1 = D(t1.params.tx);
       const ty1 = D(t1.params.ty);
       const tx3 = D(t3.params.tx);
       const ty3 = D(t3.params.ty);
 
-      if (tx1.plus(tx3).abs().lessThan(EPSILON) && ty1.plus(ty3).abs().lessThan(EPSILON)) {
+      if (
+        tx1.plus(tx3).abs().lessThan(EPSILON) &&
+        ty1.plus(ty3).abs().lessThan(EPSILON)
+      ) {
         // This is a rotate around point pattern
         const result = shortRotate(tx1, ty1, t2.params.angle, tx1, ty1);
         if (result.verified) {
           const merged = {
-            type: 'rotate',
-            params: { angle: result.angle, cx: result.cx, cy: result.cy }
+            type: "rotate",
+            params: { angle: result.angle, cx: result.cx, cy: result.cy },
           };
           optimized.splice(i, 3, merged);
           // Don't increment i, might be able to merge more
@@ -820,15 +841,15 @@ export function optimizeTransformList(transforms) {
   // Step 4: Convert matrices to simpler forms
   for (let j = 0; j < optimized.length; j++) {
     const t = optimized[j];
-    if (t.type === 'matrix') {
+    if (t.type === "matrix") {
       const m = t.params.matrix;
 
       // Try to convert to simpler forms
       const translateResult = matrixToTranslate(m);
       if (translateResult.isTranslation && translateResult.verified) {
         optimized[j] = {
-          type: 'translate',
-          params: { tx: translateResult.tx, ty: translateResult.ty }
+          type: "translate",
+          params: { tx: translateResult.tx, ty: translateResult.ty },
         };
         continue;
       }
@@ -836,8 +857,8 @@ export function optimizeTransformList(transforms) {
       const rotateResult = matrixToRotate(m);
       if (rotateResult.isRotation && rotateResult.verified) {
         optimized[j] = {
-          type: 'rotate',
-          params: { angle: rotateResult.angle }
+          type: "rotate",
+          params: { angle: rotateResult.angle },
         };
         continue;
       }
@@ -845,8 +866,8 @@ export function optimizeTransformList(transforms) {
       const scaleResult = matrixToScale(m);
       if (scaleResult.isScale && scaleResult.verified) {
         optimized[j] = {
-          type: 'scale',
-          params: { sx: scaleResult.sx, sy: scaleResult.sy }
+          type: "scale",
+          params: { sx: scaleResult.sx, sy: scaleResult.sy },
         };
         continue;
       }
@@ -861,20 +882,24 @@ export function optimizeTransformList(transforms) {
   for (const t of final) {
     let m;
     switch (t.type) {
-      case 'translate':
+      case "translate":
         m = translationMatrix(t.params.tx, t.params.ty);
         break;
-      case 'rotate':
+      case "rotate":
         if (t.params.cx !== undefined && t.params.cy !== undefined) {
-          m = rotationMatrixAroundPoint(t.params.angle, t.params.cx, t.params.cy);
+          m = rotationMatrixAroundPoint(
+            t.params.angle,
+            t.params.cx,
+            t.params.cy,
+          );
         } else {
           m = rotationMatrix(t.params.angle);
         }
         break;
-      case 'scale':
+      case "scale":
         m = scaleMatrix(t.params.sx, t.params.sy);
         break;
-      case 'matrix':
+      case "matrix":
         m = t.params.matrix;
         break;
       default:
@@ -891,7 +916,7 @@ export function optimizeTransformList(transforms) {
     transforms: final,
     optimizationCount: transforms.length - final.length,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -899,11 +924,7 @@ export function optimizeTransformList(transforms) {
 // Exports
 // ============================================================================
 
-export {
-  EPSILON,
-  VERIFICATION_TOLERANCE,
-  D
-};
+export { EPSILON, VERIFICATION_TOLERANCE, D };
 
 export default {
   // Matrix utilities
@@ -932,5 +953,5 @@ export default {
 
   // Constants
   EPSILON,
-  VERIFICATION_TOLERANCE
+  VERIFICATION_TOLERANCE,
 };

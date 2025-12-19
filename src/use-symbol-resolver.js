@@ -14,16 +14,16 @@
  * @module use-symbol-resolver
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as PolygonClip from './polygon-clip.js';
-import * as ClipPathResolver from './clip-path-resolver.js';
-import { parseTransformAttribute } from './svg-flatten.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
+import * as PolygonClip from "./polygon-clip.js";
+import * as ClipPathResolver from "./clip-path-resolver.js";
+import { parseTransformAttribute } from "./svg-flatten.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const _D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Detect circular references when resolving use/symbol references.
@@ -88,19 +88,23 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
  * // }
  */
 export function parseUseElement(useElement) {
-  const href = useElement.getAttribute('href') ||
-               useElement.getAttribute('xlink:href') || '';
+  const href =
+    useElement.getAttribute("href") ||
+    useElement.getAttribute("xlink:href") ||
+    "";
 
   return {
-    href: href.startsWith('#') ? href.slice(1) : href,
-    x: parseFloat(useElement.getAttribute('x') || '0'),
-    y: parseFloat(useElement.getAttribute('y') || '0'),
-    width: useElement.getAttribute('width') ?
-           parseFloat(useElement.getAttribute('width')) : null,
-    height: useElement.getAttribute('height') ?
-            parseFloat(useElement.getAttribute('height')) : null,
-    transform: useElement.getAttribute('transform') || null,
-    style: extractStyleAttributes(useElement)
+    href: href.startsWith("#") ? href.slice(1) : href,
+    x: parseFloat(useElement.getAttribute("x") || "0"),
+    y: parseFloat(useElement.getAttribute("y") || "0"),
+    width: useElement.getAttribute("width")
+      ? parseFloat(useElement.getAttribute("width"))
+      : null,
+    height: useElement.getAttribute("height")
+      ? parseFloat(useElement.getAttribute("height"))
+      : null,
+    transform: useElement.getAttribute("transform") || null,
+    style: extractStyleAttributes(useElement),
   };
 }
 
@@ -145,23 +149,27 @@ export function parseUseElement(useElement) {
  */
 export function parseSymbolElement(symbolElement) {
   const data = {
-    id: symbolElement.getAttribute('id') || '',
-    viewBox: symbolElement.getAttribute('viewBox') || null,
-    preserveAspectRatio: symbolElement.getAttribute('preserveAspectRatio') || 'xMidYMid meet',
+    id: symbolElement.getAttribute("id") || "",
+    viewBox: symbolElement.getAttribute("viewBox") || null,
+    preserveAspectRatio:
+      symbolElement.getAttribute("preserveAspectRatio") || "xMidYMid meet",
     children: [],
-    refX: parseFloat(symbolElement.getAttribute('refX') || '0'),
-    refY: parseFloat(symbolElement.getAttribute('refY') || '0')
+    refX: parseFloat(symbolElement.getAttribute("refX") || "0"),
+    refY: parseFloat(symbolElement.getAttribute("refY") || "0"),
   };
 
   // Parse viewBox
   if (data.viewBox) {
-    const parts = data.viewBox.trim().split(/[\s,]+/).map(Number);
+    const parts = data.viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
     if (parts.length === 4) {
       data.viewBoxParsed = {
         x: parts[0],
         y: parts[1],
         width: parts[2],
-        height: parts[3]
+        height: parts[3],
       };
     }
   }
@@ -240,61 +248,66 @@ export function parseChildElement(element) {
 
   const data = {
     type: tagName,
-    id: element.getAttribute('id') || null,
-    transform: element.getAttribute('transform') || null,
-    style: extractStyleAttributes(element)
+    id: element.getAttribute("id") || null,
+    transform: element.getAttribute("transform") || null,
+    style: extractStyleAttributes(element),
   };
 
   switch (tagName) {
-    case 'rect':
-      data.x = parseFloat(element.getAttribute('x') || '0');
-      data.y = parseFloat(element.getAttribute('y') || '0');
-      data.width = parseFloat(element.getAttribute('width') || '0');
-      data.height = parseFloat(element.getAttribute('height') || '0');
-      data.rx = parseFloat(element.getAttribute('rx') || '0');
-      data.ry = parseFloat(element.getAttribute('ry') || '0');
+    case "rect":
+      data.x = parseFloat(element.getAttribute("x") || "0");
+      data.y = parseFloat(element.getAttribute("y") || "0");
+      data.width = parseFloat(element.getAttribute("width") || "0");
+      data.height = parseFloat(element.getAttribute("height") || "0");
+      data.rx = parseFloat(element.getAttribute("rx") || "0");
+      data.ry = parseFloat(element.getAttribute("ry") || "0");
       break;
-    case 'circle':
-      data.cx = parseFloat(element.getAttribute('cx') || '0');
-      data.cy = parseFloat(element.getAttribute('cy') || '0');
-      data.r = parseFloat(element.getAttribute('r') || '0');
+    case "circle":
+      data.cx = parseFloat(element.getAttribute("cx") || "0");
+      data.cy = parseFloat(element.getAttribute("cy") || "0");
+      data.r = parseFloat(element.getAttribute("r") || "0");
       break;
-    case 'ellipse':
-      data.cx = parseFloat(element.getAttribute('cx') || '0');
-      data.cy = parseFloat(element.getAttribute('cy') || '0');
-      data.rx = parseFloat(element.getAttribute('rx') || '0');
-      data.ry = parseFloat(element.getAttribute('ry') || '0');
+    case "ellipse":
+      data.cx = parseFloat(element.getAttribute("cx") || "0");
+      data.cy = parseFloat(element.getAttribute("cy") || "0");
+      data.rx = parseFloat(element.getAttribute("rx") || "0");
+      data.ry = parseFloat(element.getAttribute("ry") || "0");
       break;
-    case 'path':
-      data.d = element.getAttribute('d') || '';
+    case "path":
+      data.d = element.getAttribute("d") || "";
       break;
-    case 'polygon':
-      data.points = element.getAttribute('points') || '';
+    case "polygon":
+      data.points = element.getAttribute("points") || "";
       break;
-    case 'polyline':
-      data.points = element.getAttribute('points') || '';
+    case "polyline":
+      data.points = element.getAttribute("points") || "";
       break;
-    case 'line':
-      data.x1 = parseFloat(element.getAttribute('x1') || '0');
-      data.y1 = parseFloat(element.getAttribute('y1') || '0');
-      data.x2 = parseFloat(element.getAttribute('x2') || '0');
-      data.y2 = parseFloat(element.getAttribute('y2') || '0');
+    case "line":
+      data.x1 = parseFloat(element.getAttribute("x1") || "0");
+      data.y1 = parseFloat(element.getAttribute("y1") || "0");
+      data.x2 = parseFloat(element.getAttribute("x2") || "0");
+      data.y2 = parseFloat(element.getAttribute("y2") || "0");
       break;
-    case 'g':
+    case "g":
       data.children = [];
       for (const child of element.children) {
         data.children.push(parseChildElement(child));
       }
       break;
-    case 'use':
-      data.href = (element.getAttribute('href') ||
-                   element.getAttribute('xlink:href') || '').replace('#', '');
-      data.x = parseFloat(element.getAttribute('x') || '0');
-      data.y = parseFloat(element.getAttribute('y') || '0');
-      data.width = element.getAttribute('width') ?
-                   parseFloat(element.getAttribute('width')) : null;
-      data.height = element.getAttribute('height') ?
-                    parseFloat(element.getAttribute('height')) : null;
+    case "use":
+      data.href = (
+        element.getAttribute("href") ||
+        element.getAttribute("xlink:href") ||
+        ""
+      ).replace("#", "");
+      data.x = parseFloat(element.getAttribute("x") || "0");
+      data.y = parseFloat(element.getAttribute("y") || "0");
+      data.width = element.getAttribute("width")
+        ? parseFloat(element.getAttribute("width"))
+        : null;
+      data.height = element.getAttribute("height")
+        ? parseFloat(element.getAttribute("height"))
+        : null;
       break;
   }
 
@@ -341,14 +354,14 @@ export function parseChildElement(element) {
  */
 export function extractStyleAttributes(element) {
   return {
-    fill: element.getAttribute('fill'),
-    stroke: element.getAttribute('stroke'),
-    strokeWidth: element.getAttribute('stroke-width'),
-    opacity: element.getAttribute('opacity'),
-    fillOpacity: element.getAttribute('fill-opacity'),
-    strokeOpacity: element.getAttribute('stroke-opacity'),
-    visibility: element.getAttribute('visibility'),
-    display: element.getAttribute('display')
+    fill: element.getAttribute("fill"),
+    stroke: element.getAttribute("stroke"),
+    strokeWidth: element.getAttribute("stroke-width"),
+    opacity: element.getAttribute("opacity"),
+    fillOpacity: element.getAttribute("fill-opacity"),
+    strokeOpacity: element.getAttribute("stroke-opacity"),
+    visibility: element.getAttribute("visibility"),
+    display: element.getAttribute("display"),
   };
 }
 
@@ -399,7 +412,12 @@ export function extractStyleAttributes(element) {
  * // Result: uniform scale of 2.0 (max of 200/100, 150/100)
  * // Centered: translate(0, -25) then scale(2, 2) - height extends beyond viewport
  */
-export function calculateViewBoxTransform(viewBox, targetWidth, targetHeight, preserveAspectRatio = 'xMidYMid meet') {
+export function calculateViewBoxTransform(
+  viewBox,
+  targetWidth,
+  targetHeight,
+  preserveAspectRatio = "xMidYMid meet",
+) {
   if (!viewBox || !targetWidth || !targetHeight) {
     return Matrix.identity(3);
   }
@@ -415,15 +433,16 @@ export function calculateViewBoxTransform(viewBox, targetWidth, targetHeight, pr
 
   // Parse preserveAspectRatio
   const parts = preserveAspectRatio.trim().split(/\s+/);
-  const align = parts[0] || 'xMidYMid';
-  const meetOrSlice = parts[1] || 'meet';
+  const align = parts[0] || "xMidYMid";
+  const meetOrSlice = parts[1] || "meet";
 
-  if (align === 'none') {
+  if (align === "none") {
     // Non-uniform scaling
     const scaleX = targetWidth / vbW;
     const scaleY = targetHeight / vbH;
-    return Transforms2D.translation(-vbX * scaleX, -vbY * scaleY)
-      .mul(Transforms2D.scale(scaleX, scaleY));
+    return Transforms2D.translation(-vbX * scaleX, -vbY * scaleY).mul(
+      Transforms2D.scale(scaleX, scaleY),
+    );
   }
 
   // Uniform scaling
@@ -431,7 +450,7 @@ export function calculateViewBoxTransform(viewBox, targetWidth, targetHeight, pr
   const scaleY = targetHeight / vbH;
   let scale;
 
-  if (meetOrSlice === 'slice') {
+  if (meetOrSlice === "slice") {
     scale = Math.max(scaleX, scaleY);
   } else {
     scale = Math.min(scaleX, scaleY);
@@ -445,21 +464,20 @@ export function calculateViewBoxTransform(viewBox, targetWidth, targetHeight, pr
   const scaledHeight = vbH * scale;
 
   // X alignment
-  if (align.includes('xMid')) {
+  if (align.includes("xMid")) {
     tx += (targetWidth - scaledWidth) / 2;
-  } else if (align.includes('xMax')) {
+  } else if (align.includes("xMax")) {
     tx += targetWidth - scaledWidth;
   }
 
   // Y alignment
-  if (align.includes('YMid')) {
+  if (align.includes("YMid")) {
     ty += (targetHeight - scaledHeight) / 2;
-  } else if (align.includes('YMax')) {
+  } else if (align.includes("YMax")) {
     ty += targetHeight - scaledHeight;
   }
 
-  return Transforms2D.translation(tx, ty)
-    .mul(Transforms2D.scale(scale, scale));
+  return Transforms2D.translation(tx, ty).mul(Transforms2D.scale(scale, scale));
 }
 
 /**
@@ -564,7 +582,7 @@ export function resolveUse(useData, defs, options = {}) {
 
   // Handle symbol with viewBox (step 3)
   // ViewBox transform applies LAST (after translation and useTransform)
-  if (target.type === 'symbol' && target.viewBoxParsed) {
+  if (target.type === "symbol" && target.viewBoxParsed) {
     const width = useData.width || target.viewBoxParsed.width;
     const height = useData.height || target.viewBoxParsed.height;
 
@@ -572,7 +590,7 @@ export function resolveUse(useData, defs, options = {}) {
       target.viewBoxParsed,
       width,
       height,
-      target.preserveAspectRatio
+      target.preserveAspectRatio,
     );
 
     // ViewBox transform is applied LAST, so it's the leftmost in multiplication
@@ -584,7 +602,7 @@ export function resolveUse(useData, defs, options = {}) {
   const children = target.children || [target];
 
   for (const child of children) {
-    if (child.type === 'use') {
+    if (child.type === "use") {
       // Recursive resolution
       const resolved = resolveUse(child, defs, { maxDepth: maxDepth - 1 });
       if (resolved) {
@@ -593,7 +611,7 @@ export function resolveUse(useData, defs, options = {}) {
     } else {
       resolvedChildren.push({
         element: child,
-        transform: Matrix.identity(3)
+        transform: Matrix.identity(3),
       });
     }
   }
@@ -602,7 +620,7 @@ export function resolveUse(useData, defs, options = {}) {
     element: target,
     transform,
     children: resolvedChildren,
-    inheritedStyle: useData.style
+    inheritedStyle: useData.style,
   };
 }
 
@@ -671,8 +689,12 @@ export function flattenResolvedUse(resolved, samples = 20) {
       // Recursive flattening
       const nested = flattenResolvedUse(child, samples);
       for (const n of nested) {
-        n.polygon = n.polygon.map(p => {
-          const [x, y] = Transforms2D.applyTransform(resolved.transform, p.x, p.y);
+        n.polygon = n.polygon.map((p) => {
+          const [x, y] = Transforms2D.applyTransform(
+            resolved.transform,
+            p.x,
+            p.y,
+          );
           return { x, y };
         });
         results.push(n);
@@ -683,7 +705,7 @@ export function flattenResolvedUse(resolved, samples = 20) {
       if (polygon.length >= 3) {
         results.push({
           polygon,
-          style: mergeStyles(resolved.inheritedStyle, element.style)
+          style: mergeStyles(resolved.inheritedStyle, element.style),
         });
       }
     }
@@ -732,7 +754,7 @@ export function elementToPolygon(element, transform, samples = 20) {
 
   // Apply transform
   if (transform && polygon.length > 0) {
-    polygon = polygon.map(p => {
+    polygon = polygon.map((p) => {
       const [x, y] = Transforms2D.applyTransform(transform, p.x, p.y);
       return { x, y };
     });
@@ -868,7 +890,7 @@ export function getResolvedBBox(resolved, samples = 20) {
     x: minX,
     y: minY,
     width: maxX - minX,
-    height: maxY - minY
+    height: maxY - minY,
   };
 }
 
@@ -930,7 +952,7 @@ export function clipResolvedUse(resolved, clipPolygon, samples = 20) {
       if (clippedPoly.length >= 3) {
         result.push({
           polygon: clippedPoly,
-          style
+          style,
         });
       }
     }
@@ -994,19 +1016,19 @@ export function resolvedUseToPathData(resolved, samples = 20) {
 
   for (const { polygon } of polygons) {
     if (polygon.length >= 3) {
-      let d = '';
+      let d = "";
       for (let i = 0; i < polygon.length; i++) {
         const p = polygon[i];
         const x = Number(p.x).toFixed(6);
         const y = Number(p.y).toFixed(6);
         d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
       }
-      d += ' Z';
+      d += " Z";
       paths.push(d);
     }
   }
 
-  return paths.join(' ');
+  return paths.join(" ");
 }
 
 /**
@@ -1064,15 +1086,15 @@ export function buildDefsMap(svgRoot) {
   const defs = {};
 
   // Find all elements with id
-  const elementsWithId = svgRoot.querySelectorAll('[id]');
+  const elementsWithId = svgRoot.querySelectorAll("[id]");
 
   for (const element of elementsWithId) {
-    const id = element.getAttribute('id');
+    const id = element.getAttribute("id");
     const tagName = element.tagName.toLowerCase();
 
-    if (tagName === 'symbol') {
+    if (tagName === "symbol") {
       defs[id] = parseSymbolElement(element);
-      defs[id].type = 'symbol';
+      defs[id].type = "symbol";
     } else {
       defs[id] = parseChildElement(element);
     }
@@ -1147,7 +1169,7 @@ export function buildDefsMap(svgRoot) {
  */
 export function resolveAllUses(svgRoot, options = {}) {
   const defs = buildDefsMap(svgRoot);
-  const useElements = svgRoot.querySelectorAll('use');
+  const useElements = svgRoot.querySelectorAll("use");
   const resolved = [];
 
   // Helper to get the next use reference from a definition
@@ -1156,14 +1178,14 @@ export function resolveAllUses(svgRoot, options = {}) {
     if (!target) return null;
 
     // Check if target is itself a use element
-    if (target.type === 'use') {
+    if (target.type === "use") {
       return target.href;
     }
 
     // Check if target contains use elements in its children
     if (target.children && target.children.length > 0) {
       for (const child of target.children) {
-        if (child.type === 'use') {
+        if (child.type === "use") {
           return child.href;
         }
       }
@@ -1177,7 +1199,9 @@ export function resolveAllUses(svgRoot, options = {}) {
 
     // Check for circular reference before attempting to resolve
     if (hasCircularReference(useData.href, getUseRef)) {
-      console.warn(`Circular use reference detected: #${useData.href}, skipping resolution`);
+      console.warn(
+        `Circular use reference detected: #${useData.href}, skipping resolution`,
+      );
       continue;
     }
 
@@ -1186,7 +1210,7 @@ export function resolveAllUses(svgRoot, options = {}) {
       resolved.push({
         original: useEl,
         useData,
-        resolved: result
+        resolved: result,
       });
     }
   }

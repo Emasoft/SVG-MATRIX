@@ -15,6 +15,10 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
  * Supports basic operations (add, sub, scale), products (dot, cross, outer),
  * and geometric operations (norm, normalize, angle, projection).
  *
+ * @class
+ * @property {Array<Decimal>} data - Array of Decimal vector components
+ * @property {number} length - Number of components in the vector
+ *
  * @example
  * const v = Vector.from([1, 2, 3]);
  * const w = Vector.from(['1.5', '2.5', '3.5']);
@@ -201,7 +205,7 @@ export class Vector {
     const n2 = other.norm();
     if (n1.isZero() || n2.isZero()) throw new Error('Angle with zero vector is undefined');
     // Clamp cosine to [-1, 1] for numerical safety
-    let cosv = dotProduct.div(n1.mul(n2));
+    const cosv = dotProduct.div(n1.mul(n2));
     const cosNum = cosv.toNumber();
     const clamped = Math.min(1, Math.max(-1, cosNum));
     return new Decimal(Math.acos(clamped));

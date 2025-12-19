@@ -108,20 +108,20 @@
  * @module off-canvas-detection
  */
 
-import Decimal from 'decimal.js';
-import { polygonsOverlap, point } from './gjk-collision.js';
+import Decimal from "decimal.js";
+import { polygonsOverlap, point } from "./gjk-collision.js";
 
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
 
 // Helper to convert to Decimal
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Near-zero threshold for comparisons
-const EPSILON = new Decimal('1e-40');
+const EPSILON = new Decimal("1e-40");
 
 // Default tolerance for containment checks
-const DEFAULT_TOLERANCE = new Decimal('1e-10');
+const DEFAULT_TOLERANCE = new Decimal("1e-10");
 
 // Number of samples for path/curve verification
 const VERIFICATION_SAMPLES = 100;
@@ -143,15 +143,20 @@ const VERIFICATION_SAMPLES = 100;
  * @throws {Error} If viewBox string is invalid
  */
 export function parseViewBox(viewBoxString) {
-  if (typeof viewBoxString !== 'string') {
-    throw new Error('ViewBox must be a string');
+  if (typeof viewBoxString !== "string") {
+    throw new Error("ViewBox must be a string");
   }
 
   // Split on whitespace and/or commas
-  const parts = viewBoxString.trim().split(/[\s,]+/).filter(p => p.length > 0);
+  const parts = viewBoxString
+    .trim()
+    .split(/[\s,]+/)
+    .filter((p) => p.length > 0);
 
   if (parts.length !== 4) {
-    throw new Error(`Invalid viewBox format: expected 4 values, got ${parts.length}`);
+    throw new Error(
+      `Invalid viewBox format: expected 4 values, got ${parts.length}`,
+    );
   }
 
   try {
@@ -162,12 +167,12 @@ export function parseViewBox(viewBoxString) {
 
     // Validate positive dimensions
     if (width.lessThanOrEqualTo(0) || height.lessThanOrEqualTo(0)) {
-      throw new Error('ViewBox width and height must be positive');
+      throw new Error("ViewBox width and height must be positive");
     }
 
     // VERIFICATION: Reconstruct string and compare
     const reconstructed = `${x.toString()} ${y.toString()} ${width.toString()} ${height.toString()}`;
-    const normalizedOriginal = parts.join(' ');
+    const normalizedOriginal = parts.join(" ");
     const verified = reconstructed === normalizedOriginal;
 
     return { x, y, width, height, verified };
@@ -196,7 +201,7 @@ function createBBox(minX, minY, maxX, maxY) {
     maxX,
     maxY,
     width: maxX.minus(minX),
-    height: maxY.minus(minY)
+    height: maxY.minus(minY),
   };
 }
 
@@ -208,12 +213,12 @@ function createBBox(minX, minY, maxX, maxY) {
  * @param {Decimal} y - Point Y coordinate
  * @returns {{minX: Decimal, minY: Decimal, maxX: Decimal, maxY: Decimal}}
  */
-function expandBBox(bbox, x, y) {
+function _expandBBox(bbox, x, y) {
   return {
     minX: Decimal.min(bbox.minX, x),
     minY: Decimal.min(bbox.minY, y),
     maxX: Decimal.max(bbox.maxX, x),
-    maxY: Decimal.max(bbox.maxY, y)
+    maxY: Decimal.max(bbox.maxY, y),
   };
 }
 
@@ -243,12 +248,14 @@ function sampleCubicBezier(x0, y0, x1, y1, x2, y2, x3, y3, samples = 20) {
     const oneMinusT2 = oneMinusT.mul(oneMinusT);
     const oneMinusT3 = oneMinusT2.mul(oneMinusT);
 
-    const x = oneMinusT3.mul(x0)
+    const x = oneMinusT3
+      .mul(x0)
       .plus(D(3).mul(oneMinusT2).mul(t).mul(x1))
       .plus(D(3).mul(oneMinusT).mul(t2).mul(x2))
       .plus(t3.mul(x3));
 
-    const y = oneMinusT3.mul(y0)
+    const y = oneMinusT3
+      .mul(y0)
       .plus(D(3).mul(oneMinusT2).mul(t).mul(y1))
       .plus(D(3).mul(oneMinusT).mul(t2).mul(y2))
       .plus(t3.mul(y3));
@@ -280,11 +287,13 @@ function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, samples = 20) {
     const oneMinusT2 = oneMinusT.mul(oneMinusT);
     const t2 = t.mul(t);
 
-    const x = oneMinusT2.mul(x0)
+    const x = oneMinusT2
+      .mul(x0)
       .plus(D(2).mul(oneMinusT).mul(t).mul(x1))
       .plus(t2.mul(x2));
 
-    const y = oneMinusT2.mul(y0)
+    const y = oneMinusT2
+      .mul(y0)
       .plus(D(2).mul(oneMinusT).mul(t).mul(y1))
       .plus(t2.mul(y2));
 
@@ -302,10 +311,12 @@ function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, samples = 20) {
  * @returns {boolean} True if point is inside or on boundary
  */
 function pointInBBox(pt, bbox, tolerance = DEFAULT_TOLERANCE) {
-  return pt.x.greaterThanOrEqualTo(bbox.minX.minus(tolerance)) &&
+  return (
+    pt.x.greaterThanOrEqualTo(bbox.minX.minus(tolerance)) &&
     pt.x.lessThanOrEqualTo(bbox.maxX.plus(tolerance)) &&
     pt.y.greaterThanOrEqualTo(bbox.minY.minus(tolerance)) &&
-    pt.y.lessThanOrEqualTo(bbox.maxY.plus(tolerance));
+    pt.y.lessThanOrEqualTo(bbox.maxY.plus(tolerance))
+  );
 }
 
 // ============================================================================
@@ -326,7 +337,7 @@ function pointInBBox(pt, bbox, tolerance = DEFAULT_TOLERANCE) {
  */
 export function pathBoundingBox(pathCommands) {
   if (!pathCommands || pathCommands.length === 0) {
-    throw new Error('Path commands array is empty');
+    throw new Error("Path commands array is empty");
   }
 
   let minX = D(Infinity);
@@ -352,7 +363,7 @@ export function pathBoundingBox(pathCommands) {
     const isRelative = cmd.type === cmd.type.toLowerCase();
 
     switch (type) {
-      case 'M': // Move
+      case "M": // Move
         {
           // BUG 1 FIX: Handle relative coordinates
           const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
@@ -370,11 +381,11 @@ export function pathBoundingBox(pathCommands) {
           // BUG 3 FIX: Reset lastControl after non-curve command
           lastControlX = currentX;
           lastControlY = currentY;
-          lastCommand = 'M';
+          lastCommand = "M";
         }
         break;
 
-      case 'L': // Line to
+      case "L": // Line to
         {
           // BUG 1 FIX: Handle relative coordinates
           const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
@@ -390,11 +401,11 @@ export function pathBoundingBox(pathCommands) {
           // BUG 3 FIX: Reset lastControl after non-curve command
           lastControlX = currentX;
           lastControlY = currentY;
-          lastCommand = 'L';
+          lastCommand = "L";
         }
         break;
 
-      case 'H': // Horizontal line
+      case "H": // Horizontal line
         {
           // BUG 1 FIX: Handle relative coordinates
           const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
@@ -406,11 +417,11 @@ export function pathBoundingBox(pathCommands) {
           // BUG 3 FIX: Reset lastControl after non-curve command
           lastControlX = currentX;
           lastControlY = currentY;
-          lastCommand = 'H';
+          lastCommand = "H";
         }
         break;
 
-      case 'V': // Vertical line
+      case "V": // Vertical line
         {
           // BUG 1 FIX: Handle relative coordinates
           const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
@@ -422,11 +433,11 @@ export function pathBoundingBox(pathCommands) {
           // BUG 3 FIX: Reset lastControl after non-curve command
           lastControlX = currentX;
           lastControlY = currentY;
-          lastCommand = 'V';
+          lastCommand = "V";
         }
         break;
 
-      case 'C': // Cubic Bezier
+      case "C": // Cubic Bezier
         {
           // BUG 1 FIX: Handle relative coordinates
           const x1 = isRelative ? currentX.plus(D(cmd.x1)) : D(cmd.x1);
@@ -437,7 +448,17 @@ export function pathBoundingBox(pathCommands) {
           const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
 
           // Sample curve points
-          const curvePoints = sampleCubicBezier(currentX, currentY, x1, y1, x2, y2, x, y, 20);
+          const curvePoints = sampleCubicBezier(
+            currentX,
+            currentY,
+            x1,
+            y1,
+            x2,
+            y2,
+            x,
+            y,
+            20,
+          );
           for (const pt of curvePoints) {
             minX = Decimal.min(minX, pt.x);
             minY = Decimal.min(minY, pt.y);
@@ -450,11 +471,11 @@ export function pathBoundingBox(pathCommands) {
           lastControlY = y2;
           currentX = x;
           currentY = y;
-          lastCommand = 'C';
+          lastCommand = "C";
         }
         break;
 
-      case 'S': // Smooth cubic Bezier
+      case "S": // Smooth cubic Bezier
         {
           // BUG 1 FIX: Handle relative coordinates
           const x2 = isRelative ? currentX.plus(D(cmd.x2)) : D(cmd.x2);
@@ -465,7 +486,7 @@ export function pathBoundingBox(pathCommands) {
           // Reflect last control point
           // BUG 3 FIX: lastControlX/Y are now always initialized, safe to use
           let x1, y1;
-          if (lastCommand === 'C' || lastCommand === 'S') {
+          if (lastCommand === "C" || lastCommand === "S") {
             x1 = currentX.mul(2).minus(lastControlX);
             y1 = currentY.mul(2).minus(lastControlY);
           } else {
@@ -473,7 +494,17 @@ export function pathBoundingBox(pathCommands) {
             y1 = currentY;
           }
 
-          const curvePoints = sampleCubicBezier(currentX, currentY, x1, y1, x2, y2, x, y, 20);
+          const curvePoints = sampleCubicBezier(
+            currentX,
+            currentY,
+            x1,
+            y1,
+            x2,
+            y2,
+            x,
+            y,
+            20,
+          );
           for (const pt of curvePoints) {
             minX = Decimal.min(minX, pt.x);
             minY = Decimal.min(minY, pt.y);
@@ -486,11 +517,11 @@ export function pathBoundingBox(pathCommands) {
           lastControlY = y2;
           currentX = x;
           currentY = y;
-          lastCommand = 'S';
+          lastCommand = "S";
         }
         break;
 
-      case 'Q': // Quadratic Bezier
+      case "Q": // Quadratic Bezier
         {
           // BUG 1 FIX: Handle relative coordinates
           const x1 = isRelative ? currentX.plus(D(cmd.x1)) : D(cmd.x1);
@@ -498,7 +529,15 @@ export function pathBoundingBox(pathCommands) {
           const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
           const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
 
-          const curvePoints = sampleQuadraticBezier(currentX, currentY, x1, y1, x, y, 20);
+          const curvePoints = sampleQuadraticBezier(
+            currentX,
+            currentY,
+            x1,
+            y1,
+            x,
+            y,
+            20,
+          );
           for (const pt of curvePoints) {
             minX = Decimal.min(minX, pt.x);
             minY = Decimal.min(minY, pt.y);
@@ -511,11 +550,11 @@ export function pathBoundingBox(pathCommands) {
           lastControlY = y1;
           currentX = x;
           currentY = y;
-          lastCommand = 'Q';
+          lastCommand = "Q";
         }
         break;
 
-      case 'T': // Smooth quadratic Bezier
+      case "T": // Smooth quadratic Bezier
         {
           // BUG 1 FIX: Handle relative coordinates
           const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
@@ -524,7 +563,7 @@ export function pathBoundingBox(pathCommands) {
           // Reflect last control point
           // BUG 3 FIX: lastControlX/Y are now always initialized, safe to use
           let x1, y1;
-          if (lastCommand === 'Q' || lastCommand === 'T') {
+          if (lastCommand === "Q" || lastCommand === "T") {
             x1 = currentX.mul(2).minus(lastControlX);
             y1 = currentY.mul(2).minus(lastControlY);
           } else {
@@ -532,7 +571,15 @@ export function pathBoundingBox(pathCommands) {
             y1 = currentY;
           }
 
-          const curvePoints = sampleQuadraticBezier(currentX, currentY, x1, y1, x, y, 20);
+          const curvePoints = sampleQuadraticBezier(
+            currentX,
+            currentY,
+            x1,
+            y1,
+            x,
+            y,
+            20,
+          );
           for (const pt of curvePoints) {
             minX = Decimal.min(minX, pt.x);
             minY = Decimal.min(minY, pt.y);
@@ -545,11 +592,11 @@ export function pathBoundingBox(pathCommands) {
           lastControlY = y1;
           currentX = x;
           currentY = y;
-          lastCommand = 'T';
+          lastCommand = "T";
         }
         break;
 
-      case 'A': // Arc (approximate with samples)
+      case "A": // Arc (approximate with samples)
         {
           // BUG 4: Arc bounding box ignores actual arc geometry
           // TODO: Implement proper arc-to-bezier conversion or calculate arc extrema
@@ -583,17 +630,17 @@ export function pathBoundingBox(pathCommands) {
           // BUG 3 FIX: Reset lastControl after non-curve command
           lastControlX = currentX;
           lastControlY = currentY;
-          lastCommand = 'A';
+          lastCommand = "A";
         }
         break;
 
-      case 'Z': // Close path
+      case "Z": // Close path
         currentX = startX;
         currentY = startY;
         // BUG 3 FIX: Reset lastControl after non-curve command
         lastControlX = currentX;
         lastControlY = currentY;
-        lastCommand = 'Z';
+        lastCommand = "Z";
         break;
 
       default:
@@ -601,8 +648,13 @@ export function pathBoundingBox(pathCommands) {
     }
   }
 
-  if (!minX.isFinite() || !minY.isFinite() || !maxX.isFinite() || !maxY.isFinite()) {
-    throw new Error('Invalid bounding box: no valid coordinates found');
+  if (
+    !minX.isFinite() ||
+    !minY.isFinite() ||
+    !maxX.isFinite() ||
+    !maxY.isFinite()
+  ) {
+    throw new Error("Invalid bounding box: no valid coordinates found");
   }
 
   const bbox = createBBox(minX, minY, maxX, maxY);
@@ -636,7 +688,7 @@ export function pathBoundingBox(pathCommands) {
  */
 export function shapeBoundingBox(shape) {
   if (!shape || !shape.type) {
-    throw new Error('Shape object must have a type property');
+    throw new Error("Shape object must have a type property");
   }
 
   const type = shape.type.toLowerCase();
@@ -644,7 +696,7 @@ export function shapeBoundingBox(shape) {
   let samplePoints = [];
 
   switch (type) {
-    case 'rect':
+    case "rect":
       {
         const x = D(shape.x);
         const y = D(shape.y);
@@ -658,12 +710,12 @@ export function shapeBoundingBox(shape) {
           { x, y },
           { x: x.plus(width), y },
           { x: x.plus(width), y: y.plus(height) },
-          { x, y: y.plus(height) }
+          { x, y: y.plus(height) },
         ];
       }
       break;
 
-    case 'circle':
+    case "circle":
       {
         const cx = D(shape.cx);
         const cy = D(shape.cy);
@@ -683,7 +735,7 @@ export function shapeBoundingBox(shape) {
       }
       break;
 
-    case 'ellipse':
+    case "ellipse":
       {
         const cx = D(shape.cx);
         const cy = D(shape.cy);
@@ -704,7 +756,7 @@ export function shapeBoundingBox(shape) {
       }
       break;
 
-    case 'line':
+    case "line":
       {
         const x1 = D(shape.x1);
         const y1 = D(shape.y1);
@@ -717,12 +769,15 @@ export function shapeBoundingBox(shape) {
         const maxY = Decimal.max(y1, y2);
 
         bbox = createBBox(minX, minY, maxX, maxY);
-        samplePoints = [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+        samplePoints = [
+          { x: x1, y: y1 },
+          { x: x2, y: y2 },
+        ];
       }
       break;
 
-    case 'polygon':
-    case 'polyline':
+    case "polygon":
+    case "polyline":
       {
         if (!shape.points || shape.points.length === 0) {
           throw new Error(`${type} must have points array`);
@@ -778,7 +833,7 @@ function bboxToPolygon(bbox) {
     point(bbox.minX, bbox.minY),
     point(bbox.maxX, bbox.minY),
     point(bbox.maxX, bbox.maxY),
-    point(bbox.minX, bbox.maxY)
+    point(bbox.minX, bbox.maxY),
   ];
 }
 
@@ -801,7 +856,7 @@ export function bboxIntersectsViewBox(bbox, viewBox) {
     minX: viewBox.x,
     minY: viewBox.y,
     maxX: viewBox.x.plus(viewBox.width),
-    maxY: viewBox.y.plus(viewBox.height)
+    maxY: viewBox.y.plus(viewBox.height),
   });
 
   // Use GJK algorithm
@@ -809,7 +864,7 @@ export function bboxIntersectsViewBox(bbox, viewBox) {
 
   return {
     intersects: result.overlaps,
-    verified: result.verified
+    verified: result.verified,
   };
 }
 
@@ -840,7 +895,7 @@ export function isPathOffCanvas(pathCommands, viewBox) {
     return {
       offCanvas: false,
       bbox,
-      verified: intersection.verified && bbox.verified
+      verified: intersection.verified && bbox.verified,
     };
   }
 
@@ -850,13 +905,13 @@ export function isPathOffCanvas(pathCommands, viewBox) {
     minX: viewBox.x,
     minY: viewBox.y,
     maxX: viewBox.x.plus(viewBox.width),
-    maxY: viewBox.y.plus(viewBox.height)
+    maxY: viewBox.y.plus(viewBox.height),
   };
 
   // Sample a few points from the path to verify
   let verified = true;
-  let currentX = D(0);
-  let currentY = D(0);
+  let _currentX = D(0);
+  let _currentY = D(0);
   let sampleCount = 0;
   const maxSamples = 10; // Limit verification samples
 
@@ -864,15 +919,15 @@ export function isPathOffCanvas(pathCommands, viewBox) {
     if (sampleCount >= maxSamples) break;
 
     const type = cmd.type.toUpperCase();
-    if (type === 'M' || type === 'L') {
+    if (type === "M" || type === "L") {
       const x = D(cmd.x);
       const y = D(cmd.y);
       if (pointInBBox({ x, y }, viewBoxBBox)) {
         verified = false;
         break;
       }
-      currentX = x;
-      currentY = y;
+      _currentX = x;
+      _currentY = y;
       sampleCount++;
     }
   }
@@ -880,7 +935,7 @@ export function isPathOffCanvas(pathCommands, viewBox) {
   return {
     offCanvas: true,
     bbox,
-    verified: verified && bbox.verified
+    verified: verified && bbox.verified,
   };
 }
 
@@ -907,7 +962,7 @@ export function isShapeOffCanvas(shape, viewBox) {
     return {
       offCanvas: false,
       bbox,
-      verified: intersection.verified && bbox.verified
+      verified: intersection.verified && bbox.verified,
     };
   }
 
@@ -915,7 +970,7 @@ export function isShapeOffCanvas(shape, viewBox) {
   return {
     offCanvas: true,
     bbox,
-    verified: intersection.verified && bbox.verified
+    verified: intersection.verified && bbox.verified,
   };
 }
 
@@ -934,10 +989,10 @@ export function isShapeOffCanvas(shape, viewBox) {
 function clipLine(p1, p2, bounds) {
   // Cohen-Sutherland outcodes
   const INSIDE = 0; // 0000
-  const LEFT = 1;   // 0001
-  const RIGHT = 2;  // 0010
+  const LEFT = 1; // 0001
+  const RIGHT = 2; // 0010
   const BOTTOM = 4; // 0100
-  const TOP = 8;    // 1000
+  const TOP = 8; // 1000
 
   const computeOutcode = (x, y) => {
     let code = INSIDE;
@@ -948,8 +1003,10 @@ function clipLine(p1, p2, bounds) {
     return code;
   };
 
-  let x1 = p1.x, y1 = p1.y;
-  let x2 = p2.x, y2 = p2.y;
+  let x1 = p1.x,
+    y1 = p1.y;
+  let x2 = p2.x,
+    y2 = p2.y;
   let outcode1 = computeOutcode(x1, y1);
   let outcode2 = computeOutcode(x2, y2);
 
@@ -962,7 +1019,10 @@ function clipLine(p1, p2, bounds) {
   while (true) {
     if ((outcode1 | outcode2) === 0) {
       // Both points inside - accept
-      return [{ x: x1, y: y1 }, { x: x2, y: y2 }];
+      return [
+        { x: x1, y: y1 },
+        { x: x2, y: y2 },
+      ];
     } else if ((outcode1 & outcode2) !== 0) {
       // Both points outside same edge - reject
       return [];
@@ -1010,7 +1070,8 @@ function clipLine(p1, p2, bounds) {
         } else if ((outcodeOut & RIGHT) !== 0) {
           y = y1.plus(dy.mul(bounds.maxX.minus(x1)).div(dx));
           x = bounds.maxX;
-        } else { // LEFT
+        } else {
+          // LEFT
           y = y1.plus(dy.mul(bounds.minX.minus(x1)).div(dx));
           x = bounds.minX;
         }
@@ -1046,7 +1107,7 @@ export function clipPathToViewBox(pathCommands, viewBox) {
     minX: viewBox.x,
     minY: viewBox.y,
     maxX: viewBox.x.plus(viewBox.width),
-    maxY: viewBox.y.plus(viewBox.height)
+    maxY: viewBox.y.plus(viewBox.height),
   };
 
   const clippedCommands = [];
@@ -1058,14 +1119,14 @@ export function clipPathToViewBox(pathCommands, viewBox) {
     const type = cmd.type.toUpperCase();
 
     switch (type) {
-      case 'M': // Move
+      case "M": // Move
         {
           const x = D(cmd.x);
           const y = D(cmd.y);
 
           // Only add move if point is inside bounds
           if (pointInBBox({ x, y }, bounds)) {
-            clippedCommands.push({ type: 'M', x, y });
+            clippedCommands.push({ type: "M", x, y });
             pathStarted = true;
           } else {
             pathStarted = false;
@@ -1076,21 +1137,33 @@ export function clipPathToViewBox(pathCommands, viewBox) {
         }
         break;
 
-      case 'L': // Line to
+      case "L": // Line to
         {
           const x = D(cmd.x);
           const y = D(cmd.y);
 
           // Clip line segment
-          const clipped = clipLine({ x: currentX, y: currentY }, { x, y }, bounds);
+          const clipped = clipLine(
+            { x: currentX, y: currentY },
+            { x, y },
+            bounds,
+          );
 
           if (clipped.length === 2) {
             // Line segment visible after clipping
             if (!pathStarted) {
-              clippedCommands.push({ type: 'M', x: clipped[0].x, y: clipped[0].y });
+              clippedCommands.push({
+                type: "M",
+                x: clipped[0].x,
+                y: clipped[0].y,
+              });
               pathStarted = true;
             }
-            clippedCommands.push({ type: 'L', x: clipped[1].x, y: clipped[1].y });
+            clippedCommands.push({
+              type: "L",
+              x: clipped[1].x,
+              y: clipped[1].y,
+            });
           } else {
             // Line segment completely clipped
             pathStarted = false;
@@ -1101,17 +1174,29 @@ export function clipPathToViewBox(pathCommands, viewBox) {
         }
         break;
 
-      case 'H': // Horizontal line
+      case "H": // Horizontal line
         {
           const x = D(cmd.x);
-          const clipped = clipLine({ x: currentX, y: currentY }, { x, y: currentY }, bounds);
+          const clipped = clipLine(
+            { x: currentX, y: currentY },
+            { x, y: currentY },
+            bounds,
+          );
 
           if (clipped.length === 2) {
             if (!pathStarted) {
-              clippedCommands.push({ type: 'M', x: clipped[0].x, y: clipped[0].y });
+              clippedCommands.push({
+                type: "M",
+                x: clipped[0].x,
+                y: clipped[0].y,
+              });
               pathStarted = true;
             }
-            clippedCommands.push({ type: 'L', x: clipped[1].x, y: clipped[1].y });
+            clippedCommands.push({
+              type: "L",
+              x: clipped[1].x,
+              y: clipped[1].y,
+            });
           } else {
             pathStarted = false;
           }
@@ -1120,17 +1205,29 @@ export function clipPathToViewBox(pathCommands, viewBox) {
         }
         break;
 
-      case 'V': // Vertical line
+      case "V": // Vertical line
         {
           const y = D(cmd.y);
-          const clipped = clipLine({ x: currentX, y: currentY }, { x: currentX, y }, bounds);
+          const clipped = clipLine(
+            { x: currentX, y: currentY },
+            { x: currentX, y },
+            bounds,
+          );
 
           if (clipped.length === 2) {
             if (!pathStarted) {
-              clippedCommands.push({ type: 'M', x: clipped[0].x, y: clipped[0].y });
+              clippedCommands.push({
+                type: "M",
+                x: clipped[0].x,
+                y: clipped[0].y,
+              });
               pathStarted = true;
             }
-            clippedCommands.push({ type: 'L', x: clipped[1].x, y: clipped[1].y });
+            clippedCommands.push({
+              type: "L",
+              x: clipped[1].x,
+              y: clipped[1].y,
+            });
           } else {
             pathStarted = false;
           }
@@ -1139,11 +1236,11 @@ export function clipPathToViewBox(pathCommands, viewBox) {
         }
         break;
 
-      case 'C': // Cubic Bezier - sample as polyline
-      case 'S': // Smooth cubic - sample as polyline
-      case 'Q': // Quadratic - sample as polyline
-      case 'T': // Smooth quadratic - sample as polyline
-      case 'A': // Arc - sample as polyline
+      case "C": // Cubic Bezier - sample as polyline
+      case "S": // Smooth cubic - sample as polyline
+      case "Q": // Quadratic - sample as polyline
+      case "T": // Smooth quadratic - sample as polyline
+      case "A": // Arc - sample as polyline
         {
           // For simplicity, just include the endpoint
           // A full implementation would sample the curve
@@ -1152,10 +1249,10 @@ export function clipPathToViewBox(pathCommands, viewBox) {
 
           if (pointInBBox({ x, y }, bounds)) {
             if (!pathStarted) {
-              clippedCommands.push({ type: 'M', x, y });
+              clippedCommands.push({ type: "M", x, y });
               pathStarted = true;
             } else {
-              clippedCommands.push({ type: 'L', x, y });
+              clippedCommands.push({ type: "L", x, y });
             }
           } else {
             pathStarted = false;
@@ -1166,9 +1263,9 @@ export function clipPathToViewBox(pathCommands, viewBox) {
         }
         break;
 
-      case 'Z': // Close path
+      case "Z": // Close path
         if (pathStarted) {
-          clippedCommands.push({ type: 'Z' });
+          clippedCommands.push({ type: "Z" });
         }
         pathStarted = false;
         break;
@@ -1182,7 +1279,7 @@ export function clipPathToViewBox(pathCommands, viewBox) {
   // VERIFICATION: Check that all points are within bounds
   let verified = true;
   for (const cmd of clippedCommands) {
-    if (cmd.type === 'M' || cmd.type === 'L') {
+    if (cmd.type === "M" || cmd.type === "L") {
       if (!pointInBBox({ x: cmd.x, y: cmd.y }, bounds)) {
         verified = false;
         break;
@@ -1218,5 +1315,5 @@ export default {
   // Constants
   EPSILON,
   DEFAULT_TOLERANCE,
-  VERIFICATION_SAMPLES
+  VERIFICATION_SAMPLES,
 };

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <title>SVG 2.0 CSS Custom Properties</title>
+  <desc>Tests CSS custom properties (variables) in SVG</desc>
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #e74c3c;
+      --accent-color: #2ecc71;
+      --stroke-width: 3;
+      --border-radius: 10px;
+    }
+    .primary {
+      fill: var(--primary-color);
+    }
+    .secondary {
+      fill: var(--secondary-color);
+    }
+    .accent {
+      fill: var(--accent-color);
+    }
+    .bordered {
+      stroke: var(--primary-color);
+      stroke-width: var(--stroke-width);
+      fill: white;
+    }
+    .gradient-stop-1 {
+      stop-color: var(--primary-color);
+    }
+    .gradient-stop-2 {
+      stop-color: var(--secondary-color);
+    }
+  </style>
+  <defs>
+    <linearGradient id="varGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" class="gradient-stop-1"/>
+      <stop offset="100%" class="gradient-stop-2"/>
+    </linearGradient>
+  </defs>
+  <!-- Using CSS variables -->
+  <rect x="20" y="20" width="100" height="100" class="primary" rx="10"/>
+  <rect x="140" y="20" width="100" height="100" class="secondary" rx="10"/>
+  <rect x="260" y="20" width="100" height="100" class="accent" rx="10"/>
+  <!-- Bordered elements -->
+  <circle cx="70" cy="200" r="40" class="bordered"/>
+  <rect x="140" y="160" width="80" height="80" class="bordered" rx="10"/>
+  <!-- Gradient with variables -->
+  <ellipse cx="310" cy="200" rx="60" ry="40" fill="url(#varGradient)"/>
+  <!-- Inline variable override -->
+  <rect x="20" y="260" width="360" height="30" rx="5"
+        style="--primary-color: purple; fill: var(--primary-color);"/>
+</svg>

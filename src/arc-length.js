@@ -13,13 +13,13 @@
  * - 10^65x better precision than float64 implementations
  */
 
-import Decimal from 'decimal.js';
-import { bezierDerivative, bezierPoint } from './bezier-analysis.js';
+import Decimal from "decimal.js";
+import { bezierDerivative, bezierPoint } from "./bezier-analysis.js";
 
 // Ensure high precision
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // ============================================================================
 // GAUSS-LEGENDRE QUADRATURE NODES AND WEIGHTS
@@ -33,47 +33,47 @@ const GAUSS_LEGENDRE = {
   // 5-point rule (sufficient for most cases)
   5: {
     nodes: [
-      '-0.90617984593866399279762687829939296512565191076',
-      '-0.53846931010568309103631442070020880496728660690',
-      '0',
-      '0.53846931010568309103631442070020880496728660690',
-      '0.90617984593866399279762687829939296512565191076'
+      "-0.90617984593866399279762687829939296512565191076",
+      "-0.53846931010568309103631442070020880496728660690",
+      "0",
+      "0.53846931010568309103631442070020880496728660690",
+      "0.90617984593866399279762687829939296512565191076",
     ],
     weights: [
-      '0.23692688505618908751426404071991736264326000221',
-      '0.47862867049936646804129151483563819291229555035',
-      '0.56888888888888888888888888888888888888888888889',
-      '0.47862867049936646804129151483563819291229555035',
-      '0.23692688505618908751426404071991736264326000221'
-    ]
+      "0.23692688505618908751426404071991736264326000221",
+      "0.47862867049936646804129151483563819291229555035",
+      "0.56888888888888888888888888888888888888888888889",
+      "0.47862867049936646804129151483563819291229555035",
+      "0.23692688505618908751426404071991736264326000221",
+    ],
   },
   // 10-point rule (for higher accuracy)
   10: {
     nodes: [
-      '-0.97390652851717172007796401208445205342826994669',
-      '-0.86506336668898451073209668842349304852754301497',
-      '-0.67940956829902440623432736511487357576929471183',
-      '-0.43339539412924719079926594316578416220007183765',
-      '-0.14887433898163121088482600112971998461756485942',
-      '0.14887433898163121088482600112971998461756485942',
-      '0.43339539412924719079926594316578416220007183765',
-      '0.67940956829902440623432736511487357576929471183',
-      '0.86506336668898451073209668842349304852754301497',
-      '0.97390652851717172007796401208445205342826994669'
+      "-0.97390652851717172007796401208445205342826994669",
+      "-0.86506336668898451073209668842349304852754301497",
+      "-0.67940956829902440623432736511487357576929471183",
+      "-0.43339539412924719079926594316578416220007183765",
+      "-0.14887433898163121088482600112971998461756485942",
+      "0.14887433898163121088482600112971998461756485942",
+      "0.43339539412924719079926594316578416220007183765",
+      "0.67940956829902440623432736511487357576929471183",
+      "0.86506336668898451073209668842349304852754301497",
+      "0.97390652851717172007796401208445205342826994669",
     ],
     weights: [
-      '0.06667134430868813759356880989333179285786483432',
-      '0.14945134915058059314577633965769733240255644326',
-      '0.21908636251598204399553493422816219682140867715',
-      '0.26926671930999635509122692156946935285975993846',
-      '0.29552422471475287017389299465133832942104671702',
-      '0.29552422471475287017389299465133832942104671702',
-      '0.26926671930999635509122692156946935285975993846',
-      '0.21908636251598204399553493422816219682140867715',
-      '0.14945134915058059314577633965769733240255644326',
-      '0.06667134430868813759356880989333179285786483432'
-    ]
-  }
+      "0.06667134430868813759356880989333179285786483432",
+      "0.14945134915058059314577633965769733240255644326",
+      "0.21908636251598204399553493422816219682140867715",
+      "0.26926671930999635509122692156946935285975993846",
+      "0.29552422471475287017389299465133832942104671702",
+      "0.29552422471475287017389299465133832942104671702",
+      "0.26926671930999635509122692156946935285975993846",
+      "0.21908636251598204399553493422816219682140867715",
+      "0.14945134915058059314577633965769733240255644326",
+      "0.06667134430868813759356880989333179285786483432",
+    ],
+  },
 };
 
 // ============================================================================
@@ -86,7 +86,7 @@ const GAUSS_LEGENDRE = {
  * the curve derivative is essentially zero. At such points, Newton's method
  * would divide by near-zero, causing instability. We switch to bisection instead.
  */
-const NEAR_ZERO_SPEED_THRESHOLD = new Decimal('1e-60');
+const NEAR_ZERO_SPEED_THRESHOLD = new Decimal("1e-60");
 
 /**
  * Default tolerance for arc length computation.
@@ -94,7 +94,7 @@ const NEAR_ZERO_SPEED_THRESHOLD = new Decimal('1e-60');
  * The value 1e-30 provides extremely high precision (suitable for arbitrary
  * precision arithmetic) while still converging in reasonable time.
  */
-const DEFAULT_ARC_LENGTH_TOLERANCE = '1e-30';
+const DEFAULT_ARC_LENGTH_TOLERANCE = "1e-30";
 
 /**
  * Subdivision convergence threshold.
@@ -102,7 +102,7 @@ const DEFAULT_ARC_LENGTH_TOLERANCE = '1e-30';
  * by comparing 5-point and 10-point Gauss-Legendre results. When results
  * differ by less than this, we accept the higher-order result.
  */
-const SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal('1e-15');
+const _SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal("1e-15");
 
 /**
  * Tolerance for table roundtrip verification.
@@ -110,14 +110,14 @@ const SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal('1e-15');
  * produces consistent results. This tolerance accounts for interpolation error
  * in table-based lookups.
  */
-const TABLE_ROUNDTRIP_TOLERANCE = new Decimal('1e-20');
+const TABLE_ROUNDTRIP_TOLERANCE = new Decimal("1e-20");
 
 /**
  * Maximum relative error for subdivision comparison verification.
  * WHY: When comparing adaptive quadrature vs subdivision methods, this tolerance
  * accounts for the inherent approximation in chord-based subdivision.
  */
-const SUBDIVISION_COMPARISON_TOLERANCE = '1e-20';
+const SUBDIVISION_COMPARISON_TOLERANCE = "1e-20";
 
 // ============================================================================
 // ARC LENGTH COMPUTATION
@@ -148,13 +148,15 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
   // at least 2 control points to define a curve. Catching this early prevents
   // cryptic errors deep in the computation.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('arcLength: points must be an array with at least 2 control points');
+    throw new Error(
+      "arcLength: points must be an array with at least 2 control points",
+    );
   }
 
   const {
     tolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
     maxDepth = 50,
-    minDepth = 3
+    minDepth = 3,
   } = options;
 
   const t0D = D(t0);
@@ -172,13 +174,13 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
 
   // Use adaptive quadrature
   return adaptiveQuadrature(
-    t => speedAtT(points, t),
+    (t) => speedAtT(points, t),
     t0D,
     t1D,
     tol,
     maxDepth,
     minDepth,
-    0
+    0,
   );
 }
 
@@ -236,8 +238,24 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
   const mid = a.plus(b).div(2);
   const halfTol = tol.div(2);
 
-  const leftIntegral = adaptiveQuadrature(f, a, mid, halfTol, maxDepth, minDepth, depth + 1);
-  const rightIntegral = adaptiveQuadrature(f, mid, b, halfTol, maxDepth, minDepth, depth + 1);
+  const leftIntegral = adaptiveQuadrature(
+    f,
+    a,
+    mid,
+    halfTol,
+    maxDepth,
+    minDepth,
+    depth + 1,
+  );
+  const rightIntegral = adaptiveQuadrature(
+    f,
+    mid,
+    b,
+    halfTol,
+    maxDepth,
+    minDepth,
+    depth + 1,
+  );
 
   return leftIntegral.plus(rightIntegral);
 }
@@ -306,14 +324,16 @@ export function inverseArcLength(points, targetLength, options = {}) {
   // WHY: inverseArcLength calls arcLength internally, which requires valid points.
   // Catching this early provides clearer error messages to users.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('inverseArcLength: points must be an array with at least 2 control points');
+    throw new Error(
+      "inverseArcLength: points must be an array with at least 2 control points",
+    );
   }
 
   const {
     tolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
     maxIterations = 100,
     lengthTolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
-    initialT
+    initialT,
   } = options;
 
   const target = D(targetLength);
@@ -325,7 +345,7 @@ export function inverseArcLength(points, targetLength, options = {}) {
   // a magnitude). Accepting negative values would be nonsensical and lead to
   // incorrect results or infinite loops in Newton's method.
   if (target.lt(0)) {
-    throw new Error('inverseArcLength: targetLength must be non-negative');
+    throw new Error("inverseArcLength: targetLength must be non-negative");
   }
 
   // Handle edge case: zero length
@@ -403,7 +423,7 @@ export function inverseArcLength(points, targetLength, options = {}) {
     t,
     length: finalLength,
     iterations,
-    converged
+    converged,
   };
 }
 
@@ -423,10 +443,10 @@ export function pathArcLength(segments, options = {}) {
   // WHY: We need to iterate over segments and call arcLength on each.
   // Catching invalid input early prevents cryptic errors in the loop.
   if (!segments || !Array.isArray(segments)) {
-    throw new Error('pathArcLength: segments must be an array');
+    throw new Error("pathArcLength: segments must be an array");
   }
   if (segments.length === 0) {
-    throw new Error('pathArcLength: segments array must not be empty');
+    throw new Error("pathArcLength: segments array must not be empty");
   }
 
   let total = D(0);
@@ -451,10 +471,10 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
   // INPUT VALIDATION: Ensure segments is a valid array
   // WHY: We need to iterate over segments to find which one contains the target length.
   if (!segments || !Array.isArray(segments)) {
-    throw new Error('pathInverseArcLength: segments must be an array');
+    throw new Error("pathInverseArcLength: segments must be an array");
   }
   if (segments.length === 0) {
-    throw new Error('pathInverseArcLength: segments array must not be empty');
+    throw new Error("pathInverseArcLength: segments array must not be empty");
   }
 
   const target = D(targetLength);
@@ -462,7 +482,7 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
   // FAIL FAST: Negative arc length is invalid
   // WHY: Same reason as inverseArcLength - arc length is non-negative by definition.
   if (target.lt(0)) {
-    throw new Error('pathInverseArcLength: targetLength must be non-negative');
+    throw new Error("pathInverseArcLength: targetLength must be non-negative");
   }
 
   // EDGE CASE: Zero target length
@@ -471,7 +491,7 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
     return {
       segmentIndex: 0,
       t: D(0),
-      totalLength: D(0)
+      totalLength: D(0),
     };
   }
 
@@ -489,7 +509,7 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
       return {
         segmentIndex: i,
         t,
-        totalLength: accumulated.plus(arcLength(segments[i], 0, t, options))
+        totalLength: accumulated.plus(arcLength(segments[i], 0, t, options)),
       };
     }
 
@@ -500,7 +520,7 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
   return {
     segmentIndex: segments.length - 1,
     t: D(1),
-    totalLength: accumulated
+    totalLength: accumulated,
   };
 }
 
@@ -522,10 +542,14 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
 export function createArcLengthTable(points, samples = 100, options = {}) {
   // Input validation
   if (!points || points.length < 2) {
-    throw new Error('createArcLengthTable: points must have at least 2 control points');
+    throw new Error(
+      "createArcLengthTable: points must have at least 2 control points",
+    );
   }
   if (samples < 2) {
-    throw new Error('createArcLengthTable: samples must be at least 2 (for binary search to work)');
+    throw new Error(
+      "createArcLengthTable: samples must be at least 2 (for binary search to work)",
+    );
   }
 
   const table = [];
@@ -601,7 +625,7 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
       // Use approxT as starting point for Newton
       const { t } = inverseArcLength(points, s, { ...opts, initialT: approxT });
       return t;
-    }
+    },
   };
 }
 
@@ -623,17 +647,23 @@ export function verifyArcLength(points, computedLength = null) {
   // WHY: This function needs to access points[0], points[length-1], and iterate
   // over points to compute polygon length. Invalid input would cause errors.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyArcLength: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyArcLength: points must be an array with at least 2 control points",
+    );
   }
 
   const errors = [];
 
   // Compute arc length if not provided
-  const length = computedLength !== null ? D(computedLength) : arcLength(points);
+  const length =
+    computedLength !== null ? D(computedLength) : arcLength(points);
 
   // Chord length (straight line from start to end)
   const [x0, y0] = [D(points[0][0]), D(points[0][1])];
-  const [xn, yn] = [D(points[points.length - 1][0]), D(points[points.length - 1][1])];
+  const [xn, yn] = [
+    D(points[points.length - 1][0]),
+    D(points[points.length - 1][1]),
+  ];
   const chordLength = xn.minus(x0).pow(2).plus(yn.minus(y0).pow(2)).sqrt();
 
   // Control polygon length
@@ -641,7 +671,9 @@ export function verifyArcLength(points, computedLength = null) {
   for (let i = 0; i < points.length - 1; i++) {
     const [x1, y1] = [D(points[i][0]), D(points[i][1])];
     const [x2, y2] = [D(points[i + 1][0]), D(points[i + 1][1])];
-    polygonLength = polygonLength.plus(x2.minus(x1).pow(2).plus(y2.minus(y1).pow(2)).sqrt());
+    polygonLength = polygonLength.plus(
+      x2.minus(x1).pow(2).plus(y2.minus(y1).pow(2)).sqrt(),
+    );
   }
 
   // Check bounds
@@ -658,7 +690,7 @@ export function verifyArcLength(points, computedLength = null) {
     polygonLength,
     arcLength: length,
     ratio: chordLength.gt(0) ? length.div(chordLength) : D(1),
-    errors
+    errors,
   };
 }
 
@@ -671,12 +703,18 @@ export function verifyArcLength(points, computedLength = null) {
  * @param {number|string|Decimal} [tolerance='1e-25'] - Maximum error
  * @returns {{valid: boolean, targetLength: Decimal, foundT: Decimal, verifiedLength: Decimal, error: Decimal}}
  */
-export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25') {
+export function verifyInverseArcLength(
+  points,
+  targetLength,
+  tolerance = "1e-25",
+) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: This function calls inverseArcLength and arcLength, both of which require
   // valid points. We validate early for clearer error messages.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyInverseArcLength: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyInverseArcLength: points must be an array with at least 2 control points",
+    );
   }
 
   const target = D(targetLength);
@@ -684,7 +722,9 @@ export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25'
   // FAIL FAST: Validate targetLength is non-negative
   // WHY: Negative arc lengths are mathematically invalid. This prevents nonsensical tests.
   if (target.lt(0)) {
-    throw new Error('verifyInverseArcLength: targetLength must be non-negative');
+    throw new Error(
+      "verifyInverseArcLength: targetLength must be non-negative",
+    );
   }
 
   const tol = D(tolerance);
@@ -704,7 +744,7 @@ export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25'
     foundT,
     verifiedLength,
     error,
-    converged
+    converged,
   };
 }
 
@@ -717,12 +757,18 @@ export function verifyInverseArcLength(points, targetLength, tolerance = '1e-25'
  * @param {number|string|Decimal} [tolerance='1e-20'] - Maximum difference
  * @returns {{valid: boolean, quadratureLength: Decimal, subdivisionLength: Decimal, difference: Decimal}}
  */
-export function verifyArcLengthBySubdivision(points, subdivisions = 16, tolerance = SUBDIVISION_COMPARISON_TOLERANCE) {
+export function verifyArcLengthBySubdivision(
+  points,
+  subdivisions = 16,
+  tolerance = SUBDIVISION_COMPARISON_TOLERANCE,
+) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: This function calls arcLength and bezierPoint, both of which require
   // valid control points. Early validation provides better error messages.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyArcLengthBySubdivision: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyArcLengthBySubdivision: points must be an array with at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -740,7 +786,9 @@ export function verifyArcLengthBySubdivision(points, subdivisions = 16, toleranc
 
     const dx = D(currPoint[0]).minus(D(prevPoint[0]));
     const dy = D(currPoint[1]).minus(D(prevPoint[1]));
-    subdivisionLength = subdivisionLength.plus(dx.pow(2).plus(dy.pow(2)).sqrt());
+    subdivisionLength = subdivisionLength.plus(
+      dx.pow(2).plus(dy.pow(2)).sqrt(),
+    );
 
     prevPoint = currPoint;
   }
@@ -754,7 +802,7 @@ export function verifyArcLengthBySubdivision(points, subdivisions = 16, toleranc
     quadratureLength,
     subdivisionLength,
     difference,
-    underestimate: quadratureLength.gt(subdivisionLength)
+    underestimate: quadratureLength.gt(subdivisionLength),
   };
 }
 
@@ -766,19 +814,25 @@ export function verifyArcLengthBySubdivision(points, subdivisions = 16, toleranc
  * @param {number|string|Decimal} [tolerance='1e-30'] - Maximum error
  * @returns {{valid: boolean, totalLength: Decimal, leftLength: Decimal, rightLength: Decimal, sum: Decimal, error: Decimal}}
  */
-export function verifyArcLengthAdditivity(points, t, tolerance = DEFAULT_ARC_LENGTH_TOLERANCE) {
+export function verifyArcLengthAdditivity(
+  points,
+  t,
+  tolerance = DEFAULT_ARC_LENGTH_TOLERANCE,
+) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: This function calls arcLength multiple times with the same points array.
   // Validating once here is more efficient than letting each call validate.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyArcLengthAdditivity: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyArcLengthAdditivity: points must be an array with at least 2 control points",
+    );
   }
 
   const tD = D(t);
   // PARAMETER VALIDATION: t must be in [0, 1] for additivity to make sense
   // WHY: Arc length additivity L(0,t) + L(t,1) = L(0,1) only holds for t in [0,1]
   if (tD.lt(0) || tD.gt(1)) {
-    throw new Error('verifyArcLengthAdditivity: t must be in range [0, 1]');
+    throw new Error("verifyArcLengthAdditivity: t must be in range [0, 1]");
   }
 
   const tol = D(tolerance);
@@ -796,7 +850,7 @@ export function verifyArcLengthAdditivity(points, t, tolerance = DEFAULT_ARC_LEN
     leftLength,
     rightLength,
     sum,
-    error
+    error,
   };
 }
 
@@ -812,7 +866,9 @@ export function verifyArcLengthTable(points, samples = 50) {
   // WHY: This function calls createArcLengthTable and arcLength, both requiring
   // valid points. Early validation provides better diagnostics.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyArcLengthTable: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyArcLengthTable: points must be an array with at least 2 control points",
+    );
   }
 
   const errors = [];
@@ -840,7 +896,9 @@ export function verifyArcLengthTable(points, samples = 50) {
   // Verify table boundaries
   const firstEntry = table.table[0];
   if (!firstEntry.t.isZero() || !firstEntry.length.isZero()) {
-    errors.push(`First entry should be t=0, length=0, got t=${firstEntry.t}, length=${firstEntry.length}`);
+    errors.push(
+      `First entry should be t=0, length=0, got t=${firstEntry.t}, length=${firstEntry.length}`,
+    );
   }
 
   const lastEntry = table.table[table.table.length - 1];
@@ -853,7 +911,9 @@ export function verifyArcLengthTable(points, samples = 50) {
   const tableTotalDiff = table.totalLength.minus(directLength).abs();
   // WHY: Use TABLE_ROUNDTRIP_TOLERANCE to account for accumulated segment errors
   if (tableTotalDiff.gt(TABLE_ROUNDTRIP_TOLERANCE)) {
-    errors.push(`Table total length ${table.totalLength} differs from direct computation ${directLength}`);
+    errors.push(
+      `Table total length ${table.totalLength} differs from direct computation ${directLength}`,
+    );
   }
 
   // Verify getT roundtrip for a few values
@@ -864,7 +924,9 @@ export function verifyArcLengthTable(points, samples = 50) {
     const roundtripError = recoveredLength.minus(targetLength).abs();
 
     if (roundtripError.gt(table.totalLength.div(samples).times(2))) {
-      errors.push(`getT roundtrip error too large at ${fraction}: ${roundtripError}`);
+      errors.push(
+        `getT roundtrip error too large at ${fraction}: ${roundtripError}`,
+      );
     }
   }
 
@@ -874,7 +936,7 @@ export function verifyArcLengthTable(points, samples = 50) {
     isMonotonic,
     maxGap,
     tableSize: table.table.length,
-    totalLength: table.totalLength
+    totalLength: table.totalLength,
   };
 }
 
@@ -885,12 +947,14 @@ export function verifyArcLengthTable(points, samples = 50) {
  * @param {Object} [options] - Options
  * @returns {{valid: boolean, results: Object}}
  */
-export function verifyAllArcLengthFunctions(points, options = {}) {
+export function verifyAllArcLengthFunctions(points, _options = {}) {
   // INPUT VALIDATION: Ensure points array is valid
   // WHY: This function orchestrates multiple verification functions, all of which
   // require valid points. Validating once at the top prevents redundant checks.
   if (!points || !Array.isArray(points) || points.length < 2) {
-    throw new Error('verifyAllArcLengthFunctions: points must be an array with at least 2 control points');
+    throw new Error(
+      "verifyAllArcLengthFunctions: points must be an array with at least 2 control points",
+    );
   }
 
   const results = {};
@@ -911,11 +975,11 @@ export function verifyAllArcLengthFunctions(points, options = {}) {
   // 5. Verify table
   results.table = verifyArcLengthTable(points, 20);
 
-  const allValid = Object.values(results).every(r => r.valid);
+  const allValid = Object.values(results).every((r) => r.valid);
 
   return {
     valid: allValid,
-    results
+    results,
   };
 }
 
@@ -936,5 +1000,5 @@ export default {
   verifyArcLengthBySubdivision,
   verifyArcLengthAdditivity,
   verifyArcLengthTable,
-  verifyAllArcLengthFunctions
+  verifyAllArcLengthFunctions,
 };

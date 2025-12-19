@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 425" preserveAspectRatio="xMinYMin meet" height="425" width="100%">
+  <title>Table With Legend</title>
+
+  <defs>
+    <style>
+      .title { font: bold 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #C8E6C9; }
+      .cell-warn { fill: #FFF9C4; }
+      .cell-bad { fill: #FFCDD2; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .cell-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .section-title { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="225" y="24" text-anchor="middle" class="title">Table With Legend</text>
+  
+
+  <g transform="translate(25, 55)">
+    <rect x="100" y="0" width="150" height="60" fill="#1565C0" stroke="#DDD"/>
+    <text x="175" y="25" text-anchor="middle" class="col-header">Status A</text>
+    <rect x="250" y="0" width="150" height="60" fill="#1976D2" stroke="#DDD"/>
+    <text x="325" y="25" text-anchor="middle" class="col-header">Status B</text>
+    <rect x="0" y="60" width="100" height="60" fill="#E3F2FD" stroke="#DDD"/>
+    <text x="50" y="94" text-anchor="middle" class="row-label-bold">Test 1</text>
+    <rect x="100" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="175" y="90" text-anchor="middle" class="ok-text">No issues</text>
+    <rect x="250" y="60" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="258" y="85" class="cell-text">• Issue 1</text>
+    <line x1="0" y1="120" x2="400" y2="120" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="120" width="100" height="60" fill="#E8F5E9" stroke="#DDD"/>
+    <text x="50" y="154" text-anchor="middle" class="row-label-bold">Test 2</text>
+    <rect x="100" y="120" width="150" height="60" class="cell-bad" stroke="#DDD"/>
+    <text x="108" y="145" class="cell-text">• Critical!</text>
+    <rect x="250" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="325" y="150" text-anchor="middle" class="ok-text">No issues</text>
+
+    <g transform="translate(0, 220)">
+      
+    <rect x="0" y="0" width="20" height="20" fill="#C8E6C9" stroke="#999"/>
+    <text x="30" y="15" class="legend-text">OK - No issues</text>
+    <rect x="0" y="30" width="20" height="20" fill="#FFF9C4" stroke="#999"/>
+    <text x="30" y="45" class="legend-text">Warning - Minor issues</text>
+    <rect x="0" y="60" width="20" height="20" fill="#FFCDD2" stroke="#999"/>
+    <text x="30" y="75" class="legend-text">Bad - Critical issues</text>
+  
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,222 @@
+======================================================================
+Comprehensive Toolbox Function Matrix Test
+Testing ALL functions on 8bitsdrummachine SVG (pre and post embed)
+======================================================================
+
+Loaded pre-embed SVG: 14.8 KB
+Using existing embedded SVG
+Loaded post-embed SVG: 555.4 KB
+
+Testing 69 functions on each SVG...
+
+Testing 8bitsdrummachine+fonts.svg (PRE-EMBED) (preEmbed)
+============================================================
+
+Category 1: Cleanup
+----------------------------------------
+  ✅ cleanupIds
+  ✅ cleanupNumericValues
+  ✅ cleanupListOfValues
+  ✅ cleanupAttributes
+  ✅ cleanupEnableBackground
+  ✅ removeUnknownsAndDefaults
+  ✅ removeNonInheritableGroupAttrs
+  ✅ removeUselessDefs
+  ✅ removeHiddenElements
+  ✅ removeEmptyText
+  ✅ removeEmptyContainers
+
+Category 2: Removal
+----------------------------------------
+  ✅ removeDoctype
+  ✅ removeXMLProcInst
+  ✅ removeComments
+  ✅ removeMetadata
+  ✅ removeTitle
+  ✅ removeDesc
+  ✅ removeEditorsNSData
+  ✅ removeEmptyAttrs
+  ✅ removeViewBox
+  ✅ removeXMLNS
+  ✅ removeRasterImages
+  ✅ removeScriptElement
+
+Category 3: Conversion
+----------------------------------------
+  ✅ convertShapesToPath
+  ✅ convertPathData
+  ✅ convertTransform
+  ✅ convertColors
+  ✅ convertStyleToAttrs
+  ✅ convertEllipseToCircle
+  ✅ collapseGroups
+  ✅ mergePaths
+  ✅ moveGroupAttrsToElems
+  ✅ moveElemsAttrsToGroup
+
+Category 4: Optimization
+----------------------------------------
+  ✅ minifyStyles
+  ✅ inlineStyles
+  ✅ sortAttrs
+  ✅ sortDefsChildren
+  ✅ reusePaths
+  ✅ removeOffCanvasPath
+  ✅ removeStyleElement
+  ✅ removeXlink
+
+Category 5: Adding/Modification
+----------------------------------------
+  ✅ addAttributesToSVGElement
+  ✅ addClassesToSVGElement
+  ✅ prefixIds
+  ✅ removeDimensions
+  ✅ removeAttributesBySelector
+  ✅ removeAttrs
+  ✅ removeElementsByAttr
+
+Category 6: Presets
+----------------------------------------
+  ✅ presetDefault
+  ✅ presetNone
+  ✅ applyPreset
+  ✅ optimize
+
+Category 7: Bonus
+----------------------------------------
+  ✅ flattenClipPaths
+  ✅ flattenMasks
+  ✅ flattenGradients
+  ✅ flattenPatterns
+  ✅ flattenFilters
+  ✅ flattenUseElements
+  ✅ flattenAll
+  ✅ validateXML
+  ✅ validateSVG
+  ✅ fixInvalidSVG
+  ✅ simplifyPath
+  ✅ decomposeTransform
+  ✅ optimizeAnimationTiming
+  ✅ optimizePaths
+  ✅ simplifyPaths
+
+Category 8: Embedding
+----------------------------------------
+  ✅ embedExternalDependencies
+  ✅ exportEmbeddedResources
+
+Testing 8bitsdrummachine-embedded.svg (POST-EMBED) (postEmbed)
+============================================================
+
+Category 1: Cleanup
+----------------------------------------
+  ✅ cleanupIds
+  ✅ cleanupNumericValues
+  ✅ cleanupListOfValues
+  ✅ cleanupAttributes
+  ✅ cleanupEnableBackground
+  ✅ removeUnknownsAndDefaults
+  ✅ removeNonInheritableGroupAttrs
+  ✅ removeUselessDefs
+  ✅ removeHiddenElements
+  ✅ removeEmptyText
+  ✅ removeEmptyContainers
+
+Category 2: Removal
+----------------------------------------
+  ✅ removeDoctype
+  ✅ removeXMLProcInst
+  ✅ removeComments
+  ✅ removeMetadata
+  ✅ removeTitle
+  ✅ removeDesc
+  ✅ removeEditorsNSData
+  ✅ removeEmptyAttrs
+  ✅ removeViewBox
+  ✅ removeXMLNS
+  ✅ removeRasterImages
+  ✅ removeScriptElement
+
+Category 3: Conversion
+----------------------------------------
+  ✅ convertShapesToPath
+  ✅ convertPathData
+  ✅ convertTransform
+  ✅ convertColors
+  ✅ convertStyleToAttrs
+  ✅ convertEllipseToCircle
+  ✅ collapseGroups
+  ✅ mergePaths
+  ✅ moveGroupAttrsToElems
+  ✅ moveElemsAttrsToGroup
+
+Category 4: Optimization
+----------------------------------------
+  ✅ minifyStyles
+  ✅ inlineStyles
+  ✅ sortAttrs
+  ✅ sortDefsChildren
+  ✅ reusePaths
+  ✅ removeOffCanvasPath
+  ✅ removeStyleElement
+  ✅ removeXlink
+
+Category 5: Adding/Modification
+----------------------------------------
+  ✅ addAttributesToSVGElement
+  ✅ addClassesToSVGElement
+  ✅ prefixIds
+  ✅ removeDimensions
+  ✅ removeAttributesBySelector
+  ✅ removeAttrs
+  ✅ removeElementsByAttr
+
+Category 6: Presets
+----------------------------------------
+  ✅ presetDefault
+  ✅ presetNone
+  ✅ applyPreset
+  ✅ optimize
+
+Category 7: Bonus
+----------------------------------------
+  ✅ flattenClipPaths
+  ✅ flattenMasks
+  ✅ flattenGradients
+  ✅ flattenPatterns
+  ✅ flattenFilters
+  ✅ flattenUseElements
+  ✅ flattenAll
+  ✅ validateXML
+  ✅ validateSVG
+  ✅ fixInvalidSVG
+  ✅ simplifyPath
+  ✅ decomposeTransform
+  ✅ optimizeAnimationTiming
+  ✅ optimizePaths
+  ✅ simplifyPaths
+
+Category 8: Embedding
+----------------------------------------
+  ✅ embedExternalDependencies
+  ✅ exportEmbeddedResources
+
+======================================================================
+TEST SUMMARY
+======================================================================
+
+Pre-Embed SVG Results:
+  Passed:  69
+  Failed:  0
+  Skipped: 0
+
+Post-Embed SVG Results:
+  Passed:  69
+  Failed:  0
+  Skipped: 0
+
+Total time: 0.37s
+
+Results written to: /Users/emanuelesabetta/Code/SVG-MATRIX/test/output/toolbox-matrix-8bits-results.json
+
+ALL TESTS PASSED

@@ -15,13 +15,13 @@
  * @module marker-resolver
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const _D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Parse an SVG marker element to extract all marker properties.
@@ -71,34 +71,38 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
  */
 export function parseMarkerElement(markerElement) {
   const data = {
-    id: markerElement.getAttribute('id') || '',
-    markerWidth: parseFloat(markerElement.getAttribute('markerWidth') || '3'),
-    markerHeight: parseFloat(markerElement.getAttribute('markerHeight') || '3'),
-    refX: parseFloat(markerElement.getAttribute('refX') || '0'),
-    refY: parseFloat(markerElement.getAttribute('refY') || '0'),
-    orient: markerElement.getAttribute('orient') || 'auto',
-    markerUnits: markerElement.getAttribute('markerUnits') || 'strokeWidth',
+    id: markerElement.getAttribute("id") || "",
+    markerWidth: parseFloat(markerElement.getAttribute("markerWidth") || "3"),
+    markerHeight: parseFloat(markerElement.getAttribute("markerHeight") || "3"),
+    refX: parseFloat(markerElement.getAttribute("refX") || "0"),
+    refY: parseFloat(markerElement.getAttribute("refY") || "0"),
+    orient: markerElement.getAttribute("orient") || "auto",
+    markerUnits: markerElement.getAttribute("markerUnits") || "strokeWidth",
     viewBox: null,
-    preserveAspectRatio: markerElement.getAttribute('preserveAspectRatio') || 'xMidYMid meet',
-    children: []
+    preserveAspectRatio:
+      markerElement.getAttribute("preserveAspectRatio") || "xMidYMid meet",
+    children: [],
   };
 
   // Parse viewBox if present
-  const viewBoxStr = markerElement.getAttribute('viewBox');
+  const viewBoxStr = markerElement.getAttribute("viewBox");
   if (viewBoxStr) {
-    const parts = viewBoxStr.trim().split(/[\s,]+/).map(Number);
+    const parts = viewBoxStr
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
     if (parts.length === 4) {
       data.viewBox = {
         x: parts[0],
         y: parts[1],
         width: parts[2],
-        height: parts[3]
+        height: parts[3],
       };
     }
   }
 
   // Parse orient attribute
-  if (data.orient !== 'auto' && data.orient !== 'auto-start-reverse') {
+  if (data.orient !== "auto" && data.orient !== "auto-start-reverse") {
     // Parse as angle in degrees
     const angle = parseFloat(data.orient);
     if (!isNaN(angle)) {
@@ -124,44 +128,44 @@ export function parseMarkerChild(element) {
   const tagName = element.tagName.toLowerCase();
   const data = {
     type: tagName,
-    id: element.getAttribute('id') || null,
-    transform: element.getAttribute('transform') || null,
-    fill: element.getAttribute('fill') || null,
-    stroke: element.getAttribute('stroke') || null,
-    strokeWidth: element.getAttribute('stroke-width') || null,
-    opacity: element.getAttribute('opacity') || null
+    id: element.getAttribute("id") || null,
+    transform: element.getAttribute("transform") || null,
+    fill: element.getAttribute("fill") || null,
+    stroke: element.getAttribute("stroke") || null,
+    strokeWidth: element.getAttribute("stroke-width") || null,
+    opacity: element.getAttribute("opacity") || null,
   };
 
   switch (tagName) {
-    case 'path':
-      data.d = element.getAttribute('d') || '';
+    case "path":
+      data.d = element.getAttribute("d") || "";
       break;
-    case 'rect':
-      data.x = parseFloat(element.getAttribute('x') || '0');
-      data.y = parseFloat(element.getAttribute('y') || '0');
-      data.width = parseFloat(element.getAttribute('width') || '0');
-      data.height = parseFloat(element.getAttribute('height') || '0');
+    case "rect":
+      data.x = parseFloat(element.getAttribute("x") || "0");
+      data.y = parseFloat(element.getAttribute("y") || "0");
+      data.width = parseFloat(element.getAttribute("width") || "0");
+      data.height = parseFloat(element.getAttribute("height") || "0");
       break;
-    case 'circle':
-      data.cx = parseFloat(element.getAttribute('cx') || '0');
-      data.cy = parseFloat(element.getAttribute('cy') || '0');
-      data.r = parseFloat(element.getAttribute('r') || '0');
+    case "circle":
+      data.cx = parseFloat(element.getAttribute("cx") || "0");
+      data.cy = parseFloat(element.getAttribute("cy") || "0");
+      data.r = parseFloat(element.getAttribute("r") || "0");
       break;
-    case 'ellipse':
-      data.cx = parseFloat(element.getAttribute('cx') || '0');
-      data.cy = parseFloat(element.getAttribute('cy') || '0');
-      data.rx = parseFloat(element.getAttribute('rx') || '0');
-      data.ry = parseFloat(element.getAttribute('ry') || '0');
+    case "ellipse":
+      data.cx = parseFloat(element.getAttribute("cx") || "0");
+      data.cy = parseFloat(element.getAttribute("cy") || "0");
+      data.rx = parseFloat(element.getAttribute("rx") || "0");
+      data.ry = parseFloat(element.getAttribute("ry") || "0");
       break;
-    case 'line':
-      data.x1 = parseFloat(element.getAttribute('x1') || '0');
-      data.y1 = parseFloat(element.getAttribute('y1') || '0');
-      data.x2 = parseFloat(element.getAttribute('x2') || '0');
-      data.y2 = parseFloat(element.getAttribute('y2') || '0');
+    case "line":
+      data.x1 = parseFloat(element.getAttribute("x1") || "0");
+      data.y1 = parseFloat(element.getAttribute("y1") || "0");
+      data.x2 = parseFloat(element.getAttribute("x2") || "0");
+      data.y2 = parseFloat(element.getAttribute("y2") || "0");
       break;
-    case 'polygon':
-    case 'polyline':
-      data.points = element.getAttribute('points') || '';
+    case "polygon":
+    case "polyline":
+      data.points = element.getAttribute("points") || "";
       break;
     default:
       // Store any additional attributes for unknown elements
@@ -202,8 +206,22 @@ export function parseMarkerChild(element) {
  * const strokeWidth = 2;
  * const transform = getMarkerTransform(markerDef, position, tangentAngle, strokeWidth, true);
  */
-export function getMarkerTransform(markerDef, position, tangentAngle, strokeWidth = 1, isStart = false) {
-  const { markerWidth, markerHeight, refX, refY, orient, markerUnits, viewBox } = markerDef;
+export function getMarkerTransform(
+  markerDef,
+  position,
+  tangentAngle,
+  strokeWidth = 1,
+  isStart = false,
+) {
+  const {
+    markerWidth,
+    markerHeight,
+    refX,
+    refY,
+    orient,
+    markerUnits,
+    viewBox,
+  } = markerDef;
 
   // Start with identity matrix
   let transform = Matrix.identity(3);
@@ -214,11 +232,11 @@ export function getMarkerTransform(markerDef, position, tangentAngle, strokeWidt
 
   // Step 2: Calculate rotation angle
   let rotationAngle = 0;
-  if (orient === 'auto') {
+  if (orient === "auto") {
     rotationAngle = tangentAngle;
-  } else if (orient === 'auto-start-reverse' && isStart) {
+  } else if (orient === "auto-start-reverse" && isStart) {
     rotationAngle = tangentAngle + Math.PI; // Add 180 degrees
-  } else if (typeof orient === 'number') {
+  } else if (typeof orient === "number") {
     rotationAngle = orient * (Math.PI / 180); // Convert degrees to radians
   }
 
@@ -231,7 +249,7 @@ export function getMarkerTransform(markerDef, position, tangentAngle, strokeWidt
   // Step 3: Apply markerUnits scaling
   let scaleX = 1;
   let scaleY = 1;
-  if (markerUnits === 'strokeWidth') {
+  if (markerUnits === "strokeWidth") {
     scaleX = strokeWidth;
     scaleY = strokeWidth;
   }
@@ -316,8 +334,8 @@ export function getPathVertices(pathData) {
   let currentY = 0;
   let startX = 0;
   let startY = 0;
-  let lastControlX = 0;
-  let lastControlY = 0;
+  let _lastControlX = 0;
+  let _lastControlY = 0;
 
   // Parse path commands
   const commands = parsePathCommands(pathData);
@@ -328,7 +346,7 @@ export function getPathVertices(pathData) {
     const prevY = currentY;
 
     switch (cmd.type) {
-      case 'M': // moveto
+      case "M": // moveto
         currentX = cmd.x;
         currentY = cmd.y;
         startX = currentX;
@@ -347,11 +365,12 @@ export function getPathVertices(pathData) {
           y: currentY,
           tangentIn: 0,
           tangentOut: 0,
-          index: vertices.length
+          index: vertices.length,
         });
         break;
 
-      case 'L': // lineto
+      case "L": {
+        // lineto
         currentX = cmd.x;
         currentY = cmd.y;
 
@@ -369,13 +388,15 @@ export function getPathVertices(pathData) {
           y: currentY,
           tangentIn: lineAngle,
           tangentOut: lineAngle,
-          index: vertices.length
+          index: vertices.length,
         });
         break;
+      }
 
-      case 'C': // cubic bezier
-        lastControlX = cmd.x2;
-        lastControlY = cmd.y2;
+      case "C": {
+        // cubic bezier
+        _lastControlX = cmd.x2;
+        _lastControlY = cmd.y2;
         currentX = cmd.x;
         currentY = cmd.y;
 
@@ -396,13 +417,15 @@ export function getPathVertices(pathData) {
           y: currentY,
           tangentIn: endTangent,
           tangentOut: endTangent,
-          index: vertices.length
+          index: vertices.length,
         });
         break;
+      }
 
-      case 'Q': // quadratic bezier
-        lastControlX = cmd.x1;
-        lastControlY = cmd.y1;
+      case "Q": {
+        // quadratic bezier
+        _lastControlX = cmd.x1;
+        _lastControlY = cmd.y1;
         currentX = cmd.x;
         currentY = cmd.y;
 
@@ -423,11 +446,13 @@ export function getPathVertices(pathData) {
           y: currentY,
           tangentIn: qEndTangent,
           tangentOut: qEndTangent,
-          index: vertices.length
+          index: vertices.length,
         });
         break;
+      }
 
-      case 'A': // arc
+      case "A": {
+        // arc
         currentX = cmd.x;
         currentY = cmd.y;
 
@@ -445,11 +470,13 @@ export function getPathVertices(pathData) {
           y: currentY,
           tangentIn: arcAngle,
           tangentOut: arcAngle,
-          index: vertices.length
+          index: vertices.length,
         });
         break;
+      }
 
-      case 'Z': // closepath
+      case "Z": {
+        // closepath
         currentX = startX;
         currentY = startY;
 
@@ -466,6 +493,7 @@ export function getPathVertices(pathData) {
           vertices[0].tangentIn = closeAngle;
         }
         break;
+      }
     }
   }
 
@@ -483,7 +511,7 @@ export function parsePathCommands(pathData) {
 
   // Normalize path data: add spaces around command letters
   const normalized = pathData
-    .replace(/([MmLlHhVvCcSsQqTtAaZz])/g, ' $1 ')
+    .replace(/([MmLlHhVvCcSsQqTtAaZz])/g, " $1 ")
     .trim();
 
   // FIX: Use regex to extract tokens (command letters and numbers)
@@ -524,55 +552,64 @@ export function parsePathCommands(pathData) {
     const cmdType = tokens[i];
 
     switch (cmdType.toUpperCase()) {
-      case 'M': // moveto
+      case "M": {
+        // moveto
         const mx = parseFloat(tokens[i + 1]);
         const my = parseFloat(tokens[i + 2]);
         commands.push({
-          type: 'M',
-          x: cmdType === 'M' ? mx : currentX + mx,
-          y: cmdType === 'M' ? my : currentY + my
+          type: "M",
+          x: cmdType === "M" ? mx : currentX + mx,
+          y: cmdType === "M" ? my : currentY + my,
         });
         currentX = commands[commands.length - 1].x;
         currentY = commands[commands.length - 1].y;
         i += 3;
         break;
+      }
 
-      case 'L': // lineto
+      case "L": {
+        // lineto
         const lx = parseFloat(tokens[i + 1]);
         const ly = parseFloat(tokens[i + 2]);
         commands.push({
-          type: 'L',
-          x: cmdType === 'L' ? lx : currentX + lx,
-          y: cmdType === 'L' ? ly : currentY + ly
+          type: "L",
+          x: cmdType === "L" ? lx : currentX + lx,
+          y: cmdType === "L" ? ly : currentY + ly,
         });
         currentX = commands[commands.length - 1].x;
         currentY = commands[commands.length - 1].y;
         i += 3;
         break;
+      }
 
-      case 'H': // horizontal lineto
+      case "H": {
+        // horizontal lineto
         const hx = parseFloat(tokens[i + 1]);
         commands.push({
-          type: 'L',
-          x: cmdType === 'H' ? hx : currentX + hx,
-          y: currentY
+          type: "L",
+          x: cmdType === "H" ? hx : currentX + hx,
+          y: currentY,
         });
         currentX = commands[commands.length - 1].x;
         i += 2;
         break;
+      }
 
-      case 'V': // vertical lineto
+      case "V": {
+        // vertical lineto
         const vy = parseFloat(tokens[i + 1]);
         commands.push({
-          type: 'L',
+          type: "L",
           x: currentX,
-          y: cmdType === 'V' ? vy : currentY + vy
+          y: cmdType === "V" ? vy : currentY + vy,
         });
         currentY = commands[commands.length - 1].y;
         i += 2;
         break;
+      }
 
-      case 'C': // cubic bezier
+      case "C": {
+        // cubic bezier
         const c1x = parseFloat(tokens[i + 1]);
         const c1y = parseFloat(tokens[i + 2]);
         const c2x = parseFloat(tokens[i + 3]);
@@ -580,61 +617,66 @@ export function parsePathCommands(pathData) {
         const cx = parseFloat(tokens[i + 5]);
         const cy = parseFloat(tokens[i + 6]);
         commands.push({
-          type: 'C',
-          x1: cmdType === 'C' ? c1x : currentX + c1x,
-          y1: cmdType === 'C' ? c1y : currentY + c1y,
-          x2: cmdType === 'C' ? c2x : currentX + c2x,
-          y2: cmdType === 'C' ? c2y : currentY + c2y,
-          x: cmdType === 'C' ? cx : currentX + cx,
-          y: cmdType === 'C' ? cy : currentY + cy
+          type: "C",
+          x1: cmdType === "C" ? c1x : currentX + c1x,
+          y1: cmdType === "C" ? c1y : currentY + c1y,
+          x2: cmdType === "C" ? c2x : currentX + c2x,
+          y2: cmdType === "C" ? c2y : currentY + c2y,
+          x: cmdType === "C" ? cx : currentX + cx,
+          y: cmdType === "C" ? cy : currentY + cy,
         });
         currentX = commands[commands.length - 1].x;
         currentY = commands[commands.length - 1].y;
         i += 7;
         break;
+      }
 
-      case 'Q': // quadratic bezier
+      case "Q": {
+        // quadratic bezier
         const q1x = parseFloat(tokens[i + 1]);
         const q1y = parseFloat(tokens[i + 2]);
         const qx = parseFloat(tokens[i + 3]);
         const qy = parseFloat(tokens[i + 4]);
         commands.push({
-          type: 'Q',
-          x1: cmdType === 'Q' ? q1x : currentX + q1x,
-          y1: cmdType === 'Q' ? q1y : currentY + q1y,
-          x: cmdType === 'Q' ? qx : currentX + qx,
-          y: cmdType === 'Q' ? qy : currentY + qy
+          type: "Q",
+          x1: cmdType === "Q" ? q1x : currentX + q1x,
+          y1: cmdType === "Q" ? q1y : currentY + q1y,
+          x: cmdType === "Q" ? qx : currentX + qx,
+          y: cmdType === "Q" ? qy : currentY + qy,
         });
         currentX = commands[commands.length - 1].x;
         currentY = commands[commands.length - 1].y;
         i += 5;
         break;
+      }
 
-      case 'A': // arc
+      case "A": {
+        // arc
         const rx = parseFloat(tokens[i + 1]);
         const ry = parseFloat(tokens[i + 2]);
         const xAxisRotation = parseFloat(tokens[i + 3]);
-        const largeArcFlag = parseInt(tokens[i + 4]);
-        const sweepFlag = parseInt(tokens[i + 5]);
+        const largeArcFlag = parseInt(tokens[i + 4], 10);
+        const sweepFlag = parseInt(tokens[i + 5], 10);
         const ax = parseFloat(tokens[i + 6]);
         const ay = parseFloat(tokens[i + 7]);
         commands.push({
-          type: 'A',
+          type: "A",
           rx,
           ry,
           xAxisRotation,
           largeArcFlag,
           sweepFlag,
-          x: cmdType === 'A' ? ax : currentX + ax,
-          y: cmdType === 'A' ? ay : currentY + ay
+          x: cmdType === "A" ? ax : currentX + ax,
+          y: cmdType === "A" ? ay : currentY + ay,
         });
         currentX = commands[commands.length - 1].x;
         currentY = commands[commands.length - 1].y;
         i += 8;
         break;
+      }
 
-      case 'Z': // closepath
-        commands.push({ type: 'Z' });
+      case "Z": // closepath
+        commands.push({ type: "Z" });
         i += 1;
         break;
 
@@ -681,15 +723,17 @@ export function resolveMarkers(pathElement, defsMap) {
   const instances = [];
 
   // Get marker references
-  const markerStart = pathElement.getAttribute('marker-start');
-  const markerMid = pathElement.getAttribute('marker-mid');
-  const markerEnd = pathElement.getAttribute('marker-end');
+  const markerStart = pathElement.getAttribute("marker-start");
+  const markerMid = pathElement.getAttribute("marker-mid");
+  const markerEnd = pathElement.getAttribute("marker-end");
 
   // Get stroke width for scaling
-  const strokeWidth = parseFloat(pathElement.getAttribute('stroke-width') || '1');
+  const strokeWidth = parseFloat(
+    pathElement.getAttribute("stroke-width") || "1",
+  );
 
   // Get path data and extract vertices
-  const pathData = pathElement.getAttribute('d') || '';
+  const pathData = pathElement.getAttribute("d") || "";
   const vertices = getPathVertices(pathData);
 
   if (vertices.length === 0) {
@@ -710,14 +754,21 @@ export function resolveMarkers(pathElement, defsMap) {
 
     if (markerDef && vertices.length > 0) {
       const vertex = vertices[0];
-      const tangent = vertices.length > 1 ? vertex.tangentOut : vertex.tangentIn;
+      const tangent =
+        vertices.length > 1 ? vertex.tangentOut : vertex.tangentIn;
 
       instances.push({
         markerDef,
         position: { x: vertex.x, y: vertex.y },
-        transform: getMarkerTransform(markerDef, { x: vertex.x, y: vertex.y }, tangent, strokeWidth, true),
-        type: 'start',
-        vertex
+        transform: getMarkerTransform(
+          markerDef,
+          { x: vertex.x, y: vertex.y },
+          tangent,
+          strokeWidth,
+          true,
+        ),
+        type: "start",
+        vertex,
       });
     }
   }
@@ -736,9 +787,15 @@ export function resolveMarkers(pathElement, defsMap) {
         instances.push({
           markerDef,
           position: { x: vertex.x, y: vertex.y },
-          transform: getMarkerTransform(markerDef, { x: vertex.x, y: vertex.y }, tangent, strokeWidth, false),
-          type: 'mid',
-          vertex
+          transform: getMarkerTransform(
+            markerDef,
+            { x: vertex.x, y: vertex.y },
+            tangent,
+            strokeWidth,
+            false,
+          ),
+          type: "mid",
+          vertex,
         });
       }
     }
@@ -756,9 +813,15 @@ export function resolveMarkers(pathElement, defsMap) {
       instances.push({
         markerDef,
         position: { x: vertex.x, y: vertex.y },
-        transform: getMarkerTransform(markerDef, { x: vertex.x, y: vertex.y }, tangent, strokeWidth, false),
-        type: 'end',
-        vertex
+        transform: getMarkerTransform(
+          markerDef,
+          { x: vertex.x, y: vertex.y },
+          tangent,
+          strokeWidth,
+          false,
+        ),
+        type: "end",
+        vertex,
       });
     }
   }
@@ -798,52 +861,58 @@ export function markerToPolygons(markerInstance, options = {}) {
     let points = [];
 
     switch (child.type) {
-      case 'path':
+      case "path":
         // Parse path and convert to points
         points = pathToPoints(child.d, curveSegments);
         break;
 
-      case 'rect':
+      case "rect":
         // Convert rect to 4 corner points
         points = [
           { x: child.x, y: child.y },
           { x: child.x + child.width, y: child.y },
           { x: child.x + child.width, y: child.y + child.height },
-          { x: child.x, y: child.y + child.height }
+          { x: child.x, y: child.y + child.height },
         ];
         break;
 
-      case 'circle':
+      case "circle":
         // Approximate circle with polygon
         points = circleToPoints(child.cx, child.cy, child.r, curveSegments * 4);
         break;
 
-      case 'ellipse':
+      case "ellipse":
         // Approximate ellipse with polygon
-        points = ellipseToPoints(child.cx, child.cy, child.rx, child.ry, curveSegments * 4);
+        points = ellipseToPoints(
+          child.cx,
+          child.cy,
+          child.rx,
+          child.ry,
+          curveSegments * 4,
+        );
         break;
 
-      case 'line':
+      case "line":
         points = [
           { x: child.x1, y: child.y1 },
-          { x: child.x2, y: child.y2 }
+          { x: child.x2, y: child.y2 },
         ];
         break;
 
-      case 'polygon':
-      case 'polyline':
+      case "polygon":
+      case "polyline":
         points = parsePoints(child.points);
         break;
     }
 
     // Apply transform to all points
     if (points.length > 0) {
-      const transformedPoints = points.map(p => {
+      const transformedPoints = points.map((p) => {
         const result = Transforms2D.applyTransform(transform, p.x, p.y);
         // result is an array [x, y] with Decimal values
         return {
           x: parseFloat(result[0].toFixed(precision)),
-          y: parseFloat(result[1].toFixed(precision))
+          y: parseFloat(result[1].toFixed(precision)),
         };
       });
 
@@ -869,55 +938,53 @@ export function pathToPoints(pathData, segments = 10) {
 
   for (const cmd of commands) {
     switch (cmd.type) {
-      case 'M':
+      case "M":
         currentX = cmd.x;
         currentY = cmd.y;
         points.push({ x: currentX, y: currentY });
         break;
 
-      case 'L':
+      case "L":
         currentX = cmd.x;
         currentY = cmd.y;
         points.push({ x: currentX, y: currentY });
         break;
 
-      case 'C':
+      case "C":
         // Approximate cubic bezier with line segments
         for (let i = 1; i <= segments; i++) {
           const t = i / segments;
           const t1 = 1 - t;
-          const x = t1 * t1 * t1 * currentX +
-                   3 * t1 * t1 * t * cmd.x1 +
-                   3 * t1 * t * t * cmd.x2 +
-                   t * t * t * cmd.x;
-          const y = t1 * t1 * t1 * currentY +
-                   3 * t1 * t1 * t * cmd.y1 +
-                   3 * t1 * t * t * cmd.y2 +
-                   t * t * t * cmd.y;
+          const x =
+            t1 * t1 * t1 * currentX +
+            3 * t1 * t1 * t * cmd.x1 +
+            3 * t1 * t * t * cmd.x2 +
+            t * t * t * cmd.x;
+          const y =
+            t1 * t1 * t1 * currentY +
+            3 * t1 * t1 * t * cmd.y1 +
+            3 * t1 * t * t * cmd.y2 +
+            t * t * t * cmd.y;
           points.push({ x, y });
         }
         currentX = cmd.x;
         currentY = cmd.y;
         break;
 
-      case 'Q':
+      case "Q":
         // Approximate quadratic bezier with line segments
         for (let i = 1; i <= segments; i++) {
           const t = i / segments;
           const t1 = 1 - t;
-          const x = t1 * t1 * currentX +
-                   2 * t1 * t * cmd.x1 +
-                   t * t * cmd.x;
-          const y = t1 * t1 * currentY +
-                   2 * t1 * t * cmd.y1 +
-                   t * t * cmd.y;
+          const x = t1 * t1 * currentX + 2 * t1 * t * cmd.x1 + t * t * cmd.x;
+          const y = t1 * t1 * currentY + 2 * t1 * t * cmd.y1 + t * t * cmd.y;
           points.push({ x, y });
         }
         currentX = cmd.x;
         currentY = cmd.y;
         break;
 
-      case 'A':
+      case "A":
         // Simplified arc approximation
         currentX = cmd.x;
         currentY = cmd.y;
@@ -944,7 +1011,7 @@ export function circleToPoints(cx, cy, r, segments = 32) {
     const angle = (i / segments) * 2 * Math.PI;
     points.push({
       x: cx + r * Math.cos(angle),
-      y: cy + r * Math.sin(angle)
+      y: cy + r * Math.sin(angle),
     });
   }
   return points;
@@ -966,7 +1033,7 @@ export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
     const angle = (i / segments) * 2 * Math.PI;
     points.push({
       x: cx + rx * Math.cos(angle),
-      y: cy + ry * Math.sin(angle)
+      y: cy + ry * Math.sin(angle),
     });
   }
   return points;
@@ -980,7 +1047,10 @@ export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
  */
 export function parsePoints(pointsStr) {
   const points = [];
-  const coords = pointsStr.trim().split(/[\s,]+/).map(Number);
+  const coords = pointsStr
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
 
   for (let i = 0; i < coords.length - 1; i += 2) {
     points.push({ x: coords[i], y: coords[i + 1] });
@@ -1016,18 +1086,22 @@ export function markersToPathData(markerInstances, precision = 2) {
 
       // Start with M (moveto) command
       const first = polygon[0];
-      pathParts.push(`M ${first.x.toFixed(precision)} ${first.y.toFixed(precision)}`);
+      pathParts.push(
+        `M ${first.x.toFixed(precision)} ${first.y.toFixed(precision)}`,
+      );
 
       // Add L (lineto) commands for remaining points
       for (let i = 1; i < polygon.length; i++) {
         const pt = polygon[i];
-        pathParts.push(`L ${pt.x.toFixed(precision)} ${pt.y.toFixed(precision)}`);
+        pathParts.push(
+          `L ${pt.x.toFixed(precision)} ${pt.y.toFixed(precision)}`,
+        );
       }
 
       // Close path
-      pathParts.push('Z');
+      pathParts.push("Z");
     }
   }
 
-  return pathParts.join(' ');
+  return pathParts.join(" ");
 }

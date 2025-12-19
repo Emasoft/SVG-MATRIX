@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG with External Audio Control</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #1a1a1a;
+    }
+    .player-container {
+      position: relative;
+      width: 800px;
+      height: 450px;
+    }
+    .player-container object {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .click-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 10;
+    }
+    .click-overlay.hidden {
+      display: none;
+    }
+    .play-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .play-icon::after {
+      content: '';
+      border-style: solid;
+      border-width: 20px 0 20px 35px;
+      border-color: transparent transparent transparent #1a1a1a;
+      margin-left: 8px;
+    }
+    .click-text {
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="player-container">
+    <!-- SVG - animation will be paused until click -->
+    <object id="svgObject" data="cartoon_sample_with_audio_READONLY.svg" type="image/svg+xml"></object>
+
+    <!-- Click overlay -->
+    <div class="click-overlay" id="overlay">
+      <div class="play-icon"></div>
+      <div class="click-text">Click to Play</div>
+    </div>
+  </div>
+
+  <!-- Audio elements controlled by HTML page -->
+  <audio id="audio2_external" preload="auto"></audio>
+  <audio id="audio1_external" preload="auto"></audio>
+
+  <script>
+    const overlay = document.getElementById('overlay');
+    const svgObject = document.getElementById('svgObject');
+    const audio2 = document.getElementById('audio2_external');
+    const audio1 = document.getElementById('audio1_external');
+
+    let svgDoc = null;
+    let svgRoot = null;
+    let started = false;
+
+    // When SVG loads, pause its animation and extract audio sources
+    svgObject.addEventListener('load', function() {
+      try {
+        svgDoc = svgObject.contentDocument;
+        if (svgDoc) {
+          svgRoot = svgDoc.documentElement;
+
+          // Pause SMIL animations immediately
+          if (svgRoot.pauseAnimations) {
+            svgRoot.pauseAnimations();
+            console.log('[INFO] SVG animations paused, waiting for user click');
+          }
+
+          // Extract audio sources from the SVG
+          const svgAudio1 = svgDoc.getElementById('audio1');
+          const svgAudio2 = svgDoc.getElementById('audio2');
+
+          if (svgAudio2) {
+            const source2 = svgAudio2.querySelector('source');
+            if (source2) {
+              audio2.src = source2.src;
+              console.log('[INFO] audio2 source extracted');
+            }
+          }
+          if (svgAudio1) {
+            const source1 = svgAudio1.querySelector('source');
+            if (source1) {
+              audio1.src = source1.src;
+              console.log('[INFO] audio1 source extracted');
+            }
+          }
+        }
+      } catch(e) {
+        console.log('[ERROR] Could not access SVG document:', e.message);
+      }
+    });
+
+    overlay.addEventListener('click', function() {
+      if (started) return;
+      started = true;
+
+      // Hide overlay
+      overlay.classList.add('hidden');
+
+      // Unpause SVG animation
+      if (svgRoot && svgRoot.unpauseAnimations) {
+        svgRoot.unpauseAnimations();
+        console.log('[INFO] SVG animations unpaused');
+      }
+
+      // Start audio2 immediately (it starts at 0s in the animation)
+      audio2.play().then(() => {
+        console.log('[INFO] audio2 playing');
+      }).catch(e => {
+        console.log('[ERROR] audio2 failed:', e.message);
+      });
+
+      // Schedule audio1 to start at 75.077 seconds
+      setTimeout(() => {
+        audio1.play().then(() => {
+          console.log('[INFO] audio1 playing');
+        }).catch(e => {
+          console.log('[ERROR] audio1 failed:', e.message);
+        });
+      }, 75077);
+
+      console.log('[INFO] Animation and audio started together - perfect sync!');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono&family=Notable&family=Orbitron&family=Dokdo&family=Monofett&family=DM+Serif+Display&display=swap');
+@font-face {
+  font-family: 'Fira Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_005.ttf") format('truetype');
+}
+;
+@font-face {
+  font-family: 'Notable';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_006.ttf") format('truetype');
+}
+;
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_007.ttf") format('truetype');
+}
+;
+@font-face {
+  font-family: 'Dokdo';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_008.ttf") format('truetype');
+}
+;
+@font-face {
+  font-family: 'Monofett';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_009.ttf") format('truetype');
+}
+;
+@font-face {
+  font-family: 'DM Serif Display';
+  font-style: normal;
+  font-weight: 400;
+  src: url("./8bits_font_010.ttf") format('truetype');
+}
+;

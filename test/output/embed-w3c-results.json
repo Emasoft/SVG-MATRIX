@@ -1,0 +1,170 @@
+{
+  "timestamp": "2025-12-14T18:00:47.734Z",
+  "summary": {
+    "total": 32,
+    "passed": 32,
+    "failed": 0
+  },
+  "tests": [
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Sodipodi namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape version attribute preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape-specific attributes preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Script function preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Less-than comparison preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "CSS class selector preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "CSS property preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Sodipodi namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Illustrator namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape label attribute preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Script variable declaration preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Content after ]]> preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "All internal references valid",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Internal reference preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Sodipodi namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Sodipodi namedview element preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Inkscape groupmode attribute preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Layer label preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Element label preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Output is valid SVG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Figma namespace preserved",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Figma layer-id attribute preserved",
+      "status": "PASS",
+      "details": ""
+    }
+  ]
+}

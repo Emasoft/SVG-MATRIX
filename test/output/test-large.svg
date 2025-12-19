@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1630 765" preserveAspectRatio="xMinYMin meet" height="765" width="100%">
+  <title>Large Table Test (10x10)</title>
+
+  <defs>
+    <style>
+      .title { font: bold 20px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .subtitle { font: 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #666; }
+      .col-header { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #FFF; }
+      .col-desc { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: rgba(255,255,255,0.85); }
+      .row-label { font: 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .row-label-bold { font: bold 11px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #1a1a1a; }
+      .cell-ok { fill: #C8E6C9; }
+      .cell-warn { fill: #FFF9C4; }
+      .cell-bad { fill: #FFCDD2; }
+      .ok-text { font: bold 13px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #2E7D32; }
+      .cell-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .section-title { font: bold 12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #333; }
+      .legend-text { font: 10px system-ui, -apple-system, BlinkMacSystemFont, sans-serif; fill: #444; }
+    </style>
+  </defs>
+
+  <text x="815" y="24" text-anchor="middle" class="title">Large Table Test (10x10)</text>
+  <text x="815" y="42" text-anchor="middle" class="subtitle">100 cells total</text>
+
+  <g transform="translate(25, 55)">
+    <rect x="80" y="0" width="150" height="60" fill="hsl(210, 70%, 52%)" stroke="#DDD"/>
+    <text x="155" y="25" text-anchor="middle" class="col-header">Column 1</text>
+    <rect x="230" y="0" width="150" height="60" fill="hsl(220, 70%, 54%)" stroke="#DDD"/>
+    <text x="305" y="25" text-anchor="middle" class="col-header">Column 2</text>
+    <rect x="380" y="0" width="150" height="60" fill="hsl(230, 70%, 56%)" stroke="#DDD"/>
+    <text x="455" y="25" text-anchor="middle" class="col-header">Column 3</text>
+    <rect x="530" y="0" width="150" height="60" fill="hsl(240, 70%, 58%)" stroke="#DDD"/>
+    <text x="605" y="25" text-anchor="middle" class="col-header">Column 4</text>
+    <rect x="680" y="0" width="150" height="60" fill="hsl(250, 70%, 60%)" stroke="#DDD"/>
+    <text x="755" y="25" text-anchor="middle" class="col-header">Column 5</text>
+    <rect x="830" y="0" width="150" height="60" fill="hsl(260, 70%, 62%)" stroke="#DDD"/>
+    <text x="905" y="25" text-anchor="middle" class="col-header">Column 6</text>
+    <rect x="980" y="0" width="150" height="60" fill="hsl(270, 70%, 64%)" stroke="#DDD"/>
+    <text x="1055" y="25" text-anchor="middle" class="col-header">Column 7</text>
+    <rect x="1130" y="0" width="150" height="60" fill="hsl(280, 70%, 66%)" stroke="#DDD"/>
+    <text x="1205" y="25" text-anchor="middle" class="col-header">Column 8</text>
+    <rect x="1280" y="0" width="150" height="60" fill="hsl(290, 70%, 68%)" stroke="#DDD"/>
+    <text x="1355" y="25" text-anchor="middle" class="col-header">Column 9</text>
+    <rect x="1430" y="0" width="150" height="60" fill="hsl(300, 70%, 70%)" stroke="#DDD"/>
+    <text x="1505" y="25" text-anchor="middle" class="col-header">Column 10</text>
+    <rect x="0" y="60" width="80" height="60" fill="hsl(20, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="94" text-anchor="middle" class="row-label-bold">Row 1</text>
+    <rect x="80" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="85" class="cell-text">• 1 x 1 = 1</text>
+    <rect x="230" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="85" class="cell-text">• 1 x 2 = 2</text>
+    <rect x="380" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="85" class="cell-text">• 1 x 3 = 3</text>
+    <rect x="530" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="85" class="cell-text">• 1 x 4 = 4</text>
+    <rect x="680" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="85" class="cell-text">• 1 x 5 = 5</text>
+    <rect x="830" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="85" class="cell-text">• 1 x 6 = 6</text>
+    <rect x="980" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="85" class="cell-text">• 1 x 7 = 7</text>
+    <rect x="1130" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="85" class="cell-text">• 1 x 8 = 8</text>
+    <rect x="1280" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1288" y="85" class="cell-text">• 1 x 9 = 9</text>
+    <rect x="1430" y="60" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1438" y="85" class="cell-text">• 1 x 10 = 10</text>
+    <line x1="0" y1="120" x2="1580" y2="120" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="120" width="80" height="60" fill="hsl(40, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="154" text-anchor="middle" class="row-label-bold">Row 2</text>
+    <rect x="80" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="145" class="cell-text">• 2 x 1 = 2</text>
+    <rect x="230" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="145" class="cell-text">• 2 x 2 = 4</text>
+    <rect x="380" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="145" class="cell-text">• 2 x 3 = 6</text>
+    <rect x="530" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="145" class="cell-text">• 2 x 4 = 8</text>
+    <rect x="680" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="145" class="cell-text">• 2 x 5 = 10</text>
+    <rect x="830" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="145" class="cell-text">• 2 x 6 = 12</text>
+    <rect x="980" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="145" class="cell-text">• 2 x 7 = 14</text>
+    <rect x="1130" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="145" class="cell-text">• 2 x 8 = 16</text>
+    <rect x="1280" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1288" y="145" class="cell-text">• 2 x 9 = 18</text>
+    <rect x="1430" y="120" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1438" y="145" class="cell-text">• 2 x 10 = 20</text>
+    <line x1="0" y1="180" x2="1580" y2="180" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="180" width="80" height="60" fill="hsl(60, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="214" text-anchor="middle" class="row-label-bold">Row 3</text>
+    <rect x="80" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="205" class="cell-text">• 3 x 1 = 3</text>
+    <rect x="230" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="205" class="cell-text">• 3 x 2 = 6</text>
+    <rect x="380" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="205" class="cell-text">• 3 x 3 = 9</text>
+    <rect x="530" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="205" class="cell-text">• 3 x 4 = 12</text>
+    <rect x="680" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="205" class="cell-text">• 3 x 5 = 15</text>
+    <rect x="830" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="205" class="cell-text">• 3 x 6 = 18</text>
+    <rect x="980" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="205" class="cell-text">• 3 x 7 = 21</text>
+    <rect x="1130" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="205" class="cell-text">• 3 x 8 = 24</text>
+    <rect x="1280" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1288" y="205" class="cell-text">• 3 x 9 = 27</text>
+    <rect x="1430" y="180" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1438" y="205" class="cell-text">• 3 x 10 = 30</text>
+    <line x1="0" y1="240" x2="1580" y2="240" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="240" width="80" height="60" fill="hsl(80, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="274" text-anchor="middle" class="row-label-bold">Row 4</text>
+    <rect x="80" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="265" class="cell-text">• 4 x 1 = 4</text>
+    <rect x="230" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="265" class="cell-text">• 4 x 2 = 8</text>
+    <rect x="380" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="265" class="cell-text">• 4 x 3 = 12</text>
+    <rect x="530" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="265" class="cell-text">• 4 x 4 = 16</text>
+    <rect x="680" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="265" class="cell-text">• 4 x 5 = 20</text>
+    <rect x="830" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="265" class="cell-text">• 4 x 6 = 24</text>
+    <rect x="980" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="265" class="cell-text">• 4 x 7 = 28</text>
+    <rect x="1130" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="265" class="cell-text">• 4 x 8 = 32</text>
+    <rect x="1280" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1288" y="265" class="cell-text">• 4 x 9 = 36</text>
+    <rect x="1430" y="240" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1438" y="265" class="cell-text">• 4 x 10 = 40</text>
+    <line x1="0" y1="300" x2="1580" y2="300" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="300" width="80" height="60" fill="hsl(100, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="334" text-anchor="middle" class="row-label-bold">Row 5</text>
+    <rect x="80" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="325" class="cell-text">• 5 x 1 = 5</text>
+    <rect x="230" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="325" class="cell-text">• 5 x 2 = 10</text>
+    <rect x="380" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="325" class="cell-text">• 5 x 3 = 15</text>
+    <rect x="530" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="325" class="cell-text">• 5 x 4 = 20</text>
+    <rect x="680" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="325" class="cell-text">• 5 x 5 = 25</text>
+    <rect x="830" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="325" class="cell-text">• 5 x 6 = 30</text>
+    <rect x="980" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="325" class="cell-text">• 5 x 7 = 35</text>
+    <rect x="1130" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="325" class="cell-text">• 5 x 8 = 40</text>
+    <rect x="1280" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1288" y="325" class="cell-text">• 5 x 9 = 45</text>
+    <rect x="1430" y="300" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1438" y="325" class="cell-text">• 5 x 10 = 50</text>
+    <line x1="0" y1="360" x2="1580" y2="360" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="360" width="80" height="60" fill="hsl(120, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="394" text-anchor="middle" class="row-label-bold">Row 6</text>
+    <rect x="80" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="385" class="cell-text">• 6 x 1 = 6</text>
+    <rect x="230" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="385" class="cell-text">• 6 x 2 = 12</text>
+    <rect x="380" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="385" class="cell-text">• 6 x 3 = 18</text>
+    <rect x="530" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="385" class="cell-text">• 6 x 4 = 24</text>
+    <rect x="680" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="385" class="cell-text">• 6 x 5 = 30</text>
+    <rect x="830" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="385" class="cell-text">• 6 x 6 = 36</text>
+    <rect x="980" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="385" class="cell-text">• 6 x 7 = 42</text>
+    <rect x="1130" y="360" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="1138" y="385" class="cell-text">• 6 x 8 = 48</text>
+    <rect x="1280" y="360" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1288" y="385" class="cell-text">• 6 x 9 = 54</text>
+    <rect x="1430" y="360" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1438" y="385" class="cell-text">• 6 x 10 = 60</text>
+    <line x1="0" y1="420" x2="1580" y2="420" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="420" width="80" height="60" fill="hsl(140, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="454" text-anchor="middle" class="row-label-bold">Row 7</text>
+    <rect x="80" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="445" class="cell-text">• 7 x 1 = 7</text>
+    <rect x="230" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="445" class="cell-text">• 7 x 2 = 14</text>
+    <rect x="380" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="445" class="cell-text">• 7 x 3 = 21</text>
+    <rect x="530" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="445" class="cell-text">• 7 x 4 = 28</text>
+    <rect x="680" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="445" class="cell-text">• 7 x 5 = 35</text>
+    <rect x="830" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="445" class="cell-text">• 7 x 6 = 42</text>
+    <rect x="980" y="420" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="988" y="445" class="cell-text">• 7 x 7 = 49</text>
+    <rect x="1130" y="420" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1138" y="445" class="cell-text">• 7 x 8 = 56</text>
+    <rect x="1280" y="420" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1288" y="445" class="cell-text">• 7 x 9 = 63</text>
+    <rect x="1430" y="420" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1438" y="445" class="cell-text">• 7 x 10 = 70</text>
+    <line x1="0" y1="480" x2="1580" y2="480" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="480" width="80" height="60" fill="hsl(160, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="514" text-anchor="middle" class="row-label-bold">Row 8</text>
+    <rect x="80" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="505" class="cell-text">• 8 x 1 = 8</text>
+    <rect x="230" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="505" class="cell-text">• 8 x 2 = 16</text>
+    <rect x="380" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="505" class="cell-text">• 8 x 3 = 24</text>
+    <rect x="530" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="505" class="cell-text">• 8 x 4 = 32</text>
+    <rect x="680" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="505" class="cell-text">• 8 x 5 = 40</text>
+    <rect x="830" y="480" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="838" y="505" class="cell-text">• 8 x 6 = 48</text>
+    <rect x="980" y="480" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="988" y="505" class="cell-text">• 8 x 7 = 56</text>
+    <rect x="1130" y="480" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1138" y="505" class="cell-text">• 8 x 8 = 64</text>
+    <rect x="1280" y="480" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1288" y="505" class="cell-text">• 8 x 9 = 72</text>
+    <rect x="1430" y="480" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1438" y="505" class="cell-text">• 8 x 10 = 80</text>
+    <line x1="0" y1="540" x2="1580" y2="540" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="540" width="80" height="60" fill="hsl(180, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="574" text-anchor="middle" class="row-label-bold">Row 9</text>
+    <rect x="80" y="540" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="565" class="cell-text">• 9 x 1 = 9</text>
+    <rect x="230" y="540" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="565" class="cell-text">• 9 x 2 = 18</text>
+    <rect x="380" y="540" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="565" class="cell-text">• 9 x 3 = 27</text>
+    <rect x="530" y="540" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="565" class="cell-text">• 9 x 4 = 36</text>
+    <rect x="680" y="540" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="565" class="cell-text">• 9 x 5 = 45</text>
+    <rect x="830" y="540" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="838" y="565" class="cell-text">• 9 x 6 = 54</text>
+    <rect x="980" y="540" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="988" y="565" class="cell-text">• 9 x 7 = 63</text>
+    <rect x="1130" y="540" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1138" y="565" class="cell-text">• 9 x 8 = 72</text>
+    <rect x="1280" y="540" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1288" y="565" class="cell-text">• 9 x 9 = 81</text>
+    <rect x="1430" y="540" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1438" y="565" class="cell-text">• 9 x 10 = 90</text>
+    <line x1="0" y1="600" x2="1580" y2="600" stroke="#999" stroke-width="2"/>
+    <rect x="0" y="600" width="80" height="60" fill="hsl(200, 30%, 95%)" stroke="#DDD"/>
+    <text x="40" y="634" text-anchor="middle" class="row-label-bold">Row 10</text>
+    <rect x="80" y="600" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="88" y="625" class="cell-text">• 10 x 1 = 10</text>
+    <rect x="230" y="600" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="238" y="625" class="cell-text">• 10 x 2 = 20</text>
+    <rect x="380" y="600" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="388" y="625" class="cell-text">• 10 x 3 = 30</text>
+    <rect x="530" y="600" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="538" y="625" class="cell-text">• 10 x 4 = 40</text>
+    <rect x="680" y="600" width="150" height="60" class="cell-ok" stroke="#DDD"/>
+    <text x="688" y="625" class="cell-text">• 10 x 5 = 50</text>
+    <rect x="830" y="600" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="838" y="625" class="cell-text">• 10 x 6 = 60</text>
+    <rect x="980" y="600" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="988" y="625" class="cell-text">• 10 x 7 = 70</text>
+    <rect x="1130" y="600" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1138" y="625" class="cell-text">• 10 x 8 = 80</text>
+    <rect x="1280" y="600" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1288" y="625" class="cell-text">• 10 x 9 = 90</text>
+    <rect x="1430" y="600" width="150" height="60" class="cell-warn" stroke="#DDD"/>
+    <text x="1438" y="625" class="cell-text">• 10 x 10 = 100</text>
+  </g>
+</svg>

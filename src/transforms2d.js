@@ -1,12 +1,12 @@
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
 
 /**
  * Helper to convert any numeric input to Decimal.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
  */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * 2D Affine Transforms using 3x3 homogeneous matrices.
@@ -101,7 +101,7 @@ export function translation(tx, ty) {
   return Matrix.from([
     [new Decimal(1), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), D(ty)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -153,11 +153,11 @@ export function translation(tx, ty) {
  * // This scales by 2× around point (100, 50) instead of origin
  */
 export function scale(sx, sy = null) {
-  if (sy === null) sy = sx;
+  const syValue = sy === null ? sx : sy;
   return Matrix.from([
     [D(sx), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), D(sy), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), D(syValue), new Decimal(0)],
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -220,7 +220,7 @@ export function rotate(theta) {
   return Matrix.from([
     [c, s.negated(), new Decimal(0)],
     [s, c, new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -272,7 +272,9 @@ export function rotate(theta) {
 export function rotateAroundPoint(theta, px, py) {
   const pxD = D(px);
   const pyD = D(py);
-  return translation(pxD, pyD).mul(rotate(theta)).mul(translation(pxD.negated(), pyD.negated()));
+  return translation(pxD, pyD)
+    .mul(rotate(theta))
+    .mul(translation(pxD.negated(), pyD.negated()));
 }
 
 /**
@@ -333,7 +335,7 @@ export function skew(ax, ay) {
   return Matrix.from([
     [new Decimal(1), D(ax), new Decimal(0)],
     [D(ay), new Decimal(1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -397,7 +399,9 @@ export function skew(ax, ay) {
  * // Result: x = 10, y = 10 (Y compressed to half)
  */
 export function stretchAlongAxis(ux, uy, k) {
-  const uxD = D(ux), uyD = D(uy), kD = D(k);
+  const uxD = D(ux),
+    uyD = D(uy),
+    kD = D(k);
   const one = new Decimal(1);
   const factor = kD.minus(one);
   const m00 = one.plus(factor.mul(uxD.mul(uxD)));
@@ -407,7 +411,7 @@ export function stretchAlongAxis(ux, uy, k) {
   return Matrix.from([
     [m00, m01, new Decimal(0)],
     [m10, m11, new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -471,7 +475,9 @@ export function stretchAlongAxis(ux, uy, k) {
 export function applyTransform(M, x, y) {
   const P = Matrix.from([[D(x)], [D(y)], [new Decimal(1)]]);
   const R = M.mul(P);
-  const rx = R.data[0][0], ry = R.data[1][0], rw = R.data[2][0];
+  const rx = R.data[0][0],
+    ry = R.data[1][0],
+    rw = R.data[2][0];
   // Perspective division (for affine transforms, rw is always 1)
   return [rx.div(rw), ry.div(rw)];
 }
@@ -522,7 +528,7 @@ export function reflectX() {
   return Matrix.from([
     [new Decimal(1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(-1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -572,7 +578,7 @@ export function reflectY() {
   return Matrix.from([
     [new Decimal(-1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
 
@@ -634,6 +640,6 @@ export function reflectOrigin() {
   return Matrix.from([
     [new Decimal(-1), new Decimal(0), new Decimal(0)],
     [new Decimal(0), new Decimal(-1), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), new Decimal(1)]
+    [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }

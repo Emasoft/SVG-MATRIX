@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Test Matrix - 70 Functions × 525 Files</title>
+<style>
+:root {
+  --bg-dark: #1a1a1a;
+  --bg-darker: #0d0d0d;
+  --text-light: #e0e0e0;
+  --text-dim: #888;
+  --border: #333;
+  --cell-pass: #1a4d1a;
+  --cell-fail: #4d1a1a;
+  --cell-wip: #4d4d1a;
+  --header-bg: #2a2a2a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  padding: 16px;
+  overflow: hidden;
+}
+
+.container {
+  max-width: 100vw;
+  height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: var(--bg-darker);
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+
+h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.stats {
+  display: flex;
+  gap: 24px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: var(--text-light);
+  font-size: 18px;
+}
+
+.timestamp {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.table-wrapper {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  position: relative;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  font-size: 11px;
+}
+
+th, td {
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: center;
+  min-width: 24px;
+}
+
+th {
+  background: var(--header-bg);
+  font-weight: 600;
+  position: sticky;
+  z-index: 3;
+}
+
+thead th {
+  top: 0;
+  height: 120px;
+  vertical-align: bottom;
+  padding: 4px 2px;
+}
+
+thead th:first-child {
+  left: 0;
+  z-index: 4;
+  height: auto;
+  vertical-align: middle;
+  padding: 8px;
+}
+
+tbody th {
+  left: 0;
+  z-index: 2;
+  background: var(--header-bg);
+  text-align: left;
+  font-size: 10px;
+  min-width: 200px;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rotate {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  font-size: 9px;
+  max-width: 24px;
+}
+
+td {
+  background: var(--bg-dark);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+td:hover {
+  filter: brightness(1.3);
+}
+
+td.pass {
+  background: var(--cell-pass);
+}
+
+td.fail {
+  background: var(--cell-fail);
+}
+
+td.wip {
+  background: var(--cell-wip);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>SVG Test Matrix</h1>
+    <div class="stats">
+      <div class="stat-item">
+        <span>Total:</span>
+        <span class="stat-value" id="total-cells">36,750</span>
+      </div>
+      <div class="stat-item">
+        <span>Passed:</span>
+        <span class="stat-value" style="color: #4ade80" id="passed-cells">0</span>
+      </div>
+      <div class="stat-item">
+        <span>Failed:</span>
+        <span class="stat-value" style="color: #f87171" id="failed-cells">0</span>
+      </div>
+      <div class="stat-item">
+        <span>WIP:</span>
+        <span class="stat-value" style="color: #fbbf24" id="wip-cells">36,750</span>
+      </div>
+      <div class="stat-item">
+        <span>Progress:</span>
+        <span class="stat-value" id="progress">0.0%</span>
+      </div>
+    </div>
+    <div class="timestamp">Last updated: <span id="last-updated">Never</span></div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-box" style="background: var(--cell-pass);">✅</div>
+        <span>Pass</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="background: var(--cell-fail);">❌</div>
+        <span>Fail</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box" style="background: var(--cell-wip);">🚧</div>
+        <span>WIP</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table id="test-matrix">
+      <thead>
+        <tr>
+          <th>Function / SVG File</th>
+          <th><div class="rotate">animate-dom-01-f</div></th>
+          <th><div class="rotate">animate-dom-02-f</div></th>
+          <th><div class="rotate">animate-elem-02-t</div></th>
+          <th><div class="rotate">animate-elem-03-t</div></th>
+          <th><div class="rotate">animate-elem-04-t</div></th>
+          <th><div class="rotate">animate-elem-05-t</div></th>
+          <th><div class="rotate">animate-elem-06-t</div></th>
+          <th><div class="rotate">animate-elem-07-t</div></th>
+          <th><div class="rotate">animate-elem-08-t</div></th>
+          <th><div class="rotate">animate-elem-09-t</div></th>
+          <th><div class="rotate">animate-elem-10-t</div></th>
+          <th><div class="rotate">animate-elem-11-t</div></th>
+          <th><div class="rotate">animate-elem-12-t</div></th>
+          <th><div class="rotate">animate-elem-13-t</div></th>
+          <th><div class="rotate">animate-elem-14-t</div></th>
+          <th><div class="rotate">animate-elem-15-t</div></th>
+          <th><div class="rotate">animate-elem-17-t</div></th>
+          <th><div class="rotate">animate-elem-19-t</div></th>
+          <th><div class="rotate">animate-elem-20-t</div></th>
+          <th><div class="rotate">animate-elem-21-t</div></th>
+          <th><div class="rotate">animate-elem-22-b</div></th>
+          <th><div class="rotate">animate-elem-23-t</div></th>
+          <th><div class="rotate">animate-elem-24-t</div></th>
+          <th><div class="rotate">animate-elem-25-t</div></th>
+          <th><div class="rotate">animate-elem-26-t</div></th>
+          <th><div class="rotate">animate-elem-27-t</div></th>
+          <th><div class="rotate">animate-elem-28-t</div></th>
+          <th><div class="rotate">animate-elem-29-b</div></th>
+          <th><div class="rotate">animate-elem-30-t</div></th>
+          <th><div class="rotate">animate-elem-31-t</div></th>
+          <th><div class="rotate">animate-elem-32-t</div></th>
+          <th><div class="rotate">animate-elem-33-t</div></th>
+          <th><div class="rotate">animate-elem-34-t</div></th>
+          <th><div class="rotate">animate-elem-35-t</div></th>
+          <th><div class="rotate">animate-elem-36-t</div></th>
+          <th><div class="rotate">animate-elem-37-t</div></th>
+          <th><div class="rotate">animate-elem-38-t</div></th>
+          <th><div class="rotate">animate-elem-39-t</div></th>
+          <th><div class="rotate">animate-elem-40-t</div></th>
+          <th><div class="rotate">animate-elem-41-t</div></th>
+          <th><div class="rotate">animate-elem-44-t</div></th>
+          <th><div class="rotate">animate-elem-46-t</div></th>
+          <th><div class="rotate">animate-elem-52-t</div></th>
+          <th><div class="rotate">animate-elem-53-t</div></th>
+          <th><div class="rotate">animate-elem-60-t</div></th>
+          <th><div class="rotate">animate-elem-61-t</div></th>
+          <th><div class="rotate">animate-elem-62-t</div></th>
+          <th><div class="rotate">animate-elem-63-t</div></th>
+          <th><div class="rotate">animate-elem-64-t</div></th>
+          <th><div class="rotate">animate-elem-65-t</div></th>
+          <th><div class="rotate">animate-elem-66-t</div></th>
+          <th><div class="rotate">animate-elem-67-t</div></th>
+          <th><div class="rotate">animate-elem-68-t</div></th>
+          <th><div class="rotate">animate-elem-69-t</div></th>
+          <th><div class="rotate">animate-elem-70-t</div></th>
+          <th><div class="rotate">animate-elem-77-t</div></th>
+          <th><div class="rotate">animate-elem-78-t</div></th>
+          <th><div class="rotate">animate-elem-80-t</div></th>
+          <th><div class="rotate">animate-elem-81-t</div></th>
+          <th><div class="rotate">animate-elem-82-t</div></th>
+          <th><div class="rotate">animate-elem-83-t</div></th>
+          <th><div class="rotate">animate-elem-84-t</div></th>
+          <th><div class="rotate">animate-elem-85-t</div></th>
+          <th><div class="rotate">animate-elem-86-t</div></th>
+          <th><div class="rotate">animate-elem-87-t</div></th>
+          <th><div class="rotate">animate-elem-88-t</div></th>
+          <th><div class="rotate">animate-elem-89-t</div></th>
+          <th><div class="rotate">animate-elem-90-b</div></th>
+          <th><div class="rotate">animate-elem-91-t</div></th>
+          <th><div class="rotate">animate-elem-92-t</div></th>
+          <th><div class="rotate">animate-interact-events-01-t</div></th>
+          <th><div class="rotate">animate-interact-pevents-01-t</div></th>
+          <th><div class="rotate">animate-interact-pevents-02-t</div></th>
+          <th><div class="rotate">animate-interact-pevents-03-t</div></th>
+          <th><div class="rotate">animate-interact-pevents-04-t</div></th>
+          <th><div class="rotate">animate-pservers-grad-01-b</div></th>
+          <th><div class="rotate">animate-script-elem-01-b</div></th>
+          <th><div class="rotate">animate-struct-dom-01-b</div></th>
+          <th><div class="rotate">color-prof-01-f</div></th>
+          <th><div class="rotate">color-prop-01-b</div></th>
+          <th><div class="rotate">color-prop-02-f</div></th>
+          <th><div class="rotate">color-prop-03-t</div></th>
+          <th><div class="rotate">color-prop-04-t</div></th>
+          <th><div class="rotate">color-prop-05-t</div></th>
+          <th><div class="rotate">conform-viewers-02-f</div></th>
+          <th><div class="rotate">conform-viewers-03-f</div></th>
+          <th><div class="rotate">coords-coord-01-t</div></th>
+          <th><div class="rotate">coords-coord-02-t</div></th>
+          <th><div class="rotate">coords-dom-01-f</div></th>
+          <th><div class="rotate">coords-dom-02-f</div></th>
+          <th><div class="rotate">coords-dom-03-f</div></th>
+          <th><div class="rotate">coords-dom-04-f</div></th>
+          <th><div class="rotate">coords-trans-01-b</div></th>
+          <th><div class="rotate">coords-trans-02-t</div></th>
+          <th><div class="rotate">coords-trans-03-t</div></th>
+          <th><div class="rotate">coords-trans-04-t</div></th>
+          <th><div class="rotate">coords-trans-05-t</div></th>
+          <th><div class="rotate">coords-trans-06-t</div></th>
+          <th><div class="rotate">coords-trans-07-t</div></th>
+          <th><div class="rotate">coords-trans-08-t</div></th>
+          <th><div class="rotate">coords-trans-09-t</div></th>
+          <th><div class="rotate">coords-trans-10-f</div></th>
+          <th><div class="rotate">coords-trans-11-f</div></th>
+          <th><div class="rotate">coords-trans-12-f</div></th>
+          <th><div class="rotate">coords-trans-13-f</div></th>
+          <th><div class="rotate">coords-trans-14-f</div></th>
+          <th><div class="rotate">coords-transformattr-01-f</div></th>
+          <th><div class="rotate">coords-transformattr-02-f</div></th>
+          <th><div class="rotate">coords-transformattr-03-f</div></th>
+          <th><div class="rotate">coords-transformattr-04-f</div></th>
+          <th><div class="rotate">coords-transformattr-05-f</div></th>
+          <th><div class="rotate">coords-units-01-b</div></th>
+          <th><div class="rotate">coords-units-02-b</div></th>
+          <th><div class="rotate">coords-units-03-b</div></th>
+          <th><div class="rotate">coords-viewattr-01-b</div></th>
+          <th><div class="rotate">coords-viewattr-02-b</div></th>
+          <th><div class="rotate">coords-viewattr-03-b</div></th>
+          <th><div class="rotate">coords-viewattr-04-f</div></th>
+          <th><div class="rotate">extend-namespace-01-f</div></th>
+          <th><div class="rotate">filters-background-01-f</div></th>
+          <th><div class="rotate">filters-blend-01-b</div></th>
+          <th><div class="rotate">filters-color-01-b</div></th>
+          <th><div class="rotate">filters-color-02-b</div></th>
+          <th><div class="rotate">filters-composite-02-b</div></th>
+          <th><div class="rotate">filters-composite-03-f</div></th>
+          <th><div class="rotate">filters-composite-04-f</div></th>
+          <th><div class="rotate">filters-composite-05-f</div></th>
+          <th><div class="rotate">filters-comptran-01-b</div></th>
+          <th><div class="rotate">filters-conv-01-f</div></th>
+          <th><div class="rotate">filters-conv-02-f</div></th>
+          <th><div class="rotate">filters-conv-03-f</div></th>
+          <th><div class="rotate">filters-conv-04-f</div></th>
+          <th><div class="rotate">filters-conv-05-f</div></th>
+          <th><div class="rotate">filters-diffuse-01-f</div></th>
+          <th><div class="rotate">filters-displace-01-f</div></th>
+          <th><div class="rotate">filters-displace-02-f</div></th>
+          <th><div class="rotate">filters-example-01-b</div></th>
+          <th><div class="rotate">filters-felem-01-b</div></th>
+          <th><div class="rotate">filters-felem-02-f</div></th>
+          <th><div class="rotate">filters-gauss-01-b</div></th>
+          <th><div class="rotate">filters-gauss-02-f</div></th>
+          <th><div class="rotate">filters-gauss-03-f</div></th>
+          <th><div class="rotate">filters-image-01-b</div></th>
+          <th><div class="rotate">filters-image-02-b</div></th>
+          <th><div class="rotate">filters-image-03-f</div></th>
+          <th><div class="rotate">filters-image-04-f</div></th>
+          <th><div class="rotate">filters-image-05-f</div></th>
+          <th><div class="rotate">filters-light-01-f</div></th>
+          <th><div class="rotate">filters-light-02-f</div></th>
+          <th><div class="rotate">filters-light-03-f</div></th>
+          <th><div class="rotate">filters-light-04-f</div></th>
+          <th><div class="rotate">filters-light-05-f</div></th>
+          <th><div class="rotate">filters-morph-01-f</div></th>
+          <th><div class="rotate">filters-offset-01-b</div></th>
+          <th><div class="rotate">filters-offset-02-b</div></th>
+          <th><div class="rotate">filters-overview-01-b</div></th>
+          <th><div class="rotate">filters-overview-02-b</div></th>
+          <th><div class="rotate">filters-overview-03-b</div></th>
+          <th><div class="rotate">filters-specular-01-f</div></th>
+          <th><div class="rotate">filters-tile-01-b</div></th>
+          <th><div class="rotate">filters-turb-01-f</div></th>
+          <th><div class="rotate">filters-turb-02-f</div></th>
+          <th><div class="rotate">fonts-desc-01-t</div></th>
+          <th><div class="rotate">fonts-desc-02-t</div></th>
+          <th><div class="rotate">fonts-desc-03-t</div></th>
+          <th><div class="rotate">fonts-desc-04-t</div></th>
+          <th><div class="rotate">fonts-desc-05-t</div></th>
+          <th><div class="rotate">fonts-elem-01-t</div></th>
+          <th><div class="rotate">fonts-elem-02-t</div></th>
+          <th><div class="rotate">fonts-elem-03-b</div></th>
+          <th><div class="rotate">fonts-elem-04-b</div></th>
+          <th><div class="rotate">fonts-elem-05-t</div></th>
+          <th><div class="rotate">fonts-elem-06-t</div></th>
+          <th><div class="rotate">fonts-elem-07-b</div></th>
+          <th><div class="rotate">fonts-glyph-02-t</div></th>
+          <th><div class="rotate">fonts-glyph-03-t</div></th>
+          <th><div class="rotate">fonts-glyph-04-t</div></th>
+          <th><div class="rotate">fonts-kern-01-t</div></th>
+          <th><div class="rotate">fonts-overview-201-t</div></th>
+          <th><div class="rotate">imp-path-01-f</div></th>
+          <th><div class="rotate">interact-cursor-01-f</div></th>
+          <th><div class="rotate">interact-dom-01-b</div></th>
+          <th><div class="rotate">interact-events-01-b</div></th>
+          <th><div class="rotate">interact-events-02-b</div></th>
+          <th><div class="rotate">interact-events-202-f</div></th>
+          <th><div class="rotate">interact-events-203-t</div></th>
+          <th><div class="rotate">interact-order-01-b</div></th>
+          <th><div class="rotate">interact-order-02-b</div></th>
+          <th><div class="rotate">interact-order-03-b</div></th>
+          <th><div class="rotate">interact-pevents-01-b</div></th>
+          <th><div class="rotate">interact-pevents-03-b</div></th>
+          <th><div class="rotate">interact-pevents-04-t</div></th>
+          <th><div class="rotate">interact-pevents-05-b</div></th>
+          <th><div class="rotate">interact-pevents-07-t</div></th>
+          <th><div class="rotate">interact-pevents-08-f</div></th>
+          <th><div class="rotate">interact-pevents-09-f</div></th>
+          <th><div class="rotate">interact-pevents-10-f</div></th>
+          <th><div class="rotate">interact-pointer-01-t</div></th>
+          <th><div class="rotate">interact-pointer-02-t</div></th>
+          <th><div class="rotate">interact-pointer-03-t</div></th>
+          <th><div class="rotate">interact-pointer-04-f</div></th>
+          <th><div class="rotate">interact-zoom-01-t</div></th>
+          <th><div class="rotate">interact-zoom-02-t</div></th>
+          <th><div class="rotate">interact-zoom-03-t</div></th>
+          <th><div class="rotate">linking-a-01-b</div></th>
+          <th><div class="rotate">linking-a-03-b</div></th>
+          <th><div class="rotate">linking-a-04-t</div></th>
+          <th><div class="rotate">linking-a-05-t</div></th>
+          <th><div class="rotate">linking-a-07-t</div></th>
+          <th><div class="rotate">linking-a-08-t</div></th>
+          <th><div class="rotate">linking-a-09-b</div></th>
+          <th><div class="rotate">linking-a-10-f</div></th>
+          <th><div class="rotate">linking-frag-01-f</div></th>
+          <th><div class="rotate">linking-uri-01-b</div></th>
+          <th><div class="rotate">linking-uri-02-b</div></th>
+          <th><div class="rotate">linking-uri-03-t</div></th>
+          <th><div class="rotate">masking-filter-01-f</div></th>
+          <th><div class="rotate">masking-intro-01-f</div></th>
+          <th><div class="rotate">masking-mask-01-b</div></th>
+          <th><div class="rotate">masking-mask-02-f</div></th>
+          <th><div class="rotate">masking-opacity-01-b</div></th>
+          <th><div class="rotate">masking-path-01-b</div></th>
+          <th><div class="rotate">masking-path-02-b</div></th>
+          <th><div class="rotate">masking-path-03-b</div></th>
+          <th><div class="rotate">masking-path-04-b</div></th>
+          <th><div class="rotate">masking-path-05-f</div></th>
+          <th><div class="rotate">masking-path-06-b</div></th>
+          <th><div class="rotate">masking-path-07-b</div></th>
+          <th><div class="rotate">masking-path-08-b</div></th>
+          <th><div class="rotate">masking-path-09-b</div></th>
+          <th><div class="rotate">masking-path-10-b</div></th>
+          <th><div class="rotate">masking-path-11-b</div></th>
+          <th><div class="rotate">masking-path-12-f</div></th>
+          <th><div class="rotate">masking-path-13-f</div></th>
+          <th><div class="rotate">masking-path-14-f</div></th>
+          <th><div class="rotate">metadata-example-01-t</div></th>
+          <th><div class="rotate">painting-control-01-f</div></th>
+          <th><div class="rotate">painting-control-02-f</div></th>
+          <th><div class="rotate">painting-control-03-f</div></th>
+          <th><div class="rotate">painting-control-04-f</div></th>
+          <th><div class="rotate">painting-control-05-f</div></th>
+          <th><div class="rotate">painting-control-06-f</div></th>
+          <th><div class="rotate">painting-fill-01-t</div></th>
+          <th><div class="rotate">painting-fill-02-t</div></th>
+          <th><div class="rotate">painting-fill-03-t</div></th>
+          <th><div class="rotate">painting-fill-04-t</div></th>
+          <th><div class="rotate">painting-fill-05-b</div></th>
+          <th><div class="rotate">painting-marker-01-f</div></th>
+          <th><div class="rotate">painting-marker-02-f</div></th>
+          <th><div class="rotate">painting-marker-03-f</div></th>
+          <th><div class="rotate">painting-marker-04-f</div></th>
+          <th><div class="rotate">painting-marker-05-f</div></th>
+          <th><div class="rotate">painting-marker-06-f</div></th>
+          <th><div class="rotate">painting-marker-07-f</div></th>
+          <th><div class="rotate">painting-marker-properties-01-f</div></th>
+          <th><div class="rotate">painting-render-01-b</div></th>
+          <th><div class="rotate">painting-render-02-b</div></th>
+          <th><div class="rotate">painting-stroke-01-t</div></th>
+          <th><div class="rotate">painting-stroke-02-t</div></th>
+          <th><div class="rotate">painting-stroke-03-t</div></th>
+          <th><div class="rotate">painting-stroke-04-t</div></th>
+          <th><div class="rotate">painting-stroke-05-t</div></th>
+          <th><div class="rotate">painting-stroke-06-t</div></th>
+          <th><div class="rotate">painting-stroke-07-t</div></th>
+          <th><div class="rotate">painting-stroke-08-t</div></th>
+          <th><div class="rotate">painting-stroke-09-t</div></th>
+          <th><div class="rotate">painting-stroke-10-t</div></th>
+          <th><div class="rotate">paths-data-01-t</div></th>
+          <th><div class="rotate">paths-data-02-t</div></th>
+          <th><div class="rotate">paths-data-03-f</div></th>
+          <th><div class="rotate">paths-data-04-t</div></th>
+          <th><div class="rotate">paths-data-05-t</div></th>
+          <th><div class="rotate">paths-data-06-t</div></th>
+          <th><div class="rotate">paths-data-07-t</div></th>
+          <th><div class="rotate">paths-data-08-t</div></th>
+          <th><div class="rotate">paths-data-09-t</div></th>
+          <th><div class="rotate">paths-data-10-t</div></th>
+          <th><div class="rotate">paths-data-12-t</div></th>
+          <th><div class="rotate">paths-data-13-t</div></th>
+          <th><div class="rotate">paths-data-14-t</div></th>
+          <th><div class="rotate">paths-data-15-t</div></th>
+          <th><div class="rotate">paths-data-16-t</div></th>
+          <th><div class="rotate">paths-data-17-f</div></th>
+          <th><div class="rotate">paths-data-18-f</div></th>
+          <th><div class="rotate">paths-data-19-f</div></th>
+          <th><div class="rotate">paths-data-20-f</div></th>
+          <th><div class="rotate">paths-dom-01-f</div></th>
+          <th><div class="rotate">paths-dom-02-f</div></th>
+          <th><div class="rotate">pservers-grad-01-b</div></th>
+          <th><div class="rotate">pservers-grad-02-b</div></th>
+          <th><div class="rotate">pservers-grad-03-b</div></th>
+          <th><div class="rotate">pservers-grad-04-b</div></th>
+          <th><div class="rotate">pservers-grad-05-b</div></th>
+          <th><div class="rotate">pservers-grad-06-b</div></th>
+          <th><div class="rotate">pservers-grad-07-b</div></th>
+          <th><div class="rotate">pservers-grad-08-b</div></th>
+          <th><div class="rotate">pservers-grad-09-b</div></th>
+          <th><div class="rotate">pservers-grad-10-b</div></th>
+          <th><div class="rotate">pservers-grad-11-b</div></th>
+          <th><div class="rotate">pservers-grad-12-b</div></th>
+          <th><div class="rotate">pservers-grad-13-b</div></th>
+          <th><div class="rotate">pservers-grad-14-b</div></th>
+          <th><div class="rotate">pservers-grad-15-b</div></th>
+          <th><div class="rotate">pservers-grad-16-b</div></th>
+          <th><div class="rotate">pservers-grad-17-b</div></th>
+          <th><div class="rotate">pservers-grad-18-b</div></th>
+          <th><div class="rotate">pservers-grad-20-b</div></th>
+          <th><div class="rotate">pservers-grad-21-b</div></th>
+          <th><div class="rotate">pservers-grad-22-b</div></th>
+          <th><div class="rotate">pservers-grad-23-f</div></th>
+          <th><div class="rotate">pservers-grad-24-f</div></th>
+          <th><div class="rotate">pservers-grad-stops-01-f</div></th>
+          <th><div class="rotate">pservers-pattern-01-b</div></th>
+          <th><div class="rotate">pservers-pattern-02-f</div></th>
+          <th><div class="rotate">pservers-pattern-03-f</div></th>
+          <th><div class="rotate">pservers-pattern-04-f</div></th>
+          <th><div class="rotate">pservers-pattern-05-f</div></th>
+          <th><div class="rotate">pservers-pattern-06-f</div></th>
+          <th><div class="rotate">pservers-pattern-07-f</div></th>
+          <th><div class="rotate">pservers-pattern-08-f</div></th>
+          <th><div class="rotate">pservers-pattern-09-f</div></th>
+          <th><div class="rotate">render-elems-01-t</div></th>
+          <th><div class="rotate">render-elems-02-t</div></th>
+          <th><div class="rotate">render-elems-03-t</div></th>
+          <th><div class="rotate">render-elems-06-t</div></th>
+          <th><div class="rotate">render-elems-07-t</div></th>
+          <th><div class="rotate">render-elems-08-t</div></th>
+          <th><div class="rotate">render-groups-01-b</div></th>
+          <th><div class="rotate">render-groups-03-t</div></th>
+          <th><div class="rotate">script-handle-01-b</div></th>
+          <th><div class="rotate">script-handle-02-b</div></th>
+          <th><div class="rotate">script-handle-03-b</div></th>
+          <th><div class="rotate">script-handle-04-b</div></th>
+          <th><div class="rotate">script-specify-01-f</div></th>
+          <th><div class="rotate">script-specify-02-f</div></th>
+          <th><div class="rotate">shapes-circle-01-t</div></th>
+          <th><div class="rotate">shapes-circle-02-t</div></th>
+          <th><div class="rotate">shapes-ellipse-01-t</div></th>
+          <th><div class="rotate">shapes-ellipse-02-t</div></th>
+          <th><div class="rotate">shapes-ellipse-03-f</div></th>
+          <th><div class="rotate">shapes-grammar-01-f</div></th>
+          <th><div class="rotate">shapes-intro-01-t</div></th>
+          <th><div class="rotate">shapes-intro-02-f</div></th>
+          <th><div class="rotate">shapes-line-01-t</div></th>
+          <th><div class="rotate">shapes-line-02-f</div></th>
+          <th><div class="rotate">shapes-polygon-01-t</div></th>
+          <th><div class="rotate">shapes-polygon-02-t</div></th>
+          <th><div class="rotate">shapes-polygon-03-t</div></th>
+          <th><div class="rotate">shapes-polyline-01-t</div></th>
+          <th><div class="rotate">shapes-polyline-02-t</div></th>
+          <th><div class="rotate">shapes-rect-01-t</div></th>
+          <th><div class="rotate">shapes-rect-02-t</div></th>
+          <th><div class="rotate">shapes-rect-03-t</div></th>
+          <th><div class="rotate">shapes-rect-04-f</div></th>
+          <th><div class="rotate">shapes-rect-05-f</div></th>
+          <th><div class="rotate">shapes-rect-06-f</div></th>
+          <th><div class="rotate">shapes-rect-07-f</div></th>
+          <th><div class="rotate">struct-cond-01-t</div></th>
+          <th><div class="rotate">struct-cond-02-t</div></th>
+          <th><div class="rotate">struct-cond-03-t</div></th>
+          <th><div class="rotate">struct-cond-overview-02-f</div></th>
+          <th><div class="rotate">struct-cond-overview-03-f</div></th>
+          <th><div class="rotate">struct-cond-overview-04-f</div></th>
+          <th><div class="rotate">struct-cond-overview-05-f</div></th>
+          <th><div class="rotate">struct-defs-01-t</div></th>
+          <th><div class="rotate">struct-dom-01-b</div></th>
+          <th><div class="rotate">struct-dom-02-b</div></th>
+          <th><div class="rotate">struct-dom-03-b</div></th>
+          <th><div class="rotate">struct-dom-04-b</div></th>
+          <th><div class="rotate">struct-dom-05-b</div></th>
+          <th><div class="rotate">struct-dom-06-b</div></th>
+          <th><div class="rotate">struct-dom-07-f</div></th>
+          <th><div class="rotate">struct-dom-08-f</div></th>
+          <th><div class="rotate">struct-dom-11-f</div></th>
+          <th><div class="rotate">struct-dom-12-b</div></th>
+          <th><div class="rotate">struct-dom-13-f</div></th>
+          <th><div class="rotate">struct-dom-14-f</div></th>
+          <th><div class="rotate">struct-dom-15-f</div></th>
+          <th><div class="rotate">struct-dom-16-f</div></th>
+          <th><div class="rotate">struct-dom-17-f</div></th>
+          <th><div class="rotate">struct-dom-18-f</div></th>
+          <th><div class="rotate">struct-dom-19-f</div></th>
+          <th><div class="rotate">struct-dom-20-f</div></th>
+          <th><div class="rotate">struct-frag-01-t</div></th>
+          <th><div class="rotate">struct-frag-02-t</div></th>
+          <th><div class="rotate">struct-frag-03-t</div></th>
+          <th><div class="rotate">struct-frag-04-t</div></th>
+          <th><div class="rotate">struct-frag-05-t</div></th>
+          <th><div class="rotate">struct-frag-06-t</div></th>
+          <th><div class="rotate">struct-group-01-t</div></th>
+          <th><div class="rotate">struct-group-02-b</div></th>
+          <th><div class="rotate">struct-group-03-t</div></th>
+          <th><div class="rotate">struct-image-01-t</div></th>
+          <th><div class="rotate">struct-image-02-b</div></th>
+          <th><div class="rotate">struct-image-03-t</div></th>
+          <th><div class="rotate">struct-image-04-t</div></th>
+          <th><div class="rotate">struct-image-05-b</div></th>
+          <th><div class="rotate">struct-image-06-t</div></th>
+          <th><div class="rotate">struct-image-07-t</div></th>
+          <th><div class="rotate">struct-image-08-t</div></th>
+          <th><div class="rotate">struct-image-09-t</div></th>
+          <th><div class="rotate">struct-image-10-t</div></th>
+          <th><div class="rotate">struct-image-11-b</div></th>
+          <th><div class="rotate">struct-image-12-b</div></th>
+          <th><div class="rotate">struct-image-13-f</div></th>
+          <th><div class="rotate">struct-image-14-f</div></th>
+          <th><div class="rotate">struct-image-15-f</div></th>
+          <th><div class="rotate">struct-image-16-f</div></th>
+          <th><div class="rotate">struct-image-17-b</div></th>
+          <th><div class="rotate">struct-image-18-f</div></th>
+          <th><div class="rotate">struct-image-19-f</div></th>
+          <th><div class="rotate">struct-svg-01-f</div></th>
+          <th><div class="rotate">struct-svg-02-f</div></th>
+          <th><div class="rotate">struct-svg-03-f</div></th>
+          <th><div class="rotate">struct-symbol-01-b</div></th>
+          <th><div class="rotate">struct-use-01-t</div></th>
+          <th><div class="rotate">struct-use-03-t</div></th>
+          <th><div class="rotate">struct-use-04-b</div></th>
+          <th><div class="rotate">struct-use-05-b</div></th>
+          <th><div class="rotate">struct-use-06-b</div></th>
+          <th><div class="rotate">struct-use-07-b</div></th>
+          <th><div class="rotate">struct-use-08-b</div></th>
+          <th><div class="rotate">struct-use-09-b</div></th>
+          <th><div class="rotate">struct-use-10-f</div></th>
+          <th><div class="rotate">struct-use-11-f</div></th>
+          <th><div class="rotate">struct-use-12-f</div></th>
+          <th><div class="rotate">struct-use-13-f</div></th>
+          <th><div class="rotate">struct-use-14-f</div></th>
+          <th><div class="rotate">struct-use-15-f</div></th>
+          <th><div class="rotate">styling-class-01-f</div></th>
+          <th><div class="rotate">styling-css-01-b</div></th>
+          <th><div class="rotate">styling-css-02-b</div></th>
+          <th><div class="rotate">styling-css-03-b</div></th>
+          <th><div class="rotate">styling-css-04-f</div></th>
+          <th><div class="rotate">styling-css-05-b</div></th>
+          <th><div class="rotate">styling-css-06-b</div></th>
+          <th><div class="rotate">styling-css-07-f</div></th>
+          <th><div class="rotate">styling-css-08-f</div></th>
+          <th><div class="rotate">styling-css-09-f</div></th>
+          <th><div class="rotate">styling-css-10-f</div></th>
+          <th><div class="rotate">styling-elem-01-b</div></th>
+          <th><div class="rotate">styling-inherit-01-b</div></th>
+          <th><div class="rotate">styling-pres-01-t</div></th>
+          <th><div class="rotate">styling-pres-02-f</div></th>
+          <th><div class="rotate">styling-pres-03-f</div></th>
+          <th><div class="rotate">styling-pres-04-f</div></th>
+          <th><div class="rotate">styling-pres-05-f</div></th>
+          <th><div class="rotate">svgdom-over-01-f</div></th>
+          <th><div class="rotate">text-align-01-b</div></th>
+          <th><div class="rotate">text-align-02-b</div></th>
+          <th><div class="rotate">text-align-03-b</div></th>
+          <th><div class="rotate">text-align-04-b</div></th>
+          <th><div class="rotate">text-align-05-b</div></th>
+          <th><div class="rotate">text-align-06-b</div></th>
+          <th><div class="rotate">text-align-07-t</div></th>
+          <th><div class="rotate">text-align-08-b</div></th>
+          <th><div class="rotate">text-altglyph-01-b</div></th>
+          <th><div class="rotate">text-altglyph-02-b</div></th>
+          <th><div class="rotate">text-altglyph-03-b</div></th>
+          <th><div class="rotate">text-bidi-01-t</div></th>
+          <th><div class="rotate">text-deco-01-b</div></th>
+          <th><div class="rotate">text-dom-01-f</div></th>
+          <th><div class="rotate">text-dom-02-f</div></th>
+          <th><div class="rotate">text-dom-03-f</div></th>
+          <th><div class="rotate">text-dom-04-f</div></th>
+          <th><div class="rotate">text-dom-05-f</div></th>
+          <th><div class="rotate">text-fonts-01-t</div></th>
+          <th><div class="rotate">text-fonts-02-t</div></th>
+          <th><div class="rotate">text-fonts-03-t</div></th>
+          <th><div class="rotate">text-fonts-04-t</div></th>
+          <th><div class="rotate">text-fonts-05-f</div></th>
+          <th><div class="rotate">text-fonts-202-t</div></th>
+          <th><div class="rotate">text-fonts-203-t</div></th>
+          <th><div class="rotate">text-fonts-204-t</div></th>
+          <th><div class="rotate">text-intro-01-t</div></th>
+          <th><div class="rotate">text-intro-02-b</div></th>
+          <th><div class="rotate">text-intro-03-b</div></th>
+          <th><div class="rotate">text-intro-04-t</div></th>
+          <th><div class="rotate">text-intro-05-t</div></th>
+          <th><div class="rotate">text-intro-06-t</div></th>
+          <th><div class="rotate">text-intro-07-t</div></th>
+          <th><div class="rotate">text-intro-09-b</div></th>
+          <th><div class="rotate">text-intro-10-f</div></th>
+          <th><div class="rotate">text-intro-11-t</div></th>
+          <th><div class="rotate">text-intro-12-t</div></th>
+          <th><div class="rotate">text-path-01-b</div></th>
+          <th><div class="rotate">text-path-02-b</div></th>
+          <th><div class="rotate">text-spacing-01-b</div></th>
+          <th><div class="rotate">text-text-01-b</div></th>
+          <th><div class="rotate">text-text-03-b</div></th>
+          <th><div class="rotate">text-text-04-t</div></th>
+          <th><div class="rotate">text-text-05-t</div></th>
+          <th><div class="rotate">text-text-06-t</div></th>
+          <th><div class="rotate">text-text-07-t</div></th>
+          <th><div class="rotate">text-text-08-b</div></th>
+          <th><div class="rotate">text-text-09-t</div></th>
+          <th><div class="rotate">text-text-10-t</div></th>
+          <th><div class="rotate">text-text-11-t</div></th>
+          <th><div class="rotate">text-text-12-t</div></th>
+          <th><div class="rotate">text-tref-01-b</div></th>
+          <th><div class="rotate">text-tref-02-b</div></th>
+          <th><div class="rotate">text-tref-03-b</div></th>
+          <th><div class="rotate">text-tselect-01-b</div></th>
+          <th><div class="rotate">text-tselect-02-f</div></th>
+          <th><div class="rotate">text-tselect-03-f</div></th>
+          <th><div class="rotate">text-tspan-01-b</div></th>
+          <th><div class="rotate">text-tspan-02-b</div></th>
+          <th><div class="rotate">text-ws-01-t</div></th>
+          <th><div class="rotate">text-ws-02-t</div></th>
+          <th><div class="rotate">text-ws-03-t</div></th>
+          <th><div class="rotate">types-basic-01-f</div></th>
+          <th><div class="rotate">types-basic-02-f</div></th>
+          <th><div class="rotate">types-dom-01-b</div></th>
+          <th><div class="rotate">types-dom-02-f</div></th>
+          <th><div class="rotate">types-dom-03-b</div></th>
+          <th><div class="rotate">types-dom-04-b</div></th>
+          <th><div class="rotate">types-dom-05-b</div></th>
+          <th><div class="rotate">types-dom-06-f</div></th>
+          <th><div class="rotate">types-dom-07-f</div></th>
+          <th><div class="rotate">types-dom-08-f</div></th>
+          <th><div class="rotate">types-dom-svgfittoviewbox-01-f</div></th>
+          <th><div class="rotate">types-dom-svglengthlist-01-f</div></th>
+          <th><div class="rotate">types-dom-svgnumberlist-01-f</div></th>
+          <th><div class="rotate">types-dom-svgstringlist-01-f</div></th>
+          <th><div class="rotate">types-dom-svgtransformable-01-f</div></th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body">
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Data structures
+const svgFiles = ["animate-dom-01-f","animate-dom-02-f","animate-elem-02-t","animate-elem-03-t","animate-elem-04-t","animate-elem-05-t","animate-elem-06-t","animate-elem-07-t","animate-elem-08-t","animate-elem-09-t","animate-elem-10-t","animate-elem-11-t","animate-elem-12-t","animate-elem-13-t","animate-elem-14-t","animate-elem-15-t","animate-elem-17-t","animate-elem-19-t","animate-elem-20-t","animate-elem-21-t","animate-elem-22-b","animate-elem-23-t","animate-elem-24-t","animate-elem-25-t","animate-elem-26-t","animate-elem-27-t","animate-elem-28-t","animate-elem-29-b","animate-elem-30-t","animate-elem-31-t","animate-elem-32-t","animate-elem-33-t","animate-elem-34-t","animate-elem-35-t","animate-elem-36-t","animate-elem-37-t","animate-elem-38-t","animate-elem-39-t","animate-elem-40-t","animate-elem-41-t","animate-elem-44-t","animate-elem-46-t","animate-elem-52-t","animate-elem-53-t","animate-elem-60-t","animate-elem-61-t","animate-elem-62-t","animate-elem-63-t","animate-elem-64-t","animate-elem-65-t","animate-elem-66-t","animate-elem-67-t","animate-elem-68-t","animate-elem-69-t","animate-elem-70-t","animate-elem-77-t","animate-elem-78-t","animate-elem-80-t","animate-elem-81-t","animate-elem-82-t","animate-elem-83-t","animate-elem-84-t","animate-elem-85-t","animate-elem-86-t","animate-elem-87-t","animate-elem-88-t","animate-elem-89-t","animate-elem-90-b","animate-elem-91-t","animate-elem-92-t","animate-interact-events-01-t","animate-interact-pevents-01-t","animate-interact-pevents-02-t","animate-interact-pevents-03-t","animate-interact-pevents-04-t","animate-pservers-grad-01-b","animate-script-elem-01-b","animate-struct-dom-01-b","color-prof-01-f","color-prop-01-b","color-prop-02-f","color-prop-03-t","color-prop-04-t","color-prop-05-t","conform-viewers-02-f","conform-viewers-03-f","coords-coord-01-t","coords-coord-02-t","coords-dom-01-f","coords-dom-02-f","coords-dom-03-f","coords-dom-04-f","coords-trans-01-b","coords-trans-02-t","coords-trans-03-t","coords-trans-04-t","coords-trans-05-t","coords-trans-06-t","coords-trans-07-t","coords-trans-08-t","coords-trans-09-t","coords-trans-10-f","coords-trans-11-f","coords-trans-12-f","coords-trans-13-f","coords-trans-14-f","coords-transformattr-01-f","coords-transformattr-02-f","coords-transformattr-03-f","coords-transformattr-04-f","coords-transformattr-05-f","coords-units-01-b","coords-units-02-b","coords-units-03-b","coords-viewattr-01-b","coords-viewattr-02-b","coords-viewattr-03-b","coords-viewattr-04-f","extend-namespace-01-f","filters-background-01-f","filters-blend-01-b","filters-color-01-b","filters-color-02-b","filters-composite-02-b","filters-composite-03-f","filters-composite-04-f","filters-composite-05-f","filters-comptran-01-b","filters-conv-01-f","filters-conv-02-f","filters-conv-03-f","filters-conv-04-f","filters-conv-05-f","filters-diffuse-01-f","filters-displace-01-f","filters-displace-02-f","filters-example-01-b","filters-felem-01-b","filters-felem-02-f","filters-gauss-01-b","filters-gauss-02-f","filters-gauss-03-f","filters-image-01-b","filters-image-02-b","filters-image-03-f","filters-image-04-f","filters-image-05-f","filters-light-01-f","filters-light-02-f","filters-light-03-f","filters-light-04-f","filters-light-05-f","filters-morph-01-f","filters-offset-01-b","filters-offset-02-b","filters-overview-01-b","filters-overview-02-b","filters-overview-03-b","filters-specular-01-f","filters-tile-01-b","filters-turb-01-f","filters-turb-02-f","fonts-desc-01-t","fonts-desc-02-t","fonts-desc-03-t","fonts-desc-04-t","fonts-desc-05-t","fonts-elem-01-t","fonts-elem-02-t","fonts-elem-03-b","fonts-elem-04-b","fonts-elem-05-t","fonts-elem-06-t","fonts-elem-07-b","fonts-glyph-02-t","fonts-glyph-03-t","fonts-glyph-04-t","fonts-kern-01-t","fonts-overview-201-t","imp-path-01-f","interact-cursor-01-f","interact-dom-01-b","interact-events-01-b","interact-events-02-b","interact-events-202-f","interact-events-203-t","interact-order-01-b","interact-order-02-b","interact-order-03-b","interact-pevents-01-b","interact-pevents-03-b","interact-pevents-04-t","interact-pevents-05-b","interact-pevents-07-t","interact-pevents-08-f","interact-pevents-09-f","interact-pevents-10-f","interact-pointer-01-t","interact-pointer-02-t","interact-pointer-03-t","interact-pointer-04-f","interact-zoom-01-t","interact-zoom-02-t","interact-zoom-03-t","linking-a-01-b","linking-a-03-b","linking-a-04-t","linking-a-05-t","linking-a-07-t","linking-a-08-t","linking-a-09-b","linking-a-10-f","linking-frag-01-f","linking-uri-01-b","linking-uri-02-b","linking-uri-03-t","masking-filter-01-f","masking-intro-01-f","masking-mask-01-b","masking-mask-02-f","masking-opacity-01-b","masking-path-01-b","masking-path-02-b","masking-path-03-b","masking-path-04-b","masking-path-05-f","masking-path-06-b","masking-path-07-b","masking-path-08-b","masking-path-09-b","masking-path-10-b","masking-path-11-b","masking-path-12-f","masking-path-13-f","masking-path-14-f","metadata-example-01-t","painting-control-01-f","painting-control-02-f","painting-control-03-f","painting-control-04-f","painting-control-05-f","painting-control-06-f","painting-fill-01-t","painting-fill-02-t","painting-fill-03-t","painting-fill-04-t","painting-fill-05-b","painting-marker-01-f","painting-marker-02-f","painting-marker-03-f","painting-marker-04-f","painting-marker-05-f","painting-marker-06-f","painting-marker-07-f","painting-marker-properties-01-f","painting-render-01-b","painting-render-02-b","painting-stroke-01-t","painting-stroke-02-t","painting-stroke-03-t","painting-stroke-04-t","painting-stroke-05-t","painting-stroke-06-t","painting-stroke-07-t","painting-stroke-08-t","painting-stroke-09-t","painting-stroke-10-t","paths-data-01-t","paths-data-02-t","paths-data-03-f","paths-data-04-t","paths-data-05-t","paths-data-06-t","paths-data-07-t","paths-data-08-t","paths-data-09-t","paths-data-10-t","paths-data-12-t","paths-data-13-t","paths-data-14-t","paths-data-15-t","paths-data-16-t","paths-data-17-f","paths-data-18-f","paths-data-19-f","paths-data-20-f","paths-dom-01-f","paths-dom-02-f","pservers-grad-01-b","pservers-grad-02-b","pservers-grad-03-b","pservers-grad-04-b","pservers-grad-05-b","pservers-grad-06-b","pservers-grad-07-b","pservers-grad-08-b","pservers-grad-09-b","pservers-grad-10-b","pservers-grad-11-b","pservers-grad-12-b","pservers-grad-13-b","pservers-grad-14-b","pservers-grad-15-b","pservers-grad-16-b","pservers-grad-17-b","pservers-grad-18-b","pservers-grad-20-b","pservers-grad-21-b","pservers-grad-22-b","pservers-grad-23-f","pservers-grad-24-f","pservers-grad-stops-01-f","pservers-pattern-01-b","pservers-pattern-02-f","pservers-pattern-03-f","pservers-pattern-04-f","pservers-pattern-05-f","pservers-pattern-06-f","pservers-pattern-07-f","pservers-pattern-08-f","pservers-pattern-09-f","render-elems-01-t","render-elems-02-t","render-elems-03-t","render-elems-06-t","render-elems-07-t","render-elems-08-t","render-groups-01-b","render-groups-03-t","script-handle-01-b","script-handle-02-b","script-handle-03-b","script-handle-04-b","script-specify-01-f","script-specify-02-f","shapes-circle-01-t","shapes-circle-02-t","shapes-ellipse-01-t","shapes-ellipse-02-t","shapes-ellipse-03-f","shapes-grammar-01-f","shapes-intro-01-t","shapes-intro-02-f","shapes-line-01-t","shapes-line-02-f","shapes-polygon-01-t","shapes-polygon-02-t","shapes-polygon-03-t","shapes-polyline-01-t","shapes-polyline-02-t","shapes-rect-01-t","shapes-rect-02-t","shapes-rect-03-t","shapes-rect-04-f","shapes-rect-05-f","shapes-rect-06-f","shapes-rect-07-f","struct-cond-01-t","struct-cond-02-t","struct-cond-03-t","struct-cond-overview-02-f","struct-cond-overview-03-f","struct-cond-overview-04-f","struct-cond-overview-05-f","struct-defs-01-t","struct-dom-01-b","struct-dom-02-b","struct-dom-03-b","struct-dom-04-b","struct-dom-05-b","struct-dom-06-b","struct-dom-07-f","struct-dom-08-f","struct-dom-11-f","struct-dom-12-b","struct-dom-13-f","struct-dom-14-f","struct-dom-15-f","struct-dom-16-f","struct-dom-17-f","struct-dom-18-f","struct-dom-19-f","struct-dom-20-f","struct-frag-01-t","struct-frag-02-t","struct-frag-03-t","struct-frag-04-t","struct-frag-05-t","struct-frag-06-t","struct-group-01-t","struct-group-02-b","struct-group-03-t","struct-image-01-t","struct-image-02-b","struct-image-03-t","struct-image-04-t","struct-image-05-b","struct-image-06-t","struct-image-07-t","struct-image-08-t","struct-image-09-t","struct-image-10-t","struct-image-11-b","struct-image-12-b","struct-image-13-f","struct-image-14-f","struct-image-15-f","struct-image-16-f","struct-image-17-b","struct-image-18-f","struct-image-19-f","struct-svg-01-f","struct-svg-02-f","struct-svg-03-f","struct-symbol-01-b","struct-use-01-t","struct-use-03-t","struct-use-04-b","struct-use-05-b","struct-use-06-b","struct-use-07-b","struct-use-08-b","struct-use-09-b","struct-use-10-f","struct-use-11-f","struct-use-12-f","struct-use-13-f","struct-use-14-f","struct-use-15-f","styling-class-01-f","styling-css-01-b","styling-css-02-b","styling-css-03-b","styling-css-04-f","styling-css-05-b","styling-css-06-b","styling-css-07-f","styling-css-08-f","styling-css-09-f","styling-css-10-f","styling-elem-01-b","styling-inherit-01-b","styling-pres-01-t","styling-pres-02-f","styling-pres-03-f","styling-pres-04-f","styling-pres-05-f","svgdom-over-01-f","text-align-01-b","text-align-02-b","text-align-03-b","text-align-04-b","text-align-05-b","text-align-06-b","text-align-07-t","text-align-08-b","text-altglyph-01-b","text-altglyph-02-b","text-altglyph-03-b","text-bidi-01-t","text-deco-01-b","text-dom-01-f","text-dom-02-f","text-dom-03-f","text-dom-04-f","text-dom-05-f","text-fonts-01-t","text-fonts-02-t","text-fonts-03-t","text-fonts-04-t","text-fonts-05-f","text-fonts-202-t","text-fonts-203-t","text-fonts-204-t","text-intro-01-t","text-intro-02-b","text-intro-03-b","text-intro-04-t","text-intro-05-t","text-intro-06-t","text-intro-07-t","text-intro-09-b","text-intro-10-f","text-intro-11-t","text-intro-12-t","text-path-01-b","text-path-02-b","text-spacing-01-b","text-text-01-b","text-text-03-b","text-text-04-t","text-text-05-t","text-text-06-t","text-text-07-t","text-text-08-b","text-text-09-t","text-text-10-t","text-text-11-t","text-text-12-t","text-tref-01-b","text-tref-02-b","text-tref-03-b","text-tselect-01-b","text-tselect-02-f","text-tselect-03-f","text-tspan-01-b","text-tspan-02-b","text-ws-01-t","text-ws-02-t","text-ws-03-t","types-basic-01-f","types-basic-02-f","types-dom-01-b","types-dom-02-f","types-dom-03-b","types-dom-04-b","types-dom-05-b","types-dom-06-f","types-dom-07-f","types-dom-08-f","types-dom-svgfittoviewbox-01-f","types-dom-svglengthlist-01-f","types-dom-svgnumberlist-01-f","types-dom-svgstringlist-01-f","types-dom-svgtransformable-01-f"];
+
+const functions = ["addAttributesToSVGElement","addClassesToSVGElement","applyPreset","cleanupAttributes","cleanupEnableBackground","cleanupIds","cleanupListOfValues","cleanupNumericValues","collapseGroups","convertColors","convertEllipseToCircle","convertPathData","convertShapesToPath","convertStyleToAttrs","convertTransform","decomposeTransform","detectCollisions","fixInvalidSVG","flattenAll","flattenClipPaths","flattenFilters","flattenGradients","flattenMasks","flattenPatterns","flattenUseElements","imageToPath","inlineStyles","measureDistance","mergePaths","minifyStyles","moveElemsAttrsToGroup","moveGroupAttrsToElems","optimize","optimizeAnimationTiming","optimizePaths","prefixIds","presetDefault","presetNone","removeAttributesBySelector","removeAttrs","removeComments","removeDesc","removeDimensions","removeDoctype","removeEditorsNSData","removeElementsByAttr","removeEmptyAttrs","removeEmptyContainers","removeEmptyText","removeHiddenElements","removeMetadata","removeNonInheritableGroupAttrs","removeOffCanvasPath","removeRasterImages","removeScriptElement","removeStyleElement","removeTitle","removeUnknownsAndDefaults","removeUselessDefs","removeViewBox","removeXlink","removeXMLNS","removeXMLProcInst","reusePaths","simplifyPath","simplifyPaths","sortAttrs","sortDefsChildren","validateSVG","validateXML"];
+
+// State management
+let stats = {
+  total: svgFiles.length * functions.length,
+  passed: 0,
+  failed: 0,
+  wip: svgFiles.length * functions.length
+};
+
+// Initialize table
+function initTable() {
+  const tbody = document.getElementById('matrix-body');
+  let html = '';
+
+  functions.forEach(func => {
+    html += `<tr><th title="${func}">${func}</th>`;
+    svgFiles.forEach(svg => {
+      const cellId = `cell-${func}-${svg}`;
+      html += `<td id="${cellId}" class="wip" data-func="${func}" data-svg="${svg}" onclick="cycleStatus('${func}', '${svg}')">🚧</td>`;
+    });
+    html += '</tr>';
+  });
+
+  tbody.innerHTML = html;
+  updateTimestamp();
+}
+
+// Cycle cell status on click
+function cycleStatus(func, svg) {
+  const cellId = `cell-${func}-${svg}`;
+  const cell = document.getElementById(cellId);
+
+  if (cell.classList.contains('wip')) {
+    updateCell(func, svg, 'pass');
+  } else if (cell.classList.contains('pass')) {
+    updateCell(func, svg, 'fail');
+  } else {
+    updateCell(func, svg, 'wip');
+  }
+}
+
+// Update single cell
+function updateCell(functionName, svgFile, status) {
+  const cellId = `cell-${functionName}-${svgFile}`;
+  const cell = document.getElementById(cellId);
+  if (!cell) return;
+
+  const oldClass = cell.classList.contains('pass') ? 'pass' :
+                   cell.classList.contains('fail') ? 'fail' : 'wip';
+
+  // Update stats
+  if (oldClass === 'pass') stats.passed--;
+  else if (oldClass === 'fail') stats.failed--;
+  else stats.wip--;
+
+  if (status === 'pass') {
+    stats.passed++;
+    cell.className = 'pass';
+    cell.textContent = '✅';
+  } else if (status === 'fail') {
+    stats.failed++;
+    cell.className = 'fail';
+    cell.textContent = '❌';
+  } else {
+    stats.wip++;
+    cell.className = 'wip';
+    cell.textContent = '🚧';
+  }
+
+  updateStats();
+  updateTimestamp();
+}
+
+// Bulk load from JSON
+function loadResults(jsonData) {
+  if (typeof jsonData === 'string') {
+    jsonData = JSON.parse(jsonData);
+  }
+
+  Object.entries(jsonData).forEach(([func, results]) => {
+    Object.entries(results).forEach(([svg, status]) => {
+      updateCell(func, svg, status);
+    });
+  });
+}
+
+// Update statistics display
+function updateStats() {
+  document.getElementById('total-cells').textContent = stats.total.toLocaleString();
+  document.getElementById('passed-cells').textContent = stats.passed.toLocaleString();
+  document.getElementById('failed-cells').textContent = stats.failed.toLocaleString();
+  document.getElementById('wip-cells').textContent = stats.wip.toLocaleString();
+
+  const progress = ((stats.passed + stats.failed) / stats.total * 100).toFixed(1);
+  document.getElementById('progress').textContent = progress + '%';
+}
+
+// Update timestamp
+function updateTimestamp() {
+  const now = new Date();
+  document.getElementById('last-updated').textContent = now.toLocaleString();
+}
+
+// Export current state as JSON
+function exportResults() {
+  const results = {};
+  functions.forEach(func => {
+    results[func] = {};
+    svgFiles.forEach(svg => {
+      const cellId = `cell-${func}-${svg}`;
+      const cell = document.getElementById(cellId);
+      if (cell.classList.contains('pass')) {
+        results[func][svg] = 'pass';
+      } else if (cell.classList.contains('fail')) {
+        results[func][svg] = 'fail';
+      } else {
+        results[func][svg] = 'wip';
+      }
+    });
+  });
+  return JSON.stringify(results, null, 2);
+}
+
+// Make functions globally available
+window.updateCell = updateCell;
+window.loadResults = loadResults;
+window.exportResults = exportResults;
+
+// Load existing results from JSON file
+async function loadFromFile() {
+  try {
+    const response = await fetch('test-results.json');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.results) {
+        loadResults(data.results);
+        console.log('Loaded results:', data.totalReports, 'entries');
+      }
+    }
+  } catch (e) {
+    console.log('No saved results found or error loading:', e.message);
+  }
+}
+
+// Initialize on load
+initTable();
+loadFromFile();
+</script>
+</body>
+</html>

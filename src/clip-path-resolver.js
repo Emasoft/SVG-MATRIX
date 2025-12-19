@@ -27,10 +27,10 @@
  * @module clip-path-resolver
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as PolygonClip from './polygon-clip.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
+import * as PolygonClip from "./polygon-clip.js";
 import {
   circleToPath,
   ellipseToPath,
@@ -39,14 +39,11 @@ import {
   polygonToPath,
   polylineToPath,
   parseTransformAttribute,
-  transformPathData
-} from './svg-flatten.js';
-import {
-  circleToPathDataHP,
-  ellipseToPathDataHP
-} from './geometry-to-path.js';
-import { Logger } from './logger.js';
-import { FillRule, pointInPolygonWithRule } from './svg-boolean-ops.js';
+  transformPathData,
+} from "./svg-flatten.js";
+import { circleToPathDataHP, ellipseToPathDataHP } from "./geometry-to-path.js";
+import { Logger } from "./logger.js";
+import { FillRule, pointInPolygonWithRule } from "./svg-boolean-ops.js";
 
 // Alias for cleaner code
 const parseTransform = parseTransformAttribute;
@@ -59,7 +56,7 @@ Decimal.set({ precision: 80 });
  * @param {number|string|Decimal} x - Value to convert
  * @returns {Decimal} Decimal instance
  */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Default number of sample points per curve segment (for Bezier curves and arcs).
@@ -93,10 +90,15 @@ const DEFAULT_CURVE_SAMPLES = 20;
  * const smoothPolygon = pathToPolygon("M 0 0 C 50 0 50 100 100 100", 50);
  * // Higher sampling (50 points) creates smoother curve approximation
  */
-export function pathToPolygon(pathData, samplesPerCurve = DEFAULT_CURVE_SAMPLES) {
+export function pathToPolygon(
+  pathData,
+  samplesPerCurve = DEFAULT_CURVE_SAMPLES,
+) {
   const points = [];
-  let currentX = D(0), currentY = D(0);
-  let startX = D(0), startY = D(0);
+  let currentX = D(0),
+    currentY = D(0);
+  let startX = D(0),
+    startY = D(0);
 
   const commands = parsePathCommands(pathData);
 
@@ -104,81 +106,144 @@ export function pathToPolygon(pathData, samplesPerCurve = DEFAULT_CURVE_SAMPLES)
     const { type, args } = cmd;
 
     switch (type) {
-      case 'M':
-        currentX = D(args[0]); currentY = D(args[1]);
-        startX = currentX; startY = currentY;
+      case "M":
+        currentX = D(args[0]);
+        currentY = D(args[1]);
+        startX = currentX;
+        startY = currentY;
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'm':
-        currentX = currentX.plus(args[0]); currentY = currentY.plus(args[1]);
-        startX = currentX; startY = currentY;
+      case "m":
+        currentX = currentX.plus(args[0]);
+        currentY = currentY.plus(args[1]);
+        startX = currentX;
+        startY = currentY;
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'L':
-        currentX = D(args[0]); currentY = D(args[1]);
+      case "L":
+        currentX = D(args[0]);
+        currentY = D(args[1]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'l':
-        currentX = currentX.plus(args[0]); currentY = currentY.plus(args[1]);
+      case "l":
+        currentX = currentX.plus(args[0]);
+        currentY = currentY.plus(args[1]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'H':
+      case "H":
         currentX = D(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'h':
+      case "h":
         currentX = currentX.plus(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'V':
+      case "V":
         currentY = D(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'v':
+      case "v":
         currentY = currentY.plus(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
-      case 'C':
-        sampleCubicBezier(points, currentX, currentY,
-          D(args[0]), D(args[1]), D(args[2]), D(args[3]), D(args[4]), D(args[5]),
-          samplesPerCurve);
-        currentX = D(args[4]); currentY = D(args[5]);
+      case "C":
+        sampleCubicBezier(
+          points,
+          currentX,
+          currentY,
+          D(args[0]),
+          D(args[1]),
+          D(args[2]),
+          D(args[3]),
+          D(args[4]),
+          D(args[5]),
+          samplesPerCurve,
+        );
+        currentX = D(args[4]);
+        currentY = D(args[5]);
         break;
-      case 'c':
-        sampleCubicBezier(points, currentX, currentY,
-          currentX.plus(args[0]), currentY.plus(args[1]),
-          currentX.plus(args[2]), currentY.plus(args[3]),
-          currentX.plus(args[4]), currentY.plus(args[5]),
-          samplesPerCurve);
-        currentX = currentX.plus(args[4]); currentY = currentY.plus(args[5]);
+      case "c":
+        sampleCubicBezier(
+          points,
+          currentX,
+          currentY,
+          currentX.plus(args[0]),
+          currentY.plus(args[1]),
+          currentX.plus(args[2]),
+          currentY.plus(args[3]),
+          currentX.plus(args[4]),
+          currentY.plus(args[5]),
+          samplesPerCurve,
+        );
+        currentX = currentX.plus(args[4]);
+        currentY = currentY.plus(args[5]);
         break;
-      case 'Q':
-        sampleQuadraticBezier(points, currentX, currentY,
-          D(args[0]), D(args[1]), D(args[2]), D(args[3]),
-          samplesPerCurve);
-        currentX = D(args[2]); currentY = D(args[3]);
+      case "Q":
+        sampleQuadraticBezier(
+          points,
+          currentX,
+          currentY,
+          D(args[0]),
+          D(args[1]),
+          D(args[2]),
+          D(args[3]),
+          samplesPerCurve,
+        );
+        currentX = D(args[2]);
+        currentY = D(args[3]);
         break;
-      case 'q':
-        sampleQuadraticBezier(points, currentX, currentY,
-          currentX.plus(args[0]), currentY.plus(args[1]),
-          currentX.plus(args[2]), currentY.plus(args[3]),
-          samplesPerCurve);
-        currentX = currentX.plus(args[2]); currentY = currentY.plus(args[3]);
+      case "q":
+        sampleQuadraticBezier(
+          points,
+          currentX,
+          currentY,
+          currentX.plus(args[0]),
+          currentY.plus(args[1]),
+          currentX.plus(args[2]),
+          currentY.plus(args[3]),
+          samplesPerCurve,
+        );
+        currentX = currentX.plus(args[2]);
+        currentY = currentY.plus(args[3]);
         break;
-      case 'A':
-        sampleArc(points, currentX, currentY,
-          D(args[0]), D(args[1]), D(args[2]), args[3], args[4],
-          D(args[5]), D(args[6]), samplesPerCurve);
-        currentX = D(args[5]); currentY = D(args[6]);
+      case "A":
+        sampleArc(
+          points,
+          currentX,
+          currentY,
+          D(args[0]),
+          D(args[1]),
+          D(args[2]),
+          args[3],
+          args[4],
+          D(args[5]),
+          D(args[6]),
+          samplesPerCurve,
+        );
+        currentX = D(args[5]);
+        currentY = D(args[6]);
         break;
-      case 'a':
-        sampleArc(points, currentX, currentY,
-          D(args[0]), D(args[1]), D(args[2]), args[3], args[4],
-          currentX.plus(args[5]), currentY.plus(args[6]), samplesPerCurve);
-        currentX = currentX.plus(args[5]); currentY = currentY.plus(args[6]);
+      case "a":
+        sampleArc(
+          points,
+          currentX,
+          currentY,
+          D(args[0]),
+          D(args[1]),
+          D(args[2]),
+          args[3],
+          args[4],
+          currentX.plus(args[5]),
+          currentY.plus(args[6]),
+          samplesPerCurve,
+        );
+        currentX = currentX.plus(args[5]);
+        currentY = currentY.plus(args[6]);
         break;
-      case 'Z': case 'z':
-        currentX = startX; currentY = startY;
+      case "Z":
+      case "z":
+        currentX = startX;
+        currentY = startY;
         break;
     }
   }
@@ -212,9 +277,10 @@ function parsePathCommands(pathData) {
     // FIX: Use regex to extract numbers, handles implicit negative separators (e.g., "0.8-2.9" -> ["0.8", "-2.9"])
     // Per W3C SVG spec, negative signs can act as delimiters without spaces
     const numRegex = /-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
-    const args = argsStr.length > 0
-      ? Array.from(argsStr.matchAll(numRegex), m => Number(m[0]))
-      : [];
+    const args =
+      argsStr.length > 0
+        ? Array.from(argsStr.matchAll(numRegex), (m) => Number(m[0]))
+        : [];
     commands.push({ type, args });
   }
   return commands;
@@ -247,12 +313,20 @@ function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const mt = D(1).minus(t);
-    const mt2 = mt.mul(mt), mt3 = mt2.mul(mt);
-    const t2 = t.mul(t), t3 = t2.mul(t);
-    const x = mt3.mul(x0).plus(D(3).mul(mt2).mul(t).mul(x1))
-      .plus(D(3).mul(mt).mul(t2).mul(x2)).plus(t3.mul(x3));
-    const y = mt3.mul(y0).plus(D(3).mul(mt2).mul(t).mul(y1))
-      .plus(D(3).mul(mt).mul(t2).mul(y2)).plus(t3.mul(y3));
+    const mt2 = mt.mul(mt),
+      mt3 = mt2.mul(mt);
+    const t2 = t.mul(t),
+      t3 = t2.mul(t);
+    const x = mt3
+      .mul(x0)
+      .plus(D(3).mul(mt2).mul(t).mul(x1))
+      .plus(D(3).mul(mt).mul(t2).mul(x2))
+      .plus(t3.mul(x3));
+    const y = mt3
+      .mul(y0)
+      .plus(D(3).mul(mt2).mul(t).mul(y1))
+      .plus(D(3).mul(mt).mul(t2).mul(y2))
+      .plus(t3.mul(y3));
     points.push(PolygonClip.point(x, y));
   }
 }
@@ -282,7 +356,8 @@ function sampleQuadraticBezier(points, x0, y0, x1, y1, x2, y2, samples) {
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const mt = D(1).minus(t);
-    const mt2 = mt.mul(mt), t2 = t.mul(t);
+    const mt2 = mt.mul(mt),
+      t2 = t.mul(t);
     const x = mt2.mul(x0).plus(D(2).mul(mt).mul(t).mul(x1)).plus(t2.mul(x2));
     const y = mt2.mul(y0).plus(D(2).mul(mt).mul(t).mul(y1)).plus(t2.mul(y2));
     points.push(PolygonClip.point(x, y));
@@ -313,23 +388,45 @@ function sampleQuadraticBezier(points, x0, y0, x1, y1, x2, y2, samples) {
  * // Sample an arc from (0,0) to (100,100) with radii 50,50
  * sampleArc(points, D(0), D(0), D(50), D(50), D(0), 0, 1, D(100), D(100), 20);
  */
-function sampleArc(points, x0, y0, rx, ry, xAxisRotation, largeArc, sweep, x1, y1, samples) {
-  if (rx.eq(0) || ry.eq(0)) { points.push(PolygonClip.point(x1, y1)); return; }
-  rx = rx.abs(); ry = ry.abs();
+function sampleArc(
+  points,
+  x0,
+  y0,
+  rx,
+  ry,
+  xAxisRotation,
+  largeArc,
+  sweep,
+  x1,
+  y1,
+  samples,
+) {
+  if (rx.eq(0) || ry.eq(0)) {
+    points.push(PolygonClip.point(x1, y1));
+    return;
+  }
+  let rxLocal = rx.abs();
+  let ryLocal = ry.abs();
 
   const phi = xAxisRotation.mul(Math.PI).div(180);
-  const cosPhi = phi.cos(), sinPhi = phi.sin();
-  const dx = x0.minus(x1).div(2), dy = y0.minus(y1).div(2);
+  const cosPhi = phi.cos(),
+    sinPhi = phi.sin();
+  const dx = x0.minus(x1).div(2),
+    dy = y0.minus(y1).div(2);
   const x1p = cosPhi.mul(dx).plus(sinPhi.mul(dy));
   const y1p = cosPhi.mul(dy).minus(sinPhi.mul(dx));
 
-  let rx2 = rx.mul(rx), ry2 = ry.mul(ry);
-  const x1p2 = x1p.mul(x1p), y1p2 = y1p.mul(y1p);
+  let rx2 = rxLocal.mul(rxLocal),
+    ry2 = ryLocal.mul(ryLocal);
+  const x1p2 = x1p.mul(x1p),
+    y1p2 = y1p.mul(y1p);
   const lambda = x1p2.div(rx2).plus(y1p2.div(ry2));
   if (lambda.gt(1)) {
     const sqrtLambda = lambda.sqrt();
-    rx = rx.mul(sqrtLambda); ry = ry.mul(sqrtLambda);
-    rx2 = rx.mul(rx); ry2 = ry.mul(ry);
+    rxLocal = rxLocal.mul(sqrtLambda);
+    ryLocal = ryLocal.mul(sqrtLambda);
+    rx2 = rxLocal.mul(rxLocal);
+    ry2 = ryLocal.mul(ryLocal);
   }
 
   let sq = rx2.mul(ry2).minus(rx2.mul(y1p2)).minus(ry2.mul(x1p2));
@@ -340,12 +437,15 @@ function sampleArc(points, x0, y0, rx, ry, xAxisRotation, largeArc, sweep, x1, y
 
   const cxp = sq.mul(rx).mul(y1p).div(ry);
   const cyp = sq.neg().mul(ry).mul(x1p).div(rx);
-  const midX = x0.plus(x1).div(2), midY = y0.plus(y1).div(2);
+  const midX = x0.plus(x1).div(2),
+    midY = y0.plus(y1).div(2);
   const cx = cosPhi.mul(cxp).minus(sinPhi.mul(cyp)).plus(midX);
   const cy = sinPhi.mul(cxp).plus(cosPhi.mul(cyp)).plus(midY);
 
-  const ux = x1p.minus(cxp).div(rx), uy = y1p.minus(cyp).div(ry);
-  const vx = x1p.neg().minus(cxp).div(rx), vy = y1p.neg().minus(cyp).div(ry);
+  const ux = x1p.minus(cxp).div(rx),
+    uy = y1p.minus(cyp).div(ry);
+  const vx = x1p.neg().minus(cxp).div(rx),
+    vy = y1p.neg().minus(cyp).div(ry);
   const n1 = ux.mul(ux).plus(uy.mul(uy)).sqrt();
   let theta1 = Decimal.acos(ux.div(n1));
   if (uy.lt(0)) theta1 = theta1.neg();
@@ -354,16 +454,24 @@ function sampleArc(points, x0, y0, rx, ry, xAxisRotation, largeArc, sweep, x1, y
   let dtheta = Decimal.acos(ux.mul(vx).plus(uy.mul(vy)).div(n2));
   if (ux.mul(vy).minus(uy.mul(vx)).lt(0)) dtheta = dtheta.neg();
 
-  const PI = D(Math.PI), TWO_PI = PI.mul(2);
+  const PI = D(Math.PI),
+    TWO_PI = PI.mul(2);
   if (sweep && dtheta.lt(0)) dtheta = dtheta.plus(TWO_PI);
   else if (!sweep && dtheta.gt(0)) dtheta = dtheta.minus(TWO_PI);
 
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const theta = theta1.plus(dtheta.mul(t));
-    const cosTheta = theta.cos(), sinTheta = theta.sin();
-    const x = cosPhi.mul(rx.mul(cosTheta)).minus(sinPhi.mul(ry.mul(sinTheta))).plus(cx);
-    const y = sinPhi.mul(rx.mul(cosTheta)).plus(cosPhi.mul(ry.mul(sinTheta))).plus(cy);
+    const cosTheta = theta.cos(),
+      sinTheta = theta.sin();
+    const x = cosPhi
+      .mul(rx.mul(cosTheta))
+      .minus(sinPhi.mul(ry.mul(sinTheta)))
+      .plus(cx);
+    const y = sinPhi
+      .mul(rx.mul(cosTheta))
+      .plus(cosPhi.mul(ry.mul(sinTheta)))
+      .plus(cy);
     points.push(PolygonClip.point(x, y));
   }
 }
@@ -431,40 +539,78 @@ function removeDuplicateConsecutive(points) {
  * @param {number} samples - Samples per curve for polygon conversion
  * @param {number} bezierArcs - Number of Bezier arcs for circles/ellipses (4=standard, 16 or 64=HP)
  */
-export function shapeToPolygon(element, ctm = null, samples = DEFAULT_CURVE_SAMPLES, bezierArcs = 4) {
+export function shapeToPolygon(
+  element,
+  ctm = null,
+  samples = DEFAULT_CURVE_SAMPLES,
+  bezierArcs = 4,
+) {
   let pathData;
   switch (element.type) {
-    case 'circle':
+    case "circle":
       // Use high-precision Bezier arcs for better curve approximation
       if (bezierArcs > 4) {
-        pathData = circleToPathDataHP(element.cx || 0, element.cy || 0, element.r || 0, bezierArcs, 10);
+        pathData = circleToPathDataHP(
+          element.cx || 0,
+          element.cy || 0,
+          element.r || 0,
+          bezierArcs,
+          10,
+        );
       } else {
-        pathData = circleToPath(D(element.cx || 0), D(element.cy || 0), D(element.r || 0));
+        pathData = circleToPath(
+          D(element.cx || 0),
+          D(element.cy || 0),
+          D(element.r || 0),
+        );
       }
       break;
-    case 'ellipse':
+    case "ellipse":
       // Use high-precision Bezier arcs for better curve approximation
       if (bezierArcs > 4) {
-        pathData = ellipseToPathDataHP(element.cx || 0, element.cy || 0, element.rx || 0, element.ry || 0, bezierArcs, 10);
+        pathData = ellipseToPathDataHP(
+          element.cx || 0,
+          element.cy || 0,
+          element.rx || 0,
+          element.ry || 0,
+          bezierArcs,
+          10,
+        );
       } else {
-        pathData = ellipseToPath(D(element.cx || 0), D(element.cy || 0), D(element.rx || 0), D(element.ry || 0));
+        pathData = ellipseToPath(
+          D(element.cx || 0),
+          D(element.cy || 0),
+          D(element.rx || 0),
+          D(element.ry || 0),
+        );
       }
       break;
-    case 'rect':
-      pathData = rectToPath(D(element.x || 0), D(element.y || 0), D(element.width || 0), D(element.height || 0),
-        D(element.rx || 0), element.ry !== undefined ? D(element.ry) : null);
+    case "rect":
+      pathData = rectToPath(
+        D(element.x || 0),
+        D(element.y || 0),
+        D(element.width || 0),
+        D(element.height || 0),
+        D(element.rx || 0),
+        element.ry !== undefined ? D(element.ry) : null,
+      );
       break;
-    case 'line':
-      pathData = lineToPath(D(element.x1 || 0), D(element.y1 || 0), D(element.x2 || 0), D(element.y2 || 0));
+    case "line":
+      pathData = lineToPath(
+        D(element.x1 || 0),
+        D(element.y1 || 0),
+        D(element.x2 || 0),
+        D(element.y2 || 0),
+      );
       break;
-    case 'polygon':
-      pathData = polygonToPath(element.points || '');
+    case "polygon":
+      pathData = polygonToPath(element.points || "");
       break;
-    case 'polyline':
-      pathData = polylineToPath(element.points || '');
+    case "polyline":
+      pathData = polylineToPath(element.points || "");
       break;
-    case 'path':
-      pathData = element.d || '';
+    case "path":
+      pathData = element.d || "";
       break;
     default:
       return [];
@@ -535,9 +681,14 @@ export function shapeToPolygon(element, ctm = null, samples = DEFAULT_CURVE_SAMP
  * const clipPolygon = resolveClipPath(clipDef, target);
  * // Circle will be scaled to bbox: center at (100,50), radius 40 (0.4 * min(200,100))
  */
-export function resolveClipPath(clipPathDef, targetElement, ctm = null, options = {}) {
+export function resolveClipPath(
+  clipPathDef,
+  targetElement,
+  ctm = null,
+  options = {},
+) {
   const { samples = DEFAULT_CURVE_SAMPLES } = options;
-  const clipPathUnits = clipPathDef.clipPathUnits || 'userSpaceOnUse';
+  const clipPathUnits = clipPathDef.clipPathUnits || "userSpaceOnUse";
   let clipTransform = ctm ? ctm.clone() : Matrix.identity(3);
 
   if (clipPathDef.transform) {
@@ -545,17 +696,18 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
     clipTransform = clipTransform.mul(clipPathTransformMatrix);
   }
 
-  if (clipPathUnits === 'objectBoundingBox' && targetElement) {
+  if (clipPathUnits === "objectBoundingBox" && targetElement) {
     const bbox = getElementBoundingBox(targetElement);
     if (bbox) {
-      const bboxTransform = Transforms2D.translation(bbox.x, bbox.y)
-        .mul(Transforms2D.scale(bbox.width, bbox.height));
+      const bboxTransform = Transforms2D.translation(bbox.x, bbox.y).mul(
+        Transforms2D.scale(bbox.width, bbox.height),
+      );
       clipTransform = clipTransform.mul(bboxTransform);
     }
   }
 
   const clipPolygons = [];
-  for (const child of (clipPathDef.children || [])) {
+  for (const child of clipPathDef.children || []) {
     const polygon = shapeToPolygon(child, clipTransform, samples);
     if (polygon.length >= 3) clipPolygons.push(polygon);
   }
@@ -596,14 +748,17 @@ export function resolveClipPath(clipPathDef, targetElement, ctm = null, options 
 function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
   // For nonzero rule, standard intersection works correctly
   // because polygonIntersection uses the winding number test internally
-  if (clipRule === 'nonzero') {
+  if (clipRule === "nonzero") {
     return PolygonClip.polygonIntersection(elementPolygon, clipPolygon);
   }
 
   // For evenodd rule with self-intersecting clip paths, we need a different approach
   // The idea: filter vertices of the intersection result by the evenodd test
   // First get the standard intersection
-  const intersection = PolygonClip.polygonIntersection(elementPolygon, clipPolygon);
+  const intersection = PolygonClip.polygonIntersection(
+    elementPolygon,
+    clipPolygon,
+  );
   if (intersection.length === 0) return [];
 
   // For each resulting polygon, check if its centroid is inside according to evenodd
@@ -616,7 +771,8 @@ function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
     const centroid = computeCentroid(poly);
 
     // Test if centroid is inside the clip polygon according to evenodd rule
-    const fillRule = clipRule === 'evenodd' ? FillRule.EVENODD : FillRule.NONZERO;
+    const fillRule =
+      clipRule === "evenodd" ? FillRule.EVENODD : FillRule.NONZERO;
     const inside = pointInPolygonWithRule(centroid, clipPolygon, fillRule);
 
     // If centroid is inside (1) or on boundary (0), keep this polygon
@@ -655,7 +811,10 @@ function computeCentroid(polygon) {
       sumX = sumX.plus(p.x);
       sumY = sumY.plus(p.y);
     }
-    return PolygonClip.point(sumX.div(polygon.length), sumY.div(polygon.length));
+    return PolygonClip.point(
+      sumX.div(polygon.length),
+      sumY.div(polygon.length),
+    );
   }
 
   const factor = new Decimal(1).div(area.times(6));
@@ -715,7 +874,7 @@ function computeCentroid(polygon) {
  * const clipped = applyClipPath(ellipse, clipDef, null, { samples: 50 });
  */
 export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
-  const { samples = DEFAULT_CURVE_SAMPLES, clipRule = 'nonzero' } = options;
+  const { samples = DEFAULT_CURVE_SAMPLES, clipRule = "nonzero" } = options;
   const clipPolygon = resolveClipPath(clipPathDef, element, ctm, options);
   if (clipPolygon.length < 3) return [];
 
@@ -752,24 +911,46 @@ export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
  */
 function getElementBoundingBox(element) {
   switch (element.type) {
-    case 'rect':
-      return { x: D(element.x || 0), y: D(element.y || 0),
-               width: D(element.width || 0), height: D(element.height || 0) };
-    case 'circle': {
-      const cx = D(element.cx || 0), cy = D(element.cy || 0), r = D(element.r || 0);
-      return { x: cx.minus(r), y: cy.minus(r), width: r.mul(2), height: r.mul(2) };
+    case "rect":
+      return {
+        x: D(element.x || 0),
+        y: D(element.y || 0),
+        width: D(element.width || 0),
+        height: D(element.height || 0),
+      };
+    case "circle": {
+      const cx = D(element.cx || 0),
+        cy = D(element.cy || 0),
+        r = D(element.r || 0);
+      return {
+        x: cx.minus(r),
+        y: cy.minus(r),
+        width: r.mul(2),
+        height: r.mul(2),
+      };
     }
-    case 'ellipse': {
-      const cx = D(element.cx || 0), cy = D(element.cy || 0);
-      const rx = D(element.rx || 0), ry = D(element.ry || 0);
-      return { x: cx.minus(rx), y: cy.minus(ry), width: rx.mul(2), height: ry.mul(2) };
+    case "ellipse": {
+      const cx = D(element.cx || 0),
+        cy = D(element.cy || 0);
+      const rx = D(element.rx || 0),
+        ry = D(element.ry || 0);
+      return {
+        x: cx.minus(rx),
+        y: cy.minus(ry),
+        width: rx.mul(2),
+        height: ry.mul(2),
+      };
     }
     default: {
       const polygon = shapeToPolygon(element, null, 10);
       if (polygon.length > 0) {
         const bbox = PolygonClip.boundingBox(polygon);
-        return { x: bbox.minX, y: bbox.minY,
-                 width: bbox.maxX.minus(bbox.minX), height: bbox.maxY.minus(bbox.minY) };
+        return {
+          x: bbox.minX,
+          y: bbox.minY,
+          width: bbox.maxX.minus(bbox.minX),
+          height: bbox.maxY.minus(bbox.minY),
+        };
       }
       return null;
     }
@@ -807,13 +988,14 @@ function getElementBoundingBox(element) {
  * // Returns: "M 0.12345679 0.98765432 Z"
  */
 export function polygonToPathData(polygon, precision = 6) {
-  if (polygon.length < 2) return '';
-  const fmt = n => (n instanceof Decimal ? n : D(n)).toFixed(precision).replace(/\.?0+$/, '');
+  if (polygon.length < 2) return "";
+  const fmt = (n) =>
+    (n instanceof Decimal ? n : D(n)).toFixed(precision).replace(/\.?0+$/, "");
   let d = `M ${fmt(polygon[0].x)} ${fmt(polygon[0].y)}`;
   for (let i = 1; i < polygon.length; i++) {
     d += ` L ${fmt(polygon[i].x)} ${fmt(polygon[i].y)}`;
   }
-  return d + ' Z';
+  return d + " Z";
 }
 
 /**
@@ -864,7 +1046,14 @@ export function polygonToPathData(polygon, precision = 6) {
  * const polygon = resolveNestedClipPath(defsMap.get('clip1'), defsMap, target);
  * // Logs warning about circular reference and returns clip1 polygon only
  */
-export function resolveNestedClipPath(clipPathDef, defsMap, targetElement, ctm = null, visited = new Set(), options = {}) {
+export function resolveNestedClipPath(
+  clipPathDef,
+  defsMap,
+  targetElement,
+  ctm = null,
+  visited = new Set(),
+  options = {},
+) {
   const clipId = clipPathDef.id;
   if (clipId && visited.has(clipId)) {
     Logger.warn(`Circular clipPath reference detected: ${clipId}`);
@@ -874,13 +1063,23 @@ export function resolveNestedClipPath(clipPathDef, defsMap, targetElement, ctm =
 
   let clipPolygon = resolveClipPath(clipPathDef, targetElement, ctm, options);
 
-  if (clipPathDef['clip-path'] && clipPolygon.length >= 3) {
-    const nestedRef = clipPathDef['clip-path'].replace(/^url\(#?|[)'"]/g, '');
+  if (clipPathDef["clip-path"] && clipPolygon.length >= 3) {
+    const nestedRef = clipPathDef["clip-path"].replace(/^url\(#?|[)'"]/g, "");
     const nestedClipDef = defsMap.get(nestedRef);
     if (nestedClipDef) {
-      const nestedClip = resolveNestedClipPath(nestedClipDef, defsMap, targetElement, ctm, visited, options);
+      const nestedClip = resolveNestedClipPath(
+        nestedClipDef,
+        defsMap,
+        targetElement,
+        ctm,
+        visited,
+        options,
+      );
       if (nestedClip.length >= 3) {
-        const intersection = PolygonClip.polygonIntersection(clipPolygon, nestedClip);
+        const intersection = PolygonClip.polygonIntersection(
+          clipPolygon,
+          nestedClip,
+        );
         clipPolygon = intersection.length > 0 ? intersection[0] : [];
       }
     }
@@ -889,6 +1088,11 @@ export function resolveNestedClipPath(clipPathDef, defsMap, targetElement, ctm =
 }
 
 export default {
-  pathToPolygon, shapeToPolygon, resolveClipPath, applyClipPath,
-  polygonToPathData, resolveNestedClipPath, DEFAULT_CURVE_SAMPLES
+  pathToPolygon,
+  shapeToPolygon,
+  resolveClipPath,
+  applyClipPath,
+  polygonToPathData,
+  resolveNestedClipPath,
+  DEFAULT_CURVE_SAMPLES,
 };

@@ -15,18 +15,18 @@
  * @version 1.0.0
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 import {
   bezierPoint,
   bezierBoundingBox,
   bezierSplit,
   bezierCrop,
-  bezierDerivative
-} from './bezier-analysis.js';
+  bezierDerivative,
+} from "./bezier-analysis.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // ============================================================================
 // LINE-LINE INTERSECTION
@@ -35,10 +35,10 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
 // Numerical thresholds (documented magic numbers)
 // WHY: Centralizing magic numbers as constants improves maintainability and makes
 // the code self-documenting. These thresholds were tuned for 80-digit precision arithmetic.
-const PARALLEL_THRESHOLD = '1e-60';        // Below this, lines considered parallel
-const SINGULARITY_THRESHOLD = '1e-50';     // Below this, Jacobian considered singular
-const INTERSECTION_VERIFY_FACTOR = 100;    // Multiplier for intersection verification
-const DEDUP_TOLERANCE_FACTOR = 1000;       // Multiplier for duplicate detection
+const PARALLEL_THRESHOLD = "1e-60"; // Below this, lines considered parallel
+const SINGULARITY_THRESHOLD = "1e-50"; // Below this, Jacobian considered singular
+const INTERSECTION_VERIFY_FACTOR = 100; // Multiplier for intersection verification
+const DEDUP_TOLERANCE_FACTOR = 1000; // Multiplier for duplicate detection
 
 /** Maximum Newton iterations for intersection refinement */
 const MAX_NEWTON_ITERATIONS = 30;
@@ -47,7 +47,7 @@ const MAX_NEWTON_ITERATIONS = 30;
 const MAX_INTERSECTION_RECURSION_DEPTH = 50;
 
 /** Minimum parameter separation for self-intersection detection */
-const DEFAULT_MIN_SEPARATION = '0.01';
+const DEFAULT_MIN_SEPARATION = "0.01";
 
 /** Maximum bisection iterations for bezier-line refinement */
 const MAX_BISECTION_ITERATIONS = 100;
@@ -65,10 +65,10 @@ const MAX_BISECTION_ITERATIONS = 100;
 export function lineLineIntersection(line1, line2) {
   // Input validation
   if (!line1 || !Array.isArray(line1) || line1.length !== 2) {
-    throw new Error('lineLineIntersection: line1 must be an array of 2 points');
+    throw new Error("lineLineIntersection: line1 must be an array of 2 points");
   }
   if (!line2 || !Array.isArray(line2) || line2.length !== 2) {
-    throw new Error('lineLineIntersection: line2 must be an array of 2 points');
+    throw new Error("lineLineIntersection: line2 must be an array of 2 points");
   }
 
   const [x1, y1] = [D(line1[0][0]), D(line1[0][1])];
@@ -102,11 +102,13 @@ export function lineLineIntersection(line1, line2) {
     const px = x1.plus(dx1.times(t1));
     const py = y1.plus(dy1.times(t1));
 
-    return [{
-      t1,
-      t2,
-      point: [px, py]
-    }];
+    return [
+      {
+        t1,
+        t2,
+        point: [px, py],
+      },
+    ];
   }
 
   return [];
@@ -130,15 +132,19 @@ export function lineLineIntersection(line1, line2) {
  * @returns {Array} Intersections [{t1 (bezier), t2 (line), point}]
  */
 export function bezierLineIntersection(bezier, line, options = {}) {
-  const { tolerance = '1e-30', samplesPerDegree = 20 } = options;
+  const { tolerance = "1e-30", samplesPerDegree = 20 } = options;
   const tol = D(tolerance);
 
   // Input validation
   if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
-    throw new Error('bezierLineIntersection: bezier must have at least 2 control points');
+    throw new Error(
+      "bezierLineIntersection: bezier must have at least 2 control points",
+    );
   }
   if (!line || !Array.isArray(line) || line.length !== 2) {
-    throw new Error('bezierLineIntersection: line must be an array of 2 points');
+    throw new Error(
+      "bezierLineIntersection: line must be an array of 2 points",
+    );
   }
 
   const [lx0, ly0] = [D(line[0][0]), D(line[0][1])];
@@ -169,7 +175,7 @@ export function bezierLineIntersection(bezier, line, options = {}) {
 
     // Distance from line (signed)
     const dist = by.minus(ly0).times(dlx).minus(bx.minus(lx0).times(dly));
-    const sign = dist.isNegative() ? -1 : (dist.isZero() ? 0 : 1);
+    const sign = dist.isNegative() ? -1 : dist.isZero() ? 0 : 1;
 
     if (sign === 0) {
       // Exactly on line
@@ -228,13 +234,13 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
   let lo = D(t0);
   let hi = D(t1);
 
-  const evalDist = t => {
+  const evalDist = (t) => {
     const [bx, by] = bezierPoint(bezier, t);
     return by.minus(ly0).times(dlx).minus(bx.minus(lx0).times(dly));
   };
 
   let fLo = evalDist(lo);
-  let fHi = evalDist(hi);
+  let _fHi = evalDist(hi);
 
   // WHY: Use named constant instead of magic number for clarity and maintainability
   for (let i = 0; i < MAX_BISECTION_ITERATIONS; i++) {
@@ -245,12 +251,15 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
       return mid;
     }
 
-    if ((fLo.isNegative() && fMid.isNegative()) || (fLo.isPositive() && fMid.isPositive())) {
+    if (
+      (fLo.isNegative() && fMid.isNegative()) ||
+      (fLo.isPositive() && fMid.isPositive())
+    ) {
       lo = mid;
       fLo = fMid;
     } else {
       hi = mid;
-      fHi = fMid;
+      _fHi = fMid;
     }
   }
 
@@ -278,17 +287,19 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
  */
 export function bezierBezierIntersection(bezier1, bezier2, options = {}) {
   // WHY: Use named constant as default instead of hardcoded 50 for clarity
-  const {
-    tolerance = '1e-30',
-    maxDepth = MAX_INTERSECTION_RECURSION_DEPTH
-  } = options;
+  const { tolerance = "1e-30", maxDepth = MAX_INTERSECTION_RECURSION_DEPTH } =
+    options;
 
   // Input validation
   if (!bezier1 || !Array.isArray(bezier1) || bezier1.length < 2) {
-    throw new Error('bezierBezierIntersection: bezier1 must have at least 2 control points');
+    throw new Error(
+      "bezierBezierIntersection: bezier1 must have at least 2 control points",
+    );
   }
   if (!bezier2 || !Array.isArray(bezier2) || bezier2.length < 2) {
-    throw new Error('bezierBezierIntersection: bezier2 must have at least 2 control points');
+    throw new Error(
+      "bezierBezierIntersection: bezier2 must have at least 2 control points",
+    );
   }
 
   const tol = D(tolerance);
@@ -388,7 +399,7 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
         t1: currentT1,
         t2: currentT2,
         point: [x1, y1],
-        error
+        error,
       };
     }
 
@@ -422,13 +433,16 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
       // so it may not reflect the final accuracy. We need to recompute error for the converged parameters.
       const [finalX, finalY] = bezierPoint(bez1, currentT1);
       const [finalX2, finalY2] = bezierPoint(bez2, currentT2);
-      const finalError = D(finalX).minus(D(finalX2)).pow(2)
-        .plus(D(finalY).minus(D(finalY2)).pow(2)).sqrt();
+      const finalError = D(finalX)
+        .minus(D(finalX2))
+        .pow(2)
+        .plus(D(finalY).minus(D(finalY2)).pow(2))
+        .sqrt();
       return {
         t1: currentT1,
         t2: currentT2,
         point: [finalX, finalY],
-        error: finalError
+        error: finalError,
       };
     }
   }
@@ -446,10 +460,12 @@ function bboxOverlap(bbox1, bbox2) {
     return false; // No overlap if either bbox is missing
   }
 
-  return !(bbox1.xmax.lt(bbox2.xmin) ||
-           bbox1.xmin.gt(bbox2.xmax) ||
-           bbox1.ymax.lt(bbox2.ymin) ||
-           bbox1.ymin.gt(bbox2.ymax));
+  return !(
+    bbox1.xmax.lt(bbox2.xmin) ||
+    bbox1.xmin.gt(bbox2.xmax) ||
+    bbox1.ymax.lt(bbox2.ymin) ||
+    bbox1.ymin.gt(bbox2.ymax)
+  );
 }
 
 /**
@@ -465,7 +481,10 @@ function deduplicateIntersections(intersections, tol) {
       const dt1 = isect.t1.minus(existing.t1).abs();
       const dt2 = isect.t2.minus(existing.t2).abs();
 
-      if (dt1.lt(tol.times(DEDUP_TOLERANCE_FACTOR)) && dt2.lt(tol.times(DEDUP_TOLERANCE_FACTOR))) {
+      if (
+        dt1.lt(tol.times(DEDUP_TOLERANCE_FACTOR)) &&
+        dt2.lt(tol.times(DEDUP_TOLERANCE_FACTOR))
+      ) {
         isDuplicate = true;
         break;
       }
@@ -498,13 +517,19 @@ function deduplicateIntersections(intersections, tol) {
  */
 export function bezierSelfIntersection(bezier, options = {}) {
   // WHY: Use named constants as defaults instead of hardcoded values for clarity
-  const { tolerance = '1e-30', minSeparation = DEFAULT_MIN_SEPARATION, maxDepth = 30 } = options;
+  const {
+    tolerance = "1e-30",
+    minSeparation = DEFAULT_MIN_SEPARATION,
+    maxDepth = 30,
+  } = options;
   const tol = D(tolerance);
   const minSep = D(minSeparation);
 
   // Input validation
   if (!bezier || bezier.length < 2) {
-    throw new Error('bezierSelfIntersection: bezier must have at least 2 control points');
+    throw new Error(
+      "bezierSelfIntersection: bezier must have at least 2 control points",
+    );
   }
 
   // Self-intersections only possible for cubic and higher
@@ -537,7 +562,10 @@ export function bezierSelfIntersection(bezier, options = {}) {
       const rightPts = bezierCrop(bezier, tmid, tmax);
 
       // Find intersections between left and right portions
-      const isects = bezierBezierIntersection(leftPts, rightPts, { tolerance, maxDepth: maxDepth - depth });
+      const isects = bezierBezierIntersection(leftPts, rightPts, {
+        tolerance,
+        maxDepth: maxDepth - depth,
+      });
 
       for (const isect of isects) {
         // Map from cropped parameter space [0,1] back to original range
@@ -552,7 +580,7 @@ export function bezierSelfIntersection(bezier, options = {}) {
           results.push({
             t1: Decimal.min(origT1, origT2),
             t2: Decimal.max(origT1, origT2),
-            point: isect.point
+            point: isect.point,
           });
         }
       }
@@ -569,7 +597,7 @@ export function bezierSelfIntersection(bezier, options = {}) {
   // The recursive subdivision can find the same intersection from multiple branches,
   // with slightly different parameter values. Use minSep as the dedup tolerance
   // since intersections closer than minSep in parameter space are considered the same.
-  const dedupTol = minSep.div(10);  // Use 1/10 of minSeparation for deduplication
+  const dedupTol = minSep.div(10); // Use 1/10 of minSeparation for deduplication
   const deduped = deduplicateIntersections(results, dedupTol);
 
   // WHY: After finding rough intersections via subdivision on cropped curves,
@@ -577,7 +605,13 @@ export function bezierSelfIntersection(bezier, options = {}) {
   // full precision because we're optimizing directly on the original parameters.
   const refined = [];
   for (const isect of deduped) {
-    const refinedIsect = refineSelfIntersection(bezier, isect.t1, isect.t2, tol, minSep);
+    const refinedIsect = refineSelfIntersection(
+      bezier,
+      isect.t1,
+      isect.t2,
+      tol,
+      minSep,
+    );
     if (refinedIsect) {
       refined.push(refinedIsect);
     } else {
@@ -614,8 +648,14 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
       const mid = t1.plus(t2).div(2);
       t1 = mid.minus(minSep.div(2));
       t2 = mid.plus(minSep.div(2));
-      if (t1.lt(0)) { t1 = D(0); t2 = minSep; }
-      if (t2.gt(1)) { t2 = D(1); t1 = D(1).minus(minSep); }
+      if (t1.lt(0)) {
+        t1 = D(0);
+        t2 = minSep;
+      }
+      if (t2.gt(1)) {
+        t2 = D(1);
+        t1 = D(1).minus(minSep);
+      }
     }
 
     // Evaluate curve at both parameters
@@ -632,8 +672,8 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
       return {
         t1: Decimal.min(t1, t2),
         t2: Decimal.max(t1, t2),
-        point: [x1.plus(x2).div(2), y1.plus(y2).div(2)],  // Average of both points
-        error
+        point: [x1.plus(x2).div(2), y1.plus(y2).div(2)], // Average of both points
+        error,
       };
     }
 
@@ -649,9 +689,9 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
       // Singular Jacobian - curves are nearly parallel at these points
       // Try bisection step instead
       if (fx.isNegative()) {
-        t1 = t1.plus(D('0.0001'));
+        t1 = t1.plus(D("0.0001"));
       } else {
-        t2 = t2.minus(D('0.0001'));
+        t2 = t2.minus(D("0.0001"));
       }
       continue;
     }
@@ -662,8 +702,8 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
     // J^{-1} = (1/det) * [[-dy2, dx2], [-dy1, dx1]]
     // J^{-1} * f = (1/det) * [-dy2*fx + dx2*fy, -dy1*fx + dx1*fy]
     // Newton update: t_new = t - J^{-1}*f
-    const dt1 = dx2.times(fy).minus(dy2.times(fx)).div(det);  // -dy2*fx + dx2*fy
-    const dt2 = dx1.times(fy).minus(dy1.times(fx)).div(det);  // -dy1*fx + dx1*fy
+    const dt1 = dx2.times(fy).minus(dy2.times(fx)).div(det); // -dy2*fx + dx2*fy
+    const dt2 = dx1.times(fy).minus(dy1.times(fx)).div(det); // -dy1*fx + dx1*fy
 
     t1 = t1.minus(dt1);
     t2 = t2.minus(dt2);
@@ -673,19 +713,22 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
       // Recompute final error
       const [finalX1, finalY1] = bezierPoint(bezier, t1);
       const [finalX2, finalY2] = bezierPoint(bezier, t2);
-      const finalError = finalX1.minus(finalX2).pow(2)
-        .plus(finalY1.minus(finalY2).pow(2)).sqrt();
+      const finalError = finalX1
+        .minus(finalX2)
+        .pow(2)
+        .plus(finalY1.minus(finalY2).pow(2))
+        .sqrt();
 
       return {
         t1: Decimal.min(t1, t2),
         t2: Decimal.max(t1, t2),
         point: [finalX1.plus(finalX2).div(2), finalY1.plus(finalY2).div(2)],
-        error: finalError
+        error: finalError,
       };
     }
   }
 
-  return null;  // Failed to converge
+  return null; // Failed to converge
 }
 
 // ============================================================================
@@ -704,10 +747,10 @@ export function pathPathIntersection(path1, path2, options = {}) {
   // INPUT VALIDATION
   // WHY: Prevent cryptic errors from undefined/null paths. Fail fast with clear messages.
   if (!path1 || !Array.isArray(path1)) {
-    throw new Error('pathPathIntersection: path1 must be an array');
+    throw new Error("pathPathIntersection: path1 must be an array");
   }
   if (!path2 || !Array.isArray(path2)) {
-    throw new Error('pathPathIntersection: path2 must be an array');
+    throw new Error("pathPathIntersection: path2 must be an array");
   }
 
   // Handle empty paths gracefully
@@ -728,7 +771,7 @@ export function pathPathIntersection(path1, path2, options = {}) {
           segment2: j,
           t1: isect.t1,
           t2: isect.t2,
-          point: isect.point
+          point: isect.point,
         });
       }
     }
@@ -748,7 +791,7 @@ export function pathSelfIntersection(path, options = {}) {
   // INPUT VALIDATION
   // WHY: Prevent cryptic errors from undefined/null path. Fail fast with clear messages.
   if (!path || !Array.isArray(path)) {
-    throw new Error('pathSelfIntersection: path must be an array');
+    throw new Error("pathSelfIntersection: path must be an array");
   }
 
   // Handle empty or single-segment paths
@@ -768,7 +811,7 @@ export function pathSelfIntersection(path, options = {}) {
         segment2: i,
         t1: isect.t1,
         t2: isect.t2,
-        point: isect.point
+        point: isect.point,
       });
     }
   }
@@ -779,7 +822,7 @@ export function pathSelfIntersection(path, options = {}) {
       // WHY: j starts at i+2, so segments i and j are never adjacent (which would be i and i+1)
       // However, for closed paths, first (i=0) and last (j=path.length-1) segments ARE adjacent
       // because they share the start/end vertex. Skip this pair.
-      const isClosedPathAdjacent = (i === 0 && j === path.length - 1);
+      const isClosedPathAdjacent = i === 0 && j === path.length - 1;
       if (isClosedPathAdjacent) continue;
 
       const isects = bezierBezierIntersection(path[i], path[j], options);
@@ -790,7 +833,7 @@ export function pathSelfIntersection(path, options = {}) {
           segment2: j,
           t1: isect.t1,
           t2: isect.t2,
-          point: isect.point
+          point: isect.point,
         });
       }
     }
@@ -812,17 +855,26 @@ export function pathSelfIntersection(path, options = {}) {
  * @param {string} [tolerance='1e-20'] - Verification tolerance
  * @returns {{valid: boolean, distance: Decimal}}
  */
-export function verifyIntersection(bez1, bez2, intersection, tolerance = '1e-20') {
+export function verifyIntersection(
+  bez1,
+  bez2,
+  intersection,
+  tolerance = "1e-20",
+) {
   // INPUT VALIDATION
   // WHY: Ensure all required data is present before computation. Prevents undefined errors.
   if (!bez1 || !Array.isArray(bez1) || bez1.length < 2) {
-    throw new Error('verifyIntersection: bez1 must have at least 2 control points');
+    throw new Error(
+      "verifyIntersection: bez1 must have at least 2 control points",
+    );
   }
   if (!bez2 || !Array.isArray(bez2) || bez2.length < 2) {
-    throw new Error('verifyIntersection: bez2 must have at least 2 control points');
+    throw new Error(
+      "verifyIntersection: bez2 must have at least 2 control points",
+    );
   }
   if (!intersection) {
-    throw new Error('verifyIntersection: intersection object is required');
+    throw new Error("verifyIntersection: intersection object is required");
   }
 
   const tol = D(tolerance);
@@ -836,7 +888,7 @@ export function verifyIntersection(bez1, bez2, intersection, tolerance = '1e-20'
     valid: distance.lt(tol),
     distance,
     point1: [x1, y1],
-    point2: [x2, y2]
+    point2: [x2, y2],
   };
 }
 
@@ -852,23 +904,34 @@ export function verifyIntersection(bez1, bez2, intersection, tolerance = '1e-20'
  * @param {string} [tolerance='1e-40'] - Verification tolerance
  * @returns {{valid: boolean, parametricError1: Decimal, parametricError2: Decimal, algebraicError: Decimal, crossProductError: Decimal}}
  */
-export function verifyLineLineIntersection(line1, line2, intersection, tolerance = '1e-40') {
+export function verifyLineLineIntersection(
+  line1,
+  line2,
+  intersection,
+  tolerance = "1e-40",
+) {
   // INPUT VALIDATION
   // WHY: Verify all required inputs before processing. Fail fast with clear error messages.
   if (!line1 || !Array.isArray(line1) || line1.length !== 2) {
-    throw new Error('verifyLineLineIntersection: line1 must be an array of 2 points');
+    throw new Error(
+      "verifyLineLineIntersection: line1 must be an array of 2 points",
+    );
   }
   if (!line2 || !Array.isArray(line2) || line2.length !== 2) {
-    throw new Error('verifyLineLineIntersection: line2 must be an array of 2 points');
+    throw new Error(
+      "verifyLineLineIntersection: line2 must be an array of 2 points",
+    );
   }
   if (!intersection) {
-    throw new Error('verifyLineLineIntersection: intersection object is required');
+    throw new Error(
+      "verifyLineLineIntersection: intersection object is required",
+    );
   }
 
   const tol = D(tolerance);
 
   if (!intersection.t1) {
-    return { valid: false, reason: 'No intersection provided' };
+    return { valid: false, reason: "No intersection provided" };
   }
 
   const [x1, y1] = [D(line1[0][0]), D(line1[0][1])];
@@ -886,17 +949,35 @@ export function verifyLineLineIntersection(line1, line2, intersection, tolerance
   const p2x = x3.plus(x4.minus(x3).times(t2));
   const p2y = y3.plus(y4.minus(y3).times(t2));
 
-  const parametricError1 = px.minus(p1x).pow(2).plus(py.minus(p1y).pow(2)).sqrt();
-  const parametricError2 = px.minus(p2x).pow(2).plus(py.minus(p2y).pow(2)).sqrt();
-  const pointMismatchError = p1x.minus(p2x).pow(2).plus(p1y.minus(p2y).pow(2)).sqrt();
+  const parametricError1 = px
+    .minus(p1x)
+    .pow(2)
+    .plus(py.minus(p1y).pow(2))
+    .sqrt();
+  const parametricError2 = px
+    .minus(p2x)
+    .pow(2)
+    .plus(py.minus(p2y).pow(2))
+    .sqrt();
+  const pointMismatchError = p1x
+    .minus(p2x)
+    .pow(2)
+    .plus(p1y.minus(p2y).pow(2))
+    .sqrt();
 
   // 2. Algebraic verification: substitute into line equations
   // Line 1: (y - y1) / (y2 - y1) = (x - x1) / (x2 - x1)
   // Cross-multiply: (y - y1)(x2 - x1) = (x - x1)(y2 - y1)
-  const algebraicError1 = py.minus(y1).times(x2.minus(x1))
-    .minus(px.minus(x1).times(y2.minus(y1))).abs();
-  const algebraicError2 = py.minus(y3).times(x4.minus(x3))
-    .minus(px.minus(x3).times(y4.minus(y3))).abs();
+  const algebraicError1 = py
+    .minus(y1)
+    .times(x2.minus(x1))
+    .minus(px.minus(x1).times(y2.minus(y1)))
+    .abs();
+  const algebraicError2 = py
+    .minus(y3)
+    .times(x4.minus(x3))
+    .minus(px.minus(x3).times(y4.minus(y3)))
+    .abs();
 
   // 3. Cross product verification: vectors from endpoints to intersection should be collinear
   const v1x = px.minus(x1);
@@ -912,8 +993,13 @@ export function verifyLineLineIntersection(line1, line2, intersection, tolerance
   const crossProduct2 = v3x.times(v4y).minus(v3y.times(v4x)).abs();
 
   const maxError = Decimal.max(
-    parametricError1, parametricError2, pointMismatchError,
-    algebraicError1, algebraicError2, crossProduct1, crossProduct2
+    parametricError1,
+    parametricError2,
+    pointMismatchError,
+    algebraicError1,
+    algebraicError2,
+    crossProduct1,
+    crossProduct2,
   );
 
   return {
@@ -925,7 +1011,7 @@ export function verifyLineLineIntersection(line1, line2, intersection, tolerance
     algebraicError2,
     crossProduct1,
     crossProduct2,
-    maxError
+    maxError,
   };
 }
 
@@ -941,23 +1027,34 @@ export function verifyLineLineIntersection(line1, line2, intersection, tolerance
  * @param {string} [tolerance='1e-30'] - Verification tolerance
  * @returns {{valid: boolean, bezierError: Decimal, lineError: Decimal, signedDistance: Decimal}}
  */
-export function verifyBezierLineIntersection(bezier, line, intersection, tolerance = '1e-30') {
+export function verifyBezierLineIntersection(
+  bezier,
+  line,
+  intersection,
+  tolerance = "1e-30",
+) {
   // INPUT VALIDATION
   // WHY: Ensure all required inputs are valid before verification. Prevents undefined behavior.
   if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
-    throw new Error('verifyBezierLineIntersection: bezier must have at least 2 control points');
+    throw new Error(
+      "verifyBezierLineIntersection: bezier must have at least 2 control points",
+    );
   }
   if (!line || !Array.isArray(line) || line.length !== 2) {
-    throw new Error('verifyBezierLineIntersection: line must be an array of 2 points');
+    throw new Error(
+      "verifyBezierLineIntersection: line must be an array of 2 points",
+    );
   }
   if (!intersection) {
-    throw new Error('verifyBezierLineIntersection: intersection object is required');
+    throw new Error(
+      "verifyBezierLineIntersection: intersection object is required",
+    );
   }
 
   const tol = D(tolerance);
 
   if (intersection.t1 === undefined) {
-    return { valid: false, reason: 'No intersection provided' };
+    return { valid: false, reason: "No intersection provided" };
   }
 
   const t1 = D(intersection.t1);
@@ -976,18 +1073,37 @@ export function verifyBezierLineIntersection(bezier, line, intersection, toleran
   const dly = ly1.minus(ly0);
   const expectedLineX = lx0.plus(dlx.times(t2));
   const expectedLineY = ly0.plus(dly.times(t2));
-  const lineError = px.minus(expectedLineX).pow(2).plus(py.minus(expectedLineY).pow(2)).sqrt();
+  const lineError = px
+    .minus(expectedLineX)
+    .pow(2)
+    .plus(py.minus(expectedLineY).pow(2))
+    .sqrt();
 
   // 3. Signed distance from line
   // dist = ((y - ly0) * dlx - (x - lx0) * dly) / sqrt(dlx^2 + dly^2)
   const lineLen = dlx.pow(2).plus(dly.pow(2)).sqrt();
-  const signedDistance = lineLen.isZero() ? D(0) :
-    py.minus(ly0).times(dlx).minus(px.minus(lx0).times(dly)).div(lineLen).abs();
+  const signedDistance = lineLen.isZero()
+    ? D(0)
+    : py
+        .minus(ly0)
+        .times(dlx)
+        .minus(px.minus(lx0).times(dly))
+        .div(lineLen)
+        .abs();
 
   // 4. Verify bezier point matches line point
-  const pointMismatch = bx.minus(expectedLineX).pow(2).plus(by.minus(expectedLineY).pow(2)).sqrt();
+  const pointMismatch = bx
+    .minus(expectedLineX)
+    .pow(2)
+    .plus(by.minus(expectedLineY).pow(2))
+    .sqrt();
 
-  const maxError = Decimal.max(bezierError, lineError, signedDistance, pointMismatch);
+  const maxError = Decimal.max(
+    bezierError,
+    lineError,
+    signedDistance,
+    pointMismatch,
+  );
 
   return {
     valid: maxError.lt(tol),
@@ -997,7 +1113,7 @@ export function verifyBezierLineIntersection(bezier, line, intersection, toleran
     pointMismatch,
     bezierPoint: [bx, by],
     linePoint: [expectedLineX, expectedLineY],
-    maxError
+    maxError,
   };
 }
 
@@ -1013,23 +1129,34 @@ export function verifyBezierLineIntersection(bezier, line, intersection, toleran
  * @param {string} [tolerance='1e-30'] - Verification tolerance
  * @returns {{valid: boolean, distance: Decimal, point1: Array, point2: Array, refinementConverged: boolean}}
  */
-export function verifyBezierBezierIntersection(bez1, bez2, intersection, tolerance = '1e-30') {
+export function verifyBezierBezierIntersection(
+  bez1,
+  bez2,
+  intersection,
+  tolerance = "1e-30",
+) {
   // INPUT VALIDATION
   // WHY: Validate inputs before verification to prevent unexpected errors from invalid data.
   if (!bez1 || !Array.isArray(bez1) || bez1.length < 2) {
-    throw new Error('verifyBezierBezierIntersection: bez1 must have at least 2 control points');
+    throw new Error(
+      "verifyBezierBezierIntersection: bez1 must have at least 2 control points",
+    );
   }
   if (!bez2 || !Array.isArray(bez2) || bez2.length < 2) {
-    throw new Error('verifyBezierBezierIntersection: bez2 must have at least 2 control points');
+    throw new Error(
+      "verifyBezierBezierIntersection: bez2 must have at least 2 control points",
+    );
   }
   if (!intersection) {
-    throw new Error('verifyBezierBezierIntersection: intersection object is required');
+    throw new Error(
+      "verifyBezierBezierIntersection: intersection object is required",
+    );
   }
 
   const tol = D(tolerance);
 
   if (intersection.t1 === undefined) {
-    return { valid: false, reason: 'No intersection provided' };
+    return { valid: false, reason: "No intersection provided" };
   }
 
   const t1 = D(intersection.t1);
@@ -1054,10 +1181,10 @@ export function verifyBezierBezierIntersection(bez1, bez2, intersection, toleran
   // If intersection is real, perturbations should converge back
   let refinementConverged = true;
   const perturbations = [
-    [D('0.001'), D(0)],
-    [D('-0.001'), D(0)],
-    [D(0), D('0.001')],
-    [D(0), D('-0.001')]
+    [D("0.001"), D(0)],
+    [D("-0.001"), D(0)],
+    [D(0), D("0.001")],
+    [D(0), D("-0.001")],
   ];
 
   for (const [dt1, dt2] of perturbations) {
@@ -1092,7 +1219,7 @@ export function verifyBezierBezierIntersection(bez1, bez2, intersection, toleran
     refinementConverged,
     t1InBounds,
     t2InBounds,
-    maxError
+    maxError,
   };
 }
 
@@ -1108,21 +1235,28 @@ export function verifyBezierBezierIntersection(bez1, bez2, intersection, toleran
  * @param {string} [minSeparation='0.01'] - Minimum parameter separation
  * @returns {{valid: boolean, distance: Decimal, separation: Decimal}}
  */
-export function verifySelfIntersection(bezier, intersection, tolerance = '1e-30', minSeparation = '0.01') {
+export function verifySelfIntersection(
+  bezier,
+  intersection,
+  tolerance = "1e-30",
+  minSeparation = "0.01",
+) {
   // INPUT VALIDATION
   // WHY: Ensure curve and intersection data are valid before attempting verification.
   if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
-    throw new Error('verifySelfIntersection: bezier must have at least 2 control points');
+    throw new Error(
+      "verifySelfIntersection: bezier must have at least 2 control points",
+    );
   }
   if (!intersection) {
-    throw new Error('verifySelfIntersection: intersection object is required');
+    throw new Error("verifySelfIntersection: intersection object is required");
   }
 
   const tol = D(tolerance);
   const minSep = D(minSeparation);
 
   if (intersection.t1 === undefined) {
-    return { valid: false, reason: 'No intersection provided' };
+    return { valid: false, reason: "No intersection provided" };
   }
 
   const t1 = D(intersection.t1);
@@ -1147,25 +1281,53 @@ export function verifySelfIntersection(bezier, intersection, tolerance = '1e-30'
 
   // 5. Verify by sampling nearby - true self-intersection is stable
   let stableIntersection = true;
-  const epsilon = D('0.0001');
+  const epsilon = D("0.0001");
 
   // Sample points slightly before and after each parameter
-  const [xBefore1, yBefore1] = bezierPoint(bezier, Decimal.max(D(0), t1.minus(epsilon)));
-  const [xAfter1, yAfter1] = bezierPoint(bezier, Decimal.min(D(1), t1.plus(epsilon)));
-  const [xBefore2, yBefore2] = bezierPoint(bezier, Decimal.max(D(0), t2.minus(epsilon)));
-  const [xAfter2, yAfter2] = bezierPoint(bezier, Decimal.min(D(1), t2.plus(epsilon)));
+  const [xBefore1, yBefore1] = bezierPoint(
+    bezier,
+    Decimal.max(D(0), t1.minus(epsilon)),
+  );
+  const [xAfter1, yAfter1] = bezierPoint(
+    bezier,
+    Decimal.min(D(1), t1.plus(epsilon)),
+  );
+  const [xBefore2, yBefore2] = bezierPoint(
+    bezier,
+    Decimal.max(D(0), t2.minus(epsilon)),
+  );
+  const [xAfter2, yAfter2] = bezierPoint(
+    bezier,
+    Decimal.min(D(1), t2.plus(epsilon)),
+  );
 
   // The curve portions should cross (distances should increase on both sides)
-  const distBefore = xBefore1.minus(xBefore2).pow(2).plus(yBefore1.minus(yBefore2).pow(2)).sqrt();
-  const distAfter = xAfter1.minus(xAfter2).pow(2).plus(yAfter1.minus(yAfter2).pow(2)).sqrt();
+  const distBefore = xBefore1
+    .minus(xBefore2)
+    .pow(2)
+    .plus(yBefore1.minus(yBefore2).pow(2))
+    .sqrt();
+  const distAfter = xAfter1
+    .minus(xAfter2)
+    .pow(2)
+    .plus(yAfter1.minus(yAfter2).pow(2))
+    .sqrt();
 
   // Both neighboring distances should be larger than intersection distance
-  if (!distBefore.gt(distance.minus(tol)) || !distAfter.gt(distance.minus(tol))) {
+  if (
+    !distBefore.gt(distance.minus(tol)) ||
+    !distAfter.gt(distance.minus(tol))
+  ) {
     stableIntersection = false;
   }
 
   return {
-    valid: distance.lt(tol) && sufficientSeparation && t1InBounds && t2InBounds && properlyOrdered,
+    valid:
+      distance.lt(tol) &&
+      sufficientSeparation &&
+      t1InBounds &&
+      t2InBounds &&
+      properlyOrdered,
     distance,
     separation,
     sufficientSeparation,
@@ -1174,7 +1336,7 @@ export function verifySelfIntersection(bezier, intersection, tolerance = '1e-30'
     properlyOrdered,
     stableIntersection,
     point1: [x1, y1],
-    point2: [x2, y2]
+    point2: [x2, y2],
   };
 }
 
@@ -1187,17 +1349,24 @@ export function verifySelfIntersection(bezier, intersection, tolerance = '1e-30'
  * @param {string} [tolerance='1e-30'] - Verification tolerance
  * @returns {{valid: boolean, results: Array, invalidCount: number}}
  */
-export function verifyPathPathIntersection(path1, path2, intersections, tolerance = '1e-30') {
+export function verifyPathPathIntersection(
+  path1,
+  path2,
+  intersections,
+  tolerance = "1e-30",
+) {
   // INPUT VALIDATION
   // WHY: Validate all inputs before processing to ensure meaningful error messages.
   if (!path1 || !Array.isArray(path1)) {
-    throw new Error('verifyPathPathIntersection: path1 must be an array');
+    throw new Error("verifyPathPathIntersection: path1 must be an array");
   }
   if (!path2 || !Array.isArray(path2)) {
-    throw new Error('verifyPathPathIntersection: path2 must be an array');
+    throw new Error("verifyPathPathIntersection: path2 must be an array");
   }
   if (!intersections || !Array.isArray(intersections)) {
-    throw new Error('verifyPathPathIntersection: intersections must be an array');
+    throw new Error(
+      "verifyPathPathIntersection: intersections must be an array",
+    );
   }
 
   const results = [];
@@ -1208,12 +1377,17 @@ export function verifyPathPathIntersection(path1, path2, intersections, toleranc
     const seg2 = path2[isect.segment2];
 
     if (!seg1 || !seg2) {
-      results.push({ valid: false, reason: 'Invalid segment index' });
+      results.push({ valid: false, reason: "Invalid segment index" });
       invalidCount++;
       continue;
     }
 
-    const verification = verifyBezierBezierIntersection(seg1, seg2, isect, tolerance);
+    const verification = verifyBezierBezierIntersection(
+      seg1,
+      seg2,
+      isect,
+      tolerance,
+    );
     results.push(verification);
 
     if (!verification.valid) {
@@ -1225,7 +1399,7 @@ export function verifyPathPathIntersection(path1, path2, intersections, toleranc
     valid: invalidCount === 0,
     results,
     invalidCount,
-    totalIntersections: intersections.length
+    totalIntersections: intersections.length,
   };
 }
 
@@ -1236,71 +1410,131 @@ export function verifyPathPathIntersection(path1, path2, intersections, toleranc
  * @param {string} [tolerance='1e-30'] - Verification tolerance
  * @returns {{allPassed: boolean, results: Object}}
  */
-export function verifyAllIntersectionFunctions(tolerance = '1e-30') {
+export function verifyAllIntersectionFunctions(tolerance = "1e-30") {
   const results = {};
   let allPassed = true;
 
   // Test 1: Line-line intersection
-  const line1 = [[0, 0], [2, 2]];
-  const line2 = [[0, 2], [2, 0]];
+  const line1 = [
+    [0, 0],
+    [2, 2],
+  ];
+  const line2 = [
+    [0, 2],
+    [2, 0],
+  ];
   const lineIsects = lineLineIntersection(line1, line2);
 
   if (lineIsects.length > 0) {
-    const lineVerify = verifyLineLineIntersection(line1, line2, lineIsects[0], tolerance);
+    const lineVerify = verifyLineLineIntersection(
+      line1,
+      line2,
+      lineIsects[0],
+      tolerance,
+    );
     results.lineLine = lineVerify;
     if (!lineVerify.valid) allPassed = false;
   } else {
     // WHY: These specific test lines (diagonal from [0,0] to [2,2] and [0,2] to [2,0])
     // geometrically MUST intersect at [1,1]. No intersection indicates a bug.
-    results.lineLine = { valid: false, reason: 'No intersection found for lines that geometrically must intersect at [1,1]' };
+    results.lineLine = {
+      valid: false,
+      reason:
+        "No intersection found for lines that geometrically must intersect at [1,1]",
+    };
     allPassed = false;
   }
 
   // Test 2: Bezier-line intersection
-  const cubic = [[0, 0], [0.5, 2], [1.5, 2], [2, 0]];
-  const horizLine = [[0, 1], [2, 1]];
+  const cubic = [
+    [0, 0],
+    [0.5, 2],
+    [1.5, 2],
+    [2, 0],
+  ];
+  const horizLine = [
+    [0, 1],
+    [2, 1],
+  ];
   const bezLineIsects = bezierLineIntersection(cubic, horizLine);
 
   if (bezLineIsects.length > 0) {
     let allValid = true;
     const verifications = [];
     for (const isect of bezLineIsects) {
-      const v = verifyBezierLineIntersection(cubic, horizLine, isect, tolerance);
+      const v = verifyBezierLineIntersection(
+        cubic,
+        horizLine,
+        isect,
+        tolerance,
+      );
       verifications.push(v);
       if (!v.valid) allValid = false;
     }
-    results.bezierLine = { valid: allValid, intersectionCount: bezLineIsects.length, verifications };
+    results.bezierLine = {
+      valid: allValid,
+      intersectionCount: bezLineIsects.length,
+      verifications,
+    };
     if (!allValid) allPassed = false;
   } else {
-    results.bezierLine = { valid: false, reason: 'No intersection found' };
+    results.bezierLine = { valid: false, reason: "No intersection found" };
     allPassed = false;
   }
 
   // Test 3: Bezier-bezier intersection
   // WHY: These specific curves may or may not intersect depending on their geometry.
   // An empty result is valid if the curves don't actually cross. This is not a failure condition.
-  const cubic1 = [[0, 0], [1, 2], [2, 2], [3, 0]];
-  const cubic2 = [[0, 1], [1, -1], [2, 3], [3, 1]];
+  const cubic1 = [
+    [0, 0],
+    [1, 2],
+    [2, 2],
+    [3, 0],
+  ];
+  const cubic2 = [
+    [0, 1],
+    [1, -1],
+    [2, 3],
+    [3, 1],
+  ];
   const bezBezIsects = bezierBezierIntersection(cubic1, cubic2);
 
   if (bezBezIsects.length > 0) {
     let allValid = true;
     const verifications = [];
     for (const isect of bezBezIsects) {
-      const v = verifyBezierBezierIntersection(cubic1, cubic2, isect, tolerance);
+      const v = verifyBezierBezierIntersection(
+        cubic1,
+        cubic2,
+        isect,
+        tolerance,
+      );
       verifications.push(v);
       if (!v.valid) allValid = false;
     }
-    results.bezierBezier = { valid: allValid, intersectionCount: bezBezIsects.length, verifications };
+    results.bezierBezier = {
+      valid: allValid,
+      intersectionCount: bezBezIsects.length,
+      verifications,
+    };
     if (!allValid) allPassed = false;
   } else {
     // WHY: No intersection is not an error - it's a valid result when curves don't cross.
     // We mark it as valid since the function is working correctly.
-    results.bezierBezier = { valid: true, intersectionCount: 0, note: 'No intersections (may be geometrically correct)' };
+    results.bezierBezier = {
+      valid: true,
+      intersectionCount: 0,
+      note: "No intersections (may be geometrically correct)",
+    };
   }
 
   // Test 4: Self-intersection (use a loop curve)
-  const loopCurve = [[0, 0], [2, 2], [0, 2], [2, 0]];  // Figure-8 shape
+  const loopCurve = [
+    [0, 0],
+    [2, 2],
+    [0, 2],
+    [2, 0],
+  ]; // Figure-8 shape
   const selfIsects = bezierSelfIntersection(loopCurve);
 
   if (selfIsects.length > 0) {
@@ -1311,11 +1545,19 @@ export function verifyAllIntersectionFunctions(tolerance = '1e-30') {
       verifications.push(v);
       if (!v.valid) allValid = false;
     }
-    results.selfIntersection = { valid: allValid, intersectionCount: selfIsects.length, verifications };
+    results.selfIntersection = {
+      valid: allValid,
+      intersectionCount: selfIsects.length,
+      verifications,
+    };
     if (!allValid) allPassed = false;
   } else {
     // Self-intersection expected for this curve
-    results.selfIntersection = { valid: true, intersectionCount: 0, note: 'No self-intersections found' };
+    results.selfIntersection = {
+      valid: true,
+      intersectionCount: 0,
+      note: "No self-intersections found",
+    };
   }
 
   // Test 5: Path-path intersection
@@ -1324,16 +1566,25 @@ export function verifyAllIntersectionFunctions(tolerance = '1e-30') {
   const pathIsects = pathPathIntersection(path1, path2);
 
   if (pathIsects.length > 0) {
-    const pathVerify = verifyPathPathIntersection(path1, path2, pathIsects, tolerance);
+    const pathVerify = verifyPathPathIntersection(
+      path1,
+      path2,
+      pathIsects,
+      tolerance,
+    );
     results.pathPath = pathVerify;
     if (!pathVerify.valid) allPassed = false;
   } else {
-    results.pathPath = { valid: true, intersectionCount: 0, note: 'No path intersections' };
+    results.pathPath = {
+      valid: true,
+      intersectionCount: 0,
+      note: "No path intersections",
+    };
   }
 
   return {
     allPassed,
-    results
+    results,
   };
 }
 
@@ -1365,5 +1616,5 @@ export default {
   verifyBezierBezierIntersection,
   verifySelfIntersection,
   verifyPathPathIntersection,
-  verifyAllIntersectionFunctions
+  verifyAllIntersectionFunctions,
 };

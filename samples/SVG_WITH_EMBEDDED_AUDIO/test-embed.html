@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG Audio Embed Test</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; }
+    h2 { color: #666; margin-top: 40px; }
+    .test-container {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .note {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .note.info {
+      background: #d1ecf1;
+      border-color: #17a2b8;
+    }
+    .note.danger {
+      background: #f8d7da;
+      border-color: #dc3545;
+    }
+    object, embed, iframe {
+      border: 2px solid #007bff;
+      border-radius: 4px;
+    }
+    img {
+      border: 2px solid #28a745;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SVG Audio Embedding Test</h1>
+
+  <p>This page tests different methods of embedding the SVG to see which ones allow audio to play.</p>
+  <p><strong>Open your browser's Developer Console (F12) to see any errors.</strong></p>
+
+  <div class="note info">
+    <strong>Instructions:</strong> Click somewhere on this page first (to register user interaction),
+    then observe which embedding method plays audio.
+  </div>
+
+  <!-- Method 1: img tag -->
+  <h2>Method 1: &lt;img&gt; tag</h2>
+  <div class="test-container">
+    <div class="note danger">
+      <strong>Expected:</strong> Will NOT work. &lt;img&gt; tags render SVG as static images -
+      no JavaScript execution, no audio, no SMIL animation.
+    </div>
+    <img src="cartoon_sample_with_audio.svg" width="800" height="450" alt="SVG via img">
+  </div>
+
+  <!-- Method 2: object tag -->
+  <h2>Method 2: &lt;object&gt; tag</h2>
+  <div class="test-container">
+    <div class="note">
+      <strong>Expected:</strong> Should work. &lt;object&gt; embeds as a full document with script execution.
+    </div>
+    <object data="cartoon_sample_with_audio.svg" type="image/svg+xml" width="800" height="450">
+      Your browser does not support SVG
+    </object>
+  </div>
+
+  <!-- Method 3: embed tag -->
+  <h2>Method 3: &lt;embed&gt; tag</h2>
+  <div class="test-container">
+    <div class="note">
+      <strong>Expected:</strong> Should work. Similar to &lt;object&gt;.
+    </div>
+    <embed src="cartoon_sample_with_audio.svg" type="image/svg+xml" width="800" height="450">
+  </div>
+
+  <!-- Method 4: iframe tag -->
+  <h2>Method 4: &lt;iframe&gt; tag</h2>
+  <div class="test-container">
+    <div class="note">
+      <strong>Expected:</strong> Should work. Full document context with its own browsing context.
+    </div>
+    <iframe src="cartoon_sample_with_audio.svg" width="820" height="470"
+            allow="autoplay" frameborder="0"></iframe>
+  </div>
+
+  <h2>Results Summary</h2>
+  <div class="test-container">
+    <p>After testing, note which methods:</p>
+    <ul>
+      <li>Play the animation (SMIL)</li>
+      <li>Play the audio</li>
+      <li>Show console errors</li>
+    </ul>
+  </div>
+
+  <script>
+    // Log when user interacts with the page
+    let interacted = false;
+    document.addEventListener('click', function() {
+      if (!interacted) {
+        interacted = true;
+        console.log('[TEST] User has interacted with the page - autoplay should now be allowed for new media');
+      }
+    }, { once: true });
+
+    console.log('[TEST] HTML wrapper loaded. Click anywhere to register user interaction.');
+  </script>
+</body>
+</html>

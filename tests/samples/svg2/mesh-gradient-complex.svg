@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
+  <title>SVG 2.0 Mesh Gradient - Complex Multi-Row</title>
+  <desc>Tests multi-row mesh gradient with multiple patches</desc>
+  <defs>
+    <meshgradient id="complexMesh" x="20" y="20" type="bilinear">
+      <meshrow>
+        <meshpatch>
+          <stop stop-color="#ff0000"/>
+          <stop stop-color="#ff8800" path="l 100,0"/>
+          <stop stop-color="#ffff00" path="l 0,100"/>
+          <stop stop-color="#88ff00" path="l -100,0"/>
+        </meshpatch>
+        <meshpatch>
+          <stop stop-color="#ff8800"/>
+          <stop stop-color="#ffff00" path="l 100,0"/>
+          <stop stop-color="#88ff00" path="l 0,100"/>
+          <stop stop-color="#00ff00" path="l -100,0"/>
+        </meshpatch>
+      </meshrow>
+      <meshrow>
+        <meshpatch>
+          <stop stop-color="#88ff00"/>
+          <stop stop-color="#00ff00" path="l 100,0"/>
+          <stop stop-color="#00ff88" path="l 0,100"/>
+          <stop stop-color="#00ffff" path="l -100,0"/>
+        </meshpatch>
+        <meshpatch>
+          <stop stop-color="#00ff00"/>
+          <stop stop-color="#00ff88" path="l 100,0"/>
+          <stop stop-color="#0088ff" path="l 0,100"/>
+          <stop stop-color="#0000ff" path="l -100,0"/>
+        </meshpatch>
+      </meshrow>
+    </meshgradient>
+  </defs>
+  <rect x="20" y="20" width="200" height="200" fill="url(#complexMesh)"/>
+  <circle cx="350" cy="120" r="80" fill="url(#complexMesh)"/>
+</svg>

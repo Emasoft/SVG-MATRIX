@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" lang="en">
+  <title>SVG 2.0 Language Attribute</title>
+  <desc>Tests lang attribute for internationalization (replaces xml:lang)</desc>
+  <style>
+    text[lang="ja"] { font-family: "Hiragino Sans", "Yu Gothic", sans-serif; }
+    text[lang="ar"] { font-family: "Arial", sans-serif; direction: rtl; }
+    text[lang="zh"] { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+  </style>
+  <!-- English -->
+  <text x="20" y="40" font-size="16" lang="en">Hello, World!</text>
+  <!-- Japanese -->
+  <text x="20" y="80" font-size="16" lang="ja">&#12371;&#12435;&#12395;&#12385;&#12399;&#19990;&#30028;</text>
+  <!-- Chinese -->
+  <text x="20" y="120" font-size="16" lang="zh">&#20320;&#22909;&#19990;&#30028;</text>
+  <!-- Arabic (RTL) -->
+  <text x="380" y="160" font-size="16" lang="ar" text-anchor="end">&#1605;&#1585;&#1581;&#1576;&#1575; &#1576;&#1575;&#1604;&#1593;&#1575;&#1604;&#1605;</text>
+  <!-- German -->
+  <text x="20" y="200" font-size="16" lang="de">Hallo Welt!</text>
+  <!-- Russian -->
+  <text x="20" y="240" font-size="16" lang="ru">&#1055;&#1088;&#1080;&#1074;&#1077;&#1090; &#1084;&#1080;&#1088;!</text>
+  <!-- Nested language contexts -->
+  <g lang="fr">
+    <text x="20" y="280" font-size="14">Bonjour le monde! <tspan lang="en">(Hello world!)</tspan></text>
+  </g>
+</svg>

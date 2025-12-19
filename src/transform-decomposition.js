@@ -31,20 +31,20 @@
  * @module transform-decomposition
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
 
 // Set high precision for all calculations
 Decimal.set({ precision: 80 });
 
 // Helper to convert to Decimal
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Near-zero threshold for comparisons
-const EPSILON = new Decimal('1e-40');
+const EPSILON = new Decimal("1e-40");
 
 // Verification tolerance (larger than EPSILON for practical use)
-const VERIFICATION_TOLERANCE = new Decimal('1e-30');
+const VERIFICATION_TOLERANCE = new Decimal("1e-30");
 
 // ============================================================================
 // Matrix Utilities
@@ -68,7 +68,7 @@ export function translationMatrix(tx, ty) {
   return Matrix.from([
     [1, 0, D(tx)],
     [0, 1, D(ty)],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -84,7 +84,7 @@ export function rotationMatrix(angle) {
   return Matrix.from([
     [cos, sin.neg(), 0],
     [sin, cos, 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -98,7 +98,7 @@ export function scaleMatrix(sx, sy) {
   return Matrix.from([
     [D(sx), 0, 0],
     [0, D(sy), 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -112,7 +112,7 @@ export function skewXMatrix(angle) {
   return Matrix.from([
     [1, tan, 0],
     [0, 1, 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -126,7 +126,7 @@ export function skewYMatrix(angle) {
   return Matrix.from([
     [1, 0, 0],
     [tan, 1, 0],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -141,7 +141,7 @@ export function extractLinearPart(matrix) {
     a: data[0][0],
     b: data[1][0],
     c: data[0][1],
-    d: data[1][1]
+    d: data[1][1],
   };
 }
 
@@ -154,7 +154,7 @@ export function extractTranslation(matrix) {
   const data = matrix.data;
   return {
     tx: data[0][2],
-    ty: data[1][2]
+    ty: data[1][2],
   };
 }
 
@@ -209,12 +209,12 @@ export function decomposeMatrix(matrix) {
       skewX: D(0),
       skewY: D(0),
       verified: false,
-      verificationError: D('Infinity'),
-      singular: true  // Flag to indicate singular matrix
+      verificationError: D("Infinity"),
+      singular: true, // Flag to indicate singular matrix
     };
   }
 
-  let scaleY = det.div(scaleX);
+  const scaleY = det.div(scaleX);
 
   // Handle reflection (negative determinant)
   // We put the reflection in scaleX
@@ -250,9 +250,9 @@ export function decomposeMatrix(matrix) {
 
   // Rotate back to get the scale+skew matrix
   const aPrime = a.mul(cosTheta).plus(b.mul(sinTheta));
-  const bPrime = a.neg().mul(sinTheta).plus(b.mul(cosTheta));
+  const _bPrime = a.neg().mul(sinTheta).plus(b.mul(cosTheta));
   const cPrime = c.mul(cosTheta).plus(d.mul(sinTheta));
-  const dPrime = c.neg().mul(sinTheta).plus(d.mul(cosTheta));
+  const _dPrime = c.neg().mul(sinTheta).plus(d.mul(cosTheta));
 
   // Now [aPrime cPrime] should be [scaleX, scaleX*tan(skewX)]
   //     [bPrime dPrime]           [0,      scaleY           ]
@@ -291,7 +291,7 @@ export function decomposeMatrix(matrix) {
     scaleX,
     scaleY,
     skewX,
-    skewY: D(0)
+    skewY: D(0),
   });
 
   const maxError = matrixMaxDifference(matrix, recomposed);
@@ -306,7 +306,7 @@ export function decomposeMatrix(matrix) {
     skewX,
     skewY,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -352,7 +352,7 @@ export function decomposeMatrixNoSkew(matrix) {
     translateY: ty,
     rotation,
     scaleX,
-    scaleY
+    scaleY,
   });
 
   const maxError = matrixMaxDifference(matrix, recomposed);
@@ -365,7 +365,7 @@ export function decomposeMatrixNoSkew(matrix) {
     scaleX,
     scaleY,
     verified,
-    maxError
+    maxError,
   };
 }
 
@@ -434,7 +434,7 @@ export function composeTransform(components) {
     scaleX,
     scaleY,
     skewX,
-    skewY = 0
+    skewY = 0,
   } = components;
 
   // Build matrices
@@ -521,7 +521,7 @@ export function verifyDecomposition(original, decomposition) {
   const maxError = matrixMaxDifference(original, recomposed);
   return {
     verified: maxError.lessThan(VERIFICATION_TOLERANCE),
-    maxError
+    maxError,
   };
 }
 
@@ -549,7 +549,7 @@ export function matrixFromSVGValues(a, b, c, d, e, f) {
   return Matrix.from([
     [D(a), D(c), D(e)],
     [D(b), D(d), D(f)],
-    [0, 0, 1]
+    [0, 0, 1],
   ]);
 }
 
@@ -568,7 +568,7 @@ export function matrixToSVGValues(matrix, precision = 6) {
     c: data[0][1].toFixed(precision),
     d: data[1][1].toFixed(precision),
     e: data[0][2].toFixed(precision),
-    f: data[1][2].toFixed(precision)
+    f: data[1][2].toFixed(precision),
   };
 }
 
@@ -580,13 +580,19 @@ export function matrixToSVGValues(matrix, precision = 6) {
  * @returns {string} SVG transform string
  */
 export function decompositionToSVGString(decomposition, precision = 6) {
-  const { translateX, translateY, rotation, scaleX, scaleY, skewX, skewY } = decomposition;
+  const { translateX, translateY, rotation, scaleX, scaleY, skewX, skewY } =
+    decomposition;
 
   const parts = [];
 
   // Add translate if non-zero
-  if (!D(translateX).abs().lessThan(EPSILON) || !D(translateY).abs().lessThan(EPSILON)) {
-    parts.push(`translate(${D(translateX).toFixed(precision)}, ${D(translateY).toFixed(precision)})`);
+  if (
+    !D(translateX).abs().lessThan(EPSILON) ||
+    !D(translateY).abs().lessThan(EPSILON)
+  ) {
+    parts.push(
+      `translate(${D(translateX).toFixed(precision)}, ${D(translateY).toFixed(precision)})`,
+    );
   }
 
   // Add rotate if non-zero
@@ -616,11 +622,13 @@ export function decompositionToSVGString(decomposition, precision = 6) {
     if (D(scaleX).minus(D(scaleY)).abs().lessThan(EPSILON)) {
       parts.push(`scale(${D(scaleX).toFixed(precision)})`);
     } else {
-      parts.push(`scale(${D(scaleX).toFixed(precision)}, ${D(scaleY).toFixed(precision)})`);
+      parts.push(
+        `scale(${D(scaleX).toFixed(precision)}, ${D(scaleY).toFixed(precision)})`,
+      );
     }
   }
 
-  return parts.length > 0 ? parts.join(' ') : '';
+  return parts.length > 0 ? parts.join(" ") : "";
 }
 
 /**
@@ -636,7 +644,7 @@ export function matrixToMinimalSVGTransform(matrix, precision = 6) {
   // Check if identity
   const identity = Matrix.identity(3);
   if (matricesEqual(matrix, identity, EPSILON)) {
-    return { transform: '', isIdentity: true, verified: true };
+    return { transform: "", isIdentity: true, verified: true };
   }
 
   // Decompose
@@ -648,7 +656,7 @@ export function matrixToMinimalSVGTransform(matrix, precision = 6) {
   return {
     transform,
     isIdentity: false,
-    verified: decomposition.verified
+    verified: decomposition.verified,
   };
 }
 
@@ -675,7 +683,7 @@ export function isPureTranslation(matrix) {
   return {
     isTranslation: isIdentityLinear,
     tx,
-    ty
+    ty,
   };
 }
 
@@ -700,7 +708,8 @@ export function isPureRotation(matrix) {
   // Check unit columns: a² + b² = 1, c² + d² = 1
   const col1Norm = a.mul(a).plus(b.mul(b));
   const col2Norm = c.mul(c).plus(d.mul(d));
-  const unitNorm = col1Norm.minus(1).abs().lessThan(EPSILON) &&
+  const unitNorm =
+    col1Norm.minus(1).abs().lessThan(EPSILON) &&
     col2Norm.minus(1).abs().lessThan(EPSILON);
 
   // Check determinant = 1 (no reflection)
@@ -741,7 +750,7 @@ export function isPureScale(matrix) {
     isScale: true,
     scaleX: a,
     scaleY: d,
-    isUniform
+    isUniform,
   };
 }
 
@@ -760,11 +769,7 @@ export function isIdentityMatrix(matrix) {
 // Exports
 // ============================================================================
 
-export {
-  EPSILON,
-  VERIFICATION_TOLERANCE,
-  D
-};
+export { EPSILON, VERIFICATION_TOLERANCE, D };
 
 export default {
   // Matrix utilities
@@ -806,5 +811,5 @@ export default {
 
   // Constants
   EPSILON,
-  VERIFICATION_TOLERANCE
+  VERIFICATION_TOLERANCE,
 };

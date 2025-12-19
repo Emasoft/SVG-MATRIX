@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <title>SVG 2.0 Text Overflow Test</title>
+  <desc>Tests text-overflow property with textPath</desc>
+  <defs>
+    <path id="textPath1" d="M20,50 L200,50"/>
+    <path id="textPath2" d="M20,120 L200,120"/>
+    <path id="textPath3" d="M20,190 L200,190"/>
+  </defs>
+
+  <!-- Clip overflow -->
+  <text font-size="14">
+    <textPath href="#textPath1" style="text-overflow: clip">
+      This is a very long text that will be clipped at the end
+    </textPath>
+  </text>
+  <text x="220" y="50" font-size="10">text-overflow: clip</text>
+
+  <!-- Ellipsis overflow -->
+  <text font-size="14">
+    <textPath href="#textPath2" style="text-overflow: ellipsis">
+      This is a very long text that will show ellipsis
+    </textPath>
+  </text>
+  <text x="220" y="120" font-size="10">text-overflow: ellipsis</text>
+
+  <!-- Default (visible) -->
+  <text font-size="14">
+    <textPath href="#textPath3">
+      This text overflows the path visibly by default
+    </textPath>
+  </text>
+  <text x="220" y="190" font-size="10">default (visible)</text>
+
+  <text x="20" y="260" font-size="10">SVG 2.0: text-overflow controls text clipping on paths</text>
+</svg>

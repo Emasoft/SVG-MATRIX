@@ -1,0 +1,5 @@
+@font-face {
+      font-family: 'CustomFont';
+      src: url(./font_font_001.woff2) format('woff2');
+    }
+    .title { font-family: 'CustomFont', sans-serif; font-size: 24px; }

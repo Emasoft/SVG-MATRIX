@@ -13,50 +13,57 @@
  * @module flatten-pipeline
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as SVGFlatten from './svg-flatten.js';
-import * as ClipPathResolver from './clip-path-resolver.js';
-import * as MaskResolver from './mask-resolver.js';
-import * as UseSymbolResolver from './use-symbol-resolver.js';
-import * as PatternResolver from './pattern-resolver.js';
-import * as MarkerResolver from './marker-resolver.js';
-import * as MeshGradient from './mesh-gradient.js';
-import * as GeometryToPath from './geometry-to-path.js';
-import { parseSVG, SVGElement, buildDefsMap, parseUrlReference, serializeSVG, findElementsWithAttribute } from './svg-parser.js';
-import { Logger } from './logger.js';
-import * as Verification from './verification.js';
-import { parseCSSIds } from './animation-references.js';
-import * as PolygonClip from './polygon-clip.js';
+import Decimal from "decimal.js";
+import { Matrix as _Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
+import * as SVGFlatten from "./svg-flatten.js";
+import * as ClipPathResolver from "./clip-path-resolver.js";
+import * as MaskResolver from "./mask-resolver.js";
+import * as UseSymbolResolver from "./use-symbol-resolver.js";
+import * as PatternResolver from "./pattern-resolver.js";
+import * as MarkerResolver from "./marker-resolver.js";
+import * as _MeshGradient from "./mesh-gradient.js";
+import * as GeometryToPath from "./geometry-to-path.js";
+import {
+  parseSVG,
+  SVGElement,
+  buildDefsMap,
+  parseUrlReference,
+  serializeSVG,
+  findElementsWithAttribute,
+} from "./svg-parser.js";
+import { Logger as _Logger } from "./logger.js";
+import * as Verification from "./verification.js";
+import { parseCSSIds } from "./animation-references.js";
+import * as PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Default options for flatten pipeline.
  */
 const DEFAULT_OPTIONS = {
-  precision: 6,              // Decimal places in output coordinates
-  curveSegments: 20,         // Samples per curve for polygon conversion (visual output)
-  clipSegments: 64,          // Higher samples for clip polygon accuracy (affects E2E precision)
-  bezierArcs: 8,             // Bezier arcs for circles/ellipses (must be multiple of 4)
-                             // 8: π/4 optimal base (~0.0004% error)
-                             // 16: π/8 (~0.000007% error), 32: π/16, 64: π/32 (~0.00000001% error)
-  resolveUse: true,          // Expand <use> elements
-  resolveMarkers: true,      // Expand marker instances
-  resolvePatterns: true,     // Expand pattern fills to geometry
-  resolveMasks: true,        // Convert masks to clip paths
-  resolveClipPaths: true,    // Apply clipPath boolean operations
-  flattenTransforms: true,   // Bake transform attributes into coordinates
-  bakeGradients: true,       // Bake gradientTransform into gradient coords
-  removeUnusedDefs: true,    // Remove defs that are no longer referenced
-  preserveIds: false,        // Keep original IDs on expanded elements
-  svg2Polyfills: false,      // Apply SVG 2.0 polyfills for backwards compatibility (not yet implemented)
+  precision: 6, // Decimal places in output coordinates
+  curveSegments: 20, // Samples per curve for polygon conversion (visual output)
+  clipSegments: 64, // Higher samples for clip polygon accuracy (affects E2E precision)
+  bezierArcs: 8, // Bezier arcs for circles/ellipses (must be multiple of 4)
+  // 8: π/4 optimal base (~0.0004% error)
+  // 16: π/8 (~0.000007% error), 32: π/16, 64: π/32 (~0.00000001% error)
+  resolveUse: true, // Expand <use> elements
+  resolveMarkers: true, // Expand marker instances
+  resolvePatterns: true, // Expand pattern fills to geometry
+  resolveMasks: true, // Convert masks to clip paths
+  resolveClipPaths: true, // Apply clipPath boolean operations
+  flattenTransforms: true, // Bake transform attributes into coordinates
+  bakeGradients: true, // Bake gradientTransform into gradient coords
+  removeUnusedDefs: true, // Remove defs that are no longer referenced
+  preserveIds: false, // Keep original IDs on expanded elements
+  svg2Polyfills: false, // Apply SVG 2.0 polyfills for backwards compatibility (not yet implemented)
   // NOTE: Verification is ALWAYS enabled - precision is non-negotiable
   // E2E verification tolerance (configurable for different accuracy needs)
-  e2eTolerance: '1e-10',     // Default: 1e-10 (very tight with high clipSegments)
+  e2eTolerance: "1e-10", // Default: 1e-10 (very tight with high clipSegments)
 };
 
 /**
@@ -106,8 +113,8 @@ export function flattenSVG(svgString, options = {}) {
   try {
     // Parse SVG
     const root = parseSVG(svgString);
-    if (root.tagName !== 'svg') {
-      throw new Error('Root element must be <svg>');
+    if (root.tagName !== "svg") {
+      throw new Error("Root element must be <svg>");
     }
 
     // Build defs map
@@ -115,7 +122,9 @@ export function flattenSVG(svgString, options = {}) {
 
     // CRITICAL: Collect all ID references BEFORE any processing
     // This ensures we don't remove defs that were referenced before resolution
-    const referencedIds = opts.removeUnusedDefs ? collectAllReferences(root) : null;
+    const referencedIds = opts.removeUnusedDefs
+      ? collectAllReferences(root)
+      : null;
 
     // Step 1: Resolve <use> elements (must be first - creates new geometry)
     if (opts.resolveUse) {
@@ -177,7 +186,6 @@ export function flattenSVG(svgString, options = {}) {
     const svg = serializeSVG(root);
 
     return { svg, stats };
-
   } catch (error) {
     stats.errors.push(`Pipeline error: ${error.message}`);
     return { svg: svgString, stats }; // Return original on failure
@@ -192,31 +200,83 @@ export function flattenSVG(svgString, options = {}) {
  * Resolve all <use> elements by expanding them inline.
  * @private
  */
+/**
+ * SMIL animation element names that must be preserved during use resolution.
+ * Converting these to paths would destroy the animation functionality.
+ */
+// IMPORTANT: Use lowercase for case-insensitive matching with tagName.toLowerCase()
+const SMIL_ANIMATION_ELEMENTS = new Set([
+  "animate",
+  "animatetransform",
+  "animatemotion",
+  "animatecolor",
+  "set",
+]);
+
+/**
+ * Elements that must be preserved during flattening (not converted to paths).
+ * These elements contain content that cannot be represented as path data.
+ * IMPORTANT: Use lowercase for case-insensitive matching with tagName.toLowerCase()
+ */
+const PRESERVE_ELEMENTS = new Set([
+  "foreignobject",
+  "audio",
+  "video",
+  "iframe",
+  "script",
+  "style",
+  ...SMIL_ANIMATION_ELEMENTS,
+]);
+
+/**
+ * Check if an element or any of its descendants contains elements that must be preserved.
+ * @private
+ */
+function containsPreserveElements(el) {
+  if (!el) return false;
+
+  const tagName = el.tagName?.toLowerCase();
+  if (PRESERVE_ELEMENTS.has(tagName)) {
+    return true;
+  }
+
+  // Check children recursively (use tagName check instead of instanceof)
+  for (const child of el.children || []) {
+    if (child && child.tagName && containsPreserveElements(child)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function resolveAllUseElements(root, defsMap, opts) {
   const errors = [];
   let count = 0;
 
-  const useElements = root.getElementsByTagName('use');
+  const useElements = root.getElementsByTagName("use");
 
   // Convert defsMap from Map<id, SVGElement> to {id: parsedData} format
   // that UseSymbolResolver.resolveUse() expects (objects with .type property)
   const parsedDefs = {};
   for (const [id, el] of defsMap.entries()) {
     const tagName = el.tagName.toLowerCase();
-    if (tagName === 'symbol') {
+    if (tagName === "symbol") {
       parsedDefs[id] = UseSymbolResolver.parseSymbolElement(el);
-      parsedDefs[id].type = 'symbol';
+      parsedDefs[id].type = "symbol";
     } else {
       parsedDefs[id] = UseSymbolResolver.parseChildElement(el);
     }
   }
 
-  for (const useEl of [...useElements]) { // Clone array since we modify DOM
+  for (const useEl of [...useElements]) {
+    // Clone array since we modify DOM
     try {
-      const href = useEl.getAttribute('href') || useEl.getAttribute('xlink:href');
+      const href =
+        useEl.getAttribute("href") || useEl.getAttribute("xlink:href");
       if (!href) continue;
 
-      const refId = href.replace(/^#/, '');
+      const refId = href.replace(/^#/, "");
       const refEl = defsMap.get(refId);
 
       if (!refEl) {
@@ -224,12 +284,91 @@ function resolveAllUseElements(root, defsMap, opts) {
         continue;
       }
 
+      // CRITICAL: Check if referenced element OR the use element itself contains SMIL animations
+      // In SVG, animations can be children of <use> elements (animate the use instance)
+      // If so, we must clone instead of converting to path to preserve functionality
+      const refHasPreserve = containsPreserveElements(refEl);
+      const useHasPreserve = containsPreserveElements(useEl);
+
+      if (refHasPreserve || useHasPreserve) {
+        // Clone the referenced element with all children (preserves animations)
+        const clonedEl = refEl.cloneNode(true);
+
+        // Get use element positioning and transform
+        const useX = parseFloat(useEl.getAttribute("x") || "0");
+        const useY = parseFloat(useEl.getAttribute("y") || "0");
+        const useTransform = useEl.getAttribute("transform") || "";
+
+        // Build combined transform: use transform + translation from x/y
+        let combinedTransform = "";
+        if (useTransform) {
+          combinedTransform = useTransform;
+        }
+        if (useX !== 0 || useY !== 0) {
+          const translatePart = `translate(${useX}, ${useY})`;
+          combinedTransform = combinedTransform
+            ? `${combinedTransform} ${translatePart}`
+            : translatePart;
+        }
+
+        // Create a group to wrap the cloned content with the transform
+        const wrapperGroup = new SVGElement("g", {});
+        if (combinedTransform) {
+          wrapperGroup.setAttribute("transform", combinedTransform);
+        }
+
+        // Copy presentation attributes from use element to wrapper
+        const presentationAttrs = extractPresentationAttrs(useEl);
+        for (const [key, val] of Object.entries(presentationAttrs)) {
+          if (val && !wrapperGroup.hasAttribute(key)) {
+            wrapperGroup.setAttribute(key, val);
+          }
+        }
+
+        // Handle symbol vs regular element
+        const refTagName = refEl.tagName.toLowerCase();
+        if (refTagName === "symbol") {
+          // For symbols, add all children to the wrapper (skip the symbol wrapper)
+          // Use tagName check instead of instanceof since cloneNode may not preserve class type
+          for (const child of clonedEl.children || []) {
+            if (child && child.tagName) {
+              wrapperGroup.appendChild(child.cloneNode(true));
+            }
+          }
+        } else {
+          // For regular elements, add the cloned element
+          // Remove the ID to avoid duplicates
+          clonedEl.removeAttribute("id");
+          wrapperGroup.appendChild(clonedEl);
+        }
+
+        // CRITICAL: Also preserve animation children from the use element itself
+        // SMIL animations can be direct children of <use> to animate the instance
+        for (const child of useEl.children || []) {
+          if (child && child.tagName) {
+            const childTagName = child.tagName.toLowerCase();
+            if (SMIL_ANIMATION_ELEMENTS.has(childTagName)) {
+              // Clone the animation and add to wrapper
+              wrapperGroup.appendChild(child.cloneNode(true));
+            }
+          }
+        }
+
+        // Replace use with the wrapper group
+        if (useEl.parentNode) {
+          useEl.parentNode.replaceChild(wrapperGroup, useEl);
+          count++;
+        }
+        continue;
+      }
+
+      // Standard path conversion for elements without preserve elements
       // Parse use element data
       const useData = UseSymbolResolver.parseUseElement(useEl);
 
       // Resolve the use with properly formatted defs (plain objects with .type)
       const resolved = UseSymbolResolver.resolveUse(useData, parsedDefs, {
-        samples: opts.curveSegments
+        samples: opts.curveSegments,
       });
 
       if (!resolved) {
@@ -238,13 +377,16 @@ function resolveAllUseElements(root, defsMap, opts) {
       }
 
       // Convert resolved to path data
-      const pathData = UseSymbolResolver.resolvedUseToPathData(resolved, opts.curveSegments);
+      const pathData = UseSymbolResolver.resolvedUseToPathData(
+        resolved,
+        opts.curveSegments,
+      );
 
       if (pathData) {
         // Create new path element to replace <use>
-        const pathEl = new SVGElement('path', {
+        const pathEl = new SVGElement("path", {
           d: pathData,
-          ...extractPresentationAttrs(useEl)
+          ...extractPresentationAttrs(useEl),
         });
 
         // Copy style attributes from resolved
@@ -283,30 +425,41 @@ function resolveAllMarkers(root, defsMap, opts) {
   let count = 0;
 
   // Find all elements with marker attributes
-  const markerAttrs = ['marker-start', 'marker-mid', 'marker-end', 'marker'];
+  const markerAttrs = ["marker-start", "marker-mid", "marker-end", "marker"];
 
   for (const attrName of markerAttrs) {
     const elements = findElementsWithAttribute(root, attrName);
 
     for (const el of elements) {
-      if (el.tagName !== 'path' && el.tagName !== 'line' && el.tagName !== 'polyline' && el.tagName !== 'polygon') {
+      if (
+        el.tagName !== "path" &&
+        el.tagName !== "line" &&
+        el.tagName !== "polyline" &&
+        el.tagName !== "polygon"
+      ) {
         continue;
       }
 
       try {
         // Resolve markers for this element
-        const markerInstances = MarkerResolver.resolveMarkers(el, Object.fromEntries(defsMap));
+        const markerInstances = MarkerResolver.resolveMarkers(
+          el,
+          Object.fromEntries(defsMap),
+        );
 
         if (!markerInstances || markerInstances.length === 0) continue;
 
         // Convert markers to path data
-        const markerPathData = MarkerResolver.markersToPathData(markerInstances, opts.precision);
+        const markerPathData = MarkerResolver.markersToPathData(
+          markerInstances,
+          opts.precision,
+        );
 
         if (markerPathData) {
           // Create new path element for marker geometry
-          const markerPath = new SVGElement('path', {
+          const markerPath = new SVGElement("path", {
             d: markerPathData,
-            fill: el.getAttribute('stroke') || 'currentColor', // Markers typically use stroke color
+            fill: el.getAttribute("stroke") || "currentColor", // Markers typically use stroke color
           });
 
           // Insert after the original element
@@ -346,34 +499,42 @@ function resolveAllPatterns(root, defsMap, opts) {
   const errors = [];
   let count = 0;
 
-  const elementsWithFill = findElementsWithAttribute(root, 'fill');
+  const elementsWithFill = findElementsWithAttribute(root, "fill");
 
   for (const el of elementsWithFill) {
-    const fill = el.getAttribute('fill');
-    if (!fill || !fill.includes('url(')) continue;
+    const fill = el.getAttribute("fill");
+    if (!fill || !fill.includes("url(")) continue;
 
     const refId = parseUrlReference(fill);
     if (!refId) continue;
 
     const patternEl = defsMap.get(refId);
-    if (!patternEl || patternEl.tagName !== 'pattern') continue;
+    if (!patternEl || patternEl.tagName !== "pattern") continue;
 
     try {
       // Check coordinate system units - skip if non-default
-      const patternUnits = patternEl.getAttribute('patternUnits') || 'objectBoundingBox';
-      const patternContentUnits = patternEl.getAttribute('patternContentUnits') || 'userSpaceOnUse';
-      const patternTransform = patternEl.getAttribute('patternTransform');
+      const patternUnits =
+        patternEl.getAttribute("patternUnits") || "objectBoundingBox";
+      const patternContentUnits =
+        patternEl.getAttribute("patternContentUnits") || "userSpaceOnUse";
+      const patternTransform = patternEl.getAttribute("patternTransform");
 
       // PatternResolver handles these cases, but warn about complex patterns
       // that might need special handling or cause issues
-      if (patternUnits !== 'objectBoundingBox') {
-        errors.push(`pattern ${refId}: non-default patternUnits="${patternUnits}" may cause rendering issues`);
+      if (patternUnits !== "objectBoundingBox") {
+        errors.push(
+          `pattern ${refId}: non-default patternUnits="${patternUnits}" may cause rendering issues`,
+        );
       }
-      if (patternContentUnits !== 'userSpaceOnUse') {
-        errors.push(`pattern ${refId}: non-default patternContentUnits="${patternContentUnits}" may cause rendering issues`);
+      if (patternContentUnits !== "userSpaceOnUse") {
+        errors.push(
+          `pattern ${refId}: non-default patternContentUnits="${patternContentUnits}" may cause rendering issues`,
+        );
       }
       if (patternTransform) {
-        errors.push(`pattern ${refId}: patternTransform present - complex transformation may cause rendering issues`);
+        errors.push(
+          `pattern ${refId}: patternTransform present - complex transformation may cause rendering issues`,
+        );
       }
 
       // Get element bounding box (approximate from path data or attributes)
@@ -384,24 +545,28 @@ function resolveAllPatterns(root, defsMap, opts) {
       const patternData = PatternResolver.parsePatternElement(patternEl);
 
       // Resolve pattern to path data
-      const patternPathData = PatternResolver.patternToPathData(patternData, bbox, {
-        samples: opts.curveSegments
-      });
+      const patternPathData = PatternResolver.patternToPathData(
+        patternData,
+        bbox,
+        {
+          samples: opts.curveSegments,
+        },
+      );
 
       if (patternPathData) {
         // Create group with clipped pattern geometry
-        const patternGroup = new SVGElement('g', {});
+        const patternGroup = new SVGElement("g", {});
 
-        const patternPath = new SVGElement('path', {
+        const patternPath = new SVGElement("path", {
           d: patternPathData,
-          fill: '#000', // Pattern content typically has its own fill
+          fill: "#000", // Pattern content typically has its own fill
         });
 
         patternGroup.appendChild(patternPath);
 
         // Replace fill with pattern geometry (clip to original shape)
-        el.setAttribute('fill', 'none');
-        el.setAttribute('stroke', el.getAttribute('stroke') || 'none');
+        el.setAttribute("fill", "none");
+        el.setAttribute("stroke", el.getAttribute("stroke") || "none");
 
         if (el.parentNode) {
           el.parentNode.insertBefore(patternGroup, el);
@@ -428,31 +593,36 @@ function resolveAllMasks(root, defsMap, opts) {
   const errors = [];
   let count = 0;
 
-  const elementsWithMask = findElementsWithAttribute(root, 'mask');
+  const elementsWithMask = findElementsWithAttribute(root, "mask");
 
   for (const el of elementsWithMask) {
-    const maskRef = el.getAttribute('mask');
-    if (!maskRef || !maskRef.includes('url(')) continue;
+    const maskRef = el.getAttribute("mask");
+    if (!maskRef || !maskRef.includes("url(")) continue;
 
     const refId = parseUrlReference(maskRef);
     if (!refId) continue;
 
     const maskEl = defsMap.get(refId);
-    if (!maskEl || maskEl.tagName !== 'mask') continue;
+    if (!maskEl || maskEl.tagName !== "mask") continue;
 
     try {
       // Check coordinate system units
-      const maskUnits = maskEl.getAttribute('maskUnits') || 'objectBoundingBox';
-      const maskContentUnits = maskEl.getAttribute('maskContentUnits') || 'userSpaceOnUse';
+      const maskUnits = maskEl.getAttribute("maskUnits") || "objectBoundingBox";
+      const maskContentUnits =
+        maskEl.getAttribute("maskContentUnits") || "userSpaceOnUse";
 
       // Default for mask is different from clipPath:
       // maskUnits defaults to objectBoundingBox
       // maskContentUnits defaults to userSpaceOnUse
-      if (maskUnits !== 'objectBoundingBox') {
-        errors.push(`mask ${refId}: non-default maskUnits="${maskUnits}" may cause rendering issues`);
+      if (maskUnits !== "objectBoundingBox") {
+        errors.push(
+          `mask ${refId}: non-default maskUnits="${maskUnits}" may cause rendering issues`,
+        );
       }
-      if (maskContentUnits !== 'userSpaceOnUse') {
-        errors.push(`mask ${refId}: non-default maskContentUnits="${maskContentUnits}" may cause rendering issues`);
+      if (maskContentUnits !== "userSpaceOnUse") {
+        errors.push(
+          `mask ${refId}: non-default maskContentUnits="${maskContentUnits}" may cause rendering issues`,
+        );
       }
 
       // Get element bounding box
@@ -465,7 +635,7 @@ function resolveAllMasks(root, defsMap, opts) {
       // Convert mask to clip path data
       const clipPathData = MaskResolver.maskToPathData(maskData, bbox, {
         samples: opts.curveSegments,
-        opacityThreshold: 0.5
+        opacityThreshold: 0.5,
       });
 
       if (clipPathData) {
@@ -474,16 +644,25 @@ function resolveAllMasks(root, defsMap, opts) {
 
         if (origPathData) {
           // Perform boolean intersection
-          const origPolygon = ClipPathResolver.pathToPolygon(origPathData, opts.curveSegments);
-          const clipPolygon = ClipPathResolver.pathToPolygon(clipPathData, opts.curveSegments);
+          const origPolygon = ClipPathResolver.pathToPolygon(
+            origPathData,
+            opts.curveSegments,
+          );
+          const clipPolygon = ClipPathResolver.pathToPolygon(
+            clipPathData,
+            opts.curveSegments,
+          );
 
           // Apply clip (intersection)
           const clippedPolygon = intersectPolygons(origPolygon, clipPolygon);
 
           if (clippedPolygon && clippedPolygon.length > 2) {
-            const clippedPath = ClipPathResolver.polygonToPathData(clippedPolygon, opts.precision);
-            el.setAttribute('d', clippedPath);
-            el.removeAttribute('mask');
+            const clippedPath = ClipPathResolver.polygonToPathData(
+              clippedPolygon,
+              opts.precision,
+            );
+            el.setAttribute("d", clippedPath);
+            el.removeAttribute("mask");
             count++;
           }
         }
@@ -517,29 +696,36 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
     stats.clipOutsideFragments = []; // Store outside fragments for potential reconstruction
   }
 
-  const elementsWithClip = findElementsWithAttribute(root, 'clip-path');
+  const elementsWithClip = findElementsWithAttribute(root, "clip-path");
 
   for (const el of elementsWithClip) {
-    const clipRef = el.getAttribute('clip-path');
-    if (!clipRef || !clipRef.includes('url(')) continue;
+    const clipRef = el.getAttribute("clip-path");
+    if (!clipRef || !clipRef.includes("url(")) continue;
 
     const refId = parseUrlReference(clipRef);
     if (!refId) continue;
 
     const clipPathEl = defsMap.get(refId);
     // SVG tagNames may be case-preserved, check both lowercase and camelCase
-    if (!clipPathEl || (clipPathEl.tagName !== 'clippath' && clipPathEl.tagName !== 'clipPath')) continue;
+    if (
+      !clipPathEl ||
+      (clipPathEl.tagName !== "clippath" && clipPathEl.tagName !== "clipPath")
+    )
+      continue;
 
     try {
       // Check coordinate system units
-      const clipPathUnits = clipPathEl.getAttribute('clipPathUnits') || 'userSpaceOnUse';
+      const clipPathUnits =
+        clipPathEl.getAttribute("clipPathUnits") || "userSpaceOnUse";
 
       // userSpaceOnUse is the default and normal case for clipPath
       // objectBoundingBox means coordinates are 0-1 relative to bounding box
-      if (clipPathUnits === 'objectBoundingBox') {
+      if (clipPathUnits === "objectBoundingBox") {
         // This requires transforming clip coordinates based on target element's bbox
         // which is complex - warn about it
-        errors.push(`clipPath ${refId}: objectBoundingBox units require bbox-relative coordinate transformation`);
+        errors.push(
+          `clipPath ${refId}: objectBoundingBox units require bbox-relative coordinate transformation`,
+        );
         // Note: We continue processing, but results may be incorrect
       }
 
@@ -548,12 +734,13 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
       if (!origPathData) continue;
 
       // Get clip path data from clipPath element's children
-      let clipPathData = '';
+      let clipPathData = "";
       for (const child of clipPathEl.children) {
-        if (child instanceof SVGElement) {
+        // Use tagName check instead of instanceof
+        if (child && child.tagName) {
           const childPath = getElementPathData(child, opts.precision);
           if (childPath) {
-            clipPathData += (clipPathData ? ' ' : '') + childPath;
+            clipPathData += (clipPathData ? " " : "") + childPath;
           }
         }
       }
@@ -563,34 +750,44 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
       // Convert to polygons using higher segment count for clip accuracy
       // clipSegments (default 64) provides better curve approximation for E2E verification
       const clipSegs = opts.clipSegments || 64;
-      const origPolygon = ClipPathResolver.pathToPolygon(origPathData, clipSegs);
-      const clipPolygon = ClipPathResolver.pathToPolygon(clipPathData, clipSegs);
+      const origPolygon = ClipPathResolver.pathToPolygon(
+        origPathData,
+        clipSegs,
+      );
+      const clipPolygon = ClipPathResolver.pathToPolygon(
+        clipPathData,
+        clipSegs,
+      );
 
       // Perform intersection (clipped result - what's kept)
       const clippedPolygon = intersectPolygons(origPolygon, clipPolygon);
 
       // Convert polygon arrays to proper format for verification
-      const origForVerify = origPolygon.map(p => ({
+      const origForVerify = origPolygon.map((p) => ({
         x: p.x instanceof Decimal ? p.x : D(p.x),
-        y: p.y instanceof Decimal ? p.y : D(p.y)
+        y: p.y instanceof Decimal ? p.y : D(p.y),
       }));
-      const clipForVerify = clipPolygon.map(p => ({
+      const clipForVerify = clipPolygon.map((p) => ({
         x: p.x instanceof Decimal ? p.x : D(p.x),
-        y: p.y instanceof Decimal ? p.y : D(p.y)
+        y: p.y instanceof Decimal ? p.y : D(p.y),
       }));
 
       // VERIFICATION: Verify polygon intersection is valid (ALWAYS runs)
       if (clippedPolygon && clippedPolygon.length > 2) {
-        const clippedForVerify = clippedPolygon.map(p => ({
+        const clippedForVerify = clippedPolygon.map((p) => ({
           x: p.x instanceof Decimal ? p.x : D(p.x),
-          y: p.y instanceof Decimal ? p.y : D(p.y)
+          y: p.y instanceof Decimal ? p.y : D(p.y),
         }));
 
-        const polyResult = Verification.verifyPolygonIntersection(origForVerify, clipForVerify, clippedForVerify);
+        const polyResult = Verification.verifyPolygonIntersection(
+          origForVerify,
+          clipForVerify,
+          clippedForVerify,
+        );
         stats.verifications.polygons.push({
           element: el.tagName,
           clipPathId: refId,
-          ...polyResult
+          ...polyResult,
         });
         if (polyResult.valid) {
           stats.verifications.passed++;
@@ -601,25 +798,33 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
 
         // E2E VERIFICATION: Compute difference (outside parts) and verify area conservation
         // This ensures: area(original) = area(clipped) + area(outside)
-        const outsideFragments = Verification.computePolygonDifference(origForVerify, clipForVerify);
+        const outsideFragments = Verification.computePolygonDifference(
+          origForVerify,
+          clipForVerify,
+        );
 
         // Store outside fragments (marked invisible) for potential reconstruction
         stats.clipOutsideFragments.push({
-          elementId: el.getAttribute('id') || `clip-${count}`,
+          elementId: el.getAttribute("id") || `clip-${count}`,
           clipPathId: refId,
           fragments: outsideFragments,
-          visible: false // These are the "thrown away" parts, stored invisibly
+          visible: false, // These are the "thrown away" parts, stored invisibly
         });
 
         // E2E Verification: area(original) = area(clipped) + area(outside)
         // Pass configurable tolerance (default 1e-10 with 64 clipSegments)
-        const e2eTolerance = opts.e2eTolerance || '1e-10';
-        const e2eResult = Verification.verifyClipPathE2E(origForVerify, clippedForVerify, outsideFragments, e2eTolerance);
+        const e2eTolerance = opts.e2eTolerance || "1e-10";
+        const e2eResult = Verification.verifyClipPathE2E(
+          origForVerify,
+          clippedForVerify,
+          outsideFragments,
+          e2eTolerance,
+        );
         stats.verifications.e2e.push({
           element: el.tagName,
           clipPathId: refId,
-          type: 'clip-area-conservation',
-          ...e2eResult
+          type: "clip-area-conservation",
+          ...e2eResult,
         });
         if (e2eResult.valid) {
           stats.verifications.passed++;
@@ -630,16 +835,19 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
       }
 
       if (clippedPolygon && clippedPolygon.length > 2) {
-        const clippedPath = ClipPathResolver.polygonToPathData(clippedPolygon, opts.precision);
+        const clippedPath = ClipPathResolver.polygonToPathData(
+          clippedPolygon,
+          opts.precision,
+        );
 
         // Update element
-        if (el.tagName === 'path') {
-          el.setAttribute('d', clippedPath);
+        if (el.tagName === "path") {
+          el.setAttribute("d", clippedPath);
         } else {
           // Convert shape to path
-          const newPath = new SVGElement('path', {
+          const newPath = new SVGElement("path", {
             d: clippedPath,
-            ...extractPresentationAttrs(el)
+            ...extractPresentationAttrs(el),
           });
 
           if (el.parentNode) {
@@ -647,7 +855,7 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
           }
         }
 
-        el.removeAttribute('clip-path');
+        el.removeAttribute("clip-path");
         count++;
       }
     } catch (e) {
@@ -670,10 +878,10 @@ function flattenAllTransforms(root, opts, stats) {
   const errors = [];
   let count = 0;
 
-  const elementsWithTransform = findElementsWithAttribute(root, 'transform');
+  const elementsWithTransform = findElementsWithAttribute(root, "transform");
 
   for (const el of elementsWithTransform) {
-    const transform = el.getAttribute('transform');
+    const transform = el.getAttribute("transform");
     if (!transform) continue;
 
     try {
@@ -685,7 +893,7 @@ function flattenAllTransforms(root, opts, stats) {
       stats.verifications.matrices.push({
         element: el.tagName,
         transform,
-        ...matrixResult
+        ...matrixResult,
       });
       if (matrixResult.valid) {
         stats.verifications.passed++;
@@ -698,9 +906,9 @@ function flattenAllTransforms(root, opts, stats) {
       const pathData = getElementPathData(el, opts.precision);
       if (!pathData) {
         // For groups, propagate transform to children
-        if (el.tagName === 'g') {
+        if (el.tagName === "g") {
           propagateTransformToChildren(el, ctm, opts, stats);
-          el.removeAttribute('transform');
+          el.removeAttribute("transform");
           count++;
         }
         continue;
@@ -711,14 +919,16 @@ function flattenAllTransforms(root, opts, stats) {
       // Extract a few key points from the path for verification
       const polygon = ClipPathResolver.pathToPolygon(pathData, 4);
       if (polygon && polygon.length > 0) {
-        testPoints = polygon.slice(0, 4).map(p => ({
+        testPoints = polygon.slice(0, 4).map((p) => ({
           x: p.x instanceof Decimal ? p.x : D(p.x),
-          y: p.y instanceof Decimal ? p.y : D(p.y)
+          y: p.y instanceof Decimal ? p.y : D(p.y),
         }));
       }
 
       // Transform the path data
-      const transformedPath = SVGFlatten.transformPathData(pathData, ctm, { precision: opts.precision });
+      const transformedPath = SVGFlatten.transformPathData(pathData, ctm, {
+        precision: opts.precision,
+      });
 
       // VERIFICATION: Verify transform round-trip accuracy for each test point (ALWAYS runs)
       for (let i = 0; i < testPoints.length; i++) {
@@ -727,7 +937,7 @@ function flattenAllTransforms(root, opts, stats) {
         stats.verifications.transforms.push({
           element: el.tagName,
           pointIndex: i,
-          ...rtResult
+          ...rtResult,
         });
         if (rtResult.valid) {
           stats.verifications.passed++;
@@ -738,13 +948,13 @@ function flattenAllTransforms(root, opts, stats) {
       }
 
       // Update or replace element
-      if (el.tagName === 'path') {
-        el.setAttribute('d', transformedPath);
+      if (el.tagName === "path") {
+        el.setAttribute("d", transformedPath);
       } else {
         // Convert shape to path with transformed coordinates
-        const newPath = new SVGElement('path', {
+        const newPath = new SVGElement("path", {
           d: transformedPath,
-          ...extractPresentationAttrs(el)
+          ...extractPresentationAttrs(el),
         });
 
         // Remove shape-specific attributes
@@ -757,7 +967,7 @@ function flattenAllTransforms(root, opts, stats) {
         }
       }
 
-      el.removeAttribute('transform');
+      el.removeAttribute("transform");
       count++;
     } catch (e) {
       errors.push(`transform: ${e.message}`);
@@ -773,24 +983,25 @@ function flattenAllTransforms(root, opts, stats) {
  */
 function propagateTransformToChildren(group, ctm, opts, stats) {
   for (const child of [...group.children]) {
-    if (!(child instanceof SVGElement)) continue;
+    // Use tagName check instead of instanceof
+    if (!(child && child.tagName)) continue;
 
-    if (child.tagName === 'g') {
+    if (child.tagName === "g") {
       // Nested group - compose transforms
-      const childTransform = child.getAttribute('transform');
+      const childTransform = child.getAttribute("transform");
       if (childTransform) {
         const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
         const combined = ctm.mul(childCtm);
-        child.setAttribute('transform', matrixToTransform(combined));
+        child.setAttribute("transform", matrixToTransform(combined));
       } else {
-        child.setAttribute('transform', matrixToTransform(ctm));
+        child.setAttribute("transform", matrixToTransform(ctm));
       }
     } else {
       // Shape or path - apply transform to coordinates
       const pathData = getElementPathData(child, opts.precision);
       if (pathData) {
         // Compose with any existing transform
-        const childTransform = child.getAttribute('transform');
+        const childTransform = child.getAttribute("transform");
         let combinedCtm = ctm;
         if (childTransform) {
           const childCtm = SVGFlatten.parseTransformAttribute(childTransform);
@@ -801,8 +1012,8 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
         const matrixResult = Verification.verifyMatrixInversion(combinedCtm);
         stats.verifications.matrices.push({
           element: child.tagName,
-          context: 'group-propagation',
-          ...matrixResult
+          context: "group-propagation",
+          ...matrixResult,
         });
         if (matrixResult.valid) {
           stats.verifications.passed++;
@@ -811,21 +1022,25 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
           stats.verifications.allPassed = false;
         }
 
-        const transformedPath = SVGFlatten.transformPathData(pathData, combinedCtm, { precision: opts.precision });
+        const transformedPath = SVGFlatten.transformPathData(
+          pathData,
+          combinedCtm,
+          { precision: opts.precision },
+        );
 
-        if (child.tagName === 'path') {
-          child.setAttribute('d', transformedPath);
+        if (child.tagName === "path") {
+          child.setAttribute("d", transformedPath);
         } else {
           // Replace with path element
-          const newPath = new SVGElement('path', {
+          const newPath = new SVGElement("path", {
             d: transformedPath,
-            ...extractPresentationAttrs(child)
+            ...extractPresentationAttrs(child),
           });
 
           group.replaceChild(newPath, child);
         }
 
-        child.removeAttribute('transform');
+        child.removeAttribute("transform");
       }
     }
   }
@@ -844,19 +1059,19 @@ function bakeAllGradientTransforms(root, opts, stats) {
   let count = 0;
 
   // Process linearGradient elements
-  const linearGradients = root.getElementsByTagName('linearGradient');
+  const linearGradients = root.getElementsByTagName("linearGradient");
   for (const grad of linearGradients) {
-    const gradientTransform = grad.getAttribute('gradientTransform');
+    const gradientTransform = grad.getAttribute("gradientTransform");
     if (!gradientTransform) continue;
 
     try {
       const ctm = SVGFlatten.parseTransformAttribute(gradientTransform);
 
       // Transform x1,y1,x2,y2
-      const x1 = parseFloat(grad.getAttribute('x1') || '0');
-      const y1 = parseFloat(grad.getAttribute('y1') || '0');
-      const x2 = parseFloat(grad.getAttribute('x2') || '1');
-      const y2 = parseFloat(grad.getAttribute('y2') || '0');
+      const x1 = parseFloat(grad.getAttribute("x1") || "0");
+      const y1 = parseFloat(grad.getAttribute("y1") || "0");
+      const x2 = parseFloat(grad.getAttribute("x2") || "1");
+      const y2 = parseFloat(grad.getAttribute("y2") || "0");
 
       const [tx1, ty1] = Transforms2D.applyTransform(ctm, x1, y1);
       const [tx2, ty2] = Transforms2D.applyTransform(ctm, x2, y2);
@@ -864,13 +1079,18 @@ function bakeAllGradientTransforms(root, opts, stats) {
       // VERIFICATION: Verify linear gradient transform (ALWAYS runs)
       const gradResult = Verification.verifyLinearGradientTransform(
         { x1, y1, x2, y2 },
-        { x1: tx1.toNumber(), y1: ty1.toNumber(), x2: tx2.toNumber(), y2: ty2.toNumber() },
-        ctm
+        {
+          x1: tx1.toNumber(),
+          y1: ty1.toNumber(),
+          x2: tx2.toNumber(),
+          y2: ty2.toNumber(),
+        },
+        ctm,
       );
       stats.verifications.gradients.push({
-        gradientId: grad.getAttribute('id') || 'unknown',
-        type: 'linear',
-        ...gradResult
+        gradientId: grad.getAttribute("id") || "unknown",
+        type: "linear",
+        ...gradResult,
       });
       if (gradResult.valid) {
         stats.verifications.passed++;
@@ -879,11 +1099,11 @@ function bakeAllGradientTransforms(root, opts, stats) {
         stats.verifications.allPassed = false;
       }
 
-      grad.setAttribute('x1', tx1.toFixed(opts.precision));
-      grad.setAttribute('y1', ty1.toFixed(opts.precision));
-      grad.setAttribute('x2', tx2.toFixed(opts.precision));
-      grad.setAttribute('y2', ty2.toFixed(opts.precision));
-      grad.removeAttribute('gradientTransform');
+      grad.setAttribute("x1", tx1.toFixed(opts.precision));
+      grad.setAttribute("y1", ty1.toFixed(opts.precision));
+      grad.setAttribute("x2", tx2.toFixed(opts.precision));
+      grad.setAttribute("y2", ty2.toFixed(opts.precision));
+      grad.removeAttribute("gradientTransform");
       count++;
     } catch (e) {
       errors.push(`linearGradient: ${e.message}`);
@@ -891,34 +1111,36 @@ function bakeAllGradientTransforms(root, opts, stats) {
   }
 
   // Process radialGradient elements
-  const radialGradients = root.getElementsByTagName('radialGradient');
+  const radialGradients = root.getElementsByTagName("radialGradient");
   for (const grad of radialGradients) {
-    const gradientTransform = grad.getAttribute('gradientTransform');
+    const gradientTransform = grad.getAttribute("gradientTransform");
     if (!gradientTransform) continue;
 
     try {
       const ctm = SVGFlatten.parseTransformAttribute(gradientTransform);
 
       // Transform cx,cy,fx,fy and scale r
-      const cx = parseFloat(grad.getAttribute('cx') || '0.5');
-      const cy = parseFloat(grad.getAttribute('cy') || '0.5');
-      const fx = parseFloat(grad.getAttribute('fx') || cx.toString());
-      const fy = parseFloat(grad.getAttribute('fy') || cy.toString());
-      const r = parseFloat(grad.getAttribute('r') || '0.5');
+      const cx = parseFloat(grad.getAttribute("cx") || "0.5");
+      const cy = parseFloat(grad.getAttribute("cy") || "0.5");
+      const fx = parseFloat(grad.getAttribute("fx") || cx.toString());
+      const fy = parseFloat(grad.getAttribute("fy") || cy.toString());
+      const r = parseFloat(grad.getAttribute("r") || "0.5");
 
       const [tcx, tcy] = Transforms2D.applyTransform(ctm, cx, cy);
       const [tfx, tfy] = Transforms2D.applyTransform(ctm, fx, fy);
 
       // Scale radius by average scale factor
-      const scale = Math.sqrt(Math.abs(ctm.data[0][0].toNumber() * ctm.data[1][1].toNumber()));
+      const scale = Math.sqrt(
+        Math.abs(ctm.data[0][0].toNumber() * ctm.data[1][1].toNumber()),
+      );
       const tr = r * scale;
 
-      grad.setAttribute('cx', tcx.toFixed(opts.precision));
-      grad.setAttribute('cy', tcy.toFixed(opts.precision));
-      grad.setAttribute('fx', tfx.toFixed(opts.precision));
-      grad.setAttribute('fy', tfy.toFixed(opts.precision));
-      grad.setAttribute('r', tr.toFixed(opts.precision));
-      grad.removeAttribute('gradientTransform');
+      grad.setAttribute("cx", tcx.toFixed(opts.precision));
+      grad.setAttribute("cy", tcy.toFixed(opts.precision));
+      grad.setAttribute("fx", tfx.toFixed(opts.precision));
+      grad.setAttribute("fy", tfy.toFixed(opts.precision));
+      grad.setAttribute("r", tr.toFixed(opts.precision));
+      grad.removeAttribute("gradientTransform");
       count++;
     } catch (e) {
       errors.push(`radialGradient: ${e.message}`);
@@ -952,12 +1174,12 @@ function collectAllReferences(root) {
   const collectReferences = (el) => {
     // Check for <style> elements and parse their CSS content for url(#id) references
     // This is CRITICAL for SVG 2.0 features like shape-inside: url(#textShape)
-    if (el.tagName && el.tagName.toLowerCase() === 'style') {
-      const cssContent = el.textContent || '';
+    if (el.tagName && el.tagName.toLowerCase() === "style") {
+      const cssContent = el.textContent || "";
       if (cssContent) {
         // Parse all url(#id) references from CSS (e.g., shape-inside: url(#textShape), fill: url(#grad))
         const cssIds = parseCSSIds(cssContent);
-        cssIds.forEach(id => usedIds.add(id));
+        cssIds.forEach((id) => usedIds.add(id));
       }
     }
 
@@ -966,7 +1188,7 @@ function collectAllReferences(root) {
       if (!val) continue;
 
       // Check for url() references (fill, stroke, clip-path, mask, filter, marker, etc.)
-      if (val.includes('url(')) {
+      if (val.includes("url(")) {
         const refId = parseUrlReference(val);
         if (refId) {
           usedIds.add(refId);
@@ -974,17 +1196,19 @@ function collectAllReferences(root) {
       }
 
       // Check for href/xlink:href references (use, image, altGlyph, glyphRef, etc.)
-      if (attrName === 'href' || attrName === 'xlink:href') {
-        const refId = val.replace(/^#/, '');
-        if (refId && refId !== val) { // Only local refs starting with #
+      if (attrName === "href" || attrName === "xlink:href") {
+        const refId = val.replace(/^#/, "");
+        if (refId && refId !== val) {
+          // Only local refs starting with #
           usedIds.add(refId);
         }
       }
     }
 
     // Recursively check children (including within <defs>)
+    // Use tagName check instead of instanceof
     for (const child of el.children) {
-      if (child instanceof SVGElement) {
+      if (child && child.tagName) {
         collectReferences(child);
       }
     }
@@ -1018,14 +1242,14 @@ function removeUnusedDefinitions(root, referencedIds) {
   // Check if an element or any of its descendants has a referenced ID
   function hasReferencedDescendant(el) {
     // Check self
-    const id = el.getAttribute('id');
+    const id = el.getAttribute("id");
     if (id && referencedIds.has(id)) {
       return true;
     }
 
-    // Check children recursively
+    // Check children recursively (use tagName check instead of instanceof)
     for (const child of el.children || []) {
-      if (child instanceof SVGElement && hasReferencedDescendant(child)) {
+      if (child && child.tagName && hasReferencedDescendant(child)) {
         return true;
       }
     }
@@ -1034,11 +1258,17 @@ function removeUnusedDefinitions(root, referencedIds) {
   }
 
   // Remove unreferenced elements from <defs>
-  const defsElements = root.getElementsByTagName('defs');
+  const defsElements = root.getElementsByTagName("defs");
   for (const defs of defsElements) {
     for (const child of [...defs.children]) {
-      if (child instanceof SVGElement) {
+      // Use tagName check instead of instanceof
+      if (child && child.tagName) {
         // Only remove if neither the element nor any of its descendants are referenced
+        // ALSO never remove foreignObject, audio, video (preserve elements)
+        const childTagName = child.tagName.toLowerCase();
+        if (PRESERVE_ELEMENTS.has(childTagName)) {
+          continue; // Never remove preserve elements from defs
+        }
         if (!hasReferencedDescendant(child)) {
           defs.removeChild(child);
           count++;
@@ -1061,8 +1291,8 @@ function removeUnusedDefinitions(root, referencedIds) {
 function getElementPathData(el, precision) {
   const tagName = el.tagName.toLowerCase();
 
-  if (tagName === 'path') {
-    return el.getAttribute('d');
+  if (tagName === "path") {
+    return el.getAttribute("d");
   }
 
   // Use GeometryToPath for shape conversion
@@ -1072,34 +1302,49 @@ function getElementPathData(el, precision) {
   };
 
   switch (tagName) {
-    case 'rect':
+    case "rect":
       return GeometryToPath.rectToPathData(
-        getAttr('x'), getAttr('y'),
-        getAttr('width'), getAttr('height'),
-        getAttr('rx'), getAttr('ry') || null,
-        false, precision
+        getAttr("x"),
+        getAttr("y"),
+        getAttr("width"),
+        getAttr("height"),
+        getAttr("rx"),
+        getAttr("ry") || null,
+        false,
+        precision,
       );
-    case 'circle':
+    case "circle":
       return GeometryToPath.circleToPathData(
-        getAttr('cx'), getAttr('cy'), getAttr('r'), precision
+        getAttr("cx"),
+        getAttr("cy"),
+        getAttr("r"),
+        precision,
       );
-    case 'ellipse':
+    case "ellipse":
       return GeometryToPath.ellipseToPathData(
-        getAttr('cx'), getAttr('cy'),
-        getAttr('rx'), getAttr('ry'), precision
+        getAttr("cx"),
+        getAttr("cy"),
+        getAttr("rx"),
+        getAttr("ry"),
+        precision,
       );
-    case 'line':
+    case "line":
       return GeometryToPath.lineToPathData(
-        getAttr('x1'), getAttr('y1'),
-        getAttr('x2'), getAttr('y2'), precision
+        getAttr("x1"),
+        getAttr("y1"),
+        getAttr("x2"),
+        getAttr("y2"),
+        precision,
       );
-    case 'polyline':
+    case "polyline":
       return GeometryToPath.polylineToPathData(
-        el.getAttribute('points') || '', precision
+        el.getAttribute("points") || "",
+        precision,
       );
-    case 'polygon':
+    case "polygon":
       return GeometryToPath.polygonToPathData(
-        el.getAttribute('points') || '', precision
+        el.getAttribute("points") || "",
+        precision,
       );
     default:
       return null;
@@ -1118,14 +1363,27 @@ function getElementBBox(el) {
     const polygon = ClipPathResolver.pathToPolygon(pathData, 10);
     if (!polygon || polygon.length === 0) return null;
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
     for (const pt of polygon) {
       // Validate point has coordinates
       if (!pt || (pt.x === undefined && pt.y === undefined)) continue;
 
       // Convert to numbers, defaulting to 0 for invalid values
-      const x = pt.x instanceof Decimal ? pt.x.toNumber() : (typeof pt.x === 'number' ? pt.x : 0);
-      const y = pt.y instanceof Decimal ? pt.y.toNumber() : (typeof pt.y === 'number' ? pt.y : 0);
+      const x =
+        pt.x instanceof Decimal
+          ? pt.x.toNumber()
+          : typeof pt.x === "number"
+            ? pt.x
+            : 0;
+      const y =
+        pt.y instanceof Decimal
+          ? pt.y.toNumber()
+          : typeof pt.y === "number"
+            ? pt.y
+            : 0;
 
       // Skip NaN values
       if (isNaN(x) || isNaN(y)) continue;
@@ -1137,7 +1395,12 @@ function getElementBBox(el) {
     }
 
     // Validate that we found at least one valid point
-    if (minX === Infinity || maxX === -Infinity || minY === Infinity || maxY === -Infinity) {
+    if (
+      minX === Infinity ||
+      maxX === -Infinity ||
+      minY === Infinity ||
+      maxY === -Infinity
+    ) {
       return null;
     }
 
@@ -1167,53 +1430,74 @@ function getElementBBox(el) {
 function extractPresentationAttrs(el) {
   const presentationAttrs = [
     // Stroke properties
-    'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
-    'stroke-dasharray', 'stroke-dashoffset', 'stroke-miterlimit', 'stroke-opacity',
-    'vector-effect',    // Affects stroke rendering (non-scaling-stroke)
+    "stroke",
+    "stroke-width",
+    "stroke-linecap",
+    "stroke-linejoin",
+    "stroke-dasharray",
+    "stroke-dashoffset",
+    "stroke-miterlimit",
+    "stroke-opacity",
+    "vector-effect", // Affects stroke rendering (non-scaling-stroke)
 
     // Fill properties
-    'fill', 'fill-opacity', 'fill-rule',
+    "fill",
+    "fill-opacity",
+    "fill-rule",
 
     // CRITICAL: Non-inheritable but must be preserved on element
-    'clip-path',        // Clips geometry - MUST NOT BE LOST
-    'mask',             // Masks transparency - MUST NOT BE LOST
-    'filter',           // Visual effects - MUST NOT BE LOST
-    'opacity',          // Element opacity
+    "clip-path", // Clips geometry - MUST NOT BE LOST
+    "mask", // Masks transparency - MUST NOT BE LOST
+    "filter", // Visual effects - MUST NOT BE LOST
+    "opacity", // Element opacity
 
     // Clip/fill rules
-    'clip-rule',
+    "clip-rule",
 
     // Marker properties - arrows, dots, etc on paths
-    'marker',           // Shorthand for all markers
-    'marker-start',     // Start of path
-    'marker-mid',       // Vertices
-    'marker-end',       // End of path
+    "marker", // Shorthand for all markers
+    "marker-start", // Start of path
+    "marker-mid", // Vertices
+    "marker-end", // End of path
 
     // Visibility
-    'visibility', 'display',
+    "visibility",
+    "display",
 
     // Color
-    'color',
+    "color",
 
     // Text properties
-    'font-family', 'font-size', 'font-weight', 'font-style',
-    'text-anchor', 'dominant-baseline', 'alignment-baseline',
-    'letter-spacing', 'word-spacing', 'text-decoration',
+    "font-family",
+    "font-size",
+    "font-weight",
+    "font-style",
+    "text-anchor",
+    "dominant-baseline",
+    "alignment-baseline",
+    "letter-spacing",
+    "word-spacing",
+    "text-decoration",
 
     // Rendering hints
-    'shape-rendering', 'text-rendering', 'image-rendering', 'color-rendering',
+    "shape-rendering",
+    "text-rendering",
+    "image-rendering",
+    "color-rendering",
 
     // Paint order (affects stroke/fill/marker rendering order)
-    'paint-order',
+    "paint-order",
 
     // Event handling (visual feedback)
-    'pointer-events', 'cursor',
+    "pointer-events",
+    "cursor",
 
     // Preserve class and style for CSS targeting
-    'class', 'style',
+    "class",
+    "style",
 
     // ID must be preserved for references
-    'id'
+    "id",
   ];
 
   const attrs = {};
@@ -1236,14 +1520,22 @@ function extractPresentationAttrs(el) {
  */
 function getShapeSpecificAttrs(tagName) {
   const attrs = {
-    rect: ['x', 'y', 'width', 'height', 'rx', 'ry'],
-    circle: ['cx', 'cy', 'r'],
-    ellipse: ['cx', 'cy', 'rx', 'ry'],
-    line: ['x1', 'y1', 'x2', 'y2'],
-    polyline: ['points'],
-    polygon: ['points'],
+    rect: ["x", "y", "width", "height", "rx", "ry"],
+    circle: ["cx", "cy", "r"],
+    ellipse: ["cx", "cy", "rx", "ry"],
+    line: ["x1", "y1", "x2", "y2"],
+    polyline: ["points"],
+    polygon: ["points"],
     // Image element has position/size attributes that don't apply to paths
-    image: ['x', 'y', 'width', 'height', 'href', 'xlink:href', 'preserveAspectRatio'],
+    image: [
+      "x",
+      "y",
+      "width",
+      "height",
+      "href",
+      "xlink:href",
+      "preserveAspectRatio",
+    ],
   };
   return attrs[tagName.toLowerCase()] || [];
 }
@@ -1277,7 +1569,7 @@ function intersectPolygons(subject, clip) {
   if (PolygonClip && PolygonClip.polygonIntersection) {
     try {
       return PolygonClip.polygonIntersection(subject, clip);
-    } catch (error) {
+    } catch (_error) {
       // Fall through to simple implementation on error
       // Error is intentionally not logged to avoid noise from expected edge cases
     }
@@ -1324,8 +1616,10 @@ function intersectPolygons(subject, clip) {
 function isInsideEdge(point, edgeStart, edgeEnd) {
   const px = point.x instanceof Decimal ? point.x.toNumber() : point.x;
   const py = point.y instanceof Decimal ? point.y.toNumber() : point.y;
-  const sx = edgeStart.x instanceof Decimal ? edgeStart.x.toNumber() : edgeStart.x;
-  const sy = edgeStart.y instanceof Decimal ? edgeStart.y.toNumber() : edgeStart.y;
+  const sx =
+    edgeStart.x instanceof Decimal ? edgeStart.x.toNumber() : edgeStart.x;
+  const sy =
+    edgeStart.y instanceof Decimal ? edgeStart.y.toNumber() : edgeStart.y;
   const ex = edgeEnd.x instanceof Decimal ? edgeEnd.x.toNumber() : edgeEnd.x;
   const ey = edgeEnd.y instanceof Decimal ? edgeEnd.y.toNumber() : edgeEnd.y;
 
@@ -1367,7 +1661,7 @@ function lineIntersect(p1, p2, p3, p4) {
 
   return {
     x: D(x1 + t * (x2 - x1)),
-    y: D(y1 + t * (y2 - y1))
+    y: D(y1 + t * (y2 - y1)),
   };
 }
 
@@ -1377,5 +1671,5 @@ function lineIntersect(p1, p2, p3, p4) {
 
 export default {
   flattenSVG,
-  DEFAULT_OPTIONS
+  DEFAULT_OPTIONS,
 };

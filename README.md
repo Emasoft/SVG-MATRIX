@@ -294,6 +294,44 @@ svgm --embed-fonts --embed-subset-fonts input.svg -o output.svg
 | `--embed-timeout <ms>` | Fetch timeout in milliseconds (default: 30000) |
 | `--embed-on-missing <mode>` | Action on missing resource: `warn`, `fail`, or `skip` |
 
+### Export Embedded Resources
+
+Extract embedded resources from self-contained SVGs back to external files:
+
+```bash
+# Export all embedded resources to a folder
+svgm --export input.svg -o output.svg --export-dir ./resources/
+
+# Dry run - show what would be exported without writing files
+svgm --export --export-dry-run input.svg
+
+# Export only images
+svgm --export --export-images input.svg -o output.svg --export-dir ./images/
+
+# Extract resources without modifying the SVG
+svgm --export --export-only input.svg --export-dir ./resources/
+
+# Custom filename prefix for exported files
+svgm --export --export-prefix myapp_ input.svg -o output.svg --export-dir ./assets/
+```
+
+**Export options:**
+
+| Option | What It Does |
+|--------|--------------|
+| `--export` | Enable resource extraction mode |
+| `--export-dir <path>` | Output directory for extracted files |
+| `--export-prefix <str>` | Filename prefix for exported files |
+| `--export-images` | Export embedded images only |
+| `--export-audio` | Export embedded audio only |
+| `--export-video` | Export embedded video only |
+| `--export-scripts` | Export inline scripts to .js files |
+| `--export-styles` | Export inline styles to .css files |
+| `--export-fonts` | Export embedded fonts |
+| `--export-only` | Extract files only, don't modify SVG |
+| `--export-dry-run` | Preview extraction without writing files |
+| `--export-ids <ids>` | Only export from specific element IDs |
+
 ### YAML Configuration
 
 Instead of CLI flags, you can use a YAML configuration file:
@@ -318,6 +356,18 @@ embed:
   maxRecursionDepth: 10
   timeout: 30000
   onMissingResource: warn
+
+export:
+  outputDir: ./resources/
+  filenamePrefix: resource_
+  images: true
+  audio: true
+  video: true
+  scripts: true
+  styles: true
+  fonts: true
+  extractOnly: false
+  dryRun: false
 ```
 
 ```bash
@@ -487,6 +537,187 @@ const features = SVG2Polyfills.detectSVG2Features(doc);
 SVG2Polyfills.injectPolyfills(doc);
 ```
 
+### Embedding and Exporting Resources
+
+```js
+import { embedExternalDependencies, exportEmbeddedResources } from '@emasoft/svg-matrix';
+
+// Embed external resources into SVG
+const embedded = await embedExternalDependencies(svgString, {
+  basePath: '/path/to/file.svg',
+  embedImages: true,
+  embedFonts: true,
+  embedCSS: true,
+  embedScripts: true,
+  embedAudio: true,
+  subsetFonts: true,
+  onMissingResource: 'warn',
+  timeout: 30000,
+});
+
+// Export embedded resources back to external files
+const result = await exportEmbeddedResources(embeddedSvg, {
+  outputDir: './extracted/',
+  filenamePrefix: 'resource_',
+  extractImages: true,
+  extractAudio: true,
+  extractVideo: true,
+  extractScripts: true,
+  extractStyles: true,
+  extractFonts: true,
+  extractOnly: false,  // true = extract without modifying SVG
+  dryRun: false,       // true = preview only, don't write files
+  elementIds: null,    // filter by element IDs
+  onProgress: (phase, current, total) => console.log(`${phase}: ${current}/${total}`),
+});
+
+console.log(result.extractedFiles);  // Array of extracted file info
+console.log(result.summary);         // { images, audio, scripts, stylesheets, fonts, totalSize }
+console.log(result.doc);             // Modified SVG string (null if extractOnly)
+```
+
+---
+
+## SVG Embedding Options
+
+When using SVG files in web pages, the embedding method affects what features work:
+
+| Embedding Method | Animation (SMIL) | JavaScript | Audio | Use Case |
+|------------------|------------------|------------|-------|----------|
+| `<img src="file.svg">` | Yes | No | No | Static display, icons |
+| `<object data="file.svg">` | Yes | Yes | No* | Interactive SVGs |
+| `<embed src="file.svg">` | Yes | Yes | No* | Legacy support |
+| `<iframe src="file.svg">` | Yes | Yes | No* | Isolated context |
+| Inline `<svg>...</svg>` | Yes | Yes | No* | Full DOM access |
+| Standalone (file://) | Yes | Yes | No | Direct file viewing |
+| Standalone (http://) | Yes | Yes | No* | Web server |
+
+*Audio requires user interaction due to browser autoplay policies.
+
+### SVG Audio Playback Limitations
+
+Modern browsers (Chrome, Firefox, Safari) enforce strict autoplay policies that significantly limit audio playback in SVG files:
+
+| Scenario | Protocol | Example | Audio |
+|----------|----------|---------|-------|
+| Standalone SVG | `file://` | `file:///path/to/sample.svg` | ❌ **Blocked** |
+| Standalone SVG | `http://` | `http://localhost:8080/sample.svg` | ❌ **Blocked** |
+| HTML with hardcoded audio data URIs | `file://` | `file:///path/to/sample.html` | ❌ **Blocked** (even after click) |
+| HTML with hardcoded audio data URIs | `http://` | `http://localhost:8080/sample.html` | ❌ **Blocked** (even after click) |
+| HTML extracts audio from SVG dynamically | `file://` | `file:///path/to/sample.html` | ✅ **Works** (after click) |
+| HTML extracts audio from SVG dynamically | `http://` | `http://localhost:8080/sample.html` | ✅ **Works** (after click) |
+
+**Key findings:**
+- Audio elements inside SVG `<foreignObject>` are blocked by browsers regardless of protocol or embedding method
+- Audio sources must be set **dynamically** (not hardcoded in HTML) for playback to work
+- Empty `<audio>` elements + dynamic `src` assignment on load + `play()` on click = success
+- Hardcoded data URIs in HTML `<source>` tags fail even with user click
+- There is no workaround for truly autonomous SVG audio playback
+
+**Technical reasons:**
+1. SVG has no native `<audio>` element - audio requires HTML `<foreignObject>`
+2. Browser autoplay policies block audio without direct user gesture
+3. Click events inside SVG don't propagate as "trusted" user gestures for audio
+4. This is a browser security feature, not an SVG limitation
+
+**Recommended approach for SVG with audio:**
+
+Extract audio sources from the SVG at runtime and play them via HTML `<audio>` elements. This keeps the SVG file unchanged while enabling audio playback. See `samples/SVG_WITH_EMBEDDED_AUDIO/test-embed-with-audio.html` for a complete working example.
+
+```html
+<!-- HTML wrapper that extracts audio from SVG -->
+<div class="player-container">
+  <object id="svgObject" data="animation.svg" type="image/svg+xml"></object>
+  <div class="click-overlay" id="overlay">Click to Play</div>
+</div>
+<audio id="audio_external" preload="auto"></audio>
+
+<script>
+const svgObject = document.getElementById('svgObject');
+const audio = document.getElementById('audio_external');
+let svgRoot = null;
+
+// On SVG load: pause animation and extract audio source
+svgObject.addEventListener('load', function() {
+  const svgDoc = svgObject.contentDocument;
+  svgRoot = svgDoc.documentElement;
+  svgRoot.pauseAnimations();  // Pause SMIL animation
+
+  // Extract audio source from SVG (audio data stays in SVG file)
+  const svgAudio = svgDoc.getElementById('audio1');
+  if (svgAudio) {
+    const source = svgAudio.querySelector('source');
+    if (source) audio.src = source.src;  // Copy data URI to HTML audio
+  }
+});
+
+// On user click: start animation and audio together
+document.getElementById('overlay').addEventListener('click', function() {
+  this.style.display = 'none';
+  svgRoot.unpauseAnimations();  // Resume SMIL animation
+  audio.play();                  // Play audio from HTML context
+});
+</script>
+```
+
+This approach:
+1. Keeps SVG file unchanged (read-only) - audio data URIs remain in SVG
+2. Extracts audio sources at runtime to HTML `<audio>` elements
+3. Pauses SMIL animation until user clicks
+4. Starts animation and audio simultaneously for perfect sync
+5. Audio plays from HTML context where browser allows it
+
+### Audio Alternatives Research (2024-2025)
+
+Extensive testing confirms there is **no way to bypass Chrome's autoplay policy** without user interaction. This is by design for user experience.
+
+#### What Doesn't Work
+
+| Method | Status | Why It Fails |
+|--------|--------|--------------|
+| SVG 2.0 native `<audio>` | ❌ | Same autoplay restrictions apply |
+| SMIL `<audio>` element | ❌ | Poor browser support + autoplay blocked |
+| `<foreignObject>` bypass | ❌ | No special privileges for embedded HTML |
+| Web Audio API (AudioContext) | ❌ | Starts in "suspended" state, same restrictions |
+| CSS audio / `background-sound` | ❌ | Does not exist in any specification |
+| Data URIs / Blob URLs | ❌ | Encoding method doesn't affect autoplay policy |
+| SVG `onload` event | ❌ | Not considered a user gesture |
+| SMIL animation `beginEvent` | ❌ | Animation events are not user gestures |
+| `xlink:href` to audio file | ❌ | Creates link, doesn't trigger playback |
+
+#### What Works
+
+| Method | Status | Notes |
+|--------|--------|-------|
+| User click/touch/keydown | ✅ | **Mandatory** - no exceptions |
+| HTML wrapper with dynamic audio extraction | ✅ | **Best practice** (see example above) |
+| PWA (Progressive Web App) | ✅ | Desktop only, requires user to install app |
+| Media Engagement Index (MEI) | ⚠️ | Chrome-only, long-term strategy |
+
+#### Media Engagement Index (MEI)
+
+Chrome tracks media consumption per domain. After meeting these criteria, autoplay may be allowed on future visits:
+- User plays media for >7 seconds
+- Audio is unmuted
+- Tab is active and visible
+- Video element is >200x140 pixels
+
+This is a **long-term strategy** for apps with repeat users, not an immediate solution.
+
+#### Browser Compatibility
+
+| Feature | Chrome | Firefox | Safari | Edge |
+|---------|--------|---------|--------|------|
+| User gesture required | ✅ | ✅ | ✅ | ✅ |
+| Web Audio API | ✅ | ✅ | ⚠️ iOS quirks | ✅ |
+| Data URI audio | ✅ | ⚠️ >1MB issues | ✅ | ✅ |
+| MEI autoplay | ✅ | ❌ | ❌ | ✅ |
+| PWA autoplay | ✅ | ⚠️ | ⚠️ | ✅ |
+
+**Conclusion:** User interaction is mandatory. The HTML wrapper approach with dynamic audio extraction (`test-embed-with-audio.html`) is the industry best practice recommended by browser vendors.
+
+---
+
 ### Exclusive Features (Not in SVGO)
 
 | Function | Description |
@@ -496,6 +727,8 @@ SVG2Polyfills.injectPolyfills(doc);
 | `flattenGradients()` | Bake gradients into fills |
 | `flattenPatterns()` | Expand pattern tiles |
 | `flattenUseElements()` | Inline use/symbol references |
+| `embedExternalDependencies()` | Embed external resources as data URIs |
+| `exportEmbeddedResources()` | Extract embedded resources to files |
 | `detectCollisions()` | GJK collision detection |
 | `validateSVG()` | W3C schema validation |
 | `decomposeTransform()` | Matrix decomposition |

@@ -34,25 +34,25 @@
  * const path = GeometryToPath.circleToPathData(100, 100, 50, 15);
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import { Vector } from './vector.js';
-import * as Transforms2D from './transforms2d.js';
-import * as Transforms3D from './transforms3d.js';
-import * as GeometryToPath from './geometry-to-path.js';
-import * as PolygonClip from './polygon-clip.js';
-import * as SVGFlatten from './svg-flatten.js';
-import * as BrowserVerify from './browser-verify.js';
-import * as ClipPathResolver from './clip-path-resolver.js';
-import * as MaskResolver from './mask-resolver.js';
-import * as PatternResolver from './pattern-resolver.js';
-import * as UseSymbolResolver from './use-symbol-resolver.js';
-import * as MarkerResolver from './marker-resolver.js';
-import * as MeshGradient from './mesh-gradient.js';
-import * as SVGParser from './svg-parser.js';
-import * as FlattenPipeline from './flatten-pipeline.js';
-import * as Verification from './verification.js';
-import * as InkscapeSupport from './inkscape-support.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import { Vector } from "./vector.js";
+import * as Transforms2D from "./transforms2d.js";
+import * as Transforms3D from "./transforms3d.js";
+import * as GeometryToPath from "./geometry-to-path.js";
+import * as PolygonClip from "./polygon-clip.js";
+import * as SVGFlatten from "./svg-flatten.js";
+import * as BrowserVerify from "./browser-verify.js";
+import * as ClipPathResolver from "./clip-path-resolver.js";
+import * as MaskResolver from "./mask-resolver.js";
+import * as PatternResolver from "./pattern-resolver.js";
+import * as UseSymbolResolver from "./use-symbol-resolver.js";
+import * as MarkerResolver from "./marker-resolver.js";
+import * as MeshGradient from "./mesh-gradient.js";
+import * as SVGParser from "./svg-parser.js";
+import * as FlattenPipeline from "./flatten-pipeline.js";
+import * as Verification from "./verification.js";
+import * as InkscapeSupport from "./inkscape-support.js";
 import {
   INKSCAPE_NS,
   SODIPODI_NS,
@@ -76,9 +76,9 @@ import {
   extractLayer,
   extractAllLayers,
   analyzeLayerDependencies,
-} from './inkscape-support.js';
+} from "./inkscape-support.js";
 
-import * as SVG2Polyfills from './svg2-polyfills.js';
+import * as SVG2Polyfills from "./svg2-polyfills.js";
 import {
   setPolyfillMinification,
   SVG2_FEATURES,
@@ -87,37 +87,44 @@ import {
   generatePolyfillScript,
   injectPolyfills,
   removePolyfills,
-} from './svg2-polyfills.js';
+} from "./svg2-polyfills.js";
 
-import { Logger, LogLevel, setLogLevel, getLogLevel as getLoggerLevel, enableFileLogging, disableFileLogging } from './logger.js';
+import {
+  Logger,
+  LogLevel,
+  setLogLevel,
+  getLogLevel as _getLoggerLevel,
+  enableFileLogging,
+  disableFileLogging,
+} from "./logger.js";
 
 // SVGO-inspired precision modules
-import * as PathSimplification from './path-simplification.js';
-import * as TransformDecomposition from './transform-decomposition.js';
-import * as GJKCollision from './gjk-collision.js';
-import * as PathOptimization from './path-optimization.js';
-import * as TransformOptimization from './transform-optimization.js';
-import * as OffCanvasDetection from './off-canvas-detection.js';
-import * as CSSSpecificity from './css-specificity.js';
+import * as PathSimplification from "./path-simplification.js";
+import * as TransformDecomposition from "./transform-decomposition.js";
+import * as GJKCollision from "./gjk-collision.js";
+import * as PathOptimization from "./path-optimization.js";
+import * as TransformOptimization from "./transform-optimization.js";
+import * as OffCanvasDetection from "./off-canvas-detection.js";
+import * as CSSSpecificity from "./css-specificity.js";
 
 // Animation-aware reference tracking (FIXES SVGO's animation destruction bug)
-import * as AnimationReferences from './animation-references.js';
+import * as AnimationReferences from "./animation-references.js";
 
 // SVG Toolbox - SVGO-equivalent functions with simple API
-import * as SVGToolbox from './svg-toolbox.js';
+import * as SVGToolbox from "./svg-toolbox.js";
 
 // Bezier Curve Analysis - svgpathtools-equivalent with 80-digit arbitrary precision
 // These modules provide superior precision compared to Python's float64 svgpathtools
-import * as BezierAnalysis from './bezier-analysis.js';
-import * as ArcLength from './arc-length.js';
-import * as PathAnalysis from './path-analysis.js';
-import * as BezierIntersections from './bezier-intersections.js';
+import * as BezierAnalysis from "./bezier-analysis.js";
+import * as ArcLength from "./arc-length.js";
+import * as PathAnalysis from "./path-analysis.js";
+import * as BezierIntersections from "./bezier-intersections.js";
 
 // SVG Boolean Operations - fill-rule and stroke-aware geometric operations
-import * as SVGBooleanOps from './svg-boolean-ops.js';
+import * as SVGBooleanOps from "./svg-boolean-ops.js";
 
 // SVG Rendering Context - tracks ALL SVG properties affecting rendered geometry
-import * as SVGRenderingContext from './svg-rendering-context.js';
+import * as SVGRenderingContext from "./svg-rendering-context.js";
 
 // Set high-precision default (80 significant digits) on module load
 // This is the same precision used internally by all svg-matrix modules
@@ -128,7 +135,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.28';
+export const VERSION = "1.0.28";
 
 /**
  * Default precision for path output (decimal places)
@@ -290,7 +297,7 @@ export {
   simplifyPaths,
   decomposeTransform,
   embedExternalDependencies,
-} from './svg-toolbox.js';
+} from "./svg-toolbox.js";
 
 // Re-export all svg2-polyfills functions for direct access
 export {
@@ -301,7 +308,7 @@ export {
   generatePolyfillScript,
   injectPolyfills,
   removePolyfills,
-} from './svg2-polyfills.js';
+} from "./svg2-polyfills.js";
 
 // Re-export all inkscape-support functions for direct access
 export {
@@ -327,7 +334,7 @@ export {
   extractLayer,
   extractAllLayers,
   analyzeLayerDependencies,
-} from './inkscape-support.js';
+} from "./inkscape-support.js";
 
 // ============================================================================
 // LOGGING: Configurable logging control
@@ -457,8 +464,25 @@ export function ellipseToPath(cx, cy, rx, ry, precision = DEFAULT_PRECISION) {
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
  */
-export function rectToPath(x, y, width, height, rx = 0, ry = null, precision = DEFAULT_PRECISION) {
-  return GeometryToPath.rectToPathData(x, y, width, height, rx, ry, false, precision);
+export function rectToPath(
+  x,
+  y,
+  width,
+  height,
+  rx = 0,
+  ry = null,
+  precision = DEFAULT_PRECISION,
+) {
+  return GeometryToPath.rectToPathData(
+    x,
+    y,
+    width,
+    height,
+    rx,
+    ry,
+    false,
+    precision,
+  );
 }
 
 /**

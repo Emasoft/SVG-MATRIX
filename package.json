@@ -9,6 +9,9 @@
     "test:browser": "node test/browser-verify.mjs",
     "test:playwright": "node test/playwright-diagnose.js",
     "test:embed": "node test/test-embed-real-world.js",
+    "test:embed:w3c": "node test/test-embed-w3c.js",
+    "test:embed:w3c:all": "node test/test-embed-w3c-all.js",
+    "test:toolbox:8bits": "node test/test-toolbox-matrix-8bits.js",
     "test:embed:browser": "node test/test-embed-playwright.js",
     "ci-test": "npm ci && npm test",
     "lint": "node bin/svglinter.cjs",
@@ -73,7 +76,8 @@
   "dependencies": {
     "decimal.js": "^10.6.0",
     "js-yaml": "^4.1.0",
-    "jsdom": "^27.3.0"
+    "jsdom": "^27.3.0",
+    "toml": "^3.0.0"
   },
   "peerDependencies": {
     "playwright": "^1.49.0"
@@ -84,7 +88,10 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "globals": "^16.5.0",
     "playwright": "^1.49.0",
-    "svgo": "^4.0.0"
+    "svgo": "^4.0.0",
+    "typescript": "^5.9.3"
   }
 }

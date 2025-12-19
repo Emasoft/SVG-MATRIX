@@ -43,16 +43,16 @@
  * @module mask-resolver
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as PolygonClip from './polygon-clip.js';
-import * as ClipPathResolver from './clip-path-resolver.js';
-import * as MeshGradient from './mesh-gradient.js';
+import Decimal from "decimal.js";
+import { Matrix as _Matrix } from "./matrix.js";
+import * as _Transforms2D from "./transforms2d.js";
+import * as PolygonClip from "./polygon-clip.js";
+import * as ClipPathResolver from "./clip-path-resolver.js";
+import * as MeshGradient from "./mesh-gradient.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 // Default mask bounds (SVG spec: -10% to 120% in each dimension)
 const DEFAULT_MASK_X = -0.1;
@@ -84,8 +84,8 @@ const DEFAULT_MASK_HEIGHT = 1.2;
  * };
  */
 export const MaskType = {
-  LUMINANCE: 'luminance',
-  ALPHA: 'alpha'
+  LUMINANCE: "luminance",
+  ALPHA: "alpha",
 };
 
 /**
@@ -132,25 +132,30 @@ export const MaskType = {
  */
 export function parseMaskElement(maskElement) {
   const data = {
-    id: maskElement.getAttribute('id') || '',
-    maskUnits: maskElement.getAttribute('maskUnits') || 'objectBoundingBox',
-    maskContentUnits: maskElement.getAttribute('maskContentUnits') || 'userSpaceOnUse',
-    maskType: maskElement.getAttribute('mask-type') ||
-              maskElement.style?.maskType || 'luminance',
-    x: maskElement.getAttribute('x'),
-    y: maskElement.getAttribute('y'),
-    width: maskElement.getAttribute('width'),
-    height: maskElement.getAttribute('height'),
-    transform: maskElement.getAttribute('transform') || null,
-    children: []
+    id: maskElement.getAttribute("id") || "",
+    maskUnits: maskElement.getAttribute("maskUnits") || "objectBoundingBox",
+    maskContentUnits:
+      maskElement.getAttribute("maskContentUnits") || "userSpaceOnUse",
+    maskType:
+      maskElement.getAttribute("mask-type") ||
+      maskElement.style?.maskType ||
+      "luminance",
+    x: maskElement.getAttribute("x"),
+    y: maskElement.getAttribute("y"),
+    width: maskElement.getAttribute("width"),
+    height: maskElement.getAttribute("height"),
+    transform: maskElement.getAttribute("transform") || null,
+    children: [],
   };
 
   // Set defaults based on maskUnits
-  if (data.maskUnits === 'objectBoundingBox') {
+  if (data.maskUnits === "objectBoundingBox") {
     data.x = data.x !== null ? parseFloat(data.x) : DEFAULT_MASK_X;
     data.y = data.y !== null ? parseFloat(data.y) : DEFAULT_MASK_Y;
-    data.width = data.width !== null ? parseFloat(data.width) : DEFAULT_MASK_WIDTH;
-    data.height = data.height !== null ? parseFloat(data.height) : DEFAULT_MASK_HEIGHT;
+    data.width =
+      data.width !== null ? parseFloat(data.width) : DEFAULT_MASK_WIDTH;
+    data.height =
+      data.height !== null ? parseFloat(data.height) : DEFAULT_MASK_HEIGHT;
   } else {
     data.x = data.x !== null ? parseFloat(data.x) : null;
     data.y = data.y !== null ? parseFloat(data.y) : null;
@@ -163,52 +168,54 @@ export function parseMaskElement(maskElement) {
     const tagName = child.tagName.toLowerCase();
     const childData = {
       type: tagName,
-      fill: child.getAttribute('fill') || child.style?.fill || 'black',
-      fillOpacity: parseFloat(child.getAttribute('fill-opacity') ||
-                             child.style?.fillOpacity || '1'),
-      opacity: parseFloat(child.getAttribute('opacity') ||
-                         child.style?.opacity || '1'),
-      transform: child.getAttribute('transform') || null
+      fill: child.getAttribute("fill") || child.style?.fill || "black",
+      fillOpacity: parseFloat(
+        child.getAttribute("fill-opacity") || child.style?.fillOpacity || "1",
+      ),
+      opacity: parseFloat(
+        child.getAttribute("opacity") || child.style?.opacity || "1",
+      ),
+      transform: child.getAttribute("transform") || null,
     };
 
     // Parse shape-specific attributes
     switch (tagName) {
-      case 'rect':
-        childData.x = parseFloat(child.getAttribute('x') || '0');
-        childData.y = parseFloat(child.getAttribute('y') || '0');
-        childData.width = parseFloat(child.getAttribute('width') || '0');
-        childData.height = parseFloat(child.getAttribute('height') || '0');
-        childData.rx = parseFloat(child.getAttribute('rx') || '0');
-        childData.ry = parseFloat(child.getAttribute('ry') || '0');
+      case "rect":
+        childData.x = parseFloat(child.getAttribute("x") || "0");
+        childData.y = parseFloat(child.getAttribute("y") || "0");
+        childData.width = parseFloat(child.getAttribute("width") || "0");
+        childData.height = parseFloat(child.getAttribute("height") || "0");
+        childData.rx = parseFloat(child.getAttribute("rx") || "0");
+        childData.ry = parseFloat(child.getAttribute("ry") || "0");
         break;
-      case 'circle':
-        childData.cx = parseFloat(child.getAttribute('cx') || '0');
-        childData.cy = parseFloat(child.getAttribute('cy') || '0');
-        childData.r = parseFloat(child.getAttribute('r') || '0');
+      case "circle":
+        childData.cx = parseFloat(child.getAttribute("cx") || "0");
+        childData.cy = parseFloat(child.getAttribute("cy") || "0");
+        childData.r = parseFloat(child.getAttribute("r") || "0");
         break;
-      case 'ellipse':
-        childData.cx = parseFloat(child.getAttribute('cx') || '0');
-        childData.cy = parseFloat(child.getAttribute('cy') || '0');
-        childData.rx = parseFloat(child.getAttribute('rx') || '0');
-        childData.ry = parseFloat(child.getAttribute('ry') || '0');
+      case "ellipse":
+        childData.cx = parseFloat(child.getAttribute("cx") || "0");
+        childData.cy = parseFloat(child.getAttribute("cy") || "0");
+        childData.rx = parseFloat(child.getAttribute("rx") || "0");
+        childData.ry = parseFloat(child.getAttribute("ry") || "0");
         break;
-      case 'path':
-        childData.d = child.getAttribute('d') || '';
+      case "path":
+        childData.d = child.getAttribute("d") || "";
         break;
-      case 'polygon':
-        childData.points = child.getAttribute('points') || '';
+      case "polygon":
+        childData.points = child.getAttribute("points") || "";
         break;
-      case 'polyline':
-        childData.points = child.getAttribute('points') || '';
+      case "polyline":
+        childData.points = child.getAttribute("points") || "";
         break;
-      case 'g':
+      case "g":
         // Recursively parse group children
         childData.children = [];
         for (const gc of child.children) {
           // Simplified - just store the tag and basic info
           childData.children.push({
             type: gc.tagName.toLowerCase(),
-            fill: gc.getAttribute('fill') || 'inherit'
+            fill: gc.getAttribute("fill") || "inherit",
           });
         }
         break;
@@ -266,22 +273,34 @@ export function parseMaskElement(maskElement) {
  * // region.y = 50 (absolute)
  */
 export function getMaskRegion(maskData, targetBBox) {
-  if (maskData.maskUnits === 'objectBoundingBox') {
+  if (maskData.maskUnits === "objectBoundingBox") {
     // Coordinates are relative to target bounding box
     return {
       x: D(targetBBox.x).plus(D(maskData.x).mul(targetBBox.width)),
       y: D(targetBBox.y).plus(D(maskData.y).mul(targetBBox.height)),
       width: D(maskData.width).mul(targetBBox.width),
-      height: D(maskData.height).mul(targetBBox.height)
+      height: D(maskData.height).mul(targetBBox.height),
     };
   }
 
   // userSpaceOnUse - use values directly (or defaults if null)
   return {
-    x: maskData.x !== null ? D(maskData.x) : D(targetBBox.x).minus(D(targetBBox.width).mul(0.1)),
-    y: maskData.y !== null ? D(maskData.y) : D(targetBBox.y).minus(D(targetBBox.height).mul(0.1)),
-    width: maskData.width !== null ? D(maskData.width) : D(targetBBox.width).mul(1.2),
-    height: maskData.height !== null ? D(maskData.height) : D(targetBBox.height).mul(1.2)
+    x:
+      maskData.x !== null
+        ? D(maskData.x)
+        : D(targetBBox.x).minus(D(targetBBox.width).mul(0.1)),
+    y:
+      maskData.y !== null
+        ? D(maskData.y)
+        : D(targetBBox.y).minus(D(targetBBox.height).mul(0.1)),
+    width:
+      maskData.width !== null
+        ? D(maskData.width)
+        : D(targetBBox.width).mul(1.2),
+    height:
+      maskData.height !== null
+        ? D(maskData.height)
+        : D(targetBBox.height).mul(1.2),
   };
 }
 
@@ -315,22 +334,27 @@ export function getMaskRegion(maskData, targetBBox) {
  * const polygon = maskChildToPolygon(child, bbox, 'userSpaceOnUse', 32);
  * // Result: 32-sided polygon approximating the circle
  */
-export function maskChildToPolygon(child, targetBBox, contentUnits, samples = 20) {
+export function maskChildToPolygon(
+  child,
+  targetBBox,
+  contentUnits,
+  samples = 20,
+) {
   // Create element-like object for ClipPathResolver
   const element = {
     type: child.type,
     ...child,
-    transform: child.transform
+    transform: child.transform,
   };
 
   // Get polygon using ClipPathResolver
   let polygon = ClipPathResolver.shapeToPolygon(element, null, samples);
 
   // Apply objectBoundingBox scaling if needed
-  if (contentUnits === 'objectBoundingBox' && polygon.length > 0) {
-    polygon = polygon.map(p => ({
+  if (contentUnits === "objectBoundingBox" && polygon.length > 0) {
+    polygon = polygon.map((p) => ({
       x: D(targetBBox.x).plus(p.x.mul(targetBBox.width)),
-      y: D(targetBBox.y).plus(p.y.mul(targetBBox.height))
+      y: D(targetBBox.y).plus(p.y.mul(targetBBox.height)),
     }));
   }
 
@@ -384,16 +408,16 @@ export function maskChildToPolygon(child, targetBBox, contentUnits, samples = 20
  * const effectiveOpacity = luminance * maskChild.opacity; // 0.5 * 0.8 = 0.4
  */
 export function colorToLuminance(colorStr) {
-  if (!colorStr || colorStr === 'none' || colorStr === 'transparent') {
+  if (!colorStr || colorStr === "none" || colorStr === "transparent") {
     return 0;
   }
 
   // Parse RGB values
   const rgbMatch = colorStr.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
   if (rgbMatch) {
-    const r = parseInt(rgbMatch[1]) / 255;
-    const g = parseInt(rgbMatch[2]) / 255;
-    const b = parseInt(rgbMatch[3]) / 255;
+    const r = parseInt(rgbMatch[1], 10) / 255;
+    const g = parseInt(rgbMatch[2], 10) / 255;
+    const b = parseInt(rgbMatch[3], 10) / 255;
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 
@@ -421,7 +445,7 @@ export function colorToLuminance(colorStr) {
     cyan: 0.7874,
     magenta: 0.2848,
     gray: 0.5,
-    grey: 0.5
+    grey: 0.5,
   };
 
   const lower = colorStr.toLowerCase();
@@ -539,7 +563,7 @@ export function resolveMask(maskData, targetBBox, options = {}) {
       child,
       targetBBox,
       maskData.maskContentUnits,
-      samples
+      samples,
     );
 
     if (polygon.length >= 3) {
@@ -612,7 +636,10 @@ export function applyMask(targetPolygon, maskData, targetBBox, options = {}) {
   for (const { polygon: maskPoly, opacity } of maskRegions) {
     if (opacity <= 0) continue;
 
-    const intersection = PolygonClip.polygonIntersection(targetPolygon, maskPoly);
+    const intersection = PolygonClip.polygonIntersection(
+      targetPolygon,
+      maskPoly,
+    );
 
     for (const clippedPoly of intersection) {
       if (clippedPoly.length >= 3) {
@@ -672,7 +699,12 @@ export function applyMask(targetPolygon, maskData, targetBBox, options = {}) {
  *   `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
  * ).join(' ') + ' Z';
  */
-export function maskToClipPath(maskData, targetBBox, opacityThreshold = 0.5, options = {}) {
+export function maskToClipPath(
+  maskData,
+  targetBBox,
+  opacityThreshold = 0.5,
+  options = {},
+) {
   const maskRegions = resolveMask(maskData, targetBBox, options);
 
   // Union all regions above threshold
@@ -737,16 +769,16 @@ export function maskToClipPath(maskData, targetBBox, opacityThreshold = 0.5, opt
 export function maskToPathData(maskData, targetBBox, options = {}) {
   const polygon = maskToClipPath(maskData, targetBBox, 0.5, options);
 
-  if (polygon.length < 3) return '';
+  if (polygon.length < 3) return "";
 
-  let d = '';
+  let d = "";
   for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i];
     const x = Number(p.x).toFixed(6);
     const y = Number(p.y).toFixed(6);
     d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
   }
-  d += ' Z';
+  d += " Z";
 
   return d;
 }
@@ -786,7 +818,7 @@ export function maskToPathData(maskData, targetBBox, options = {}) {
  * }
  */
 export function parseGradientReference(fill) {
-  if (!fill || typeof fill !== 'string') return null;
+  if (!fill || typeof fill !== "string") return null;
 
   const match = fill.match(/url\s*\(\s*#([^)\s]+)\s*\)/i);
   return match ? match[1] : null;
@@ -883,12 +915,19 @@ export function rgbToLuminance(color) {
  *   console.log(`Region with ${polygon.length} vertices, opacity: ${opacity.toFixed(2)}`);
  * });
  */
-export function sampleMeshGradientForMask(meshData, shapeBBox, maskType = 'luminance', options = {}) {
+export function sampleMeshGradientForMask(
+  meshData,
+  shapeBBox,
+  maskType = "luminance",
+  options = {},
+) {
   const { subdivisions = 4 } = options;
   const result = [];
 
   // Get mesh gradient polygons with colors
-  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, { subdivisions });
+  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, {
+    subdivisions,
+  });
 
   for (const { polygon, color } of meshPolygons) {
     if (polygon.length < 3) continue;
@@ -955,14 +994,28 @@ export function sampleMeshGradientForMask(meshData, shapeBBox, maskType = 'lumin
  *   renderPolygon(polygon, { fillOpacity: opacity });
  * });
  */
-export function applyMeshGradientMask(targetPolygon, meshData, targetBBox, maskType = 'luminance', options = {}) {
-  const meshMaskRegions = sampleMeshGradientForMask(meshData, targetBBox, maskType, options);
+export function applyMeshGradientMask(
+  targetPolygon,
+  meshData,
+  targetBBox,
+  maskType = "luminance",
+  options = {},
+) {
+  const meshMaskRegions = sampleMeshGradientForMask(
+    meshData,
+    targetBBox,
+    maskType,
+    options,
+  );
   const result = [];
 
   for (const { polygon: maskPoly, opacity } of meshMaskRegions) {
     if (opacity <= 0) continue;
 
-    const intersection = PolygonClip.polygonIntersection(targetPolygon, maskPoly);
+    const intersection = PolygonClip.polygonIntersection(
+      targetPolygon,
+      maskPoly,
+    );
 
     for (const clippedPoly of intersection) {
       if (clippedPoly.length >= 3) {
@@ -1038,7 +1091,12 @@ export function applyMeshGradientMask(targetPolygon, meshData, targetBBox, maskT
  *   // Each polygon is a piece of the gradient, clipped by the mask child shape
  * });
  */
-export function resolveMaskWithGradients(maskData, targetBBox, gradientDefs = {}, options = {}) {
+export function resolveMaskWithGradients(
+  maskData,
+  targetBBox,
+  gradientDefs = {},
+  options = {},
+) {
   const { samples = 20, subdivisions = 4 } = options;
   const maskType = maskData.maskType || MaskType.LUMINANCE;
   const result = [];
@@ -1055,29 +1113,36 @@ export function resolveMaskWithGradients(maskData, targetBBox, gradientDefs = {}
         child,
         targetBBox,
         maskData.maskContentUnits,
-        samples
+        samples,
       );
 
       if (shapePolygon.length < 3) continue;
 
       // Check if it's a mesh gradient
-      if (gradientData.type === 'meshgradient' || gradientData.patches) {
+      if (gradientData.type === "meshgradient" || gradientData.patches) {
         // Sample mesh gradient within the shape
         const meshMaskRegions = sampleMeshGradientForMask(
           gradientData,
           targetBBox,
           maskType,
-          { subdivisions }
+          { subdivisions },
         );
 
         // Clip mesh regions to the shape
-        for (const { polygon: meshPoly, opacity: meshOpacity } of meshMaskRegions) {
-          const clipped = PolygonClip.polygonIntersection(shapePolygon, meshPoly);
+        for (const {
+          polygon: meshPoly,
+          opacity: meshOpacity,
+        } of meshMaskRegions) {
+          const clipped = PolygonClip.polygonIntersection(
+            shapePolygon,
+            meshPoly,
+          );
 
           for (const clippedPoly of clipped) {
             if (clippedPoly.length >= 3) {
               // Combine mesh opacity with child opacity
-              const combinedOpacity = meshOpacity * (child.opacity || 1) * (child.fillOpacity || 1);
+              const combinedOpacity =
+                meshOpacity * (child.opacity || 1) * (child.fillOpacity || 1);
               if (combinedOpacity > 0) {
                 result.push({ polygon: clippedPoly, opacity: combinedOpacity });
               }
@@ -1092,7 +1157,7 @@ export function resolveMaskWithGradients(maskData, targetBBox, gradientDefs = {}
         child,
         targetBBox,
         maskData.maskContentUnits,
-        samples
+        samples,
       );
 
       if (polygon.length >= 3) {
@@ -1158,14 +1223,24 @@ export function resolveMaskWithGradients(maskData, targetBBox, gradientDefs = {}
  *   // Apply region to rendering pipeline
  * });
  */
-export function createMeshGradientMask(meshData, bounds, maskType = 'luminance', options = {}) {
-  const regions = sampleMeshGradientForMask(meshData, bounds, maskType, options);
-
-  return {
-    type: 'meshGradientMask',
+export function createMeshGradientMask(
+  meshData,
+  bounds,
+  maskType = "luminance",
+  options = {},
+) {
+  const regions = sampleMeshGradientForMask(
+    meshData,
     bounds,
     maskType,
-    regions
+    options,
+  );
+
+  return {
+    type: "meshGradientMask",
+    bounds,
+    maskType,
+    regions,
   };
 }
 
@@ -1237,7 +1312,10 @@ export function getMeshGradientBoundary(meshData, options = {}) {
       allPoints.push(...rightPoints);
     }
     if (patch.bottom) {
-      const bottomPoints = MeshGradient.sampleBezierCurve(patch.bottom, samples);
+      const bottomPoints = MeshGradient.sampleBezierCurve(
+        patch.bottom,
+        samples,
+      );
       allPoints.push(...bottomPoints);
     }
     if (patch.left) {
@@ -1311,11 +1389,17 @@ export function getMeshGradientBoundary(meshData, options = {}) {
  * const clipped = clipWithMeshGradientShape(targetPolygon, meshData, { subdivisions: 6 });
  * // All patches unioned into one shape before clipping
  */
-export function clipWithMeshGradientShape(targetPolygon, meshData, options = {}) {
+export function clipWithMeshGradientShape(
+  targetPolygon,
+  meshData,
+  options = {},
+) {
   const { subdivisions = 4 } = options;
 
   // Get all patch polygons (ignoring colors)
-  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, { subdivisions });
+  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, {
+    subdivisions,
+  });
 
   if (meshPolygons.length === 0) {
     return [];
@@ -1325,7 +1409,10 @@ export function clipWithMeshGradientShape(targetPolygon, meshData, options = {})
   let meshShape = meshPolygons[0].polygon;
 
   for (let i = 1; i < meshPolygons.length; i++) {
-    const unionResult = PolygonClip.polygonUnion(meshShape, meshPolygons[i].polygon);
+    const unionResult = PolygonClip.polygonUnion(
+      meshShape,
+      meshPolygons[i].polygon,
+    );
     if (unionResult.length > 0 && unionResult[0].length >= 3) {
       meshShape = unionResult[0];
     }
@@ -1384,7 +1471,9 @@ export function clipWithMeshGradientShape(targetPolygon, meshData, options = {})
 export function meshGradientToClipPath(meshData, options = {}) {
   const { subdivisions = 4 } = options;
 
-  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, { subdivisions });
+  const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, {
+    subdivisions,
+  });
 
   if (meshPolygons.length === 0) {
     return [];

@@ -13,15 +13,26 @@
  * @license MIT
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
-import { join, dirname, basename, extname, resolve, isAbsolute } from 'path';
-import yaml from 'js-yaml';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+} from "fs";
+import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
+import yaml from "js-yaml";
 
 // Import library modules
-import { VERSION } from '../src/index.js';
-import * as SVGToolbox from '../src/svg-toolbox.js';
-import { parseSVG, serializeSVG } from '../src/svg-parser.js';
-import { injectPolyfills, detectSVG2Features, setPolyfillMinification } from '../src/svg2-polyfills.js';
+import { VERSION } from "../src/index.js";
+import * as SVGToolbox from "../src/svg-toolbox.js";
+import { parseSVG, serializeSVG } from "../src/svg-parser.js";
+import {
+  injectPolyfills,
+  detectSVG2Features,
+  setPolyfillMinification,
+} from "../src/svg2-polyfills.js";
 
 // ============================================================================
 // CONSTANTS
@@ -33,18 +44,32 @@ const CONSTANTS = {
   MAX_FILE_SIZE_BYTES: 50 * 1024 * 1024,
   EXIT_SUCCESS: 0,
   EXIT_ERROR: 1,
-  SVG_EXTENSIONS: ['.svg', '.svgz'],
+  SVG_EXTENSIONS: [".svg", ".svgz"],
 };
 
 // ============================================================================
 // COLORS (respects NO_COLOR env)
 // ============================================================================
-const colors = process.env.NO_COLOR !== undefined || process.argv.includes('--no-color') ? {
-  reset: '', red: '', yellow: '', green: '', cyan: '', dim: '', bright: '',
-} : {
-  reset: '\x1b[0m', red: '\x1b[31m', yellow: '\x1b[33m',
-  green: '\x1b[32m', cyan: '\x1b[36m', dim: '\x1b[2m', bright: '\x1b[1m',
-};
+const colors =
+  process.env.NO_COLOR !== undefined || process.argv.includes("--no-color")
+    ? {
+        reset: "",
+        red: "",
+        yellow: "",
+        green: "",
+        cyan: "",
+        dim: "",
+        bright: "",
+      }
+    : {
+        reset: "\x1b[0m",
+        red: "\x1b[31m",
+        yellow: "\x1b[33m",
+        green: "\x1b[32m",
+        cyan: "\x1b[36m",
+        dim: "\x1b[2m",
+        bright: "\x1b[1m",
+      };
 
 // ============================================================================
 // CONFIGURATION
@@ -73,7 +98,7 @@ const DEFAULT_CONFIG = {
   embed: false,
   embedImages: false,
   embedExternalSVGs: false,
-  embedExternalSVGMode: 'extract',
+  embedExternalSVGMode: "extract",
   embedCSS: false,
   embedFonts: false,
   embedScripts: false,
@@ -82,7 +107,7 @@ const DEFAULT_CONFIG = {
   embedRecursive: false,
   embedMaxRecursionDepth: 10,
   embedTimeout: 30000,
-  embedOnMissingResource: 'warn',
+  embedOnMissingResource: "warn",
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -103,44 +128,98 @@ function logError(msg) {
 // ============================================================================
 const OPTIMIZATIONS = [
   // Cleanup plugins
-  { name: 'cleanupAttributes', description: 'Remove useless attributes' },
-  { name: 'cleanupIds', description: 'Remove unused and minify used IDs' },
-  { name: 'cleanupNumericValues', description: 'Round numeric values, remove default px units' },
-  { name: 'cleanupListOfValues', description: 'Round list of numeric values' },
-  { name: 'cleanupEnableBackground', description: 'Remove or fix enable-background attribute' },
+  { name: "cleanupAttributes", description: "Remove useless attributes" },
+  { name: "cleanupIds", description: "Remove unused and minify used IDs" },
+  {
+    name: "cleanupNumericValues",
+    description: "Round numeric values, remove default px units",
+  },
+  { name: "cleanupListOfValues", description: "Round list of numeric values" },
+  {
+    name: "cleanupEnableBackground",
+    description: "Remove or fix enable-background attribute",
+  },
   // Remove plugins
-  { name: 'removeDoctype', description: 'Remove DOCTYPE declaration' },
-  { name: 'removeXMLProcInst', description: 'Remove XML processing instructions' },
-  { name: 'removeComments', description: 'Remove comments' },
-  { name: 'removeMetadata', description: 'Remove <metadata> elements' },
-  { name: 'removeTitle', description: 'Remove <title> elements (not in default)' },
-  { name: 'removeDesc', description: 'Remove <desc> elements' },
-  { name: 'removeEditorsNSData', description: 'Remove editor namespaces, elements, and attributes' },
-  { name: 'removeEmptyAttrs', description: 'Remove empty attributes' },
-  { name: 'removeEmptyContainers', description: 'Remove empty container elements' },
-  { name: 'removeEmptyText', description: 'Remove empty text elements' },
-  { name: 'removeHiddenElements', description: 'Remove hidden elements' },
-  { name: 'removeUselessDefs', description: 'Remove unused <defs> content' },
-  { name: 'removeUnknownsAndDefaults', description: 'Remove unknown elements and default attribute values' },
-  { name: 'removeNonInheritableGroupAttrs', description: 'Remove non-inheritable presentation attributes from groups' },
+  { name: "removeDoctype", description: "Remove DOCTYPE declaration" },
+  {
+    name: "removeXMLProcInst",
+    description: "Remove XML processing instructions",
+  },
+  { name: "removeComments", description: "Remove comments" },
+  { name: "removeMetadata", description: "Remove <metadata> elements" },
+  {
+    name: "removeTitle",
+    description: "Remove <title> elements (not in default)",
+  },
+  { name: "removeDesc", description: "Remove <desc> elements" },
+  {
+    name: "removeEditorsNSData",
+    description: "Remove editor namespaces, elements, and attributes",
+  },
+  { name: "removeEmptyAttrs", description: "Remove empty attributes" },
+  {
+    name: "removeEmptyContainers",
+    description: "Remove empty container elements",
+  },
+  { name: "removeEmptyText", description: "Remove empty text elements" },
+  { name: "removeHiddenElements", description: "Remove hidden elements" },
+  { name: "removeUselessDefs", description: "Remove unused <defs> content" },
+  {
+    name: "removeUnknownsAndDefaults",
+    description: "Remove unknown elements and default attribute values",
+  },
+  {
+    name: "removeNonInheritableGroupAttrs",
+    description: "Remove non-inheritable presentation attributes from groups",
+  },
   // Convert plugins
-  { name: 'convertShapesToPath', description: 'Convert basic shapes to paths' },
-  { name: 'convertPathData', description: 'Optimize path data: convert, remove useless, etc.' },
-  { name: 'convertTransform', description: 'Collapse multiple transforms into one, convert matrices' },
-  { name: 'convertColors', description: 'Convert color values to shorter form' },
-  { name: 'convertStyleToAttrs', description: 'Convert style to presentation attributes (not in default)' },
-  { name: 'convertEllipseToCircle', description: 'Convert ellipse to circle when rx equals ry' },
+  { name: "convertShapesToPath", description: "Convert basic shapes to paths" },
+  {
+    name: "convertPathData",
+    description: "Optimize path data: convert, remove useless, etc.",
+  },
+  {
+    name: "convertTransform",
+    description: "Collapse multiple transforms into one, convert matrices",
+  },
+  {
+    name: "convertColors",
+    description: "Convert color values to shorter form",
+  },
+  {
+    name: "convertStyleToAttrs",
+    description: "Convert style to presentation attributes (not in default)",
+  },
+  {
+    name: "convertEllipseToCircle",
+    description: "Convert ellipse to circle when rx equals ry",
+  },
   // Structure plugins
-  { name: 'collapseGroups', description: 'Collapse useless groups' },
-  { name: 'mergePaths', description: 'Merge multiple paths into one' },
-  { name: 'moveGroupAttrsToElems', description: 'Move group attributes to contained elements' },
-  { name: 'moveElemsAttrsToGroup', description: 'Move common element attributes to parent group' },
+  { name: "collapseGroups", description: "Collapse useless groups" },
+  { name: "mergePaths", description: "Merge multiple paths into one" },
+  {
+    name: "moveGroupAttrsToElems",
+    description: "Move group attributes to contained elements",
+  },
+  {
+    name: "moveElemsAttrsToGroup",
+    description: "Move common element attributes to parent group",
+  },
   // Style plugins
-  { name: 'minifyStyles', description: 'Minify <style> elements content' },
-  { name: 'inlineStyles', description: 'Inline styles from <style> to element style attributes' },
+  { name: "minifyStyles", description: "Minify <style> elements content" },
+  {
+    name: "inlineStyles",
+    description: "Inline styles from <style> to element style attributes",
+  },
   // Sort plugins
-  { name: 'sortAttrs', description: 'Sort attributes for better gzip compression' },
-  { name: 'sortDefsChildren', description: 'Sort children of <defs> for better gzip compression' },
+  {
+    name: "sortAttrs",
+    description: "Sort attributes for better gzip compression",
+  },
+  {
+    name: "sortDefsChildren",
+    description: "Sort children of <defs> for better gzip compression",
+  },
 ];
 
 // ============================================================================
@@ -149,58 +228,74 @@ const OPTIMIZATIONS = [
 // ============================================================================
 const DEFAULT_PIPELINE = [
   // 1-6: Initial cleanup (matching SVGO preset-default order)
-  'removeDoctype',
-  'removeXMLProcInst',
-  'removeComments',
+  "removeDoctype",
+  "removeXMLProcInst",
+  "removeComments",
   // removeDeprecatedAttrs - not implemented (rarely needed)
-  'removeMetadata',
-  'removeEditorsNSData',
+  "removeMetadata",
+  "removeEditorsNSData",
   // 7-11: Style processing
-  'cleanupAttributes',
+  "cleanupAttributes",
   // mergeStyles - not implemented
-  'inlineStyles',
-  'minifyStyles',
-  'cleanupIds',
+  "inlineStyles",
+  "minifyStyles",
+  "cleanupIds",
   // 12-18: Remove unnecessary elements
-  'removeUselessDefs',
-  'cleanupNumericValues',
-  'convertColors',
-  'removeUnknownsAndDefaults',
-  'removeNonInheritableGroupAttrs',
+  "removeUselessDefs",
+  "cleanupNumericValues",
+  "convertColors",
+  "removeUnknownsAndDefaults",
+  "removeNonInheritableGroupAttrs",
   // removeUselessStrokeAndFill - not implemented
-  'cleanupEnableBackground',
-  'removeHiddenElements',
-  'removeEmptyText',
+  "cleanupEnableBackground",
+  "removeHiddenElements",
+  "removeEmptyText",
   // 19-27: Convert and optimize
   // NOTE: convertShapesToPath removed - SVGO only converts when it saves bytes
   // Our version converts all shapes which often increases size
-  'convertEllipseToCircle',
-  'moveElemsAttrsToGroup',
-  'moveGroupAttrsToElems',
-  'collapseGroups',
-  'convertPathData',
-  'convertTransform',
+  "convertEllipseToCircle",
+  "moveElemsAttrsToGroup",
+  "moveGroupAttrsToElems",
+  "collapseGroups",
+  "convertPathData",
+  "convertTransform",
   // 28-34: Final cleanup
-  'removeEmptyAttrs',
-  'removeEmptyContainers',
-  'mergePaths',
+  "removeEmptyAttrs",
+  "removeEmptyContainers",
+  "mergePaths",
   // removeUnusedNS - not implemented
-  'sortAttrs',
-  'sortDefsChildren',
-  'removeDesc',
+  "sortAttrs",
+  "sortDefsChildren",
+  "removeDesc",
 ];
 
 // ============================================================================
 // PATH UTILITIES
 // ============================================================================
-function normalizePath(p) { return p.replace(/\\/g, '/'); }
-
-function resolvePath(p) {
-  return isAbsolute(p) ? normalizePath(p) : normalizePath(resolve(process.cwd(), p));
+function normalizePath(p) {
+  return p.replace(/\\/g, "/");
 }
 
-function isDir(p) { try { return statSync(p).isDirectory(); } catch { return false; } }
-function isFile(p) { try { return statSync(p).isFile(); } catch { return false; } }
+function resolvePath(p) {
+  return isAbsolute(p)
+    ? normalizePath(p)
+    : normalizePath(resolve(process.cwd(), p));
+}
+
+function isDir(p) {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+function isFile(p) {
+  try {
+    return statSync(p).isFile();
+  } catch {
+    return false;
+  }
+}
 
 function ensureDir(dir) {
   if (!existsSync(dir)) {
@@ -214,14 +309,17 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
       const fullPath = join(d, entry.name);
       // Check exclusion patterns
-      const shouldExclude = exclude.some(pattern => {
+      const shouldExclude = exclude.some((pattern) => {
         const regex = new RegExp(pattern);
         return regex.test(fullPath) || regex.test(entry.name);
       });
       if (shouldExclude) continue;
 
       if (entry.isDirectory() && recursive) scan(fullPath);
-      else if (entry.isFile() && CONSTANTS.SVG_EXTENSIONS.includes(extname(entry.name).toLowerCase())) {
+      else if (
+        entry.isFile() &&
+        CONSTANTS.SVG_EXTENSIONS.includes(extname(entry.name).toLowerCase())
+      ) {
         files.push(normalizePath(fullPath));
       }
     }
@@ -247,10 +345,13 @@ async function optimizeSvg(content, options = {}) {
   // Run optimization pipeline
   for (const pluginName of pipeline) {
     const fn = SVGToolbox[pluginName];
-    if (fn && typeof fn === 'function') {
+    if (fn && typeof fn === "function") {
       try {
-        await fn(doc, { precision: options.precision, preserveNamespaces: options.preserveNamespaces });
-      } catch (e) {
+        await fn(doc, {
+          precision: options.precision,
+          preserveNamespaces: options.preserveNamespaces,
+        });
+      } catch {
         // Skip failed optimizations silently
       }
     }
@@ -260,10 +361,13 @@ async function optimizeSvg(content, options = {}) {
   if (options.multipass) {
     for (const pluginName of pipeline) {
       const fn = SVGToolbox[pluginName];
-      if (fn && typeof fn === 'function') {
+      if (fn && typeof fn === "function") {
         try {
-          await fn(doc, { precision: options.precision, preserveNamespaces: options.preserveNamespaces });
-        } catch (e) {
+          await fn(doc, {
+            precision: options.precision,
+            preserveNamespaces: options.preserveNamespaces,
+          });
+        } catch {
           // Skip failed optimizations silently
         }
       }
@@ -272,7 +376,10 @@ async function optimizeSvg(content, options = {}) {
 
   // Inject SVG 2 polyfills if requested (using pre-detected features)
   if (options.svg2Polyfills && svg2Features) {
-    if (svg2Features.meshGradients.length > 0 || svg2Features.hatches.length > 0) {
+    if (
+      svg2Features.meshGradients.length > 0 ||
+      svg2Features.hatches.length > 0
+    ) {
       // Pass pre-detected features since pipeline may have removed SVG2 elements
       injectPolyfills(doc, { features: svg2Features });
     }
@@ -288,13 +395,13 @@ async function optimizeSvg(content, options = {}) {
   }
 
   // Handle EOL
-  if (options.eol === 'crlf') {
-    result = result.replace(/\n/g, '\r\n');
+  if (options.eol === "crlf") {
+    result = result.replace(/\n/g, "\r\n");
   }
 
   // Final newline
-  if (options.finalNewline && !result.endsWith('\n')) {
-    result += '\n';
+  if (options.finalNewline && !result.endsWith("\n")) {
+    result += "\n";
   }
 
   return result;
@@ -307,48 +414,61 @@ async function optimizeSvg(content, options = {}) {
  * - Collapse multiple spaces
  */
 function minifyXml(xml) {
-  return xml
-    // Remove newlines and collapse whitespace between tags
-    .replace(/>\s+</g, '><')
-    // Remove leading/trailing whitespace
-    .trim();
+  return (
+    xml
+      // Remove newlines and collapse whitespace between tags
+      .replace(/>\s+</g, "><")
+      // Remove leading/trailing whitespace
+      .trim()
+  );
 }
 
 function prettifyXml(xml, indent = 2) {
   // Simple XML prettifier
-  const indentStr = ' '.repeat(indent);
-  let formatted = '';
+  const indentStr = " ".repeat(indent);
+  let formatted = "";
   let depth = 0;
 
   // Split on tags
-  xml.replace(/>\s*</g, '>\n<').split('\n').forEach(line => {
-    line = line.trim();
-    if (!line) return;
+  xml
+    .replace(/>\s*</g, ">\n<")
+    .split("\n")
+    .forEach((originalLine) => {
+      const line = originalLine.trim();
+      if (!line) return;
 
-    // Decrease depth for closing tags
-    if (line.startsWith('</')) {
-      depth = Math.max(0, depth - 1);
-    }
+      // Decrease depth for closing tags
+      if (line.startsWith("</")) {
+        depth = Math.max(0, depth - 1);
+      }
 
-    formatted += indentStr.repeat(depth) + line + '\n';
+      formatted += indentStr.repeat(depth) + line + "\n";
 
-    // Increase depth for opening tags (not self-closing)
-    if (line.startsWith('<') && !line.startsWith('</') && !line.startsWith('<?') &&
-        !line.startsWith('<!') && !line.endsWith('/>') && !line.includes('</')) {
-      depth++;
-    }
-  });
+      // Increase depth for opening tags (not self-closing)
+      if (
+        line.startsWith("<") &&
+        !line.startsWith("</") &&
+        !line.startsWith("<?") &&
+        !line.startsWith("<!") &&
+        !line.endsWith("/>") &&
+        !line.includes("</")
+      ) {
+        depth++;
+      }
+    });
 
   return formatted.trim();
 }
 
 function toDataUri(content, format) {
-  if (format === 'base64') {
-    return 'data:image/svg+xml;base64,' + Buffer.from(content).toString('base64');
-  } else if (format === 'enc') {
-    return 'data:image/svg+xml,' + encodeURIComponent(content);
+  if (format === "base64") {
+    return (
+      "data:image/svg+xml;base64," + Buffer.from(content).toString("base64")
+    );
+  } else if (format === "enc") {
+    return "data:image/svg+xml," + encodeURIComponent(content);
   } else {
-    return 'data:image/svg+xml,' + content;
+    return "data:image/svg+xml," + content;
   }
 }
 
@@ -357,7 +477,7 @@ function toDataUri(content, format) {
 // ============================================================================
 async function processFile(inputPath, outputPath, options) {
   try {
-    let content = readFileSync(inputPath, 'utf8');
+    let content = readFileSync(inputPath, "utf8");
     const originalSize = Buffer.byteLength(content);
 
     // Apply embedding if enabled
@@ -383,7 +503,9 @@ async function processFile(inputPath, outputPath, options) {
         await SVGToolbox.embedExternalDependencies(doc, embedOptions);
         content = serializeSVG(doc);
       } else {
-        log(`${colors.yellow}Warning:${colors.reset} embedExternalDependencies not available in svg-toolbox`);
+        log(
+          `${colors.yellow}Warning:${colors.reset} embedExternalDependencies not available in svg-toolbox`,
+        );
       }
     }
 
@@ -395,17 +517,25 @@ async function processFile(inputPath, outputPath, options) {
       output = toDataUri(optimized, options.datauri);
     }
 
-    if (outputPath === '-') {
+    if (outputPath === "-") {
       process.stdout.write(output);
     } else {
       ensureDir(dirname(outputPath));
-      writeFileSync(outputPath, output, 'utf8');
+      writeFileSync(outputPath, output, "utf8");
     }
 
     const savings = originalSize - optimizedSize;
     const percent = ((savings / originalSize) * 100).toFixed(1);
 
-    return { success: true, originalSize, optimizedSize, savings, percent, inputPath, outputPath };
+    return {
+      success: true,
+      originalSize,
+      optimizedSize,
+      savings,
+      percent,
+      inputPath,
+      outputPath,
+    };
   } catch (error) {
     return { success: false, error: error.message, inputPath };
   }
@@ -487,9 +617,11 @@ function showVersion() {
 }
 
 function showPlugins() {
-  console.log('\nAvailable optimizations:\n');
+  console.log("\nAvailable optimizations:\n");
   for (const opt of OPTIMIZATIONS) {
-    console.log(`  ${colors.green}${opt.name.padEnd(30)}${colors.reset} ${opt.description}`);
+    console.log(
+      `  ${colors.green}${opt.name.padEnd(30)}${colors.reset} ${opt.description}`,
+    );
   }
   console.log(`\nTotal: ${OPTIMIZATIONS.length} optimizations\n`);
 }
@@ -504,39 +636,53 @@ function loadConfigFile(configPath) {
       logError(`Config file not found: ${configPath}`);
       process.exit(CONSTANTS.EXIT_ERROR);
     }
-    const content = readFileSync(absolutePath, 'utf8');
-    const config = yaml.load(content);
+    const content = readFileSync(absolutePath, "utf8");
+    const loadedConfig = yaml.load(content);
 
     // Convert YAML config structure to CLI config structure
     const result = {};
 
-    if (config.embed) {
-      const embedCfg = config.embed;
+    if (loadedConfig.embed) {
+      const embedCfg = loadedConfig.embed;
       if (embedCfg.images !== undefined) result.embedImages = embedCfg.images;
-      if (embedCfg.externalSVGs !== undefined) result.embedExternalSVGs = embedCfg.externalSVGs;
-      if (embedCfg.externalSVGMode !== undefined) result.embedExternalSVGMode = embedCfg.externalSVGMode;
+      if (embedCfg.externalSVGs !== undefined)
+        result.embedExternalSVGs = embedCfg.externalSVGs;
+      if (embedCfg.externalSVGMode !== undefined)
+        result.embedExternalSVGMode = embedCfg.externalSVGMode;
       if (embedCfg.css !== undefined) result.embedCSS = embedCfg.css;
       if (embedCfg.fonts !== undefined) result.embedFonts = embedCfg.fonts;
-      if (embedCfg.scripts !== undefined) result.embedScripts = embedCfg.scripts;
+      if (embedCfg.scripts !== undefined)
+        result.embedScripts = embedCfg.scripts;
       if (embedCfg.audio !== undefined) result.embedAudio = embedCfg.audio;
-      if (embedCfg.subsetFonts !== undefined) result.embedSubsetFonts = embedCfg.subsetFonts;
-      if (embedCfg.recursive !== undefined) result.embedRecursive = embedCfg.recursive;
-      if (embedCfg.maxRecursionDepth !== undefined) result.embedMaxRecursionDepth = embedCfg.maxRecursionDepth;
-      if (embedCfg.timeout !== undefined) result.embedTimeout = embedCfg.timeout;
-      if (embedCfg.onMissingResource !== undefined) result.embedOnMissingResource = embedCfg.onMissingResource;
+      if (embedCfg.subsetFonts !== undefined)
+        result.embedSubsetFonts = embedCfg.subsetFonts;
+      if (embedCfg.recursive !== undefined)
+        result.embedRecursive = embedCfg.recursive;
+      if (embedCfg.maxRecursionDepth !== undefined)
+        result.embedMaxRecursionDepth = embedCfg.maxRecursionDepth;
+      if (embedCfg.timeout !== undefined)
+        result.embedTimeout = embedCfg.timeout;
+      if (embedCfg.onMissingResource !== undefined)
+        result.embedOnMissingResource = embedCfg.onMissingResource;
 
       // If any embed option is enabled, set embed flag
-      if (Object.keys(result).some(key => key.startsWith('embed') && result[key] === true)) {
+      if (
+        Object.keys(result).some(
+          (key) => key.startsWith("embed") && result[key] === true,
+        )
+      ) {
         result.embed = true;
       }
     }
 
     // Support other config options if present
-    if (config.precision !== undefined) result.precision = config.precision;
-    if (config.multipass !== undefined) result.multipass = config.multipass;
-    if (config.pretty !== undefined) result.pretty = config.pretty;
-    if (config.indent !== undefined) result.indent = config.indent;
-    if (config.quiet !== undefined) result.quiet = config.quiet;
+    if (loadedConfig.precision !== undefined)
+      result.precision = loadedConfig.precision;
+    if (loadedConfig.multipass !== undefined)
+      result.multipass = loadedConfig.multipass;
+    if (loadedConfig.pretty !== undefined) result.pretty = loadedConfig.pretty;
+    if (loadedConfig.indent !== undefined) result.indent = loadedConfig.indent;
+    if (loadedConfig.quiet !== undefined) result.quiet = loadedConfig.quiet;
 
     return result;
   } catch (error) {
@@ -549,7 +695,7 @@ function loadConfigFile(configPath) {
 // ARGUMENT PARSING
 // ============================================================================
 function parseArgs(args) {
-  const cfg = { ...DEFAULT_CONFIG };
+  let cfg = { ...DEFAULT_CONFIG };
   const inputs = [];
   let i = 0;
 
@@ -558,144 +704,150 @@ function parseArgs(args) {
     let argValue = null;
 
     // Handle --arg=value format
-    if (arg.includes('=') && arg.startsWith('--')) {
-      const eqIdx = arg.indexOf('=');
+    if (arg.includes("=") && arg.startsWith("--")) {
+      const eqIdx = arg.indexOf("=");
       argValue = arg.substring(eqIdx + 1);
       arg = arg.substring(0, eqIdx);
     }
 
     switch (arg) {
-      case '-v':
-      case '--version':
+      case "-v":
+      case "--version":
         showVersion();
         process.exit(CONSTANTS.EXIT_SUCCESS);
         break;
 
-      case '-h':
-      case '--help':
+      case "-h":
+      case "--help":
         showHelp();
         process.exit(CONSTANTS.EXIT_SUCCESS);
         break;
 
-      case '-i':
-      case '--input':
+      case "-i":
+      case "--input":
         i++;
-        while (i < args.length && !args[i].startsWith('-')) {
+        while (i < args.length && !args[i].startsWith("-")) {
           inputs.push(args[i]);
           i++;
         }
         i--; // Back up one since the while loop went past
         break;
 
-      case '-s':
-      case '--string':
+      case "-s":
+      case "--string":
         cfg.string = args[++i];
         break;
 
-      case '-f':
-      case '--folder':
+      case "-f":
+      case "--folder":
         cfg.folder = args[++i];
         break;
 
-      case '-o':
-      case '--output':
+      case "-o":
+      case "--output": {
         i++;
         // Collect output(s)
         const outputs = [];
-        while (i < args.length && !args[i].startsWith('-')) {
+        while (i < args.length && !args[i].startsWith("-")) {
           outputs.push(args[i]);
           i++;
         }
         i--;
         cfg.output = outputs.length === 1 ? outputs[0] : outputs;
         break;
+      }
 
-      case '-p':
-      case '--precision':
+      case "-p":
+      case "--precision":
         cfg.precision = parseInt(args[++i], 10);
         break;
 
-      case '--datauri':
+      case "--datauri":
         cfg.datauri = args[++i];
         break;
 
-      case '--multipass':
+      case "--multipass":
         cfg.multipass = true;
         break;
 
-      case '--pretty':
+      case "--pretty":
         cfg.pretty = true;
         break;
 
-      case '--indent':
+      case "--indent":
         cfg.indent = parseInt(args[++i], 10);
         break;
 
-      case '--eol':
+      case "--eol":
         cfg.eol = args[++i];
         break;
 
-      case '--final-newline':
+      case "--final-newline":
         cfg.finalNewline = true;
         break;
 
-      case '-r':
-      case '--recursive':
+      case "-r":
+      case "--recursive":
         cfg.recursive = true;
         break;
 
-      case '--exclude':
+      case "--exclude":
         i++;
-        while (i < args.length && !args[i].startsWith('-')) {
+        while (i < args.length && !args[i].startsWith("-")) {
           cfg.exclude.push(args[i]);
           i++;
         }
         i--;
         break;
 
-      case '-q':
-      case '--quiet':
+      case "-q":
+      case "--quiet":
         cfg.quiet = true;
         break;
 
-      case '--show-plugins':
+      case "--show-plugins":
         cfg.showPlugins = true;
         break;
 
-      case '--preserve-ns':
+      case "--preserve-ns":
         {
           const val = argValue || args[++i];
           if (!val) {
-            logError('--preserve-ns requires a comma-separated list of namespaces');
+            logError(
+              "--preserve-ns requires a comma-separated list of namespaces",
+            );
             process.exit(1);
           }
-          cfg.preserveNamespaces = val.split(',').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+          cfg.preserveNamespaces = val
+            .split(",")
+            .map((s) => s.trim().toLowerCase())
+            .filter((s) => s.length > 0);
         }
         break;
 
-      case '--preserve-vendor':
+      case "--preserve-vendor":
         cfg.preserveVendor = true;
         break;
 
-      case '--svg2-polyfills':
+      case "--svg2-polyfills":
         cfg.svg2Polyfills = true;
         break;
 
-      case '--no-minify-polyfills':
+      case "--no-minify-polyfills":
         cfg.noMinifyPolyfills = true;
         setPolyfillMinification(false);
         break;
 
-      case '--no-color':
+      case "--no-color":
         // Already handled in colors initialization
         break;
 
-      case '--config':
+      case "--config":
         cfg.configFile = args[++i];
         break;
 
-      case '--embed':
-      case '--embed-all':
+      case "--embed":
+      case "--embed-all":
         cfg.embed = true;
         cfg.embedImages = true;
         cfg.embedExternalSVGs = true;
@@ -707,64 +859,64 @@ function parseArgs(args) {
         cfg.embedRecursive = true;
         break;
 
-      case '--embed-images':
+      case "--embed-images":
         cfg.embed = true;
         cfg.embedImages = true;
         break;
 
-      case '--embed-external-svgs':
+      case "--embed-external-svgs":
         cfg.embed = true;
         cfg.embedExternalSVGs = true;
         break;
 
-      case '--embed-svg-mode':
+      case "--embed-svg-mode":
         cfg.embedExternalSVGMode = args[++i];
         break;
 
-      case '--embed-css':
+      case "--embed-css":
         cfg.embed = true;
         cfg.embedCSS = true;
         break;
 
-      case '--embed-fonts':
+      case "--embed-fonts":
         cfg.embed = true;
         cfg.embedFonts = true;
         break;
 
-      case '--embed-scripts':
+      case "--embed-scripts":
         cfg.embed = true;
         cfg.embedScripts = true;
         break;
 
-      case '--embed-audio':
+      case "--embed-audio":
         cfg.embed = true;
         cfg.embedAudio = true;
         break;
 
-      case '--embed-subset-fonts':
+      case "--embed-subset-fonts":
         cfg.embed = true;
         cfg.embedSubsetFonts = true;
         break;
 
-      case '--embed-recursive':
+      case "--embed-recursive":
         cfg.embed = true;
         cfg.embedRecursive = true;
         break;
 
-      case '--embed-max-depth':
+      case "--embed-max-depth":
         cfg.embedMaxRecursionDepth = parseInt(args[++i], 10);
         break;
 
-      case '--embed-timeout':
+      case "--embed-timeout":
         cfg.embedTimeout = parseInt(args[++i], 10);
         break;
 
-      case '--embed-on-missing':
+      case "--embed-on-missing":
         cfg.embedOnMissingResource = args[++i];
         break;
 
       default:
-        if (arg.startsWith('-')) {
+        if (arg.startsWith("-")) {
           logError(`Unknown option: ${arg}`);
           process.exit(CONSTANTS.EXIT_ERROR);
         }
@@ -776,42 +928,65 @@ function parseArgs(args) {
   cfg.inputs = inputs;
 
   // Validate numeric arguments
-  if (cfg.precision !== undefined && (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 20)) {
-    logError('--precision must be a number between 0 and 20');
+  if (
+    cfg.precision !== undefined &&
+    (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 20)
+  ) {
+    logError("--precision must be a number between 0 and 20");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  if (cfg.indent !== undefined && (isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)) {
-    logError('--indent must be a number between 0 and 16');
+  if (
+    cfg.indent !== undefined &&
+    (isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)
+  ) {
+    logError("--indent must be a number between 0 and 16");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  if (cfg.embedMaxRecursionDepth !== undefined && (isNaN(cfg.embedMaxRecursionDepth) || cfg.embedMaxRecursionDepth < 1 || cfg.embedMaxRecursionDepth > 100)) {
-    logError('--embed-max-depth must be a number between 1 and 100');
+  if (
+    cfg.embedMaxRecursionDepth !== undefined &&
+    (isNaN(cfg.embedMaxRecursionDepth) ||
+      cfg.embedMaxRecursionDepth < 1 ||
+      cfg.embedMaxRecursionDepth > 100)
+  ) {
+    logError("--embed-max-depth must be a number between 1 and 100");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  if (cfg.embedTimeout !== undefined && (isNaN(cfg.embedTimeout) || cfg.embedTimeout < 1000 || cfg.embedTimeout > 300000)) {
-    logError('--embed-timeout must be a number between 1000 and 300000 (ms)');
+  if (
+    cfg.embedTimeout !== undefined &&
+    (isNaN(cfg.embedTimeout) ||
+      cfg.embedTimeout < 1000 ||
+      cfg.embedTimeout > 300000)
+  ) {
+    logError("--embed-timeout must be a number between 1000 and 300000 (ms)");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
 
   // Validate enum arguments (only check if explicitly set, not null/undefined defaults)
-  const validEol = ['lf', 'crlf'];
+  const validEol = ["lf", "crlf"];
   if (cfg.eol != null && !validEol.includes(cfg.eol)) {
-    logError(`--eol must be one of: ${validEol.join(', ')}`);
+    logError(`--eol must be one of: ${validEol.join(", ")}`);
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  const validDatauri = ['base64', 'enc', 'unenc'];
+  const validDatauri = ["base64", "enc", "unenc"];
   if (cfg.datauri != null && !validDatauri.includes(cfg.datauri)) {
-    logError(`--datauri must be one of: ${validDatauri.join(', ')}`);
+    logError(`--datauri must be one of: ${validDatauri.join(", ")}`);
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  const validSvgMode = ['extract', 'full'];
-  if (cfg.embedExternalSVGMode != null && cfg.embedExternalSVGMode !== 'extract' && !validSvgMode.includes(cfg.embedExternalSVGMode)) {
-    logError(`--embed-svg-mode must be one of: ${validSvgMode.join(', ')}`);
+  const validSvgMode = ["extract", "full"];
+  if (
+    cfg.embedExternalSVGMode != null &&
+    cfg.embedExternalSVGMode !== "extract" &&
+    !validSvgMode.includes(cfg.embedExternalSVGMode)
+  ) {
+    logError(`--embed-svg-mode must be one of: ${validSvgMode.join(", ")}`);
     process.exit(CONSTANTS.EXIT_ERROR);
   }
-  const validOnMissing = ['warn', 'fail', 'skip'];
-  if (cfg.embedOnMissingResource != null && !validOnMissing.includes(cfg.embedOnMissingResource)) {
-    logError(`--embed-on-missing must be one of: ${validOnMissing.join(', ')}`);
+  const validOnMissing = ["warn", "fail", "skip"];
+  if (
+    cfg.embedOnMissingResource != null &&
+    !validOnMissing.includes(cfg.embedOnMissingResource)
+  ) {
+    logError(`--embed-on-missing must be one of: ${validOnMissing.join(", ")}`);
     process.exit(CONSTANTS.EXIT_ERROR);
   }
 
@@ -874,9 +1049,11 @@ async function main() {
   if (config.string) {
     try {
       const result = await optimizeSvg(config.string, options);
-      const output = config.datauri ? toDataUri(result, config.datauri) : result;
-      if (config.output && config.output !== '-') {
-        writeFileSync(config.output, output, 'utf8');
+      const output = config.datauri
+        ? toDataUri(result, config.datauri)
+        : result;
+      if (config.output && config.output !== "-") {
+        writeFileSync(config.output, output, "utf8");
         log(`${colors.green}Done!${colors.reset}`);
       } else {
         process.stdout.write(output);
@@ -902,9 +1079,9 @@ async function main() {
 
   // Add explicit inputs
   for (const input of config.inputs) {
-    if (input === '-') {
+    if (input === "-") {
       // STDIN handling would go here
-      logError('STDIN not yet supported');
+      logError("STDIN not yet supported");
       process.exit(CONSTANTS.EXIT_ERROR);
     }
     const resolved = resolvePath(input);
@@ -919,7 +1096,7 @@ async function main() {
   }
 
   if (files.length === 0) {
-    logError('No input files');
+    logError("No input files");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
 
@@ -934,8 +1111,8 @@ async function main() {
     let outputPath;
 
     if (config.output) {
-      if (config.output === '-') {
-        outputPath = '-';
+      if (config.output === "-") {
+        outputPath = "-";
       } else if (Array.isArray(config.output)) {
         outputPath = config.output[i] || config.output[0];
       } else if (files.length > 1 || isDir(resolvePath(config.output))) {
@@ -956,8 +1133,10 @@ async function main() {
       totalOriginal += result.originalSize;
       totalOptimized += result.optimizedSize;
 
-      if (outputPath !== '-') {
-        log(`${colors.green}${basename(inputPath)}${colors.reset} - ${result.originalSize} B -> ${result.optimizedSize} B (${result.percent}% saved)`);
+      if (outputPath !== "-") {
+        log(
+          `${colors.green}${basename(inputPath)}${colors.reset} - ${result.originalSize} B -> ${result.optimizedSize} B (${result.percent}% saved)`,
+        );
       }
     } else {
       errorCount++;
@@ -968,9 +1147,14 @@ async function main() {
   // Summary
   if (files.length > 1 && !config.quiet) {
     const totalSavings = totalOriginal - totalOptimized;
-    const totalPercent = totalOriginal > 0 ? ((totalSavings / totalOriginal) * 100).toFixed(1) : 0;
-    console.log(`\n${colors.bright}Total:${colors.reset} ${successCount} file(s) optimized, ${errorCount} error(s)`);
-    console.log(`${colors.bright}Savings:${colors.reset} ${totalOriginal} B -> ${totalOptimized} B (${totalPercent}% saved)`);
+    const totalPercent =
+      totalOriginal > 0 ? ((totalSavings / totalOriginal) * 100).toFixed(1) : 0;
+    console.log(
+      `\n${colors.bright}Total:${colors.reset} ${successCount} file(s) optimized, ${errorCount} error(s)`,
+    );
+    console.log(
+      `${colors.bright}Savings:${colors.reset} ${totalOriginal} B -> ${totalOptimized} B (${totalPercent}% saved)`,
+    );
   }
 
   if (errorCount > 0) {

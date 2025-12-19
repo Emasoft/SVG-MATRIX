@@ -13,25 +13,25 @@
  * @module svg-boolean-ops
  */
 
-import Decimal from 'decimal.js';
-import * as PolygonClip from './polygon-clip.js';
+import Decimal from "decimal.js";
+import * as PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
-const EPSILON = new Decimal('1e-40');
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const EPSILON = new Decimal("1e-40");
 
 const {
   point,
-  pointsEqual,
+  pointsEqual: _pointsEqual,
   cross,
-  polygonArea,
+  polygonArea: _polygonArea,
   polygonIntersection,
   polygonUnion,
   polygonDifference,
-  isCounterClockwise,
-  ensureCCW,
-  segmentIntersection
+  isCounterClockwise: _isCounterClockwise,
+  ensureCCW: _ensureCCW,
+  segmentIntersection: _segmentIntersection,
 } = PolygonClip;
 
 // ============================================================================
@@ -42,8 +42,8 @@ const {
  * Fill rule enumeration matching SVG spec.
  */
 export const FillRule = {
-  NONZERO: 'nonzero',
-  EVENODD: 'evenodd'
+  NONZERO: "nonzero",
+  EVENODD: "evenodd",
 };
 
 /**
@@ -54,7 +54,11 @@ export const FillRule = {
  * @param {string} fillRule - 'nonzero' or 'evenodd'
  * @returns {number} 1 inside, 0 on boundary, -1 outside
  */
-export function pointInPolygonWithRule(pt, polygon, fillRule = FillRule.NONZERO) {
+export function pointInPolygonWithRule(
+  pt,
+  polygon,
+  fillRule = FillRule.NONZERO,
+) {
   const n = polygon.length;
   if (n < 3) return -1;
 
@@ -111,8 +115,12 @@ function pointOnSegment(pt, a, b) {
   const minY = Decimal.min(a.y, b.y);
   const maxY = Decimal.max(a.y, b.y);
 
-  return pt.x.gte(minX.minus(EPSILON)) && pt.x.lte(maxX.plus(EPSILON)) &&
-         pt.y.gte(minY.minus(EPSILON)) && pt.y.lte(maxY.plus(EPSILON));
+  return (
+    pt.x.gte(minX.minus(EPSILON)) &&
+    pt.x.lte(maxX.plus(EPSILON)) &&
+    pt.y.gte(minY.minus(EPSILON)) &&
+    pt.y.lte(maxY.plus(EPSILON))
+  );
 }
 
 // ============================================================================
@@ -139,7 +147,7 @@ export function rectToPolygon(rect) {
       point(x, y),
       point(x.plus(w), y),
       point(x.plus(w), y.plus(h)),
-      point(x, y.plus(h))
+      point(x, y.plus(h)),
     ];
   }
 
@@ -154,37 +162,57 @@ export function rectToPolygon(rect) {
   // Top-right corner
   for (let i = 0; i <= segments; i++) {
     const angle = Math.PI * 1.5 + (Math.PI / 2) * (i / segments);
-    vertices.push(point(
-      x.plus(w).minus(actualRx).plus(actualRx.times(Math.cos(angle))),
-      y.plus(actualRy).plus(actualRy.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        x
+          .plus(w)
+          .minus(actualRx)
+          .plus(actualRx.times(Math.cos(angle))),
+        y.plus(actualRy).plus(actualRy.times(Math.sin(angle))),
+      ),
+    );
   }
 
   // Bottom-right corner
   for (let i = 0; i <= segments; i++) {
     const angle = 0 + (Math.PI / 2) * (i / segments);
-    vertices.push(point(
-      x.plus(w).minus(actualRx).plus(actualRx.times(Math.cos(angle))),
-      y.plus(h).minus(actualRy).plus(actualRy.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        x
+          .plus(w)
+          .minus(actualRx)
+          .plus(actualRx.times(Math.cos(angle))),
+        y
+          .plus(h)
+          .minus(actualRy)
+          .plus(actualRy.times(Math.sin(angle))),
+      ),
+    );
   }
 
   // Bottom-left corner
   for (let i = 0; i <= segments; i++) {
     const angle = Math.PI / 2 + (Math.PI / 2) * (i / segments);
-    vertices.push(point(
-      x.plus(actualRx).plus(actualRx.times(Math.cos(angle))),
-      y.plus(h).minus(actualRy).plus(actualRy.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        x.plus(actualRx).plus(actualRx.times(Math.cos(angle))),
+        y
+          .plus(h)
+          .minus(actualRy)
+          .plus(actualRy.times(Math.sin(angle))),
+      ),
+    );
   }
 
   // Top-left corner
   for (let i = 0; i <= segments; i++) {
     const angle = Math.PI + (Math.PI / 2) * (i / segments);
-    vertices.push(point(
-      x.plus(actualRx).plus(actualRx.times(Math.cos(angle))),
-      y.plus(actualRy).plus(actualRy.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        x.plus(actualRx).plus(actualRx.times(Math.cos(angle))),
+        y.plus(actualRy).plus(actualRy.times(Math.sin(angle))),
+      ),
+    );
   }
 
   return vertices;
@@ -205,10 +233,12 @@ export function circleToPolygon(circle, segments = 32) {
   const vertices = [];
   for (let i = 0; i < segments; i++) {
     const angle = (2 * Math.PI * i) / segments;
-    vertices.push(point(
-      cx.plus(r.times(Math.cos(angle))),
-      cy.plus(r.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        cx.plus(r.times(Math.cos(angle))),
+        cy.plus(r.times(Math.sin(angle))),
+      ),
+    );
   }
 
   return vertices;
@@ -230,10 +260,12 @@ export function ellipseToPolygon(ellipse, segments = 32) {
   const vertices = [];
   for (let i = 0; i < segments; i++) {
     const angle = (2 * Math.PI * i) / segments;
-    vertices.push(point(
-      cx.plus(rx.times(Math.cos(angle))),
-      cy.plus(ry.times(Math.sin(angle)))
-    ));
+    vertices.push(
+      point(
+        cx.plus(rx.times(Math.cos(angle))),
+        cy.plus(ry.times(Math.sin(angle))),
+      ),
+    );
   }
 
   return vertices;
@@ -246,7 +278,7 @@ export function ellipseToPolygon(ellipse, segments = 32) {
  * @param {Object} stroke - {width, linecap}
  * @returns {Array} Polygon vertices representing stroked line
  */
-export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
+export function lineToPolygon(line, stroke = { width: 1, linecap: "butt" }) {
   const x1 = D(line.x1);
   const y1 = D(line.y1);
   const x2 = D(line.x2);
@@ -269,7 +301,7 @@ export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
 
   const vertices = [];
 
-  if (stroke.linecap === 'square') {
+  if (stroke.linecap === "square") {
     // Extend endpoints by half width
     const ex = dx.div(len).times(halfWidth);
     const ey = dy.div(len).times(halfWidth);
@@ -278,9 +310,9 @@ export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
       point(x1.minus(ex).minus(nx), y1.minus(ey).minus(ny)),
       point(x2.plus(ex).minus(nx), y2.plus(ey).minus(ny)),
       point(x2.plus(ex).plus(nx), y2.plus(ey).plus(ny)),
-      point(x1.minus(ex).plus(nx), y1.minus(ey).plus(ny))
+      point(x1.minus(ex).plus(nx), y1.minus(ey).plus(ny)),
     );
-  } else if (stroke.linecap === 'round') {
+  } else if (stroke.linecap === "round") {
     // Add semicircles at endpoints in CCW order
     // Start from right side of start point, go around start cap, along left side,
     // around end cap, and back along right side
@@ -290,19 +322,23 @@ export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
     // Start cap (semicircle) - going CCW from right side (-normal) to left side (+normal)
     for (let i = 0; i <= segments; i++) {
       const angle = startAngle - Math.PI / 2 - Math.PI * (i / segments);
-      vertices.push(point(
-        x1.plus(halfWidth.times(Math.cos(angle))),
-        y1.plus(halfWidth.times(Math.sin(angle)))
-      ));
+      vertices.push(
+        point(
+          x1.plus(halfWidth.times(Math.cos(angle))),
+          y1.plus(halfWidth.times(Math.sin(angle))),
+        ),
+      );
     }
 
     // End cap (semicircle) - continuing CCW from left side to right side
     for (let i = 0; i <= segments; i++) {
       const angle = startAngle + Math.PI / 2 - Math.PI * (i / segments);
-      vertices.push(point(
-        x2.plus(halfWidth.times(Math.cos(angle))),
-        y2.plus(halfWidth.times(Math.sin(angle)))
-      ));
+      vertices.push(
+        point(
+          x2.plus(halfWidth.times(Math.cos(angle))),
+          y2.plus(halfWidth.times(Math.sin(angle))),
+        ),
+      );
     }
   } else {
     // butt (default) - simple rectangle
@@ -311,7 +347,7 @@ export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
       point(x1.minus(nx), y1.minus(ny)),
       point(x2.minus(nx), y2.minus(ny)),
       point(x2.plus(nx), y2.plus(ny)),
-      point(x1.plus(nx), y1.plus(ny))
+      point(x1.plus(nx), y1.plus(ny)),
     );
   }
 
@@ -326,11 +362,14 @@ export function lineToPolygon(line, stroke = { width: 1, linecap: 'butt' }) {
  */
 export function svgPolygonToPolygon(points) {
   if (Array.isArray(points)) {
-    return points.map(p => point(p.x, p.y));
+    return points.map((p) => point(p.x, p.y));
   }
 
   // Parse SVG points string
-  const coords = points.trim().split(/[\s,]+/).map(Number);
+  const coords = points
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
   const vertices = [];
   for (let i = 0; i < coords.length; i += 2) {
     vertices.push(point(coords[i], coords[i + 1]));
@@ -355,7 +394,7 @@ export function svgPolygonToPolygon(points) {
  */
 export function offsetPolygon(polygon, distance, options = {}) {
   const dist = D(distance);
-  const linejoin = options.linejoin || 'miter';
+  const linejoin = options.linejoin || "miter";
   const miterLimit = D(options.miterLimit || 4);
 
   if (polygon.length < 3) {
@@ -416,19 +455,31 @@ export function offsetPolygon(polygon, distance, options = {}) {
     if (sinHalfAngle.gt(EPSILON)) {
       const miterDist = dist.div(sinHalfAngle);
 
-      if (linejoin === 'miter' && miterDist.lte(dist.times(miterLimit))) {
+      if (linejoin === "miter" && miterDist.lte(dist.times(miterLimit))) {
         actualDist = miterDist;
-      } else if (linejoin === 'bevel' || miterDist.gt(dist.times(miterLimit))) {
+      } else if (linejoin === "bevel" || miterDist.gt(dist.times(miterLimit))) {
         // Bevel: add two points instead of one
-        const outerPt1 = point(curr.x.plus(nx1.times(dist)), curr.y.plus(ny1.times(dist)));
-        const outerPt2 = point(curr.x.plus(nx2.times(dist)), curr.y.plus(ny2.times(dist)));
+        const outerPt1 = point(
+          curr.x.plus(nx1.times(dist)),
+          curr.y.plus(ny1.times(dist)),
+        );
+        const outerPt2 = point(
+          curr.x.plus(nx2.times(dist)),
+          curr.y.plus(ny2.times(dist)),
+        );
         outerVertices.push(outerPt1, outerPt2);
 
-        const innerPt1 = point(curr.x.minus(nx1.times(dist)), curr.y.minus(ny1.times(dist)));
-        const innerPt2 = point(curr.x.minus(nx2.times(dist)), curr.y.minus(ny2.times(dist)));
+        const innerPt1 = point(
+          curr.x.minus(nx1.times(dist)),
+          curr.y.minus(ny1.times(dist)),
+        );
+        const innerPt2 = point(
+          curr.x.minus(nx2.times(dist)),
+          curr.y.minus(ny2.times(dist)),
+        );
         innerVertices.push(innerPt1, innerPt2);
         continue;
-      } else if (linejoin === 'round') {
+      } else if (linejoin === "round") {
         // Round: add arc segments
         const startAngle = Math.atan2(ny1.toNumber(), nx1.toNumber());
         const endAngle = Math.atan2(ny2.toNumber(), nx2.toNumber());
@@ -436,30 +487,47 @@ export function offsetPolygon(polygon, distance, options = {}) {
         if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
         if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
 
-        const segments = Math.max(2, Math.ceil(Math.abs(angleDiff) / (Math.PI / 8)));
+        const segments = Math.max(
+          2,
+          Math.ceil(Math.abs(angleDiff) / (Math.PI / 8)),
+        );
         for (let j = 0; j <= segments; j++) {
           const angle = startAngle + angleDiff * (j / segments);
-          outerVertices.push(point(
-            curr.x.plus(dist.times(Math.cos(angle))),
-            curr.y.plus(dist.times(Math.sin(angle)))
-          ));
-          innerVertices.push(point(
-            curr.x.minus(dist.times(Math.cos(angle))),
-            curr.y.minus(dist.times(Math.sin(angle)))
-          ));
+          outerVertices.push(
+            point(
+              curr.x.plus(dist.times(Math.cos(angle))),
+              curr.y.plus(dist.times(Math.sin(angle))),
+            ),
+          );
+          innerVertices.push(
+            point(
+              curr.x.minus(dist.times(Math.cos(angle))),
+              curr.y.minus(dist.times(Math.sin(angle))),
+            ),
+          );
         }
         continue;
       }
     }
 
     // Single offset point
-    outerVertices.push(point(curr.x.plus(nx.times(actualDist)), curr.y.plus(ny.times(actualDist))));
-    innerVertices.push(point(curr.x.minus(nx.times(actualDist)), curr.y.minus(ny.times(actualDist))));
+    outerVertices.push(
+      point(
+        curr.x.plus(nx.times(actualDist)),
+        curr.y.plus(ny.times(actualDist)),
+      ),
+    );
+    innerVertices.push(
+      point(
+        curr.x.minus(nx.times(actualDist)),
+        curr.y.minus(ny.times(actualDist)),
+      ),
+    );
   }
 
   return {
     outer: outerVertices,
-    inner: innerVertices.reverse() // Reverse for consistent winding
+    inner: innerVertices.reverse(), // Reverse for consistent winding
   };
 }
 
@@ -500,9 +568,10 @@ export function applyDashArray(polygon, dashArray, dashOffset = 0) {
   }
 
   // Normalize dash array (must have even length)
-  const dashes = dashArray.length % 2 === 0
-    ? dashArray.map(d => D(d))
-    : [...dashArray, ...dashArray].map(d => D(d));
+  const dashes =
+    dashArray.length % 2 === 0
+      ? dashArray.map((d) => D(d))
+      : [...dashArray, ...dashArray].map((d) => D(d));
 
   const segments = [];
   let currentSegment = [];
@@ -544,10 +613,9 @@ export function applyDashArray(polygon, dashArray, dashOffset = 0) {
       if (remaining.lte(remainingInDash)) {
         // Rest of edge fits in current dash/gap
         if (drawing) {
-          currentSegment.push(point(
-            p1.x.plus(dx.times(t)),
-            p1.y.plus(dy.times(t))
-          ));
+          currentSegment.push(
+            point(p1.x.plus(dx.times(t)), p1.y.plus(dy.times(t))),
+          );
           currentSegment.push(point(p2.x, p2.y));
         }
         remainingInDash = remainingInDash.minus(remaining);
@@ -567,14 +635,12 @@ export function applyDashArray(polygon, dashArray, dashOffset = 0) {
         const tEnd = t.plus(remainingInDash.div(edgeLen));
 
         if (drawing) {
-          currentSegment.push(point(
-            p1.x.plus(dx.times(t)),
-            p1.y.plus(dy.times(t))
-          ));
-          currentSegment.push(point(
-            p1.x.plus(dx.times(tEnd)),
-            p1.y.plus(dy.times(tEnd))
-          ));
+          currentSegment.push(
+            point(p1.x.plus(dx.times(t)), p1.y.plus(dy.times(t))),
+          );
+          currentSegment.push(
+            point(p1.x.plus(dx.times(tEnd)), p1.y.plus(dy.times(tEnd))),
+          );
           segments.push(currentSegment);
           currentSegment = [];
         }
@@ -627,40 +693,44 @@ export class SVGRegion {
     let polygon;
 
     switch (type) {
-      case 'rect':
+      case "rect":
         polygon = rectToPolygon(props);
         break;
-      case 'circle':
+      case "circle":
         polygon = circleToPolygon(props);
         break;
-      case 'ellipse':
+      case "ellipse":
         polygon = ellipseToPolygon(props);
         break;
-      case 'polygon':
+      case "polygon":
         polygon = svgPolygonToPolygon(props.points);
         break;
-      case 'line':
+      case "line":
         // Lines have no fill, only stroke
         polygon = null;
         break;
       default:
-        throw new Error('Unsupported element type: ' + type);
+        throw new Error("Unsupported element type: " + type);
     }
 
     const region = new SVGRegion({
-      fillRule: style.fillRule || FillRule.NONZERO
+      fillRule: style.fillRule || FillRule.NONZERO,
     });
 
     // Add fill region if element has fill
-    if (polygon && style.fill !== 'none') {
+    if (polygon && style.fill !== "none") {
       region.fillPolygons = [polygon];
     }
 
     // Add stroke region if element has stroke
-    if (style.stroke !== 'none' && style.strokeWidth > 0) {
-      const sourcePolygon = type === 'line'
-        ? lineToPolygon(props, { width: style.strokeWidth, linecap: style.strokeLinecap })
-        : polygon;
+    if (style.stroke !== "none" && style.strokeWidth > 0) {
+      const sourcePolygon =
+        type === "line"
+          ? lineToPolygon(props, {
+              width: style.strokeWidth,
+              linecap: style.strokeLinecap,
+            })
+          : polygon;
 
       if (sourcePolygon) {
         let strokePolygons;
@@ -670,24 +740,26 @@ export class SVGRegion {
           const dashedSegments = applyDashArray(
             sourcePolygon,
             style.strokeDasharray,
-            style.strokeDashoffset || 0
+            style.strokeDashoffset || 0,
           );
-          strokePolygons = dashedSegments.map(seg =>
+          strokePolygons = dashedSegments.map((seg) =>
             strokeToFilledPolygon(seg, {
               width: style.strokeWidth,
               linejoin: style.strokeLinejoin,
-              miterLimit: style.strokeMiterlimit
-            })
+              miterLimit: style.strokeMiterlimit,
+            }),
           );
         } else {
-          strokePolygons = [strokeToFilledPolygon(sourcePolygon, {
-            width: style.strokeWidth,
-            linejoin: style.strokeLinejoin,
-            miterLimit: style.strokeMiterlimit
-          })];
+          strokePolygons = [
+            strokeToFilledPolygon(sourcePolygon, {
+              width: style.strokeWidth,
+              linejoin: style.strokeLinejoin,
+              miterLimit: style.strokeMiterlimit,
+            }),
+          ];
         }
 
-        region.strokePolygons = strokePolygons.filter(p => p.length >= 3);
+        region.strokePolygons = strokePolygons.filter((p) => p.length >= 3);
       }
     }
 
@@ -758,7 +830,7 @@ export function regionIntersection(regionA, regionB) {
 
   return new SVGRegion({
     fillPolygons: resultPolygons,
-    fillRule: FillRule.NONZERO // Result is always simple polygons
+    fillRule: FillRule.NONZERO, // Result is always simple polygons
   });
 }
 
@@ -770,7 +842,7 @@ export function regionIntersection(regionA, regionB) {
  * @returns {SVGRegion} Union region
  */
 export function regionUnion(regionA, regionB) {
-  const resultPolygons = [];
+  const _resultPolygons = [];
 
   const polygonsA = regionA.getAllPolygons();
   const polygonsB = regionB.getAllPolygons();
@@ -811,7 +883,7 @@ export function regionUnion(regionA, regionB) {
 
   return new SVGRegion({
     fillPolygons: combined,
-    fillRule: FillRule.NONZERO
+    fillRule: FillRule.NONZERO,
   });
 }
 
@@ -823,7 +895,7 @@ export function regionUnion(regionA, regionB) {
  * @returns {SVGRegion} Difference region
  */
 export function regionDifference(regionA, regionB) {
-  let resultPolygons = regionA.getAllPolygons().map(p => [...p]);
+  let resultPolygons = regionA.getAllPolygons().map((p) => [...p]);
 
   const polygonsB = regionB.getAllPolygons();
 
@@ -845,7 +917,7 @@ export function regionDifference(regionA, regionB) {
 
   return new SVGRegion({
     fillPolygons: resultPolygons,
-    fillRule: FillRule.NONZERO
+    fillRule: FillRule.NONZERO,
   });
 }
 
@@ -862,7 +934,7 @@ export function regionXOR(regionA, regionB) {
 
   return new SVGRegion({
     fillPolygons: [...diffAB.fillPolygons, ...diffBA.fillPolygons],
-    fillRule: FillRule.NONZERO
+    fillRule: FillRule.NONZERO,
   });
 }
 
@@ -894,5 +966,5 @@ export default {
   regionIntersection,
   regionUnion,
   regionDifference,
-  regionXOR
+  regionXOR,
 };
