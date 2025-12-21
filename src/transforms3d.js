@@ -9,6 +9,21 @@ import { Matrix } from "./matrix.js";
 const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
+ * Validates that a value is a valid numeric type (number, string, or Decimal).
+ * @param {*} value - The value to validate
+ * @param {string} name - The parameter name for error messages
+ * @throws {Error} If value is null, undefined, or not a valid numeric type
+ */
+function validateNumeric(value, name) {
+  if (value === undefined || value === null) {
+    throw new Error(`${name} is required`);
+  }
+  if (typeof value !== 'number' && typeof value !== 'string' && !(value instanceof Decimal)) {
+    throw new Error(`${name} must be a number, string, or Decimal`);
+  }
+}
+
+/**
  * 3D Affine Transforms using 4x4 homogeneous matrices.
  *
  * ## Mathematical Foundation
@@ -85,6 +100,9 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * // First translates by (10,0,0), then rotates around Z
  */
 export function translation(tx, ty, tz) {
+  validateNumeric(tx, 'tx');
+  validateNumeric(ty, 'ty');
+  validateNumeric(tz, 'tz');
   return Matrix.from([
     [new Decimal(1), new Decimal(0), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), new Decimal(0), D(ty)],
@@ -131,6 +149,13 @@ export function translation(tx, ty, tz) {
  * const mirror = scale(-1, 1, 1); // Flip X axis
  */
 export function scale(sx, sy = null, sz = null) {
+  validateNumeric(sx, 'sx');
+  if (sy !== null) {
+    validateNumeric(sy, 'sy');
+  }
+  if (sz !== null) {
+    validateNumeric(sz, 'sz');
+  }
   const syValue = sy === null ? sx : sy;
   const szValue = sz === null ? sx : sz;
   return Matrix.from([
@@ -328,6 +353,10 @@ export function rotateZ(theta) {
  * // Equivalent to rotateX(Math.PI / 2)
  */
 export function rotateAroundAxis(ux, uy, uz, theta) {
+  validateNumeric(ux, 'ux');
+  validateNumeric(uy, 'uy');
+  validateNumeric(uz, 'uz');
+  validateNumeric(theta, 'theta');
   const u = [D(ux), D(uy), D(uz)];
   const norm = u[0].mul(u[0]).plus(u[1].mul(u[1])).plus(u[2].mul(u[2])).sqrt();
   if (norm.isZero()) throw new Error("Rotation axis cannot be zero vector");

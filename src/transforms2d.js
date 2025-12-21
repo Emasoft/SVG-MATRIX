@@ -9,6 +9,21 @@ import { Matrix } from "./matrix.js";
 const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
+ * Validates that a value can be converted to Decimal.
+ * @param {any} value - The value to validate
+ * @param {string} name - The parameter name (for error messages)
+ * @throws {Error} If the value is null, undefined, or not a number/string/Decimal
+ */
+function validateNumeric(value, name) {
+  if (value === undefined || value === null) {
+    throw new Error(`${name} is required`);
+  }
+  if (typeof value !== 'number' && typeof value !== 'string' && !(value instanceof Decimal)) {
+    throw new Error(`${name} must be a number, string, or Decimal`);
+  }
+}
+
+/**
  * 2D Affine Transforms using 3x3 homogeneous matrices.
  *
  * ## Mathematical Basis
@@ -98,6 +113,8 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * // This rotates 45° AFTER translating 10 units right
  */
 export function translation(tx, ty) {
+  validateNumeric(tx, 'tx');
+  validateNumeric(ty, 'ty');
   return Matrix.from([
     [new Decimal(1), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), D(ty)],
@@ -153,6 +170,10 @@ export function translation(tx, ty) {
  * // This scales by 2× around point (100, 50) instead of origin
  */
 export function scale(sx, sy = null) {
+  validateNumeric(sx, 'sx');
+  if (sy !== null) {
+    validateNumeric(sy, 'sy');
+  }
   const syValue = sy === null ? sx : sy;
   return Matrix.from([
     [D(sx), new Decimal(0), new Decimal(0)],
@@ -214,6 +235,7 @@ export function scale(sx, sy = null) {
  * // Rotates 90° around point (100, 100)
  */
 export function rotate(theta) {
+  validateNumeric(theta, 'theta');
   const t = D(theta);
   const c = new Decimal(Math.cos(t.toNumber()));
   const s = new Decimal(Math.sin(t.toNumber()));
@@ -473,6 +495,11 @@ export function stretchAlongAxis(ux, uy, k) {
  * // Efficiently reuses the same transformation matrix
  */
 export function applyTransform(M, x, y) {
+  if (!M || typeof M.mul !== 'function') {
+    throw new Error('applyTransform: first argument must be a Matrix');
+  }
+  validateNumeric(x, 'x');
+  validateNumeric(y, 'y');
   const P = Matrix.from([[D(x)], [D(y)], [new Decimal(1)]]);
   const R = M.mul(P);
   const rx = R.data[0][0],

@@ -87,8 +87,12 @@ export class Vector {
    * @throws {Error} If other is not a Vector or dimensions mismatch
    */
   add(other) {
-    if (!(other instanceof Vector)) throw new Error('add expects Vector');
-    if (other.length !== this.length) throw new Error('shape mismatch: vectors must have same length');
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('add: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`add: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     return new Vector(this.data.map((v, i) => v.plus(other.data[i])));
   }
 
@@ -99,8 +103,12 @@ export class Vector {
    * @throws {Error} If other is not a Vector or dimensions mismatch
    */
   sub(other) {
-    if (!(other instanceof Vector)) throw new Error('sub expects Vector');
-    if (other.length !== this.length) throw new Error('shape mismatch: vectors must have same length');
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('sub: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`sub: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     return new Vector(this.data.map((v, i) => v.minus(other.data[i])));
   }
 
@@ -129,8 +137,12 @@ export class Vector {
    * @throws {Error} If other is not a Vector or dimensions mismatch
    */
   dot(other) {
-    if (!(other instanceof Vector)) throw new Error('dot expects Vector');
-    if (other.length !== this.length) throw new Error('shape mismatch: vectors must have same length');
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('dot: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`dot: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     return this.data.reduce((acc, v, i) => acc.plus(v.mul(other.data[i])), new Decimal(0));
   }
 
@@ -147,7 +159,9 @@ export class Vector {
    * @throws {Error} If other is not a Vector
    */
   outer(other) {
-    if (!(other instanceof Vector)) throw new Error('outer expects Vector');
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('outer: argument must be a Vector');
+    }
     const rows = this.length, cols = other.length;
     const out = Array.from({ length: rows }, (_, i) =>
       Array.from({ length: cols }, (_, j) => this.data[i].mul(other.data[j]))
@@ -159,10 +173,15 @@ export class Vector {
    * Cross product for 3D vectors only.
    * @param {Vector} other - 3D Vector to compute cross product with
    * @returns {Vector} New 3D Vector perpendicular to both inputs
-   * @throws {Error} If either vector is not 3D
+   * @throws {Error} If other is not a Vector or either vector is not 3D
    */
   cross(other) {
-    if (this.length !== 3 || other.length !== 3) throw new Error('cross product requires 3D vectors');
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('cross: argument must be a Vector');
+    }
+    if (this.length !== 3 || other.length !== 3) {
+      throw new Error(`cross: requires 3D vectors (got ${this.length}D and ${other.length}D)`);
+    }
     const [a1, a2, a3] = this.data;
     const [b1, b2, b3] = other.data;
     return new Vector([
@@ -197,13 +216,21 @@ export class Vector {
    * Angle between this vector and another (in radians).
    * @param {Vector} other - Vector to compute angle with
    * @returns {Decimal} Angle in radians as a Decimal
-   * @throws {Error} If either vector is zero
+   * @throws {Error} If other is not a Vector, dimensions mismatch, or either vector is zero
    */
   angleBetween(other) {
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('angleBetween: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`angleBetween: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     const dotProduct = this.dot(other);
     const n1 = this.norm();
     const n2 = other.norm();
-    if (n1.isZero() || n2.isZero()) throw new Error('Angle with zero vector is undefined');
+    if (n1.isZero() || n2.isZero()) {
+      throw new Error('angleBetween: angle with zero vector is undefined');
+    }
     // Clamp cosine to [-1, 1] for numerical safety
     const cosv = dotProduct.div(n1.mul(n2));
     const cosNum = cosv.toNumber();
@@ -215,11 +242,19 @@ export class Vector {
    * Project this vector onto another vector.
    * @param {Vector} other - Vector to project onto
    * @returns {Vector} The projection of this onto other
-   * @throws {Error} If other is zero vector
+   * @throws {Error} If other is not a Vector, dimensions mismatch, or other is zero vector
    */
   projectOnto(other) {
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('projectOnto: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`projectOnto: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     const denom = other.dot(other);
-    if (denom.isZero()) throw new Error('Cannot project onto zero vector');
+    if (denom.isZero()) {
+      throw new Error('projectOnto: cannot project onto zero vector');
+    }
     const coef = this.dot(other).div(denom);
     return other.scale(coef);
   }
@@ -254,8 +289,15 @@ export class Vector {
    * Check if this vector is orthogonal to another.
    * @param {Vector} other - Vector to check orthogonality with
    * @returns {boolean} True if vectors are orthogonal (dot product is zero)
+   * @throws {Error} If other is not a Vector or dimensions mismatch
    */
   isOrthogonalTo(other) {
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('isOrthogonalTo: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`isOrthogonalTo: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     return this.dot(other).isZero();
   }
 
@@ -263,9 +305,15 @@ export class Vector {
    * Euclidean distance to another vector.
    * @param {Vector} other - Vector to compute distance to
    * @returns {Decimal} The Euclidean distance
-   * @throws {Error} If dimensions mismatch
+   * @throws {Error} If other is not a Vector or dimensions mismatch
    */
   distance(other) {
+    if (!other || !(other instanceof Vector)) {
+      throw new Error('distance: argument must be a Vector');
+    }
+    if (this.length !== other.length) {
+      throw new Error(`distance: dimension mismatch (${this.length} vs ${other.length})`);
+    }
     return this.sub(other).norm();
   }
 

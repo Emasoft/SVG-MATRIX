@@ -1013,7 +1013,9 @@ export async function loadInput(input, type) {
             return parseSVG(new XMLSerializer().serializeToString(svgRoot));
           }
         }
-      } catch (_e) {
+      } catch (e) {
+        // Log error for debugging - cross-origin or security error
+        if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
         throw new Error(
           "HTMLObjectElement: SVG content not accessible (cross-origin or security error)",
         );
@@ -1044,7 +1046,9 @@ export async function loadInput(input, type) {
             return parseSVG(new XMLSerializer().serializeToString(root));
           }
         }
-      } catch (_e) {
+      } catch (e) {
+        // Log error for debugging - cross-origin access error
+        if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
         throw new Error(
           "HTMLIFrameElement: SVG content not accessible (cross-origin)",
         );
@@ -1155,7 +1159,9 @@ export const cleanupIds = createOperation((doc, options = {}) => {
   const decodeId = (id) => {
     try {
       return decodeURI(id);
-    } catch (_e) {
+    } catch (e) {
+      // Log error for debugging - invalid URI encoding
+      if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
       return id;
     }
   };
@@ -3745,8 +3751,9 @@ export const inlineStyles = createOperation((doc, options = {}) => {
       let specificity;
       try {
         specificity = CSSSpecificity.calculateSpecificity(selector);
-      } catch (_e) {
-        // Invalid selector, can't calculate specificity, keep in style element
+      } catch (e) {
+        // Invalid selector, can't calculate specificity, keep in style element - log error for debugging
+        if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
         uninlineableSelectors.push(rule);
         continue;
       }
@@ -3887,8 +3894,9 @@ export const inlineStyles = createOperation((doc, options = {}) => {
             }
           }
         }
-      } catch (_e) {
-        // Invalid selector, keep in style element
+      } catch (e) {
+        // Invalid selector, keep in style element - log error for debugging
+        if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
         uninlineableSelectors.push(originalRule);
       }
     }
@@ -4105,8 +4113,9 @@ export const removeOffCanvasPath = createOperation((doc, _options = {}) => {
           path.parentNode.removeChild(path);
         }
       }
-    } catch (_e) {
-      // Skip invalid paths - don't remove paths we can't analyze
+    } catch (e) {
+      // Skip invalid paths - don't remove paths we can't analyze - log error for debugging
+      if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     }
   }
 
@@ -4464,8 +4473,9 @@ export const removeAttributesBySelector = createOperation(
           }
         }
       }
-    } catch (_e) {
-      // Invalid selector
+    } catch (e) {
+      // Invalid selector - log error for debugging
+      if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     }
 
     return doc;
@@ -9450,8 +9460,9 @@ export const generateFullCompatibilityMatrix = createOperation(
           const imgUrl = new URL(href);
           const docUrl = new URL(doc.documentURI || doc.baseURI || "");
           isCrossOrigin = imgUrl.origin !== docUrl.origin;
-        } catch (_e) {
-          // If URL parsing fails, assume cross-origin for safety
+        } catch (e) {
+          // If URL parsing fails, assume cross-origin for safety - log error for debugging
+          if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
           isCrossOrigin = true;
         }
         detectedCapabilities.add(
@@ -18446,7 +18457,9 @@ function resolveURL(url, basePath) {
   if (basePath.match(/^https?:\/\//i)) {
     try {
       return new URL(url, basePath).href;
-    } catch (_e) {
+    } catch (e) {
+      // Log error for debugging - invalid URL
+      if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
       return url;
     }
   }
@@ -18472,8 +18485,9 @@ function resolveURL(url, basePath) {
         return url;
       }
       return resolved;
-    } catch (_e) {
-      // Fallback to simple join
+    } catch (e) {
+      // Fallback to simple join - log error for debugging
+      if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
       const baseDir = basePath.endsWith("/")
         ? basePath
         : basePath.substring(0, basePath.lastIndexOf("/") + 1);
@@ -19103,8 +19117,9 @@ function extractFontFamilyFromGoogleUrl(url) {
       // Handle "Fira+Mono" or "Fira Mono:400,700"
       return family.split(":")[0].replace(/\+/g, " ");
     }
-  } catch (_e) {
-    // Try regex fallback
+  } catch (e) {
+    // Try regex fallback - log error for debugging
+    if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     const match = url.match(/family=([^&:]+)/);
     if (match) {
       return match[1].replace(/\+/g, " ");
@@ -19126,8 +19141,9 @@ function addTextParamToGoogleFontsUrl(url, textParam) {
     const urlObj = new URL(url);
     urlObj.searchParams.set("text", decodeURIComponent(textParam));
     return urlObj.toString();
-  } catch (_e) {
-    // Fallback: append to URL string
+  } catch (e) {
+    // Fallback: append to URL string - log error for debugging
+    if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     const separator = url.includes("?") ? "&" : "?";
     return `${url}${separator}text=${textParam}`;
   }
@@ -19827,8 +19843,9 @@ function decodeDataUri(parsed) {
   // BUG FIX: Handle malformed percent-encoded sequences gracefully
   try {
     return decodeURIComponent(parsed.data);
-  } catch (_e) {
-    // If decodeURIComponent fails (e.g., malformed %XX), return data as-is
+  } catch (e) {
+    // If decodeURIComponent fails (e.g., malformed %XX), return data as-is - log error for debugging
+    if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     return parsed.data;
   }
 }

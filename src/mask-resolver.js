@@ -1494,3 +1494,25 @@ export function meshGradientToClipPath(meshData, options = {}) {
 
   return result;
 }
+
+export default {
+  MaskType,
+  parseMaskElement,
+  getMaskRegion,
+  maskChildToPolygon,
+  colorToLuminance,
+  getMaskChildOpacity,
+  resolveMask,
+  applyMask,
+  maskToClipPath,
+  maskToPathData,
+  parseGradientReference,
+  rgbToLuminance,
+  sampleMeshGradientForMask,
+  applyMeshGradientMask,
+  resolveMaskWithGradients,
+  createMeshGradientMask,
+  getMeshGradientBoundary,
+  clipWithMeshGradientShape,
+  meshGradientToClipPath,
+};

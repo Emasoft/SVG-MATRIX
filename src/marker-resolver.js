@@ -21,8 +21,6 @@ import * as Transforms2D from "./transforms2d.js";
 
 Decimal.set({ precision: 80 });
 
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
-
 /**
  * Parse an SVG marker element to extract all marker properties.
  *
@@ -1105,3 +1103,18 @@ export function markersToPathData(markerInstances, precision = 2) {
 
   return pathParts.join(" ");
 }
+
+export default {
+  parseMarkerElement,
+  parseMarkerChild,
+  getMarkerTransform,
+  getPathVertices,
+  parsePathCommands,
+  resolveMarkers,
+  markerToPolygons,
+  pathToPoints,
+  circleToPoints,
+  ellipseToPoints,
+  parsePoints,
+  markersToPathData,
+};

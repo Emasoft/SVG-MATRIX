@@ -33,6 +33,13 @@ function setOwnerDocument(el, doc) {
  * @returns {SVGElement} Root element with DOM-like interface
  */
 export function parseSVG(svgString) {
+  if (typeof svgString !== 'string') {
+    throw new Error('parseSVG: input must be a string');
+  }
+  if (svgString.trim().length === 0) {
+    throw new Error('parseSVG: input cannot be empty');
+  }
+
   // Normalize whitespace but preserve content
   const normalized = svgString.trim();
 
@@ -1082,8 +1089,11 @@ export function parseUrlReference(urlValue) {
  * @returns {string}
  */
 export function serializeSVG(root, options = {}) {
+  if (!root) {
+    throw new Error('serializeSVG: document is required');
+  }
   // Validate that root is a proper SVGElement with serialize method
-  if (!root || typeof root.serialize !== "function") {
+  if (typeof root.serialize !== "function") {
     // If root is already a string, return it directly
     if (typeof root === "string") return root;
     throw new Error(

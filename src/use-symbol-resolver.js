@@ -23,8 +23,6 @@ import { parseTransformAttribute } from "./svg-flatten.js";
 
 Decimal.set({ precision: 80 });
 
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
-
 /**
  * Detect circular references when resolving use/symbol references.
  * Prevents infinite loops when SVG contains circular reference chains like:
@@ -1217,3 +1215,20 @@ export function resolveAllUses(svgRoot, options = {}) {
 
   return resolved;
 }
+
+export default {
+  parseUseElement,
+  parseSymbolElement,
+  parseChildElement,
+  extractStyleAttributes,
+  calculateViewBoxTransform,
+  resolveUse,
+  flattenResolvedUse,
+  elementToPolygon,
+  mergeStyles,
+  getResolvedBBox,
+  clipResolvedUse,
+  resolvedUseToPathData,
+  buildDefsMap,
+  resolveAllUses,
+};

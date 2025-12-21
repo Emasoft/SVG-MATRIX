@@ -834,7 +834,22 @@ async function readFileWithTimeout(filePath, timeout = FILE_READ_TIMEOUT) {
     fs.readFile(filePath, "utf8", (err, data) => {
       clearTimeout(timeoutId);
       if (err) {
-        reject(new Error(`Failed to read '${filePath}': ${err.message}`));
+        // Provide specific error messages for common file access errors
+        if (err.code === "ENOENT") {
+          reject(
+            new Error(
+              `File not found: '${filePath}'\n  Tip: Check the file path and ensure the file exists`,
+            ),
+          );
+        } else if (err.code === "EACCES" || err.code === "EPERM") {
+          reject(
+            new Error(
+              `Permission denied: '${filePath}'\n  Tip: Check file permissions or run with appropriate privileges`,
+            ),
+          );
+        } else {
+          reject(new Error(`Failed to read '${filePath}': ${err.message}`));
+        }
       } else {
         resolve(data);
       }
@@ -1108,6 +1123,9 @@ function loadConfig(configPath) {
   if (configPath) {
     if (!fs.existsSync(configPath)) {
       console.error(c("red", `Error: Config file not found: ${configPath}`));
+      console.error(
+        c("dim", `  Tip: Place .svglintrc.json in project root or use --config <path>`),
+      );
       process.exit(2);
     }
     try {
@@ -1304,12 +1322,21 @@ function parseArgs(argv) {
       i++;
       if (argv[i] === undefined || argv[i].startsWith("-")) {
         console.error(c("red", `Error: --max-warnings requires a number`));
+        console.error(
+          c("dim", `  Example: svglinter --max-warnings 5 file.svg`),
+        );
         process.exit(2);
       }
       const num = parseInt(argv[i], 10);
       if (Number.isNaN(num) || num < 0) {
         console.error(
-          c("red", `Error: --max-warnings must be a non-negative integer`),
+          c(
+            "red",
+            `Error: --max-warnings requires a non-negative integer (got: ${argv[i]})`,
+          ),
+        );
+        console.error(
+          c("dim", `  Example: svglinter --max-warnings 5 file.svg`),
         );
         process.exit(2);
       }
@@ -1319,7 +1346,13 @@ function parseArgs(argv) {
       const num = parseInt(value, 10);
       if (Number.isNaN(num) || num < 0) {
         console.error(
-          c("red", `Error: --max-warnings must be a non-negative integer`),
+          c(
+            "red",
+            `Error: --max-warnings requires a non-negative integer (got: ${value})`,
+          ),
+        );
+        console.error(
+          c("dim", `  Example: svglinter --max-warnings=5 file.svg`),
         );
         process.exit(2);
       }

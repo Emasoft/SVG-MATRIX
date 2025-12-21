@@ -14,15 +14,15 @@
  * @module pattern-resolver
  */
 
-import Decimal from 'decimal.js';
-import { Matrix } from './matrix.js';
-import * as Transforms2D from './transforms2d.js';
-import * as PolygonClip from './polygon-clip.js';
-import * as ClipPathResolver from './clip-path-resolver.js';
+import Decimal from "decimal.js";
+import { Matrix } from "./matrix.js";
+import * as Transforms2D from "./transforms2d.js";
+import * as PolygonClip from "./polygon-clip.js";
+import * as ClipPathResolver from "./clip-path-resolver.js";
 
 Decimal.set({ precision: 80 });
 
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Parse pattern element to structured data
@@ -72,19 +72,24 @@ const D = x => (x instanceof Decimal ? x : new Decimal(x));
  */
 export function parsePatternElement(patternElement) {
   const data = {
-    id: patternElement.getAttribute('id') || '',
-    patternUnits: patternElement.getAttribute('patternUnits') || 'objectBoundingBox',
-    patternContentUnits: patternElement.getAttribute('patternContentUnits') || 'userSpaceOnUse',
-    patternTransform: patternElement.getAttribute('patternTransform') || null,
-    x: patternElement.getAttribute('x'),
-    y: patternElement.getAttribute('y'),
-    width: patternElement.getAttribute('width'),
-    height: patternElement.getAttribute('height'),
-    viewBox: patternElement.getAttribute('viewBox') || null,
-    preserveAspectRatio: patternElement.getAttribute('preserveAspectRatio') || 'xMidYMid meet',
-    href: patternElement.getAttribute('href') ||
-          patternElement.getAttribute('xlink:href') || null,
-    children: []
+    id: patternElement.getAttribute("id") || "",
+    patternUnits:
+      patternElement.getAttribute("patternUnits") || "objectBoundingBox",
+    patternContentUnits:
+      patternElement.getAttribute("patternContentUnits") || "userSpaceOnUse",
+    patternTransform: patternElement.getAttribute("patternTransform") || null,
+    x: patternElement.getAttribute("x"),
+    y: patternElement.getAttribute("y"),
+    width: patternElement.getAttribute("width"),
+    height: patternElement.getAttribute("height"),
+    viewBox: patternElement.getAttribute("viewBox") || null,
+    preserveAspectRatio:
+      patternElement.getAttribute("preserveAspectRatio") || "xMidYMid meet",
+    href:
+      patternElement.getAttribute("href") ||
+      patternElement.getAttribute("xlink:href") ||
+      null,
+    children: [],
   };
 
   // Parse numeric values
@@ -95,13 +100,16 @@ export function parsePatternElement(patternElement) {
 
   // Parse viewBox if present
   if (data.viewBox) {
-    const parts = data.viewBox.trim().split(/[\s,]+/).map(Number);
+    const parts = data.viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
     if (parts.length === 4) {
       data.viewBoxParsed = {
         x: parts[0],
         y: parts[1],
         width: parts[2],
-        height: parts[3]
+        height: parts[3],
       };
     }
   }
@@ -111,62 +119,62 @@ export function parsePatternElement(patternElement) {
     const tagName = child.tagName.toLowerCase();
     const childData = {
       type: tagName,
-      fill: child.getAttribute('fill') || 'black',
-      stroke: child.getAttribute('stroke') || 'none',
-      strokeWidth: parseFloat(child.getAttribute('stroke-width') || '1'),
-      opacity: parseFloat(child.getAttribute('opacity') || '1'),
-      transform: child.getAttribute('transform') || null
+      fill: child.getAttribute("fill") || "black",
+      stroke: child.getAttribute("stroke") || "none",
+      strokeWidth: parseFloat(child.getAttribute("stroke-width") || "1"),
+      opacity: parseFloat(child.getAttribute("opacity") || "1"),
+      transform: child.getAttribute("transform") || null,
     };
 
     // Parse shape-specific attributes
     switch (tagName) {
-      case 'rect':
-        childData.x = parseFloat(child.getAttribute('x') || '0');
-        childData.y = parseFloat(child.getAttribute('y') || '0');
-        childData.width = parseFloat(child.getAttribute('width') || '0');
-        childData.height = parseFloat(child.getAttribute('height') || '0');
-        childData.rx = parseFloat(child.getAttribute('rx') || '0');
-        childData.ry = parseFloat(child.getAttribute('ry') || '0');
+      case "rect":
+        childData.x = parseFloat(child.getAttribute("x") || "0");
+        childData.y = parseFloat(child.getAttribute("y") || "0");
+        childData.width = parseFloat(child.getAttribute("width") || "0");
+        childData.height = parseFloat(child.getAttribute("height") || "0");
+        childData.rx = parseFloat(child.getAttribute("rx") || "0");
+        childData.ry = parseFloat(child.getAttribute("ry") || "0");
         break;
-      case 'circle':
-        childData.cx = parseFloat(child.getAttribute('cx') || '0');
-        childData.cy = parseFloat(child.getAttribute('cy') || '0');
-        childData.r = parseFloat(child.getAttribute('r') || '0');
+      case "circle":
+        childData.cx = parseFloat(child.getAttribute("cx") || "0");
+        childData.cy = parseFloat(child.getAttribute("cy") || "0");
+        childData.r = parseFloat(child.getAttribute("r") || "0");
         break;
-      case 'ellipse':
-        childData.cx = parseFloat(child.getAttribute('cx') || '0');
-        childData.cy = parseFloat(child.getAttribute('cy') || '0');
-        childData.rx = parseFloat(child.getAttribute('rx') || '0');
-        childData.ry = parseFloat(child.getAttribute('ry') || '0');
+      case "ellipse":
+        childData.cx = parseFloat(child.getAttribute("cx") || "0");
+        childData.cy = parseFloat(child.getAttribute("cy") || "0");
+        childData.rx = parseFloat(child.getAttribute("rx") || "0");
+        childData.ry = parseFloat(child.getAttribute("ry") || "0");
         break;
-      case 'path':
-        childData.d = child.getAttribute('d') || '';
+      case "path":
+        childData.d = child.getAttribute("d") || "";
         break;
-      case 'polygon':
-        childData.points = child.getAttribute('points') || '';
+      case "polygon":
+        childData.points = child.getAttribute("points") || "";
         break;
-      case 'polyline':
-        childData.points = child.getAttribute('points') || '';
+      case "polyline":
+        childData.points = child.getAttribute("points") || "";
         break;
-      case 'line':
-        childData.x1 = parseFloat(child.getAttribute('x1') || '0');
-        childData.y1 = parseFloat(child.getAttribute('y1') || '0');
-        childData.x2 = parseFloat(child.getAttribute('x2') || '0');
-        childData.y2 = parseFloat(child.getAttribute('y2') || '0');
+      case "line":
+        childData.x1 = parseFloat(child.getAttribute("x1") || "0");
+        childData.y1 = parseFloat(child.getAttribute("y1") || "0");
+        childData.x2 = parseFloat(child.getAttribute("x2") || "0");
+        childData.y2 = parseFloat(child.getAttribute("y2") || "0");
         break;
-      case 'use':
-        childData.href = child.getAttribute('href') ||
-                        child.getAttribute('xlink:href') || '';
-        childData.x = parseFloat(child.getAttribute('x') || '0');
-        childData.y = parseFloat(child.getAttribute('y') || '0');
+      case "use":
+        childData.href =
+          child.getAttribute("href") || child.getAttribute("xlink:href") || "";
+        childData.x = parseFloat(child.getAttribute("x") || "0");
+        childData.y = parseFloat(child.getAttribute("y") || "0");
         break;
-      case 'g':
+      case "g":
         // Groups can contain nested shapes
         childData.children = [];
         for (const gc of child.children) {
           childData.children.push({
             type: gc.tagName.toLowerCase(),
-            fill: gc.getAttribute('fill') || 'inherit'
+            fill: gc.getAttribute("fill") || "inherit",
           });
         }
         break;
@@ -225,13 +233,13 @@ export function parsePatternElement(patternElement) {
  * // Tile uses absolute coordinates, bbox is ignored
  */
 export function getPatternTile(patternData, targetBBox) {
-  if (patternData.patternUnits === 'objectBoundingBox') {
+  if (patternData.patternUnits === "objectBoundingBox") {
     // Dimensions are fractions of target bbox
     return {
       x: D(targetBBox.x).plus(D(patternData.x).mul(targetBBox.width)),
       y: D(targetBBox.y).plus(D(patternData.y).mul(targetBBox.height)),
       width: D(patternData.width).mul(targetBBox.width),
-      height: D(patternData.height).mul(targetBBox.height)
+      height: D(patternData.height).mul(targetBBox.height),
     };
   }
 
@@ -240,7 +248,7 @@ export function getPatternTile(patternData, targetBBox) {
     x: D(patternData.x),
     y: D(patternData.y),
     width: D(patternData.width),
-    height: D(patternData.height)
+    height: D(patternData.height),
   };
 }
 
@@ -319,12 +327,14 @@ export function getPatternContentTransform(patternData, tile, targetBBox) {
     const offsetX = (tileWidth - vb.width * scale) / 2;
     const offsetY = (tileHeight - vb.height * scale) / 2;
 
-    M = M.mul(Transforms2D.translation(offsetX - vb.x * scale, offsetY - vb.y * scale));
+    M = M.mul(
+      Transforms2D.translation(offsetX - vb.x * scale, offsetY - vb.y * scale),
+    );
     M = M.mul(Transforms2D.scale(scale, scale));
   }
 
   // Apply objectBoundingBox scaling if needed
-  if (patternData.patternContentUnits === 'objectBoundingBox') {
+  if (patternData.patternContentUnits === "objectBoundingBox") {
     M = M.mul(Transforms2D.translation(targetBBox.x, targetBBox.y));
     M = M.mul(Transforms2D.scale(targetBBox.width, targetBBox.height));
   }
@@ -361,7 +371,7 @@ export function patternChildToPolygon(child, transform = null, samples = 20) {
   const element = {
     type: child.type,
     ...child,
-    transform: child.transform
+    transform: child.transform,
   };
 
   // Get polygon using ClipPathResolver
@@ -369,7 +379,7 @@ export function patternChildToPolygon(child, transform = null, samples = 20) {
 
   // Apply additional transform if provided
   if (transform && polygon.length > 0) {
-    polygon = polygon.map(p => {
+    polygon = polygon.map((p) => {
       const [x, y] = Transforms2D.applyTransform(transform, p.x, p.y);
       return { x, y };
     });
@@ -432,7 +442,7 @@ export function getTilePositions(tile, coverBBox) {
     for (let j = startJ; j < endJ; j++) {
       positions.push({
         x: D(tileX).plus(D(tileW).mul(i)),
-        y: D(tileY).plus(D(tileH).mul(j))
+        y: D(tileY).plus(D(tileH).mul(j)),
       });
     }
   }
@@ -489,7 +499,11 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
   }
 
   // Get content transform
-  const contentTransform = getPatternContentTransform(patternData, tile, targetBBox);
+  const contentTransform = getPatternContentTransform(
+    patternData,
+    tile,
+    targetBBox,
+  );
 
   // Get tile positions
   const positions = getTilePositions(tile, targetBBox);
@@ -513,7 +527,7 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
           fill: child.fill,
           stroke: child.stroke,
           strokeWidth: child.strokeWidth,
-          opacity: child.opacity
+          opacity: child.opacity,
         });
       }
     }
@@ -558,21 +572,29 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
  * const clippedParts = applyPattern(circlePolygon, patternData, bbox);
  * // Returns only the stripe portions visible within the circle
  */
-export function applyPattern(targetPolygon, patternData, targetBBox, options = {}) {
+export function applyPattern(
+  targetPolygon,
+  patternData,
+  targetBBox,
+  options = {},
+) {
   const patternPolygons = resolvePattern(patternData, targetBBox, options);
   const result = [];
 
   for (const { polygon, fill, opacity } of patternPolygons) {
     if (opacity <= 0) continue;
 
-    const intersection = PolygonClip.polygonIntersection(targetPolygon, polygon);
+    const intersection = PolygonClip.polygonIntersection(
+      targetPolygon,
+      polygon,
+    );
 
     for (const clippedPoly of intersection) {
       if (clippedPoly.length >= 3) {
         result.push({
           polygon: clippedPoly,
           fill,
-          opacity
+          opacity,
         });
       }
     }
@@ -655,16 +677,16 @@ export function patternToClipPath(patternData, targetBBox, options = {}) {
 export function patternToPathData(patternData, targetBBox, options = {}) {
   const polygon = patternToClipPath(patternData, targetBBox, options);
 
-  if (polygon.length < 3) return '';
+  if (polygon.length < 3) return "";
 
-  let d = '';
+  let d = "";
   for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i];
     const x = Number(p.x).toFixed(6);
     const y = Number(p.y).toFixed(6);
     d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
   }
-  d += ' Z';
+  d += " Z";
 
   return d;
 }
@@ -707,7 +729,7 @@ export function getPatternTileCount(patternData, targetBBox) {
   return {
     columns,
     rows,
-    total: columns * rows
+    total: columns * rows,
   };
 }
 
@@ -751,36 +773,36 @@ export function getPatternContentBBox(patternData) {
     let childBBox = null;
 
     switch (child.type) {
-      case 'rect':
+      case "rect":
         childBBox = {
           x: child.x,
           y: child.y,
           width: child.width,
-          height: child.height
+          height: child.height,
         };
         break;
-      case 'circle':
+      case "circle":
         childBBox = {
           x: child.cx - child.r,
           y: child.cy - child.r,
           width: child.r * 2,
-          height: child.r * 2
+          height: child.r * 2,
         };
         break;
-      case 'ellipse':
+      case "ellipse":
         childBBox = {
           x: child.cx - child.rx,
           y: child.cy - child.ry,
           width: child.rx * 2,
-          height: child.ry * 2
+          height: child.ry * 2,
         };
         break;
-      case 'line':
+      case "line":
         childBBox = {
           x: Math.min(child.x1, child.x2),
           y: Math.min(child.y1, child.y2),
           width: Math.abs(child.x2 - child.x1),
-          height: Math.abs(child.y2 - child.y1)
+          height: Math.abs(child.y2 - child.y1),
         };
         break;
     }
@@ -801,7 +823,7 @@ export function getPatternContentBBox(patternData) {
     x: minX,
     y: minY,
     width: maxX - minX,
-    height: maxY - minY
+    height: maxY - minY,
   };
 }
 
@@ -842,3 +864,18 @@ export function parsePatternTransform(transformStr) {
   // Use ClipPathResolver's transform parser
   return ClipPathResolver.parseTransform(transformStr);
 }
+
+export default {
+  parsePatternElement,
+  getPatternTile,
+  getPatternContentTransform,
+  patternChildToPolygon,
+  getTilePositions,
+  resolvePattern,
+  applyPattern,
+  patternToClipPath,
+  patternToPathData,
+  getPatternTileCount,
+  getPatternContentBBox,
+  parsePatternTransform,
+};

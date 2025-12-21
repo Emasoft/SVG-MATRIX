@@ -52,8 +52,7 @@ try {
     'utf-8'
   );
 } catch (e) {
-  // Fallback: polyfills will be empty
-  console.warn('svg2-polyfills: Could not load Inkscape polyfills:', e.message);
+  throw new Error(`Failed to load SVG2 polyfill files from vendor/ directory: ${e.message}. Ensure all vendor files are present.`);
 }
 
 // Module-level option for minification (default: true)
