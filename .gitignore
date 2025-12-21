@@ -34,6 +34,9 @@ npm-shrinkwrap.json
 .claude/*.lock
 CLAUDE.md
 
+# SERENA MCP local config
+.serena/
+
 # Test coverage
 coverage/
 .nyc_output/
