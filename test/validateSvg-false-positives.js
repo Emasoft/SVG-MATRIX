@@ -1,6 +1,12 @@
 import { validateSvg, ValidationSeverity } from '../src/svg-toolbox.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'url';
+
+// Compute paths relative to this file's location for portability
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.join(__dirname, '..');
 
 async function findSvgFiles(dir, files = []) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -21,17 +27,17 @@ async function testFalsePositives() {
   console.log('='.repeat(70));
   console.log();
 
-  // Key test directories - these should be well-formed SVGs
+  // Key test directories - these should be well-formed SVGs (using relative paths)
   const testDirs = [
-    '/Users/emanuelesabetta/Code/SVG-MATRIX/samples/toolbox-tests'
+    path.join(PROJECT_ROOT, 'samples', 'toolbox-tests')
   ];
 
-  // Specific files to test (known good files)
+  // Specific files to test (known good files - using relative paths)
   const specificFiles = [
-    '/Users/emanuelesabetta/Code/SVG-MATRIX/samples/test.svg',
-    '/Users/emanuelesabetta/Code/SVG-MATRIX/samples/meshgradient_polyfill_example.svg',
-    '/Users/emanuelesabetta/Code/SVG-MATRIX/samples/anime_girl.fbf.svg',
-    '/Users/emanuelesabetta/Code/SVG-MATRIX/samples/panther_bird_header.fbf.svg'
+    path.join(PROJECT_ROOT, 'samples', 'test.svg'),
+    path.join(PROJECT_ROOT, 'samples', 'meshgradient_polyfill_example.svg'),
+    path.join(PROJECT_ROOT, 'samples', 'anime_girl.fbf.svg'),
+    path.join(PROJECT_ROOT, 'samples', 'panther_bird_header.fbf.svg')
   ];
 
   let allFiles = [...specificFiles];

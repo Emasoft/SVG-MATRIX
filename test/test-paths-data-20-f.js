@@ -4,12 +4,26 @@
  */
 
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { parseSVG, serializeSVG } from '../src/svg-parser.js';
 import { optimizePaths } from '../src/svg-toolbox.js';
 
+// Compute paths relative to this file's location for portability
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.join(__dirname, '..');
+const testFile = path.join(PROJECT_ROOT, 'SVG 1.1 W3C Test Suit', 'svg', 'paths-data-20-f.svg');
+
 console.log('Testing W3C paths-data-20-f.svg...\n');
 
-const testFile = '/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg/paths-data-20-f.svg';
+// Check if W3C test suite exists
+if (!fs.existsSync(testFile)) {
+  console.log('W3C SVG Test Suite not found - skipping test.');
+  console.log(`Expected file: ${testFile}`);
+  console.log('This is optional and requires downloading the W3C SVG 1.1 Test Suite.');
+  process.exit(0);
+}
 
 try {
   // Read the test file

@@ -23,7 +23,7 @@ import { parseTransformAttribute } from "./svg-flatten.js";
 
 Decimal.set({ precision: 80 });
 
-const _D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Detect circular references when resolving use/symbol references.

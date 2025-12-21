@@ -21,7 +21,7 @@ import * as Transforms2D from "./transforms2d.js";
 
 Decimal.set({ precision: 80 });
 
-const _D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
 
 /**
  * Parse an SVG marker element to extract all marker properties.

@@ -29,7 +29,7 @@ Thank you for your interest in contributing to SVG-MATRIX. This document provide
 
 ### Prerequisites
 
-- Node.js 18+ (LTS recommended)
+- Node.js 24+ (required for modern ECMAScript features)
 - npm 9+ or pnpm
 - Git
 
@@ -71,7 +71,7 @@ svg-matrix/
 
 - ES Modules (`import`/`export`) only
 - No CommonJS (`require`/`module.exports`)
-- Target: Node.js 18+ (use modern syntax freely)
+- Target: Node.js 24+ (use modern syntax freely)
 
 ### Strict Mode
 
@@ -965,7 +965,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - run: npm ci
       - name: Run SVG-Toolbox Testing Matrix
         run: node test/test-toolbox-matrix-8bits.js

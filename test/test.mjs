@@ -9,12 +9,17 @@
  * 4. XML validity
  */
 
-import { readFileSync, readdirSync, writeFileSync } from 'fs';
-import { join, basename } from 'path';
+import { readFileSync, readdirSync, writeFileSync, existsSync } from 'fs';
+import { join, basename, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { JSDOM } from 'jsdom';
-import { removeRasterImages } from '/Users/emanuelesabetta/Code/SVG-MATRIX/src/svg-toolbox.js';
+import { removeRasterImages } from '../src/svg-toolbox.js';
 
-const W3C_SVG_DIR = '/Users/emanuelesabetta/Code/SVG-MATRIX/SVG 1.1 W3C Test Suit/svg';
+// Compute paths relative to this file's location for portability
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = join(__dirname, '..');
+const W3C_SVG_DIR = join(PROJECT_ROOT, 'SVG 1.1 W3C Test Suit', 'svg');
 const LOG_FILE = '/tmp/svg-function-tests/removeRasterImages/test-results.log';
 const ERRORS_FILE = '/tmp/svg-function-tests/removeRasterImages/errors.json';
 
@@ -278,6 +283,14 @@ async function runTests() {
 
   const results = new TestResults();
   const startTime = Date.now();
+
+  // Check if W3C test suite exists
+  if (!existsSync(W3C_SVG_DIR)) {
+    console.log(`${colors.yellow}W3C SVG Test Suite not found at: ${W3C_SVG_DIR}${colors.reset}`);
+    console.log(`${colors.yellow}Skipping test - this is optional and requires downloading the W3C test suite.${colors.reset}`);
+    console.log(`${colors.green}To run this test, download the W3C SVG 1.1 Test Suite and place it in the project root.${colors.reset}`);
+    process.exit(0);
+  }
 
   // Find all SVG files
   console.log(`${colors.blue}Scanning for SVG files in: ${W3C_SVG_DIR}${colors.reset}`);
