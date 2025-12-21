@@ -15,6 +15,7 @@ Decimal.set({ precision: 80 });
  * Recursively set ownerDocument on an element and all its descendants.
  * @param {SVGElement} el - Element to set ownerDocument on
  * @param {SVGDocument} doc - The document object
+ * @returns {void}
  */
 function setOwnerDocument(el, doc) {
   el.ownerDocument = doc;
@@ -866,6 +867,8 @@ function escapeText(str) {
 /**
  * Escape attribute value for XML.
  * @private
+ * @param {string} str - Attribute value to escape
+ * @returns {string} Escaped attribute value
  */
 function escapeAttr(str) {
   if (typeof str !== "string") return String(str);
@@ -881,6 +884,8 @@ function escapeAttr(str) {
  * Unescape attribute value from XML.
  * Handles numeric entities (decimal and hex) and named entities.
  * @private
+ * @param {string} str - Attribute value to unescape
+ * @returns {string} Unescaped attribute value
  */
 function unescapeAttr(str) {
   if (!str) return str;
@@ -945,6 +950,8 @@ function unescapeAttr(str) {
  * Unescape text content from XML.
  * Handles numeric entities (decimal and hex) and named entities.
  * @private
+ * @param {string} str - Text content to unescape
+ * @returns {string} Unescaped text content
  */
 function unescapeText(str) {
   if (!str) return str;

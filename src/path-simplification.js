@@ -52,7 +52,6 @@ const DEFAULT_TOLERANCE = new Decimal('1e-10');
 /**
  * Implementation of atan2 using Decimal.js (which doesn't provide it natively).
  * Returns the angle in radians between the positive x-axis and the ray from (0,0) to (x,y).
- *
  * @param {Decimal} y - Y coordinate
  * @param {Decimal} x - X coordinate
  * @returns {Decimal} Angle in radians (-π to π)

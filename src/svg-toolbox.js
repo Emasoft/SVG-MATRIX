@@ -864,9 +864,11 @@ export const OutputFormat = {
 };
 
 /**
- * Detect input type from value
+ * Detect input type from value.
  * Supports: SVG string, file path, URL, DOM elements, CSS selectors,
- * and browser-specific containers (object, embed, iframe)
+ * and browser-specific containers (object, embed, iframe).
+ * @param {string|Element|Document|HTMLObjectElement|HTMLEmbedElement|HTMLIFrameElement} input - Input value to detect type for
+ * @returns {string} Input type from InputType enum
  */
 export function detectInputType(input) {
   if (typeof input === "string") {
@@ -1055,7 +1057,12 @@ export async function loadInput(input, type) {
 }
 
 /**
- * Generate output in requested format
+ * Generate output in requested format.
+ * @param {Document|Element} doc - SVG document or element to output
+ * @param {string} format - Output format from OutputFormat enum
+ * @param {Object} [options] - Output options
+ * @param {boolean} [options.minify=true] - Whether to minify the output
+ * @returns {string|Document|Element} Formatted output (string for SVG_STRING, or document/element for DOM formats)
  */
 export function generateOutput(doc, format, options = {}) {
   switch (format) {
@@ -1079,7 +1086,11 @@ export function generateOutput(doc, format, options = {}) {
 }
 
 /**
- * Create operation wrapper for auto input/output handling
+ * Create operation wrapper for auto input/output handling.
+ * Wraps an SVG operation function to automatically handle input detection,
+ * loading, and output formatting.
+ * @param {Function} operationFn - Operation function that takes (doc, options) and returns modified document
+ * @returns {Function} Wrapped async function that handles input/output automatically
  */
 export function createOperation(operationFn) {
   return async function (input, options = {}) {
@@ -1101,10 +1112,17 @@ export function createOperation(operationFn) {
 // ============================================================================
 
 /**
- * Remove unused IDs, minify used IDs
- * P3-1: URL encoding/decoding handling
- * P3-3: Orphaned ID collision detection
- * P3-4: Use referencesProps for targeted attribute scanning
+ * Remove unused IDs and minify used IDs.
+ * Features: URL encoding/decoding handling, orphaned ID collision detection,
+ * targeted attribute scanning, and animation-aware reference tracking.
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Cleanup options
+ * @param {boolean} [options.minify=true] - Minify IDs to shortest possible form (a, b, c, etc.)
+ * @param {boolean} [options.remove=true] - Remove unused IDs
+ * @param {boolean} [options.force=false] - Force processing even if scripts/styles present
+ * @param {Array<string>} [options.preserve=[]] - Array of ID names to preserve unchanged
+ * @param {Array<string>} [options.preservePrefixes=[]] - Array of ID prefixes to preserve unchanged
+ * @returns {Document} SVG document with cleaned up IDs
  */
 export const cleanupIds = createOperation((doc, options = {}) => {
   const minify = options.minify !== false;
@@ -1358,7 +1376,12 @@ export const cleanupIds = createOperation((doc, options = {}) => {
 });
 
 /**
- * Round numeric values to precision using Decimal.js
+ * Round numeric values to specified precision using Decimal.js for accurate rounding.
+ * Processes numeric attributes in path data, transforms, and other numeric SVG attributes.
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Rounding options
+ * @param {number} [options.precision=6] - Number of decimal places to round to
+ * @returns {Document} SVG document with rounded numeric values
  */
 export const cleanupNumericValues = createOperation((doc, options = {}) => {
   const precision = options.precision || 6;
@@ -1436,7 +1459,12 @@ export const cleanupNumericValues = createOperation((doc, options = {}) => {
 });
 
 /**
- * Round lists of values using Decimal.js
+ * Round lists of values using Decimal.js for accurate rounding.
+ * Processes attributes containing space/comma-separated numeric lists (e.g., points attribute).
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Rounding options
+ * @param {number} [options.precision=6] - Number of decimal places to round to
+ * @returns {Document} SVG document with rounded list values
  */
 export const cleanupListOfValues = createOperation((doc, options = {}) => {
   const precision = options.precision || 6;
@@ -1478,10 +1506,12 @@ export const cleanupListOfValues = createOperation((doc, options = {}) => {
 });
 
 /**
- * Remove useless attributes (editor metadata, unused classes, etc.)
- * NOTE: Does NOT remove xmlns:xlink - use removeXlink() for safe xlink namespace removal
- * @param {Object} options
- * @param {boolean} options.preserveVendor - If true, preserves vendor namespace declarations (e.g., xmlns:serif)
+ * Remove useless attributes (editor metadata, unused classes, etc.).
+ * NOTE: Does NOT remove xmlns:xlink - use removeXlink() for safe xlink namespace removal.
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Cleanup options
+ * @param {boolean} [options.preserveVendor=false] - If true, preserves vendor namespace declarations (e.g., xmlns:serif)
+ * @returns {Document} SVG document with useless attributes removed
  */
 export const cleanupAttributes = createOperation((doc, options = {}) => {
   // Attributes that are safe to remove unconditionally (unless preserveVendor)
@@ -1525,7 +1555,11 @@ export const cleanupAttributes = createOperation((doc, options = {}) => {
 });
 
 /**
- * Remove enable-background attribute
+ * Remove enable-background attribute.
+ * The enable-background attribute is rarely needed in modern SVG and can often be safely removed.
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Cleanup options (currently unused)
+ * @returns {Document} SVG document with enable-background removed
  */
 export const cleanupEnableBackground = createOperation((doc, _options = {}) => {
   const processElement = (el) => {
@@ -1542,9 +1576,13 @@ export const cleanupEnableBackground = createOperation((doc, _options = {}) => {
 });
 
 /**
- * Remove unknown elements and default values
- * P3-5: Remove uselessOverrides (attributes matching parent's inherited style)
- * P3-6: Skip removal if dynamic styles detected
+ * Remove unknown elements/attributes and elements with default values.
+ * Cleans up invalid SVG elements and attributes that don't belong in the SVG spec.
+ * Features: Remove uselessOverrides (attributes matching parent's inherited style),
+ * skip removal if dynamic styles detected.
+ * @param {Document|string} doc - SVG document or string to process
+ * @param {Object} [options] - Cleanup options (currently unused)
+ * @returns {Document} SVG document with unknowns and defaults removed
  */
 export const removeUnknownsAndDefaults = createOperation(
   (doc, _options = {}) => {
@@ -18460,7 +18498,13 @@ function resolveURL(url, basePath) {
   return baseDir + url;
 }
 
-// Fetch resource content (works in Node.js and browser)
+/**
+ * Fetch resource content (works in Node.js and browser)
+ * @param {string} url - URL or file path to fetch
+ * @param {string} mode - Fetch mode ('text' or 'binary')
+ * @param {number} timeout - Timeout in milliseconds
+ * @returns {Promise<{content: string|Buffer|ArrayBuffer, contentType: string}>} Fetched content and content type
+ */
 async function fetchResource(url, mode = "text", timeout = 30000) {
   // Handle local files in Node.js
   if (isNodeEnvironment() && !url.match(/^https?:\/\//i)) {
@@ -18495,7 +18539,12 @@ async function fetchResource(url, mode = "text", timeout = 30000) {
   }
 }
 
-// Convert binary content to base64 data URI
+/**
+ * Convert binary content to base64 data URI
+ * @param {Buffer|ArrayBuffer|Uint8Array} content - Binary content to convert
+ * @param {string} mimeType - MIME type for the data URI
+ * @returns {string} Base64 data URI
+ */
 function toDataURI(content, mimeType) {
   let base64;
   if (isNodeEnvironment()) {
@@ -18513,7 +18562,11 @@ function toDataURI(content, mimeType) {
   return `data:${mimeType};base64,${base64}`;
 }
 
-// Parse CSS to find @import and url() references
+/**
+ * Parse CSS to find @import and url() references
+ * @param {string} css - CSS content to parse
+ * @returns {{imports: Array<{url: string, fullMatch: string, index: number}>, urls: Array<{url: string, fullMatch: string, index: number}>}} Parsed imports and URLs
+ */
 function parseCSSUrls(css) {
   const imports = [];
   const urls = [];
@@ -18572,7 +18625,13 @@ function parseCSSUrls(css) {
   return { imports, urls };
 }
 
-// Relocate all IDs in element tree with prefix to avoid collisions
+/**
+ * Relocate all IDs in element tree with prefix to avoid collisions
+ * @param {Element} element - Root element to process
+ * @param {string} prefix - Prefix to add to all IDs
+ * @param {Map<string, string>} idMap - Map tracking old ID to new ID mappings
+ * @returns {Map<string, string>} Updated ID mapping
+ */
 function relocateIds(element, prefix, idMap = new Map()) {
   if (!element) return idMap;
 
@@ -18634,8 +18693,14 @@ function relocateIds(element, prefix, idMap = new Map()) {
   return idMap;
 }
 
-// Set script/style content as a proper CDATA section node
-// Using createCDATASection if available, otherwise use marker for post-processing
+/**
+ * Set script/style content as a proper CDATA section node
+ * Using createCDATASection if available, otherwise use marker for post-processing
+ * @param {Element} element - Script or style element to set content for
+ * @param {string} content - Content to set
+ * @param {Document} doc - Document context for creating CDATA nodes
+ * @returns {void}
+ */
 function setCDATAContent(element, content, doc) {
   // BUG FIX: Add null check for element to prevent TypeError
   if (!element) {

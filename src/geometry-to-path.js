@@ -7,6 +7,7 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * Standard kappa for 90° arcs (4 Bezier curves per circle).
  * kappa = 4/3 * (sqrt(2) - 1) ≈ 0.5522847498
  * Maximum radial error: ~0.027%
+ * @returns {Decimal} The kappa constant for 90-degree arc approximation
  */
 export function getKappa() {
   const two = new Decimal(2);
@@ -150,6 +151,12 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
   return commands.join(" ");
 }
 
+/**
+ * Format a number with specified precision, removing trailing zeros.
+ * @param {number|Decimal} value - Value to format
+ * @param {number} precision - Number of decimal places
+ * @returns {string} Formatted number string
+ */
 function formatNumber(value, precision = 6) {
   // Format with precision then remove trailing zeros for smaller output
   let str = value.toFixed(precision);
@@ -160,6 +167,14 @@ function formatNumber(value, precision = 6) {
   return str;
 }
 
+/**
+ * Convert a circle to SVG path data using 4 Bezier arcs (standard kappa).
+ * @param {number|Decimal} cx - Center X coordinate
+ * @param {number|Decimal} cy - Center Y coordinate
+ * @param {number|Decimal} r - Radius
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function circleToPathData(cx, cy, r, precision = 6) {
   const cxD = D(cx),
     cyD = D(cy),
@@ -193,6 +208,15 @@ export function circleToPathData(cx, cy, r, precision = 6) {
   return `M${f(x0)} ${f(y0)}C${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)}C${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)}C${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)}C${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)}Z`;
 }
 
+/**
+ * Convert an ellipse to SVG path data using 4 Bezier arcs (standard kappa).
+ * @param {number|Decimal} cx - Center X coordinate
+ * @param {number|Decimal} cy - Center Y coordinate
+ * @param {number|Decimal} rx - X radius
+ * @param {number|Decimal} ry - Y radius
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
   const cxD = D(cx),
     cyD = D(cy),
@@ -229,6 +253,18 @@ export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
   return `M${f(x0)} ${f(y0)}C${f(c1x1)} ${f(c1y1)} ${f(c1x2)} ${f(c1y2)} ${f(x1)} ${f(y1)}C${f(c2x1)} ${f(c2y1)} ${f(c2x2)} ${f(c2y2)} ${f(x2)} ${f(y2)}C${f(c3x1)} ${f(c3y1)} ${f(c3x2)} ${f(c3y2)} ${f(x3)} ${f(y3)}C${f(c4x1)} ${f(c4y1)} ${f(c4x2)} ${f(c4y2)} ${f(x0)} ${f(y0)}Z`;
 }
 
+/**
+ * Convert a rectangle to SVG path data, with optional rounded corners.
+ * @param {number|Decimal} x - Top-left X coordinate
+ * @param {number|Decimal} y - Top-left Y coordinate
+ * @param {number|Decimal} width - Rectangle width
+ * @param {number|Decimal} height - Rectangle height
+ * @param {number|Decimal} rx - X-axis corner radius (default 0)
+ * @param {number|Decimal|null} ry - Y-axis corner radius (defaults to rx if null)
+ * @param {boolean} useArcs - Use arc commands instead of Bezier curves for corners
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function rectToPathData(
   x,
   y,
@@ -276,11 +312,25 @@ export function rectToPathData(
   return `M${f(leftInner)} ${f(top)}L${f(rightInner)} ${f(top)}C${f(rightInner.plus(kx))} ${f(top)} ${f(right)} ${f(topInner.minus(ky))} ${f(right)} ${f(topInner)}L${f(right)} ${f(bottomInner)}C${f(right)} ${f(bottomInner.plus(ky))} ${f(rightInner.plus(kx))} ${f(bottom)} ${f(rightInner)} ${f(bottom)}L${f(leftInner)} ${f(bottom)}C${f(leftInner.minus(kx))} ${f(bottom)} ${f(left)} ${f(bottomInner.plus(ky))} ${f(left)} ${f(bottomInner)}L${f(left)} ${f(topInner)}C${f(left)} ${f(topInner.minus(ky))} ${f(leftInner.minus(kx))} ${f(top)} ${f(leftInner)} ${f(top)}Z`;
 }
 
+/**
+ * Convert a line segment to SVG path data.
+ * @param {number|Decimal} x1 - Start point X coordinate
+ * @param {number|Decimal} y1 - Start point Y coordinate
+ * @param {number|Decimal} x2 - End point X coordinate
+ * @param {number|Decimal} y2 - End point Y coordinate
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function lineToPathData(x1, y1, x2, y2, precision = 6) {
   const f = (v) => formatNumber(D(v), precision);
   return `M${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}`;
 }
 
+/**
+ * Parse SVG points attribute string into array of Decimal coordinate pairs.
+ * @param {string|Array|Object} points - Points string, array, or SVGAnimatedPoints object
+ * @returns {Array<Array<Decimal>>} Array of [x, y] Decimal pairs
+ */
 function parsePoints(points) {
   // Handle null/undefined
   if (points == null) return [];
@@ -310,6 +360,12 @@ function parsePoints(points) {
   return pairs;
 }
 
+/**
+ * Convert polyline points to SVG path data.
+ * @param {string|Array} points - Points string or array of coordinate pairs
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function polylineToPathData(points, precision = 6) {
   const pairs = parsePoints(points);
   if (pairs.length === 0) return "";
@@ -323,6 +379,12 @@ export function polylineToPathData(points, precision = 6) {
   return path;
 }
 
+/**
+ * Convert polygon points to SVG path data (closed path).
+ * @param {string|Array} points - Points string or array of coordinate pairs
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string with Z (closepath) command
+ */
 export function polygonToPathData(points, precision = 6) {
   const path = polylineToPathData(points, precision);
   return path ? path + " Z" : "";
@@ -352,6 +414,11 @@ const COMMAND_PARAMS = {
   z: 0,
 };
 
+/**
+ * Parse SVG path data string into command objects.
+ * @param {string} pathData - SVG path data string
+ * @returns {Array<Object>} Array of {command, args} objects
+ */
 export function parsePathData(pathData) {
   const commands = [];
   const commandRegex = /([MmLlHhVvCcSsQqTtAaZz])\s*([^MmLlHhVvCcSsQqTtAaZz]*)/g;
@@ -393,6 +460,12 @@ export function parsePathData(pathData) {
   return commands;
 }
 
+/**
+ * Convert path command array back to SVG path data string.
+ * @param {Array<Object>} commands - Array of {command, args} objects
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} SVG path data string
+ */
 export function pathArrayToString(commands, precision = 6) {
   return commands
     .map(({ command, args }) => {
@@ -402,6 +475,11 @@ export function pathArrayToString(commands, precision = 6) {
     .join(" ");
 }
 
+/**
+ * Convert all path commands to absolute coordinates.
+ * @param {string} pathData - SVG path data string
+ * @returns {string} Path data with all absolute commands
+ */
 export function pathToAbsolute(pathData) {
   const commands = parsePathData(pathData);
   const result = [];
@@ -530,6 +608,18 @@ export function pathToAbsolute(pathData) {
   return pathArrayToString(result);
 }
 
+/**
+ * Transform arc command parameters by an affine transformation matrix.
+ * @param {number|Decimal} rx - X radius
+ * @param {number|Decimal} ry - Y radius
+ * @param {number|Decimal} xAxisRotation - Rotation angle in degrees
+ * @param {number} largeArc - Large arc flag (0 or 1)
+ * @param {number} sweep - Sweep flag (0 or 1)
+ * @param {number|Decimal} endX - Arc end point X
+ * @param {number|Decimal} endY - Arc end point Y
+ * @param {Matrix} matrix - 3x3 transformation matrix
+ * @returns {Array} Transformed arc parameters [rx, ry, rotation, largeArc, sweep, endX, endY]
+ */
 export function transformArcParams(
   rx,
   ry,
@@ -599,6 +689,13 @@ export function transformArcParams(
   return [newRx, newRy, newRot, largeArc, newSweep, newEndX, newEndY];
 }
 
+/**
+ * Transform path data by an affine transformation matrix.
+ * @param {string} pathData - SVG path data string
+ * @param {Matrix} matrix - 3x3 transformation matrix
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string} Transformed SVG path data
+ */
 export function transformPathData(pathData, matrix, precision = 6) {
   const absPath = pathToAbsolute(pathData);
   const commands = parsePathData(absPath);
@@ -646,6 +743,16 @@ export function transformPathData(pathData, matrix, precision = 6) {
   return pathArrayToString(result, precision);
 }
 
+/**
+ * Convert quadratic Bezier to cubic Bezier control points.
+ * @param {Decimal} x0 - Start point X
+ * @param {Decimal} y0 - Start point Y
+ * @param {Decimal} x1 - Control point X
+ * @param {Decimal} y1 - Control point Y
+ * @param {Decimal} x2 - End point X
+ * @param {Decimal} y2 - End point Y
+ * @returns {Array<Decimal>} Cubic Bezier control points [cp1x, cp1y, cp2x, cp2y, x2, y2]
+ */
 function quadraticToCubic(x0, y0, x1, y1, x2, y2) {
   const twoThirds = new Decimal(2).div(3);
   const cp1x = x0.plus(twoThirds.mul(x1.minus(x0)));
@@ -655,6 +762,11 @@ function quadraticToCubic(x0, y0, x1, y1, x2, y2) {
   return [cp1x, cp1y, cp2x, cp2y, x2, y2];
 }
 
+/**
+ * Convert all path commands to cubic Bezier curves.
+ * @param {string} pathData - SVG path data string
+ * @returns {string} Path data with only M, C, and Z commands
+ */
 export function pathToCubics(pathData) {
   const absPath = pathToAbsolute(pathData);
   const commands = parsePathData(absPath);
@@ -736,6 +848,65 @@ export function pathToCubics(pathData) {
     }
   }
   return pathArrayToString(result);
+}
+
+/**
+ * Convert SVG shape element to path element with equivalent path data.
+ * @param {Object} element - SVG shape element (circle, ellipse, rect, line, polyline, polygon)
+ * @param {number} precision - Decimal precision for output coordinates
+ * @returns {string|null} SVG path data string, or null if element type not supported
+ */
+export function convertElementToPath(element, precision = 6) {
+  const getAttr = (name, defaultValue = 0) => {
+    const rawValue = element.getAttribute
+      ? element.getAttribute(name)
+      : element[name];
+    const value =
+      rawValue !== undefined && rawValue !== null ? rawValue : defaultValue;
+    // Strip CSS units before returning (handles px, em, %, etc.)
+    return stripUnits(value);
+  };
+  const tagName = (element.tagName || element.type || "").toLowerCase();
+  if (tagName === "circle") {
+    return circleToPathData(
+      getAttr("cx", 0),
+      getAttr("cy", 0),
+      getAttr("r", 0),
+      precision,
+    );
+  } else if (tagName === "ellipse") {
+    return ellipseToPathData(
+      getAttr("cx", 0),
+      getAttr("cy", 0),
+      getAttr("rx", 0),
+      getAttr("ry", 0),
+      precision,
+    );
+  } else if (tagName === "rect") {
+    return rectToPathData(
+      getAttr("x", 0),
+      getAttr("y", 0),
+      getAttr("width", 0),
+      getAttr("height", 0),
+      getAttr("rx", 0),
+      getAttr("ry", null),
+      false,
+      precision,
+    );
+  } else if (tagName === "line") {
+    return lineToPathData(
+      getAttr("x1", 0),
+      getAttr("y1", 0),
+      getAttr("x2", 0),
+      getAttr("y2", 0),
+      precision,
+    );
+  } else if (tagName === "polyline") {
+    return polylineToPathData(getAttr("points", ""), precision);
+  } else if (tagName === "polygon") {
+    return polygonToPathData(getAttr("points", ""), precision);
+  }
+  return null;
 }
 
 /**

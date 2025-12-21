@@ -410,6 +410,16 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
 /**
  * Evaluate a cubic Bezier curve at parameter t.
  * B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
+ * @param {number} t - Parameter value (0 to 1)
+ * @param {number} p0x - Start point X coordinate
+ * @param {number} p0y - Start point Y coordinate
+ * @param {number} p1x - First control point X coordinate
+ * @param {number} p1y - First control point Y coordinate
+ * @param {number} p2x - Second control point X coordinate
+ * @param {number} p2y - Second control point Y coordinate
+ * @param {number} p3x - End point X coordinate
+ * @param {number} p3y - End point Y coordinate
+ * @returns {{x: number, y: number}} Point on curve
  */
 function cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const mt = 1 - t;
@@ -426,6 +436,16 @@ function cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
 /**
  * First derivative of cubic Bezier at t.
  * B'(t) = 3(1-t)^2(P1-P0) + 6(1-t)t(P2-P1) + 3t^2(P3-P2)
+ * @param {number} t - Parameter value (0 to 1)
+ * @param {number} p0x - Start point X coordinate
+ * @param {number} p0y - Start point Y coordinate
+ * @param {number} p1x - First control point X coordinate
+ * @param {number} p1y - First control point Y coordinate
+ * @param {number} p2x - Second control point X coordinate
+ * @param {number} p2y - Second control point Y coordinate
+ * @param {number} p3x - End point X coordinate
+ * @param {number} p3y - End point Y coordinate
+ * @returns {{x: number, y: number}} First derivative vector
  */
 function cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const mt = 1 - t;
@@ -440,6 +460,16 @@ function cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
 /**
  * Second derivative of cubic Bezier at t.
  * B''(t) = 6(1-t)(P2-2P1+P0) + 6t(P3-2P2+P1)
+ * @param {number} t - Parameter value (0 to 1)
+ * @param {number} p0x - Start point X coordinate
+ * @param {number} p0y - Start point Y coordinate
+ * @param {number} p1x - First control point X coordinate
+ * @param {number} p1y - First control point Y coordinate
+ * @param {number} p2x - Second control point X coordinate
+ * @param {number} p2y - Second control point Y coordinate
+ * @param {number} p3x - End point X coordinate
+ * @param {number} p3y - End point Y coordinate
+ * @returns {{x: number, y: number}} Second derivative vector
  */
 function cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
   const mt = 1 - t;
@@ -452,6 +482,18 @@ function cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
 /**
  * Find closest t on cubic Bezier to point p using Newton's method.
  * Minimizes |B(t) - p|^2 by finding root of d/dt |B(t)-p|^2 = 2(B(t)-p)·B'(t) = 0
+ * @param {number} px - Query point X coordinate
+ * @param {number} py - Query point Y coordinate
+ * @param {number} p0x - Bezier start point X
+ * @param {number} p0y - Bezier start point Y
+ * @param {number} p1x - Bezier first control point X
+ * @param {number} p1y - Bezier first control point Y
+ * @param {number} p2x - Bezier second control point X
+ * @param {number} p2y - Bezier second control point Y
+ * @param {number} p3x - Bezier end point X
+ * @param {number} p3y - Bezier end point Y
+ * @param {number} tInit - Initial t value for Newton iteration
+ * @returns {number} Closest parameter t (0 to 1)
  */
 function _closestTOnCubicBezier(
   px,
@@ -496,6 +538,13 @@ function _closestTOnCubicBezier(
 
 /**
  * Calculate distance from point to line segment (for straight curve check).
+ * @param {number} px - Point X coordinate
+ * @param {number} py - Point Y coordinate
+ * @param {number} x0 - Line segment start X
+ * @param {number} y0 - Line segment start Y
+ * @param {number} x1 - Line segment end X
+ * @param {number} y1 - Line segment end Y
+ * @returns {number} Distance from point to line segment
  */
 function pointToLineDistance(px, py, x0, y0, x1, y1) {
   const dx = x1 - x0;
@@ -519,7 +568,14 @@ function pointToLineDistance(px, py, x0, y0, x1, y1) {
 /**
  * Compute maximum error between cubic Bezier and a line segment.
  * Uses Newton's method to find closest points + midpoint checks to catch bulges.
- *
+ * @param {number} p0x - Bezier start point X
+ * @param {number} p0y - Bezier start point Y
+ * @param {number} cp1x - First control point X
+ * @param {number} cp1y - First control point Y
+ * @param {number} cp2x - Second control point X
+ * @param {number} cp2y - Second control point Y
+ * @param {number} p3x - Bezier end point X
+ * @param {number} p3y - Bezier end point Y
  * @returns {number} Maximum distance from any curve point to the line
  */
 function maxErrorCurveToLine(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y) {
@@ -569,6 +625,16 @@ function maxErrorCurveToLine(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y) {
 /**
  * Check if a cubic bezier is effectively a straight line.
  * Uses comprehensive sampling + midpoint checks to find actual max deviation.
+ * @param {number} x0 - Bezier start point X
+ * @param {number} y0 - Bezier start point Y
+ * @param {number} cp1x - First control point X
+ * @param {number} cp1y - First control point Y
+ * @param {number} cp2x - Second control point X
+ * @param {number} cp2y - Second control point Y
+ * @param {number} x3 - Bezier end point X
+ * @param {number} y3 - Bezier end point Y
+ * @param {number} tolerance - Maximum deviation to consider straight
+ * @returns {boolean} True if curve is effectively straight
  */
 function isCurveStraight(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, tolerance) {
   const maxError = maxErrorCurveToLine(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3);
@@ -822,6 +888,14 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
 /**
  * Evaluate a quadratic Bezier curve at parameter t.
  * B(t) = (1-t)^2*P0 + 2*(1-t)*t*P1 + t^2*P2
+ * @param {number} t - Parameter value (0 to 1)
+ * @param {number} p0x - Start point X coordinate
+ * @param {number} p0y - Start point Y coordinate
+ * @param {number} p1x - Control point X coordinate
+ * @param {number} p1y - Control point Y coordinate
+ * @param {number} p2x - End point X coordinate
+ * @param {number} p2y - End point Y coordinate
+ * @returns {{x: number, y: number}} Point on curve
  */
 function quadraticBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
   const mt = 1 - t;
@@ -836,7 +910,16 @@ function quadraticBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
 /**
  * Compute maximum error between cubic Bezier and quadratic Bezier.
  * Samples both curves and checks midpoints to find actual max deviation.
- *
+ * @param {number} p0x - Bezier start point X
+ * @param {number} p0y - Bezier start point Y
+ * @param {number} cp1x - Cubic first control point X
+ * @param {number} cp1y - Cubic first control point Y
+ * @param {number} cp2x - Cubic second control point X
+ * @param {number} cp2y - Cubic second control point Y
+ * @param {number} p3x - Bezier end point X
+ * @param {number} p3y - Bezier end point Y
+ * @param {number} qx - Quadratic control point X
+ * @param {number} qy - Quadratic control point Y
  * @returns {number} Maximum distance between corresponding points on both curves
  */
 function maxErrorCubicToQuadratic(
@@ -885,7 +968,15 @@ function maxErrorCubicToQuadratic(
 /**
  * Check if a cubic bezier can be approximated by a quadratic.
  * VERIFIED by comparing actual curve points with comprehensive sampling.
- *
+ * @param {number} x0 - Bezier start point X
+ * @param {number} y0 - Bezier start point Y
+ * @param {number} cp1x - Cubic first control point X
+ * @param {number} cp1y - Cubic first control point Y
+ * @param {number} cp2x - Cubic second control point X
+ * @param {number} cp2y - Cubic second control point Y
+ * @param {number} x3 - Bezier end point X
+ * @param {number} y3 - Bezier end point Y
+ * @param {number} tolerance - Maximum deviation for conversion
  * @returns {{cpx: number, cpy: number} | null} Quadratic control point or null
  */
 function cubicToQuadraticControlPoint(

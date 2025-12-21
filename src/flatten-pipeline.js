@@ -198,6 +198,12 @@ export function flattenSVG(svgString, options = {}) {
 
 /**
  * Resolve all <use> elements by expanding them inline.
+ * Converts use references to concrete geometry or cloned elements with transforms.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Map<string, SVGElement>} defsMap - Map of definition IDs to elements
+ * @param {Object} opts - Processing options
+ * @returns {{count: number, errors: Array<string>}} Resolution results
  * @private
  */
 /**
@@ -230,6 +236,9 @@ const PRESERVE_ELEMENTS = new Set([
 
 /**
  * Check if an element or any of its descendants contains elements that must be preserved.
+ *
+ * @param {SVGElement} el - Element to check
+ * @returns {boolean} True if element or descendants contain preserve elements
  * @private
  */
 function containsPreserveElements(el) {
@@ -418,6 +427,12 @@ function resolveAllUseElements(root, defsMap, opts) {
 
 /**
  * Resolve all marker references by instantiating marker geometry.
+ * Expands markers into concrete path elements placed at path vertices.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Map<string, SVGElement>} defsMap - Map of definition IDs to elements
+ * @param {Object} opts - Processing options
+ * @returns {{count: number, errors: Array<string>}} Resolution results
  * @private
  */
 function resolveAllMarkers(root, defsMap, opts) {
@@ -493,6 +508,12 @@ function resolveAllMarkers(root, defsMap, opts) {
 
 /**
  * Resolve pattern fills by expanding to tiled geometry.
+ * Converts pattern fills into concrete geometry elements.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Map<string, SVGElement>} defsMap - Map of definition IDs to elements
+ * @param {Object} opts - Processing options
+ * @returns {{count: number, errors: Array<string>}} Resolution results
  * @private
  */
 function resolveAllPatterns(root, defsMap, opts) {
@@ -587,6 +608,12 @@ function resolveAllPatterns(root, defsMap, opts) {
 
 /**
  * Resolve mask references by converting to clip geometry.
+ * Converts mask elements into clipping paths with boolean intersection.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Map<string, SVGElement>} defsMap - Map of definition IDs to elements
+ * @param {Object} opts - Processing options
+ * @returns {{count: number, errors: Array<string>}} Resolution results
  * @private
  */
 function resolveAllMasks(root, defsMap, opts) {
@@ -682,6 +709,12 @@ function resolveAllMasks(root, defsMap, opts) {
 /**
  * Apply clipPath references by performing boolean intersection.
  * Also computes the difference (outside parts) and verifies area conservation (E2E).
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Map<string, SVGElement>} defsMap - Map of definition IDs to elements
+ * @param {Object} opts - Processing options
+ * @param {Object} stats - Statistics object to update with results
+ * @returns {{count: number, errors: Array<string>}} Clipping results
  * @private
  */
 function applyAllClipPaths(root, defsMap, opts, stats) {
@@ -872,6 +905,12 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
 
 /**
  * Flatten all transform attributes by baking into coordinates.
+ * Applies transformation matrices directly to path coordinates and removes transform attributes.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Object} opts - Processing options
+ * @param {Object} stats - Statistics object to update with results
+ * @returns {{count: number, errors: Array<string>}} Flattening results
  * @private
  */
 function flattenAllTransforms(root, opts, stats) {
@@ -979,6 +1018,13 @@ function flattenAllTransforms(root, opts, stats) {
 
 /**
  * Propagate transform to all children of a group.
+ * Applies parent group transform to all child elements recursively.
+ *
+ * @param {SVGElement} group - Group element with transform
+ * @param {Matrix} ctm - Current transformation matrix
+ * @param {Object} opts - Processing options
+ * @param {Object} stats - Statistics object to update with results
+ * @returns {void}
  * @private
  */
 function propagateTransformToChildren(group, ctm, opts, stats) {
@@ -1052,6 +1098,12 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
 
 /**
  * Bake gradientTransform into gradient coordinates.
+ * Applies gradient transforms directly to gradient coordinate attributes.
+ *
+ * @param {SVGElement} root - Root SVG element
+ * @param {Object} opts - Processing options
+ * @param {Object} stats - Statistics object to update with results
+ * @returns {{count: number, errors: Array<string>}} Processing results
  * @private
  */
 function bakeAllGradientTransforms(root, opts, stats) {
@@ -1286,6 +1338,11 @@ function removeUnusedDefinitions(root, referencedIds) {
 
 /**
  * Get path data from any shape element.
+ * Converts basic shapes (rect, circle, ellipse, etc.) to path data.
+ *
+ * @param {SVGElement} el - Element to convert
+ * @param {number} precision - Decimal precision for coordinates
+ * @returns {string|null} Path data string or null if not convertible
  * @private
  */
 function getElementPathData(el, precision) {
@@ -1353,6 +1410,10 @@ function getElementPathData(el, precision) {
 
 /**
  * Get approximate bounding box of an element.
+ * Calculates bounding box by sampling points from the element's geometry.
+ *
+ * @param {SVGElement} el - Element to measure
+ * @returns {{x: number, y: number, width: number, height: number}|null} Bounding box or null if calculation fails
  * @private
  */
 function getElementBBox(el) {
@@ -1542,6 +1603,10 @@ function getShapeSpecificAttrs(tagName) {
 
 /**
  * Convert matrix to transform attribute string.
+ * Converts a Matrix object to SVG matrix() transform format.
+ *
+ * @param {Matrix} matrix - Transformation matrix
+ * @returns {string} SVG transform attribute value
  * @private
  */
 function matrixToTransform(matrix) {
@@ -1556,6 +1621,11 @@ function matrixToTransform(matrix) {
 
 /**
  * Intersect two polygons using Sutherland-Hodgman algorithm.
+ * Computes the boolean intersection of two polygons.
+ *
+ * @param {Array<{x: Decimal, y: Decimal}>} subject - Subject polygon vertices
+ * @param {Array<{x: Decimal, y: Decimal}>} clip - Clip polygon vertices
+ * @returns {Array<{x: Decimal, y: Decimal}>} Intersection polygon vertices
  * @private
  */
 function intersectPolygons(subject, clip) {
@@ -1611,6 +1681,12 @@ function intersectPolygons(subject, clip) {
 
 /**
  * Check if point is inside edge (left side).
+ * Uses cross product to determine if point is on the left (inside) of an edge.
+ *
+ * @param {{x: Decimal|number, y: Decimal|number}} point - Point to test
+ * @param {{x: Decimal|number, y: Decimal|number}} edgeStart - Edge start vertex
+ * @param {{x: Decimal|number, y: Decimal|number}} edgeEnd - Edge end vertex
+ * @returns {boolean} True if point is inside (left of) the edge
  * @private
  */
 function isInsideEdge(point, edgeStart, edgeEnd) {

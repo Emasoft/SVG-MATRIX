@@ -871,7 +871,13 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
 }
 
 /**
- * Subdivide 1D Bezier at t=0.5.
+ * Subdivide 1D Bezier at t=0.5 using de Casteljau's algorithm.
+ *
+ * Splits a 1D Bezier curve (array of scalar control values) into two halves.
+ * Used internally by root-finding subdivision algorithm.
+ *
+ * @param {Decimal[]} coeffs - 1D control values (scalars, not points)
+ * @returns {{left: Decimal[], right: Decimal[]}} Two 1D Bezier curves representing left and right halves
  */
 function subdivideBezier1D(coeffs) {
   const half = D(0.5);

@@ -224,6 +224,12 @@ export function bezierLineIntersection(bezier, line, options = {}) {
 
 /**
  * Refine Bezier-line intersection using bisection.
+ * @param {Array} bezier - Bezier control points
+ * @param {Array} line - Line segment [[x0,y0], [x1,y1]]
+ * @param {Decimal} t0 - Start of bracket interval
+ * @param {Decimal} t1 - End of bracket interval
+ * @param {Decimal} tol - Tolerance for convergence
+ * @returns {Decimal} Refined parameter value
  */
 function refineBezierLineRoot(bezier, line, t0, t1, tol) {
   const [lx0, ly0] = [D(line[0][0]), D(line[0][1])];
@@ -452,6 +458,9 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
 
 /**
  * Check if two bounding boxes overlap.
+ * @param {Object} bbox1 - First bounding box with {xmin, xmax, ymin, ymax}
+ * @param {Object} bbox2 - Second bounding box with {xmin, xmax, ymin, ymax}
+ * @returns {boolean} True if bounding boxes overlap
  */
 function bboxOverlap(bbox1, bbox2) {
   // INPUT VALIDATION
@@ -470,6 +479,9 @@ function bboxOverlap(bbox1, bbox2) {
 
 /**
  * Remove duplicate intersections.
+ * @param {Array} intersections - Array of intersection objects with t1, t2 parameters
+ * @param {Decimal} tol - Tolerance for considering intersections duplicate
+ * @returns {Array} Array of unique intersections
  */
 function deduplicateIntersections(intersections, tol) {
   const result = [];

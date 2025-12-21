@@ -190,8 +190,8 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
  * WHY: Speed is the magnitude of the velocity vector (first derivative).
  * This is the integrand for arc length: L = integral of |B'(t)| dt.
  *
- * @param {Array} points - Control points
- * @param {Decimal} t - Parameter
+ * @param {Array} points - Control points [[x,y], ...]
+ * @param {Decimal} t - Parameter in [0, 1]
  * @returns {Decimal} Speed (magnitude of derivative)
  */
 function speedAtT(points, t) {
@@ -213,14 +213,14 @@ function speedAtT(points, t) {
  * Subdivides intervals where the integrand varies significantly,
  * ensuring accuracy while minimizing computation.
  *
- * @param {Function} f - Function to integrate
+ * @param {Function} f - Function to integrate (takes Decimal, returns Decimal)
  * @param {Decimal} a - Start of interval
  * @param {Decimal} b - End of interval
  * @param {Decimal} tol - Error tolerance
  * @param {number} maxDepth - Maximum recursion depth
  * @param {number} minDepth - Minimum recursion depth
- * @param {number} depth - Current depth
- * @returns {Decimal} Integral value
+ * @param {number} depth - Current recursion depth
+ * @returns {Decimal} Integral approximation
  */
 function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
   // Compute integral using 5-point and 10-point rules
@@ -266,10 +266,10 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
  * Transforms integral from [a,b] to [-1,1] and applies formula:
  * integral ≈ (b-a)/2 * sum of (weight[i] * f(transformed_node[i]))
  *
- * @param {Function} f - Function to integrate
+ * @param {Function} f - Function to integrate (takes Decimal, returns Decimal)
  * @param {Decimal} a - Start of interval
  * @param {Decimal} b - End of interval
- * @param {number} order - Number of points (5 or 10)
+ * @param {number} order - Number of quadrature points (5 or 10)
  * @returns {Decimal} Integral approximation
  */
 function gaussLegendre(f, a, b, order) {

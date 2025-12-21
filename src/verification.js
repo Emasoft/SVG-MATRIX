@@ -444,6 +444,9 @@ export function verifyPolygonContainment(
 /**
  * Compute minimum distance from a point to the edges of a polygon.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} point - Point to measure from
+ * @param {Array<{x: Decimal|number, y: Decimal|number}>} polygon - Polygon vertices
+ * @returns {Decimal} Minimum distance to any polygon edge
  */
 function minDistanceToPolygonEdge(point, polygon) {
   let minDist = new Decimal(Infinity);
@@ -793,6 +796,10 @@ export function verifyLinearGradientTransform(original, baked, matrix) {
 /**
  * Compute signed area of triangle using cross product.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} p1 - First triangle vertex
+ * @param {{x: Decimal|number, y: Decimal|number}} p2 - Second triangle vertex
+ * @param {{x: Decimal|number, y: Decimal|number}} p3 - Third triangle vertex
+ * @returns {Decimal} Signed area of the triangle
  */
 function triangleArea(p1, p2, p3) {
   const x1 = D(p1.x),
@@ -816,6 +823,11 @@ function triangleArea(p1, p2, p3) {
 /**
  * Check if three points are collinear.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} p1 - First point
+ * @param {{x: Decimal|number, y: Decimal|number}} p2 - Second point
+ * @param {{x: Decimal|number, y: Decimal|number}} p3 - Third point
+ * @param {Decimal|number} tolerance - Collinearity tolerance
+ * @returns {boolean} True if points are collinear within tolerance
  */
 function areCollinear(p1, p2, p3, tolerance) {
   const area = triangleArea(p1, p2, p3);
@@ -825,6 +837,8 @@ function areCollinear(p1, p2, p3, tolerance) {
 /**
  * Compute signed area of a polygon using shoelace formula.
  * @private
+ * @param {Array<{x: Decimal|number, y: Decimal|number}>} polygon - Polygon vertices
+ * @returns {Decimal} Absolute area of the polygon
  */
 function polygonArea(polygon) {
   if (polygon.length < 3) return ZERO;
@@ -847,6 +861,9 @@ function polygonArea(polygon) {
 /**
  * Check if point is inside polygon using ray casting.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} point - Point to test
+ * @param {Array<{x: Decimal|number, y: Decimal|number}>} polygon - Polygon vertices
+ * @returns {boolean} True if point is inside or on polygon boundary
  */
 function isPointInPolygon(point, polygon) {
   const px = D(point.x),
@@ -878,6 +895,10 @@ function isPointInPolygon(point, polygon) {
 /**
  * Check if point is on line segment.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} point - Point to test
+ * @param {{x: Decimal|number, y: Decimal|number}} segStart - Segment start point
+ * @param {{x: Decimal|number, y: Decimal|number}} segEnd - Segment end point
+ * @returns {boolean} True if point is on the segment within tolerance
  */
 function isPointOnSegment(point, segStart, segEnd) {
   const tolerance = computeTolerance();
@@ -917,6 +938,9 @@ function isPointOnSegment(point, segStart, segEnd) {
 /**
  * Compute distance between two points.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} p1 - First point
+ * @param {{x: Decimal|number, y: Decimal|number}} p2 - Second point
+ * @returns {Decimal} Euclidean distance between the points
  */
 function pointDistance(p1, p2) {
   const dx = D(p2.x).minus(D(p1.x));
@@ -927,6 +951,8 @@ function pointDistance(p1, p2) {
 /**
  * Extract coordinate points from SVG path data.
  * @private
+ * @param {string} pathData - SVG path data string
+ * @returns {Array<{x: Decimal, y: Decimal}>} Array of extracted coordinate points
  */
 function extractPathPoints(pathData) {
   const points = [];
@@ -945,6 +971,9 @@ function extractPathPoints(pathData) {
 /**
  * Find the nearest point in a list to a target point.
  * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} target - Target point
+ * @param {Array<{x: Decimal|number, y: Decimal|number}>} points - Array of points to search
+ * @returns {{x: Decimal, y: Decimal}|null} Nearest point or null if array is empty
  */
 function findNearestPoint(target, points) {
   if (points.length === 0) return null;
@@ -1248,7 +1277,15 @@ export function verifyPolygonUnionArea(polygons, expectedArea) {
   }
 }
 
-// E2E helper: check if point is inside edge (for difference computation)
+/**
+ * Check if point is inside edge (for difference computation).
+ * E2E helper function.
+ * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} point - Point to test
+ * @param {{x: Decimal|number, y: Decimal|number}} edgeStart - Edge start point
+ * @param {{x: Decimal|number, y: Decimal|number}} edgeEnd - Edge end point
+ * @returns {boolean} True if point is on the inside side of the edge
+ */
 function isInsideEdgeE2E(point, edgeStart, edgeEnd) {
   const px = D(point.x).toNumber();
   const py = D(point.y).toNumber();
@@ -1260,7 +1297,16 @@ function isInsideEdgeE2E(point, edgeStart, edgeEnd) {
   return (ex - sx) * (py - sy) - (ey - sy) * (px - sx) >= 0;
 }
 
-// E2E helper: line intersection for difference computation
+/**
+ * Compute line intersection for difference computation.
+ * E2E helper function.
+ * @private
+ * @param {{x: Decimal|number, y: Decimal|number}} p1 - First point on line 1
+ * @param {{x: Decimal|number, y: Decimal|number}} p2 - Second point on line 1
+ * @param {{x: Decimal|number, y: Decimal|number}} p3 - First point on line 2
+ * @param {{x: Decimal|number, y: Decimal|number}} p4 - Second point on line 2
+ * @returns {{x: Decimal, y: Decimal}} Intersection point
+ */
 function lineIntersectE2E(p1, p2, p3, p4) {
   const x1 = D(p1.x).toNumber(),
     y1 = D(p1.y).toNumber();

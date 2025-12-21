@@ -147,6 +147,10 @@ let config = { ...DEFAULT_CONFIG };
 
 const LogLevel = { ERROR: 0, WARN: 1, INFO: 2, DEBUG: 3 };
 
+/**
+ * Get current log level based on config flags.
+ * @returns {number} Log level (ERROR, WARN, INFO, or DEBUG)
+ */
 function getLogLevel() {
   if (config.quiet) return LogLevel.ERROR;
   if (config.verbose) return LogLevel.DEBUG;
@@ -181,6 +185,11 @@ const colors =
 // won't be properly released. The isShuttingDown flag prevents duplicate
 // cleanup attempts during signal cascades.
 // ============================================================================
+/**
+ * Handle graceful shutdown on SIGINT/SIGTERM signals.
+ * @param {string} signal - Signal name (SIGINT or SIGTERM)
+ * @returns {void}
+ */
 function handleGracefulExit(signal) {
   // Why: Prevent duplicate cleanup if multiple signals arrive quickly
   if (isShuttingDown) return;
@@ -222,6 +231,11 @@ process.on("SIGTERM", () => handleGracefulExit("SIGTERM")); // kill command
 // but SIGTERM requires special handling or third-party libraries. This is acceptable
 // for a CLI tool as Ctrl+C is the primary interrupt mechanism on all platforms.
 
+/**
+ * Write message to log file with timestamp.
+ * @param {string} message - Message to log
+ * @returns {void}
+ */
 function writeToLogFile(message) {
   if (config.logFile) {
     try {
@@ -235,28 +249,53 @@ function writeToLogFile(message) {
   }
 }
 
+/**
+ * Log error message to console and file.
+ * @param {string} msg - Error message
+ * @returns {void}
+ */
 function logError(msg) {
   console.error(`${colors.red}ERROR:${colors.reset} ${msg}`);
   writeToLogFile(`ERROR: ${msg}`);
 }
 
+/**
+ * Log warning message to console and file.
+ * @param {string} msg - Warning message
+ * @returns {void}
+ */
 function logWarn(msg) {
   if (getLogLevel() >= LogLevel.WARN)
     console.warn(`${colors.yellow}WARN:${colors.reset} ${msg}`);
   writeToLogFile(`WARN: ${msg}`);
 }
 
+/**
+ * Log info message to console and file.
+ * @param {string} msg - Info message
+ * @returns {void}
+ */
 function logInfo(msg) {
   if (getLogLevel() >= LogLevel.INFO) console.log(msg);
   writeToLogFile(`INFO: ${msg}`);
 }
 
+/**
+ * Log debug message to console and file.
+ * @param {string} msg - Debug message
+ * @returns {void}
+ */
 function logDebug(msg) {
   if (getLogLevel() >= LogLevel.DEBUG)
     console.log(`${colors.dim}DEBUG: ${msg}${colors.reset}`);
   writeToLogFile(`DEBUG: ${msg}`);
 }
 
+/**
+ * Log success message to console and file.
+ * @param {string} msg - Success message
+ * @returns {void}
+ */
 function logSuccess(msg) {
   if (getLogLevel() >= LogLevel.INFO)
     console.log(`${colors.green}OK${colors.reset} ${msg}`);
@@ -269,6 +308,13 @@ function logSuccess(msg) {
 // the operation is still running and how far along it is. Without this,
 // users may think the program is frozen and kill it prematurely.
 // ============================================================================
+/**
+ * Display progress bar for batch operations.
+ * @param {number} current - Current file number
+ * @param {number} total - Total number of files
+ * @param {string} filename - Current filename being processed
+ * @returns {void}
+ */
 function showProgress(current, total, filename) {
   // Why: Don't show progress in quiet mode or when there's only one file
   if (config.quiet || total <= 1) return;
@@ -302,6 +348,12 @@ function showProgress(current, total, filename) {
 // Why: Fail fast on invalid input. Processing non-SVG files wastes time and
 // may produce confusing errors. Size limits prevent memory exhaustion.
 // ============================================================================
+/**
+ * Validate SVG file size and format.
+ * @param {string} filePath - Path to SVG file
+ * @returns {boolean} True if valid
+ * @throws {Error} If file is invalid or too large
+ */
 function validateSvgFile(filePath) {
   const stats = statSync(filePath);
 
@@ -333,6 +385,14 @@ function validateSvgFile(filePath) {
 // shares) may appear to write successfully but fail to persist data.
 // Verification catches this immediately rather than discovering corruption later.
 // ============================================================================
+/**
+ * Verify file was written correctly by comparing content.
+ * @param {string} filePath - Path to file
+ * @param {string} expectedContent - Expected file content
+ * @returns {boolean} True if verification passed
+ * @throws {Error} If verification failed
+ * @private
+ */
 function _verifyWriteSuccess(filePath, expectedContent) {
   // Why: Read back what was written and compare
   const actualContent = readFileSync(filePath, "utf8");
@@ -358,6 +418,12 @@ function _verifyWriteSuccess(filePath, expectedContent) {
 // the bug or fix the issue themselves. This generates a timestamped log file
 // with full context about what was being processed when the crash occurred.
 // ============================================================================
+/**
+ * Generate crash report with full context for debugging.
+ * @param {Error} error - Error that caused the crash
+ * @param {Object} context - Additional context information
+ * @returns {string|null} Path to crash log file, or null if write failed
+ */
 function generateCrashLog(error, context = {}) {
   const crashDir = join(process.cwd(), ".svg-matrix-crashes");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -401,16 +467,31 @@ ${JSON.stringify({ ...config, logFile: config.logFile ? "[redacted]" : null }, n
 // PATH UTILITIES
 // ============================================================================
 
+/**
+ * Normalize path separators to forward slashes.
+ * @param {string} p - Path to normalize
+ * @returns {string} Normalized path
+ */
 function normalizePath(p) {
   return p.replace(/\\/g, "/");
 }
 
+/**
+ * Resolve path to absolute path with normalized separators.
+ * @param {string} p - Path to resolve
+ * @returns {string} Absolute normalized path
+ */
 function resolvePath(p) {
   return isAbsolute(p)
     ? normalizePath(p)
     : normalizePath(resolve(process.cwd(), p));
 }
 
+/**
+ * Check if path is a directory.
+ * @param {string} p - Path to check
+ * @returns {boolean} True if directory exists
+ */
 function isDir(p) {
   try {
     return statSync(p).isDirectory();
@@ -418,6 +499,12 @@ function isDir(p) {
     return false;
   }
 }
+
+/**
+ * Check if path is a file.
+ * @param {string} p - Path to check
+ * @returns {boolean} True if file exists
+ */
 function isFile(p) {
   try {
     return statSync(p).isFile();
@@ -426,6 +513,11 @@ function isFile(p) {
   }
 }
 
+/**
+ * Ensure directory exists, creating it if necessary.
+ * @param {string} dir - Directory path
+ * @returns {void}
+ */
 function ensureDir(dir) {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
@@ -433,6 +525,12 @@ function ensureDir(dir) {
   }
 }
 
+/**
+ * Get all SVG files in directory.
+ * @param {string} dir - Directory path
+ * @param {boolean} recursive - Whether to search recursively
+ * @returns {string[]} Array of SVG file paths
+ */
 function getSvgFiles(dir, recursive = false) {
   const files = [];
   function scan(d) {
@@ -451,6 +549,11 @@ function getSvgFiles(dir, recursive = false) {
   return files;
 }
 
+/**
+ * Parse file list from text file.
+ * @param {string} listPath - Path to list file
+ * @returns {string[]} Array of resolved file paths
+ */
 function parseFileList(listPath) {
   const content = readFileSync(listPath, "utf8");
   const files = [];
@@ -597,6 +700,10 @@ function removeShapeAttrs(attrs, attrsToRemove) {
 // ============================================================================
 
 // Box drawing helpers
+/**
+ * Check if terminal supports Unicode box drawing characters.
+ * @returns {boolean} True if Unicode is supported
+ */
 const supportsUnicode = () => {
   if (process.platform === "win32") {
     return !!(
@@ -613,17 +720,34 @@ const B = supportsUnicode()
   ? { tl: "╭", tr: "╮", bl: "╰", br: "╯", h: "─", v: "│", dot: "•", arr: "→" }
   : { tl: "+", tr: "+", bl: "+", br: "+", h: "-", v: "|", dot: "*", arr: "->" };
 
+/**
+ * Strip ANSI color codes from string.
+ * @param {string} s - String with ANSI codes
+ * @returns {string} String without ANSI codes
+ */
 function stripAnsi(s) {
   // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for terminal color stripping
   return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
+/**
+ * Create formatted box line with border.
+ * @param {string} content - Content to display
+ * @param {number} width - Box width
+ * @returns {string} Formatted line
+ */
 function boxLine(content, width = 70) {
   const visible = stripAnsi(content).length;
   const padding = Math.max(0, width - visible - 2);
   return `${colors.cyan}${B.v}${colors.reset} ${content}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
+/**
+ * Create formatted box header with title.
+ * @param {string} title - Header title
+ * @param {number} width - Box width
+ * @returns {string} Formatted header
+ */
 function boxHeader(title, width = 70) {
   const _hr = B.h.repeat(width); // Reserved for future use (horizontal rule)
   const visible = stripAnsi(title).length;
@@ -631,10 +755,19 @@ function boxHeader(title, width = 70) {
   return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${title}${colors.reset}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
+/**
+ * Create horizontal divider line.
+ * @param {number} width - Box width
+ * @returns {string} Divider line
+ */
 function boxDivider(width = 70) {
   return `${colors.cyan}${B.v}${B.h.repeat(width)}${B.v}${colors.reset}`;
 }
 
+/**
+ * Display main help message.
+ * @returns {void}
+ */
 function showHelp() {
   const W = 72;
   const hr = B.h.repeat(W);
@@ -747,6 +880,11 @@ ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
 `);
 }
 
+/**
+ * Display command-specific help message.
+ * @param {string} command - Command name
+ * @returns {void}
+ */
 function showCommandHelp(command) {
   const W = 72;
   const hr = B.h.repeat(W);
@@ -882,6 +1020,10 @@ ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
   }
 }
 
+/**
+ * Display version number.
+ * @returns {void}
+ */
 function showVersion() {
   console.log(`@emasoft/svg-matrix v${VERSION}`);
 }
@@ -1247,6 +1389,12 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
   return true;
 }
 
+/**
+ * Convert all basic shapes to paths.
+ * @param {string} inputPath - Input file path
+ * @param {string} outputPath - Output file path
+ * @returns {boolean} True if successful
+ */
 function processConvert(inputPath, outputPath) {
   try {
     logDebug(`Converting: ${inputPath}`);
@@ -1302,6 +1450,12 @@ function processConvert(inputPath, outputPath) {
   }
 }
 
+/**
+ * Normalize all path commands to absolute cubic Beziers.
+ * @param {string} inputPath - Input file path
+ * @param {string} outputPath - Output file path
+ * @returns {boolean} True if successful
+ */
 function processNormalize(inputPath, outputPath) {
   try {
     logDebug(`Normalizing: ${inputPath}`);
@@ -1328,6 +1482,11 @@ function processNormalize(inputPath, outputPath) {
   }
 }
 
+/**
+ * Display information about SVG file.
+ * @param {string} inputPath - Input file path
+ * @returns {boolean} True if successful
+ */
 function processInfo(inputPath) {
   try {
     const svg = readFileSync(inputPath, "utf8");
@@ -1440,12 +1599,24 @@ const SKIP_TOOLBOX_FUNCTIONS = [
   "measureDistance",
 ];
 
+/**
+ * Generate timestamp string for file naming.
+ * @returns {string} Timestamp in YYYYMMDD_HHMMSS format
+ */
 function getTimestamp() {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
 
+/**
+ * Test single svg-toolbox function on SVG content.
+ * @param {string} fnName - Function name to test
+ * @param {string} originalContent - Original SVG content
+ * @param {number} originalSize - Original content size in bytes
+ * @param {string} outputDir - Output directory for results
+ * @returns {Promise<Object>} Test result with status and metrics
+ */
 async function testToolboxFunction(
   fnName,
   originalContent,
@@ -1510,6 +1681,10 @@ async function testToolboxFunction(
   return result;
 }
 
+/**
+ * Process test-toolbox command to test all svg-toolbox functions.
+ * @returns {Promise<void>}
+ */
 async function processTestToolbox() {
   const files = gatherInputFiles();
   if (files.length === 0) {
@@ -1647,6 +1822,11 @@ async function processTestToolbox() {
 // ARGUMENT PARSING
 // ============================================================================
 
+/**
+ * Parse command-line arguments.
+ * @param {string[]} args - Command-line arguments
+ * @returns {CLIConfig} Parsed configuration object
+ */
 function parseArgs(args) {
   const cfg = { ...DEFAULT_CONFIG };
   const inputs = [];
@@ -1833,6 +2013,10 @@ function parseArgs(args) {
   return cfg;
 }
 
+/**
+ * Gather input files from config inputs and list file.
+ * @returns {string[]} Array of input file paths
+ */
 function gatherInputFiles() {
   const files = [];
   if (config.listFile) {
@@ -1854,6 +2038,11 @@ function gatherInputFiles() {
   return files;
 }
 
+/**
+ * Get output path for input file based on config.
+ * @param {string} inputPath - Input file path
+ * @returns {string} Output file path
+ */
 function getOutputPath(inputPath) {
   if (!config.output) {
     const dir = dirname(inputPath);
@@ -1871,6 +2060,10 @@ function getOutputPath(inputPath) {
 // MAIN
 // ============================================================================
 
+/**
+ * Main entry point for CLI.
+ * @returns {Promise<void>}
+ */
 async function main() {
   try {
     const args = process.argv.slice(2);

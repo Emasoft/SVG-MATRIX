@@ -43,11 +43,13 @@ const COMMAND_PARAMS = {
 };
 
 /**
- * Parse arc arguments specially - flags are always single 0 or 1 digits
+ * Parse arc arguments specially - flags are always single 0 or 1 digits.
  * Arc format: rx ry x-axis-rotation large-arc-flag sweep-flag x y
  * Flags can be written without separators: "0 01 20" or "0120"
  * BUG FIX #1: Handle compact notation where flags are concatenated with next number
  * BUG FIX #5: Handle invalid arc flags gracefully - return null to signal parsing failure
+ * @param {string} argsStr - Arc arguments string to parse
+ * @returns {Array<number>|null} Parsed arc parameters or null if invalid
  */
 function parseArcArgs(argsStr) {
   const args = [];

@@ -33,8 +33,9 @@ let yaml = null;
 let toml = null;
 
 /**
- * Lazy load YAML parser
+ * Lazy load YAML parser.
  * @returns {Object} js-yaml module
+ * @throws {Error} If js-yaml is not installed
  */
 function getYamlParser() {
   if (!yaml) {
@@ -50,8 +51,9 @@ function getYamlParser() {
 }
 
 /**
- * Lazy load TOML parser
+ * Lazy load TOML parser.
  * @returns {Object} toml module
+ * @throws {Error} If toml is not installed
  */
 function getTomlParser() {
   if (!toml) {
@@ -67,8 +69,8 @@ function getTomlParser() {
 }
 
 /**
- * Simple INI/properties file parser (built-in, no dependencies)
- * Supports sections [section] and key=value pairs
+ * Parse INI/properties file format.
+ * Supports sections [section] and key=value pairs. Built-in, no dependencies.
  * @param {string} content - INI file content
  * @returns {Object} Parsed object with sections as nested objects
  */
@@ -201,11 +203,9 @@ function stripJsonComments(str) {
 }
 
 /**
- * Simple XML parser for config extraction (built-in, limited)
- * Only extracts text content from simple element paths
- * @param {string} content - XML file content
- * @param {string} keyPath - Dot-separated path like 'PropertyGroup.SvgLintConfig'
- * @returns {Object|undefined} Parsed JSON from element text, or undefined
+ * Escape regex special characters for XML key path matching.
+ * @param {string} str - String to escape
+ * @returns {string} Escaped string safe for use in regex
  */
 // BUG FIX: Renamed to avoid duplicate function name - this version escapes ALL special chars
 // Used for XML key path escaping where * should be literal
@@ -213,6 +213,14 @@ function escapeRegexCharsForXml(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Parse XML config value from element path.
+ * Simple XML parser for config extraction (built-in, limited).
+ * Only extracts text content from simple element paths.
+ * @param {string} content - XML file content
+ * @param {string} keyPath - Dot-separated path like 'PropertyGroup.SvgLintConfig'
+ * @returns {Object|undefined} Parsed JSON from element text, or undefined
+ */
 function parseXmlConfigValue(content, keyPath) {
   const keys = keyPath.split(".");
   let current = content;
@@ -1080,8 +1088,10 @@ function parseConfigContent(content, filepath) {
 }
 
 /**
- * Load configuration from file
- * Supports JSON, YAML (.yaml, .yml), and TOML (.toml) formats
+ * Load configuration from file.
+ * Supports JSON, YAML (.yaml, .yml), and TOML (.toml) formats.
+ * @param {string} configPath - Path to config file
+ * @returns {Object} Configuration object
  */
 function loadConfig(configPath) {
   const defaultConfig = {
@@ -1243,6 +1253,11 @@ function loadConfig(configPath) {
 // ARGUMENT PARSING
 // ============================================================================
 
+/**
+ * Parse command-line arguments.
+ * @param {string[]} argv - Process argv array
+ * @returns {Object} Parsed arguments object
+ */
 function parseArgs(argv) {
   const args = {
     files: [],
@@ -1694,6 +1709,10 @@ function parseArgs(argv) {
 // HELP & VERSION
 // ============================================================================
 
+/**
+ * Display help message with usage information.
+ * @returns {void}
+ */
 function showHelp() {
   console.log(`
 ${c("bold", "svglinter")} - SVG validation CLI tool (ESLint/Ruff style)
@@ -1832,6 +1851,10 @@ ${c("dim", "Docs: https://github.com/Emasoft/SVG-MATRIX")}
 `);
 }
 
+/**
+ * Display version number.
+ * @returns {void}
+ */
 function showVersion() {
   const packagePath = path.join(__dirname, "..", "package.json");
   try {
@@ -1843,6 +1866,10 @@ function showVersion() {
   }
 }
 
+/**
+ * List all available validation rules with codes.
+ * @returns {void}
+ */
 function listRules() {
   console.log(`
 ${c("bold", "SVGLINTER RULES")}
@@ -1889,7 +1916,9 @@ ${c("bold", "Usage:")}
 }
 
 /**
- * Show detailed explanation for a specific rule
+ * Show detailed explanation for a specific rule.
+ * @param {string} code - Rule code to explain
+ * @returns {void}
  */
 function explainRule(code) {
   const rule = RULES[code];
@@ -2600,7 +2629,9 @@ ${c("dim", "Run svglinter --help for more information.")}
 }
 
 /**
- * Show statistics by rule code
+ * Show statistics by rule code.
+ * @param {Array} results - Lint results array
+ * @returns {void}
  */
 function showStats(results) {
   const stats = {};
@@ -2678,6 +2709,11 @@ ${c("bold", "Summary:")}
 // FILE DISCOVERY
 // ============================================================================
 
+/**
+ * Expand file patterns to list of SVG files.
+ * @param {string[]} patterns - File patterns, directories, or globs
+ * @returns {Promise<string[]>} Array of resolved SVG file paths
+ */
 async function expandFiles(patterns) {
   const files = new Set();
 
@@ -2726,6 +2762,12 @@ async function expandFiles(patterns) {
   return Array.from(files).sort();
 }
 
+/**
+ * Recursively find SVG files in directory.
+ * @param {string} dir - Directory to search
+ * @param {Set} visited - Set of visited directories to prevent loops
+ * @returns {Promise<string[]>} Array of SVG file paths
+ */
 async function findSvgFiles(dir, visited = new Set()) {
   const results = [];
 
@@ -2790,8 +2832,8 @@ async function findSvgFiles(dir, visited = new Set()) {
 }
 
 /**
- * Escape special regex characters in a string (except * which is converted to .*)
- * BUG FIX: Renamed to avoid duplicate function name - this version keeps * unescaped for glob patterns
+ * Escape special regex characters for glob pattern matching.
+ * BUG FIX: Renamed to avoid duplicate function name - this version keeps * unescaped for glob patterns.
  * @param {string} str - String to escape
  * @returns {string} Escaped string safe for regex
  */
@@ -2800,6 +2842,11 @@ function escapeRegexCharsForGlob(str) {
   return str.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Simple glob pattern matching for SVG files.
+ * @param {string} pattern - Glob pattern
+ * @returns {Promise<string[]>} Array of matching file paths
+ */
 async function globPromise(pattern) {
   const files = [];
 
@@ -2851,6 +2898,13 @@ async function globPromise(pattern) {
   return files;
 }
 
+/**
+ * Find files with specific extension recursively.
+ * @param {string} dir - Directory to search
+ * @param {string} ext - File extension to match
+ * @param {Set} visited - Set of visited directories to prevent loops
+ * @returns {Promise<string[]>} Array of matching file paths
+ */
 async function findSvgFilesWithExt(dir, ext, visited = new Set()) {
   const results = [];
   if (!fs.existsSync(dir)) return results;
@@ -2916,7 +2970,10 @@ async function findSvgFilesWithExt(dir, ext, visited = new Set()) {
 // ============================================================================
 
 /**
- * Check if a rule code should be ignored
+ * Check if a rule code should be ignored.
+ * @param {string} code - Rule code to check
+ * @param {string[]} ignoreList - List of ignore patterns
+ * @returns {boolean} True if rule should be ignored
  */
 function shouldIgnoreRule(code, ignoreList) {
   if (!ignoreList || ignoreList.length === 0) return false;
@@ -2936,7 +2993,10 @@ function shouldIgnoreRule(code, ignoreList) {
 }
 
 /**
- * Check if a rule code is selected
+ * Check if a rule code is selected.
+ * @param {string} code - Rule code to check
+ * @param {string[]} selectList - List of selected patterns
+ * @returns {boolean} True if rule is selected
  */
 function isRuleSelected(code, selectList) {
   if (!selectList || selectList.length === 0) return true;
@@ -2951,7 +3011,9 @@ function isRuleSelected(code, selectList) {
 }
 
 /**
- * Parse inline disable comments from SVG content
+ * Parse inline disable comments from SVG content.
+ * @param {string} content - SVG file content
+ * @returns {Array<Object>} Array of disabled ranges with rules
  */
 function parseInlineDisables(content) {
   const disabledRanges = [];
@@ -3018,7 +3080,10 @@ function parseInlineDisables(content) {
 }
 
 /**
- * Check if an issue is disabled by inline comments
+ * Check if an issue is disabled by inline comments.
+ * @param {Object} issue - Issue object
+ * @param {Array<Object>} disabledRanges - Array of disabled ranges
+ * @returns {boolean} True if issue is disabled
  */
 function isDisabledByInline(issue, disabledRanges) {
   const code = TYPE_TO_CODE[issue.type] || "";
@@ -3043,10 +3108,21 @@ function isDisabledByInline(issue, disabledRanges) {
 // FORMATTERS
 // ============================================================================
 
+/**
+ * Format issue type to rule code.
+ * @param {string} type - Issue type
+ * @returns {string} Rule code
+ */
 function formatRuleCode(type) {
   return TYPE_TO_CODE[type] || "W000";
 }
 
+/**
+ * Format severity with color for output.
+ * @param {string} severity - Severity level
+ * @param {string} outputFormat - Output format type
+ * @returns {string} Formatted severity string
+ */
 function formatSeverity(severity, outputFormat = "stylish") {
   if (outputFormat === "compact" || outputFormat === "ruff") {
     return severity === "error" ? "error" : "warning";
@@ -3058,6 +3134,13 @@ function formatSeverity(severity, outputFormat = "stylish") {
   return c("yellow", "warning");
 }
 
+/**
+ * Format results in ESLint stylish format.
+ * @param {Array} results - Lint results array
+ * @param {boolean} quiet - Suppress output
+ * @param {boolean} showIgnored - Show ignored issues count
+ * @returns {string} Formatted output
+ */
 function formatStylish(results, quiet, showIgnored) {
   const lines = [];
   let totalErrors = 0;
@@ -3146,6 +3229,11 @@ function formatStylish(results, quiet, showIgnored) {
   return lines.join("\n");
 }
 
+/**
+ * Format results in Ruff style.
+ * @param {Array} results - Lint results array
+ * @returns {string} Formatted output
+ */
 function formatRuff(results) {
   // Ruff-style: file:line:col: CODE message
   const lines = [];
@@ -3166,6 +3254,11 @@ function formatRuff(results) {
   return lines.join("\n");
 }
 
+/**
+ * Format results in compact format.
+ * @param {Array} results - Lint results array
+ * @returns {string} Formatted output
+ */
 function formatCompact(results) {
   const lines = [];
 
@@ -3188,6 +3281,11 @@ function formatCompact(results) {
   return lines.join("\n");
 }
 
+/**
+ * Format results as JSON.
+ * @param {Array} results - Lint results array
+ * @returns {string} JSON formatted output
+ */
 function formatJson(results) {
   const output = results.map((r) => ({
     filePath: r.file,
@@ -3208,6 +3306,11 @@ function formatJson(results) {
   return JSON.stringify(output, null, 2);
 }
 
+/**
+ * Format results in TAP (Test Anything Protocol) format.
+ * @param {Array} results - Lint results array
+ * @returns {string} TAP formatted output
+ */
 function formatTap(results) {
   const lines = ["TAP version 13"];
   let testNum = 0;
@@ -3241,6 +3344,11 @@ function formatTap(results) {
   return lines.join("\n");
 }
 
+/**
+ * Format results in JUnit XML format.
+ * @param {Array} results - Lint results array
+ * @returns {string} JUnit XML formatted output
+ */
 function formatJunit(results) {
   // Uses shared escapeXml utility function
   const lines = ['<?xml version="1.0" encoding="UTF-8"?>'];
@@ -3844,6 +3952,10 @@ function formatResults(
 // MAIN
 // ============================================================================
 
+/**
+ * Main CLI entry point.
+ * @returns {Promise<void>}
+ */
 async function main() {
   const args = parseArgs(process.argv);
 

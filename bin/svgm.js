@@ -115,10 +115,20 @@ let config = { ...DEFAULT_CONFIG };
 // ============================================================================
 // LOGGING
 // ============================================================================
+/**
+ * Log message to console unless in quiet mode.
+ * @param {string} msg - Message to log
+ * @returns {void}
+ */
 function log(msg) {
   if (!config.quiet) console.log(msg);
 }
 
+/**
+ * Log error message to console.
+ * @param {string} msg - Error message
+ * @returns {void}
+ */
 function logError(msg) {
   console.error(`${colors.red}error:${colors.reset} ${msg}`);
 }
@@ -272,16 +282,31 @@ const DEFAULT_PIPELINE = [
 // ============================================================================
 // PATH UTILITIES
 // ============================================================================
+/**
+ * Normalize path separators to forward slashes.
+ * @param {string} p - Path to normalize
+ * @returns {string} Normalized path
+ */
 function normalizePath(p) {
   return p.replace(/\\/g, "/");
 }
 
+/**
+ * Resolve path to absolute path with normalized separators.
+ * @param {string} p - Path to resolve
+ * @returns {string} Absolute normalized path
+ */
 function resolvePath(p) {
   return isAbsolute(p)
     ? normalizePath(p)
     : normalizePath(resolve(process.cwd(), p));
 }
 
+/**
+ * Check if path is a directory.
+ * @param {string} p - Path to check
+ * @returns {boolean} True if directory exists
+ */
 function isDir(p) {
   try {
     return statSync(p).isDirectory();
@@ -289,6 +314,12 @@ function isDir(p) {
     return false;
   }
 }
+
+/**
+ * Check if path is a file.
+ * @param {string} p - Path to check
+ * @returns {boolean} True if file exists
+ */
 function isFile(p) {
   try {
     return statSync(p).isFile();
@@ -297,12 +328,24 @@ function isFile(p) {
   }
 }
 
+/**
+ * Ensure directory exists, creating it if necessary.
+ * @param {string} dir - Directory path
+ * @returns {void}
+ */
 function ensureDir(dir) {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
 }
 
+/**
+ * Get all SVG files in directory with optional exclusion patterns.
+ * @param {string} dir - Directory path
+ * @param {boolean} recursive - Whether to search recursively
+ * @param {string[]} exclude - Array of exclusion patterns
+ * @returns {string[]} Array of SVG file paths
+ */
 function getSvgFiles(dir, recursive = false, exclude = []) {
   const files = [];
   function scan(d) {
@@ -331,6 +374,12 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
 // ============================================================================
 // SVG OPTIMIZATION
 // ============================================================================
+/**
+ * Optimize SVG content using default pipeline.
+ * @param {string} content - SVG content
+ * @param {Object} options - Optimization options
+ * @returns {Promise<string>} Optimized SVG content
+ */
 async function optimizeSvg(content, options = {}) {
   const doc = parseSVG(content);
   const pipeline = DEFAULT_PIPELINE;
@@ -408,10 +457,11 @@ async function optimizeSvg(content, options = {}) {
 }
 
 /**
- * Minify XML output while keeping it valid
- * - KEEPS XML declaration (ensures valid SVG)
- * - Remove whitespace between tags
- * - Collapse multiple spaces
+ * Minify XML output while keeping it valid.
+ * KEEPS XML declaration (ensures valid SVG), removes whitespace between tags,
+ * and collapses multiple spaces.
+ * @param {string} xml - XML content to minify
+ * @returns {string} Minified XML
  */
 function minifyXml(xml) {
   return (
@@ -423,6 +473,12 @@ function minifyXml(xml) {
   );
 }
 
+/**
+ * Prettify XML with indentation.
+ * @param {string} xml - XML content to prettify
+ * @param {number} indent - Number of spaces per indent level
+ * @returns {string} Prettified XML
+ */
 function prettifyXml(xml, indent = 2) {
   // Simple XML prettifier
   const indentStr = " ".repeat(indent);
@@ -460,6 +516,12 @@ function prettifyXml(xml, indent = 2) {
   return formatted.trim();
 }
 
+/**
+ * Convert SVG content to data URI.
+ * @param {string} content - SVG content
+ * @param {string} format - Format: 'base64', 'enc', or 'unenc'
+ * @returns {string} Data URI string
+ */
 function toDataUri(content, format) {
   if (format === "base64") {
     return (
@@ -475,6 +537,13 @@ function toDataUri(content, format) {
 // ============================================================================
 // PROCESS FILES
 // ============================================================================
+/**
+ * Process single SVG file with optimization.
+ * @param {string} inputPath - Input file path
+ * @param {string} outputPath - Output file path
+ * @param {Object} options - Processing options
+ * @returns {Promise<Object>} Processing result with success status and metrics
+ */
 async function processFile(inputPath, outputPath, options) {
   try {
     let content = readFileSync(inputPath, "utf8");
@@ -544,6 +613,10 @@ async function processFile(inputPath, outputPath, options) {
 // ============================================================================
 // HELP
 // ============================================================================
+/**
+ * Display help message.
+ * @returns {void}
+ */
 function showHelp() {
   console.log(`Usage: svgm [options] [INPUT...]
 
@@ -612,10 +685,18 @@ Examples:
 Docs: https://github.com/Emasoft/SVG-MATRIX#readme`);
 }
 
+/**
+ * Display version number.
+ * @returns {void}
+ */
 function showVersion() {
   console.log(VERSION);
 }
 
+/**
+ * Display available optimization plugins.
+ * @returns {void}
+ */
 function showPlugins() {
   console.log("\nAvailable optimizations:\n");
   for (const opt of OPTIMIZATIONS) {
@@ -629,6 +710,11 @@ function showPlugins() {
 // ============================================================================
 // CONFIG FILE LOADING
 // ============================================================================
+/**
+ * Load and parse configuration file (YAML).
+ * @param {string} configPath - Path to config file
+ * @returns {Object} Parsed configuration
+ */
 function loadConfigFile(configPath) {
   try {
     const absolutePath = resolvePath(configPath);
@@ -694,6 +780,11 @@ function loadConfigFile(configPath) {
 // ============================================================================
 // ARGUMENT PARSING
 // ============================================================================
+/**
+ * Parse command-line arguments.
+ * @param {string[]} args - Command-line arguments
+ * @returns {Object} Parsed configuration object
+ */
 function parseArgs(args) {
   let cfg = { ...DEFAULT_CONFIG };
   const inputs = [];
@@ -1003,6 +1094,10 @@ function parseArgs(args) {
 // ============================================================================
 // MAIN
 // ============================================================================
+/**
+ * Main entry point for CLI.
+ * @returns {Promise<void>}
+ */
 async function main() {
   const args = process.argv.slice(2);
 

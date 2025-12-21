@@ -103,6 +103,10 @@ export function pointInPolygonWithRule(
 
 /**
  * Check if a point lies on a line segment.
+ * @param {Object} pt - Point to test {x, y}
+ * @param {Object} a - Segment start point {x, y}
+ * @param {Object} b - Segment end point {x, y}
+ * @returns {boolean} True if point is on the segment
  */
 function pointOnSegment(pt, a, b) {
   const crossVal = cross(a, b, pt);
