@@ -335,6 +335,9 @@ export function processTriangleSimplex(simplex, direction) {
   if (!Array.isArray(simplex)) throw new TypeError('processTriangleSimplex: simplex must be an array');
   if (simplex.length !== 3) throw new TypeError('processTriangleSimplex: simplex must have exactly 3 points');
   if (!direction || direction.x == null || direction.y == null) throw new TypeError('processTriangleSimplex: direction must have x and y properties');
+  if (!simplex[0] || simplex[0].x == null || simplex[0].y == null) throw new TypeError('processTriangleSimplex: simplex[0] must have x and y properties');
+  if (!simplex[1] || simplex[1].x == null || simplex[1].y == null) throw new TypeError('processTriangleSimplex: simplex[1] must have x and y properties');
+  if (!simplex[2] || simplex[2].x == null || simplex[2].y == null) throw new TypeError('processTriangleSimplex: simplex[2] must have x and y properties');
   const A = simplex[0]; // Newest point
   const B = simplex[1];
   const C = simplex[2];
@@ -405,6 +408,12 @@ export function gjkIntersects(polygonA, polygonB) {
 
   // Handle single points
   if (polygonA.length === 1 && polygonB.length === 1) {
+    if (!polygonA[0] || polygonA[0].x == null || polygonA[0].y == null) {
+      throw new TypeError('gjkIntersects: polygonA[0] must have x and y properties');
+    }
+    if (!polygonB[0] || polygonB[0].x == null || polygonB[0].y == null) {
+      throw new TypeError('gjkIntersects: polygonB[0] must have x and y properties');
+    }
     const dist = magnitude(vectorSub(polygonA[0], polygonB[0]));
     return {
       intersects: dist.lessThan(EPSILON),
@@ -531,9 +540,12 @@ export function centroid(polygon) {
   let sumX = D(0);
   let sumY = D(0);
 
-  for (const p of polygon) {
-    sumX = sumX.plus(p.x);
-    sumY = sumY.plus(p.y);
+  for (let i = 0; i < polygon.length; i++) {
+    if (!polygon[i] || polygon[i].x == null || polygon[i].y == null) {
+      throw new TypeError(`centroid: polygon[${i}] must have x and y properties`);
+    }
+    sumX = sumX.plus(polygon[i].x);
+    sumY = sumY.plus(polygon[i].y);
   }
 
   const n = D(polygon.length);
@@ -563,6 +575,13 @@ export function pointInConvexPolygon(pt, polygon) {
   for (let i = 0; i < polygon.length; i++) {
     const p1 = polygon[i];
     const p2 = polygon[(i + 1) % polygon.length];
+
+    if (!p1 || p1.x == null || p1.y == null) {
+      throw new TypeError(`pointInConvexPolygon: polygon[${i}] must have x and y properties`);
+    }
+    if (!p2 || p2.x == null || p2.y == null) {
+      throw new TypeError(`pointInConvexPolygon: polygon[${(i + 1) % polygon.length}] must have x and y properties`);
+    }
 
     const edge = vectorSub(p2, p1);
     const toPoint = vectorSub(pt, p1);
@@ -601,15 +620,21 @@ export function verifyIntersection(polygonA, polygonB) {
   if (!Array.isArray(polygonA)) throw new TypeError('verifyIntersection: polygonA must be an array');
   if (!Array.isArray(polygonB)) throw new TypeError('verifyIntersection: polygonB must be an array');
   // Check if any vertex of A is inside B
-  for (const p of polygonA) {
-    if (pointInConvexPolygon(p, polygonB)) {
+  for (let i = 0; i < polygonA.length; i++) {
+    if (!polygonA[i] || polygonA[i].x == null || polygonA[i].y == null) {
+      throw new TypeError(`verifyIntersection: polygonA[${i}] must have x and y properties`);
+    }
+    if (pointInConvexPolygon(polygonA[i], polygonB)) {
       return true;
     }
   }
 
   // Check if any vertex of B is inside A
-  for (const p of polygonB) {
-    if (pointInConvexPolygon(p, polygonA)) {
+  for (let i = 0; i < polygonB.length; i++) {
+    if (!polygonB[i] || polygonB[i].x == null || polygonB[i].y == null) {
+      throw new TypeError(`verifyIntersection: polygonB[${i}] must have x and y properties`);
+    }
+    if (pointInConvexPolygon(polygonB[i], polygonA)) {
       return true;
     }
   }
@@ -619,9 +644,23 @@ export function verifyIntersection(polygonA, polygonB) {
     const a1 = polygonA[i];
     const a2 = polygonA[(i + 1) % polygonA.length];
 
+    if (!a1 || a1.x == null || a1.y == null) {
+      throw new TypeError(`verifyIntersection: polygonA[${i}] must have x and y properties`);
+    }
+    if (!a2 || a2.x == null || a2.y == null) {
+      throw new TypeError(`verifyIntersection: polygonA[${(i + 1) % polygonA.length}] must have x and y properties`);
+    }
+
     for (let j = 0; j < polygonB.length; j++) {
       const b1 = polygonB[j];
       const b2 = polygonB[(j + 1) % polygonB.length];
+
+      if (!b1 || b1.x == null || b1.y == null) {
+        throw new TypeError(`verifyIntersection: polygonB[${j}] must have x and y properties`);
+      }
+      if (!b2 || b2.x == null || b2.y == null) {
+        throw new TypeError(`verifyIntersection: polygonB[${(j + 1) % polygonB.length}] must have x and y properties`);
+      }
 
       if (segmentsIntersect(a1, a2, b1, b2)) {
         return true;
@@ -733,47 +772,79 @@ export function gjkDistance(polygonA, polygonB) {
   // For non-intersecting shapes, find the closest points by
   // examining all vertex-edge pairs
 
+  // Validate first points before using them as initial values
+  if (!polygonA[0] || polygonA[0].x == null || polygonA[0].y == null) {
+    throw new TypeError('gjkDistance: polygonA[0] must have x and y properties');
+  }
+  if (!polygonB[0] || polygonB[0].x == null || polygonB[0].y == null) {
+    throw new TypeError('gjkDistance: polygonB[0] must have x and y properties');
+  }
+
   let minDist = D(Infinity);
   let closestA = polygonA[0];
   let closestB = polygonB[0];
 
   // Check all pairs of vertices
-  for (const pA of polygonA) {
-    for (const pB of polygonB) {
-      const dist = magnitude(vectorSub(pA, pB));
+  for (let i = 0; i < polygonA.length; i++) {
+    if (!polygonA[i] || polygonA[i].x == null || polygonA[i].y == null) {
+      throw new TypeError(`gjkDistance: polygonA[${i}] must have x and y properties`);
+    }
+    for (let j = 0; j < polygonB.length; j++) {
+      if (!polygonB[j] || polygonB[j].x == null || polygonB[j].y == null) {
+        throw new TypeError(`gjkDistance: polygonB[${j}] must have x and y properties`);
+      }
+      const dist = magnitude(vectorSub(polygonA[i], polygonB[j]));
       if (dist.lessThan(minDist)) {
         minDist = dist;
-        closestA = pA;
-        closestB = pB;
+        closestA = polygonA[i];
+        closestB = polygonB[j];
       }
     }
   }
 
   // Check vertex-to-edge distances
-  for (const pA of polygonA) {
-    for (let i = 0; i < polygonB.length; i++) {
-      const e1 = polygonB[i];
-      const e2 = polygonB[(i + 1) % polygonB.length];
-      const closest = closestPointOnSegment(pA, e1, e2);
-      const dist = magnitude(vectorSub(pA, closest));
+  for (let i = 0; i < polygonA.length; i++) {
+    if (!polygonA[i] || polygonA[i].x == null || polygonA[i].y == null) {
+      throw new TypeError(`gjkDistance: polygonA[${i}] must have x and y properties`);
+    }
+    for (let j = 0; j < polygonB.length; j++) {
+      const e1 = polygonB[j];
+      const e2 = polygonB[(j + 1) % polygonB.length];
+      if (!e1 || e1.x == null || e1.y == null) {
+        throw new TypeError(`gjkDistance: polygonB[${j}] must have x and y properties`);
+      }
+      if (!e2 || e2.x == null || e2.y == null) {
+        throw new TypeError(`gjkDistance: polygonB[${(j + 1) % polygonB.length}] must have x and y properties`);
+      }
+      const closest = closestPointOnSegment(polygonA[i], e1, e2);
+      const dist = magnitude(vectorSub(polygonA[i], closest));
       if (dist.lessThan(minDist)) {
         minDist = dist;
-        closestA = pA;
+        closestA = polygonA[i];
         closestB = closest;
       }
     }
   }
 
-  for (const pB of polygonB) {
-    for (let i = 0; i < polygonA.length; i++) {
-      const e1 = polygonA[i];
-      const e2 = polygonA[(i + 1) % polygonA.length];
-      const closest = closestPointOnSegment(pB, e1, e2);
-      const dist = magnitude(vectorSub(pB, closest));
+  for (let i = 0; i < polygonB.length; i++) {
+    if (!polygonB[i] || polygonB[i].x == null || polygonB[i].y == null) {
+      throw new TypeError(`gjkDistance: polygonB[${i}] must have x and y properties`);
+    }
+    for (let j = 0; j < polygonA.length; j++) {
+      const e1 = polygonA[j];
+      const e2 = polygonA[(j + 1) % polygonA.length];
+      if (!e1 || e1.x == null || e1.y == null) {
+        throw new TypeError(`gjkDistance: polygonA[${j}] must have x and y properties`);
+      }
+      if (!e2 || e2.x == null || e2.y == null) {
+        throw new TypeError(`gjkDistance: polygonA[${(j + 1) % polygonA.length}] must have x and y properties`);
+      }
+      const closest = closestPointOnSegment(polygonB[i], e1, e2);
+      const dist = magnitude(vectorSub(polygonB[i], closest));
       if (dist.lessThan(minDist)) {
         minDist = dist;
         closestA = closest;
-        closestB = pB;
+        closestB = polygonB[i];
       }
     }
   }
@@ -839,8 +910,18 @@ export function polygonsOverlap(polygonA, polygonB) {
   if (!Array.isArray(polygonA)) throw new TypeError('polygonsOverlap: polygonA must be an array');
   if (!Array.isArray(polygonB)) throw new TypeError('polygonsOverlap: polygonB must be an array');
   // Normalize input to Decimal
-  const normA = polygonA.map(p => point(p.x, p.y));
-  const normB = polygonB.map(p => point(p.x, p.y));
+  const normA = polygonA.map((p, i) => {
+    if (!p || p.x == null || p.y == null) {
+      throw new TypeError(`polygonsOverlap: polygonA[${i}] must have x and y properties`);
+    }
+    return point(p.x, p.y);
+  });
+  const normB = polygonB.map((p, i) => {
+    if (!p || p.x == null || p.y == null) {
+      throw new TypeError(`polygonsOverlap: polygonB[${i}] must have x and y properties`);
+    }
+    return point(p.x, p.y);
+  });
 
   const result = gjkIntersects(normA, normB);
 
@@ -862,8 +943,18 @@ export function polygonsDistance(polygonA, polygonB) {
   if (!Array.isArray(polygonA)) throw new TypeError('polygonsDistance: polygonA must be an array');
   if (!Array.isArray(polygonB)) throw new TypeError('polygonsDistance: polygonB must be an array');
   // Normalize input to Decimal
-  const normA = polygonA.map(p => point(p.x, p.y));
-  const normB = polygonB.map(p => point(p.x, p.y));
+  const normA = polygonA.map((p, i) => {
+    if (!p || p.x == null || p.y == null) {
+      throw new TypeError(`polygonsDistance: polygonA[${i}] must have x and y properties`);
+    }
+    return point(p.x, p.y);
+  });
+  const normB = polygonB.map((p, i) => {
+    if (!p || p.x == null || p.y == null) {
+      throw new TypeError(`polygonsDistance: polygonB[${i}] must have x and y properties`);
+    }
+    return point(p.x, p.y);
+  });
 
   const result = gjkDistance(normA, normB);
 
@@ -887,7 +978,12 @@ export function isPointInPolygon(pt, polygon) {
   if (!pt || pt.x == null || pt.y == null) throw new TypeError('isPointInPolygon: pt must have x and y properties');
   if (!Array.isArray(polygon)) throw new TypeError('isPointInPolygon: polygon must be an array');
   const normPt = point(pt.x, pt.y);
-  const normPoly = polygon.map(p => point(p.x, p.y));
+  const normPoly = polygon.map((p, i) => {
+    if (!p || p.x == null || p.y == null) {
+      throw new TypeError(`isPointInPolygon: polygon[${i}] must have x and y properties`);
+    }
+    return point(p.x, p.y);
+  });
 
   return pointInConvexPolygon(normPt, normPoly);
 }

@@ -305,6 +305,19 @@ export class BrowserVerifier {
     if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
       throw new Error("tolerance must be a non-negative finite number");
     }
+    // Validate that matrix.data contains Decimal objects with toNumber() method
+    if (
+      typeof matrix.data[0][0].toNumber !== "function" ||
+      typeof matrix.data[1][0].toNumber !== "function" ||
+      typeof matrix.data[0][1].toNumber !== "function" ||
+      typeof matrix.data[1][1].toNumber !== "function" ||
+      typeof matrix.data[0][2].toNumber !== "function" ||
+      typeof matrix.data[1][2].toNumber !== "function"
+    ) {
+      throw new Error(
+        "matrix.data elements must have toNumber() method (Decimal objects)",
+      );
+    }
 
     const browserCTM = await this.getBrowserCTM(config);
 
@@ -367,9 +380,22 @@ export class BrowserVerifier {
       throw new Error("tolerance must be a non-negative finite number");
     }
 
-    const vb = SVGFlatten.parseViewBox(viewBox);
-    const par = SVGFlatten.parsePreserveAspectRatio(preserveAspectRatio);
-    const matrix = SVGFlatten.computeViewBoxTransform(vb, width, height, par);
+    let vb, par, matrix;
+    try {
+      vb = SVGFlatten.parseViewBox(viewBox);
+    } catch (e) {
+      throw new Error(`Failed to parse viewBox: ${e.message}`);
+    }
+    try {
+      par = SVGFlatten.parsePreserveAspectRatio(preserveAspectRatio);
+    } catch (e) {
+      throw new Error(`Failed to parse preserveAspectRatio: ${e.message}`);
+    }
+    try {
+      matrix = SVGFlatten.computeViewBoxTransform(vb, width, height, par);
+    } catch (e) {
+      throw new Error(`Failed to compute viewBox transform: ${e.message}`);
+    }
 
     return await this.verifyMatrix(
       matrix,
@@ -398,7 +424,12 @@ export class BrowserVerifier {
       throw new Error("tolerance must be a non-negative finite number");
     }
 
-    const matrix = SVGFlatten.parseTransformAttribute(transform);
+    let matrix;
+    try {
+      matrix = SVGFlatten.parseTransformAttribute(transform);
+    } catch (e) {
+      throw new Error(`Failed to parse transform attribute: ${e.message}`);
+    }
 
     // Use a simple 100x100 SVG without viewBox to test just the transform
     return await this.verifyMatrix(

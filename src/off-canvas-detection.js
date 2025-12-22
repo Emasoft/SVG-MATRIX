@@ -469,9 +469,9 @@ export function pathBoundingBox(pathCommands) {
 
   for (const cmd of pathCommands) {
     // Validate command object and type property (WHY: prevent null dereference and type errors)
-    if (!cmd || typeof cmd !== "object" || !cmd.type) {
+    if (!cmd || typeof cmd !== "object" || !cmd.type || typeof cmd.type !== "string") {
       throw new Error(
-        "pathBoundingBox: each command must be an object with a type property",
+        "pathBoundingBox: each command must be an object with a string type property",
       );
     }
 
@@ -1456,7 +1456,7 @@ export function clipPathToViewBox(pathCommands, viewBox) {
 
   for (const cmd of pathCommands) {
     // Validate command object and type (WHY: prevent null dereference)
-    if (!cmd || typeof cmd !== "object" || !cmd.type) {
+    if (!cmd || typeof cmd !== "object" || !cmd.type || typeof cmd.type !== "string") {
       continue; // Skip invalid commands during clipping (WHY: graceful degradation)
     }
 

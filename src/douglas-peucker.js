@@ -72,6 +72,20 @@ export function douglasPeucker(points, tolerance) {
     throw new RangeError('douglasPeucker: points array cannot be empty');
   }
 
+  // Validate each point has x and y properties with finite numeric values
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p || typeof p !== 'object') {
+      throw new TypeError(`douglasPeucker: point at index ${i} must be an object`);
+    }
+    if (typeof p.x !== 'number' || !Number.isFinite(p.x)) {
+      throw new TypeError(`douglasPeucker: point at index ${i} must have a finite numeric x property`);
+    }
+    if (typeof p.y !== 'number' || !Number.isFinite(p.y)) {
+      throw new TypeError(`douglasPeucker: point at index ${i} must have a finite numeric y property`);
+    }
+  }
+
   // Validate tolerance parameter to ensure valid numeric simplification threshold
   if (typeof tolerance !== 'number' || !Number.isFinite(tolerance)) {
     throw new TypeError('douglasPeucker: tolerance must be a finite number');

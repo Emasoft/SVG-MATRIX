@@ -386,15 +386,27 @@ function validateSvgFile(filePath) {
   }
 
   // Why: Read only first 1KB to check header - don't load entire file
-  const fd = openSync(filePath, "r");
-  const buffer = Buffer.alloc(1024);
-  readSync(fd, buffer, 0, 1024, 0);
-  closeSync(fd);
-  const header = buffer.toString("utf8");
+  // Use try-finally to ensure fd is always closed, preventing file descriptor leak
+  let fd;
+  try {
+    fd = openSync(filePath, "r");
+    const buffer = Buffer.alloc(1024);
+    readSync(fd, buffer, 0, 1024, 0);
+    const header = buffer.toString("utf8");
 
-  // Why: SVG files must have an <svg> element - if not, it's not a valid SVG
-  if (!CONSTANTS.SVG_HEADER_PATTERN.test(header)) {
-    throw new Error("Not a valid SVG file (missing <svg> element)");
+    // Why: SVG files must have an <svg> element - if not, it's not a valid SVG
+    if (!CONSTANTS.SVG_HEADER_PATTERN.test(header)) {
+      throw new Error("Not a valid SVG file (missing <svg> element)");
+    }
+  } finally {
+    // Why: Always close file descriptor to prevent resource leak
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* ignore close errors */
+      }
+    }
   }
 
   return true;
@@ -495,6 +507,8 @@ function resolvePath(p) {
  * @returns {boolean} True if directory exists
  */
 function isDir(p) {
+  // Why: Validate parameter to prevent crashes from invalid types
+  if (!p || typeof p !== "string") return false;
   try {
     return statSync(p).isDirectory();
   } catch {
@@ -508,6 +522,8 @@ function isDir(p) {
  * @returns {boolean} True if file exists
  */
 function isFile(p) {
+  // Why: Validate parameter to prevent crashes from invalid types
+  if (!p || typeof p !== "string") return false;
   try {
     return statSync(p).isFile();
   } catch {
@@ -617,7 +633,10 @@ function extractNumericAttr(attrs, attrName, defaultValue = 0) {
   // Why: Use word boundary \b to avoid matching 'rx' when looking for 'x'
   const regex = new RegExp(`\\b${attrName}\\s*=\\s*["']([^"']+)["']`, "i");
   const match = attrs.match(regex);
-  return match ? parseFloat(match[1]) : defaultValue;
+  if (!match) return defaultValue;
+  const val = parseFloat(match[1]);
+  // Why: Return default if parsing fails or results in NaN/Infinity
+  return isNaN(val) || !isFinite(val) ? defaultValue : val;
 }
 
 /**
@@ -631,7 +650,14 @@ function extractShapeAsPath(shapeType, attrs, precision) {
   // Why: Validate parameters to prevent crashes
   if (!shapeType || typeof shapeType !== "string") return null;
   if (!attrs || typeof attrs !== "string") return null;
-  if (typeof precision !== "number" || precision < 1) return null;
+  // Why: Validate precision is a valid finite number within acceptable range
+  if (
+    typeof precision !== "number" ||
+    !isFinite(precision) ||
+    precision < 1 ||
+    precision > CONSTANTS.MAX_PRECISION
+  )
+    return null;
 
   switch (shapeType) {
     case "rect": {
@@ -641,7 +667,8 @@ function extractShapeAsPath(shapeType, attrs, precision) {
       const h = extractNumericAttr(attrs, "height");
       const rx = extractNumericAttr(attrs, "rx");
       const ry = extractNumericAttr(attrs, "ry", rx); // ry defaults to rx per SVG spec
-      if (w <= 0 || h <= 0) return null;
+      // Why: Validate dimensions and corner radii are positive and finite
+      if (w <= 0 || h <= 0 || rx < 0 || ry < 0) return null;
       return GeometryToPath.rectToPathData(
         x,
         y,
@@ -657,6 +684,7 @@ function extractShapeAsPath(shapeType, attrs, precision) {
       const cx = extractNumericAttr(attrs, "cx");
       const cy = extractNumericAttr(attrs, "cy");
       const r = extractNumericAttr(attrs, "r");
+      // Why: Validate radius is positive (already checked by extractNumericAttr for NaN/Infinity)
       if (r <= 0) return null;
       return GeometryToPath.circleToPathData(cx, cy, r, precision);
     }
@@ -665,6 +693,7 @@ function extractShapeAsPath(shapeType, attrs, precision) {
       const cy = extractNumericAttr(attrs, "cy");
       const rx = extractNumericAttr(attrs, "rx");
       const ry = extractNumericAttr(attrs, "ry");
+      // Why: Validate radii are positive (already checked by extractNumericAttr for NaN/Infinity)
       if (rx <= 0 || ry <= 0) return null;
       return GeometryToPath.ellipseToPathData(cx, cy, rx, ry, precision);
     }
@@ -804,7 +833,6 @@ function boxHeader(title, width = 70) {
   if (safeTitle === undefined || safeTitle === null) safeTitle = "";
   if (typeof safeTitle !== "string") safeTitle = String(safeTitle);
 
-  const _hr = B.h.repeat(width); // Reserved for future use (horizontal rule)
   const visible = stripAnsi(safeTitle).length;
   const padding = Math.max(0, width - visible - 2);
   return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${safeTitle}${colors.reset}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
@@ -1198,10 +1226,20 @@ function processFlatten(inputPath, outputPath) {
     };
 
     // Run the full flatten pipeline
-    const { svg: flattenedSvg, stats } = FlattenPipeline.flattenSVG(
-      svgContent,
-      pipelineOptions,
-    );
+    const result = FlattenPipeline.flattenSVG(svgContent, pipelineOptions);
+
+    // Why: Validate result structure to prevent crashes on unexpected return values
+    if (!result || typeof result !== "object") {
+      throw new Error("FlattenPipeline.flattenSVG returned invalid result");
+    }
+    if (!result.svg || typeof result.svg !== "string") {
+      throw new Error("FlattenPipeline.flattenSVG returned invalid SVG");
+    }
+    if (!result.stats || typeof result.stats !== "object") {
+      throw new Error("FlattenPipeline.flattenSVG returned invalid stats");
+    }
+
+    const { svg: flattenedSvg, stats } = result;
 
     // Report statistics
     const parts = [];

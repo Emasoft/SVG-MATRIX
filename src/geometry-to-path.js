@@ -434,7 +434,7 @@ function parsePoints(points) {
   if (Array.isArray(points)) {
     try {
       return points.map(([x, y]) => [D(x), D(y)]);
-    } catch (e) {
+    } catch (_e) {
       return [];
     }
   }
@@ -456,7 +456,7 @@ function parsePoints(points) {
   for (const s of parts) {
     try {
       nums.push(D(s));
-    } catch (e) {
+    } catch (_e) {
       // Skip invalid numbers
       continue;
     }
@@ -555,7 +555,7 @@ export function parsePathData(pathData) {
       for (const m of argsStr.matchAll(numRegex)) {
         try {
           allArgs.push(D(m[0]));
-        } catch (e) {
+        } catch (_e) {
           // Skip invalid numbers per SVG error handling
           continue;
         }
@@ -638,6 +638,7 @@ export function pathToAbsolute(pathData) {
     const isRelative = command === command.toLowerCase();
     const upperCmd = command.toUpperCase();
     if (upperCmd === "M") {
+      if (args.length < 2) continue; // Skip malformed command
       const x = isRelative ? currentX.plus(args[0]) : args[0];
       const y = isRelative ? currentY.plus(args[1]) : args[1];
       currentX = x;
@@ -647,6 +648,7 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "M", args: [x, y] });
       lastCommand = "M";
     } else if (upperCmd === "L") {
+      if (args.length < 2) continue; // Skip malformed command
       const x = isRelative ? currentX.plus(args[0]) : args[0];
       const y = isRelative ? currentY.plus(args[1]) : args[1];
       currentX = x;
@@ -654,16 +656,19 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "L", args: [x, y] });
       lastCommand = "L";
     } else if (upperCmd === "H") {
+      if (args.length < 1) continue; // Skip malformed command
       const x = isRelative ? currentX.plus(args[0]) : args[0];
       currentX = x;
       result.push({ command: "L", args: [x, currentY] });
       lastCommand = "H";
     } else if (upperCmd === "V") {
+      if (args.length < 1) continue; // Skip malformed command
       const y = isRelative ? currentY.plus(args[0]) : args[0];
       currentY = y;
       result.push({ command: "L", args: [currentX, y] });
       lastCommand = "V";
     } else if (upperCmd === "C") {
+      if (args.length < 6) continue; // Skip malformed command
       const x1 = isRelative ? currentX.plus(args[0]) : args[0];
       const y1 = isRelative ? currentY.plus(args[1]) : args[1];
       const x2 = isRelative ? currentX.plus(args[2]) : args[2];
@@ -677,6 +682,7 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "C", args: [x1, y1, x2, y2, x, y] });
       lastCommand = "C";
     } else if (upperCmd === "S") {
+      if (args.length < 4) continue; // Skip malformed command
       // Smooth cubic Bezier: 4 args (x2, y2, x, y)
       // First control point is reflection of previous second control point
       let x1, y1;
@@ -698,6 +704,7 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "C", args: [x1, y1, x2, y2, x, y] });
       lastCommand = "S";
     } else if (upperCmd === "Q") {
+      if (args.length < 4) continue; // Skip malformed command
       // Quadratic Bezier: 4 args (x1, y1, x, y)
       const x1 = isRelative ? currentX.plus(args[0]) : args[0];
       const y1 = isRelative ? currentY.plus(args[1]) : args[1];
@@ -710,6 +717,7 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "Q", args: [x1, y1, x, y] });
       lastCommand = "Q";
     } else if (upperCmd === "T") {
+      if (args.length < 2) continue; // Skip malformed command
       // Smooth quadratic Bezier: 2 args (x, y)
       // Control point is reflection of previous control point
       let x1, y1;
@@ -729,6 +737,7 @@ export function pathToAbsolute(pathData) {
       result.push({ command: "Q", args: [x1, y1, x, y] });
       lastCommand = "T";
     } else if (upperCmd === "A") {
+      if (args.length < 7) continue; // Skip malformed command
       const x = isRelative ? currentX.plus(args[5]) : args[5];
       const y = isRelative ? currentY.plus(args[6]) : args[6];
       currentX = x;
@@ -779,8 +788,13 @@ export function transformArcParams(
   if (matrix == null) {
     throw new Error("transformArcParams: matrix parameter is required");
   }
-  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length < 3) {
-    throw new Error("transformArcParams: matrix must have valid data property with at least 3 rows");
+  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length !== 3) {
+    throw new Error("transformArcParams: matrix must be 3x3");
+  }
+  if (!Array.isArray(matrix.data[0]) || matrix.data[0].length < 2 ||
+      !Array.isArray(matrix.data[1]) || matrix.data[1].length < 2 ||
+      !Array.isArray(matrix.data[2]) || matrix.data[2].length < 1) {
+    throw new Error("transformArcParams: matrix must have valid 3x3 structure");
   }
   const rxD = D(rx),
     ryD = D(ry),
@@ -859,8 +873,13 @@ export function transformPathData(pathData, matrix, precision = 6) {
   if (matrix == null) {
     throw new Error("transformPathData: matrix parameter is required");
   }
-  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length < 3) {
-    throw new Error("transformPathData: matrix must have valid data property with at least 3 rows");
+  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length !== 3) {
+    throw new Error("transformPathData: matrix must be 3x3");
+  }
+  if (!Array.isArray(matrix.data[0]) || matrix.data[0].length < 2 ||
+      !Array.isArray(matrix.data[1]) || matrix.data[1].length < 2 ||
+      !Array.isArray(matrix.data[2]) || matrix.data[2].length < 1) {
+    throw new Error("transformPathData: matrix must have valid 3x3 structure");
   }
   if (!Number.isFinite(precision) || precision < 0) {
     throw new Error("transformPathData: precision must be non-negative");
@@ -870,6 +889,7 @@ export function transformPathData(pathData, matrix, precision = 6) {
   const result = [];
   for (const { command, args } of commands) {
     if (command === "M" || command === "L") {
+      if (args.length < 2) continue; // Skip malformed command
       const pt = Matrix.from([[args[0]], [args[1]], [new Decimal(1)]]);
       const transformed = matrix.mul(pt);
       const w = transformed.data[2][0];
@@ -880,6 +900,7 @@ export function transformPathData(pathData, matrix, precision = 6) {
       const y = transformed.data[1][0].div(w);
       result.push({ command, args: [x, y] });
     } else if (command === "C") {
+      if (args.length < 6) continue; // Skip malformed command
       const transformedArgs = [];
       for (let i = 0; i < 6; i += 2) {
         const pt = Matrix.from([[args[i]], [args[i + 1]], [new Decimal(1)]]);
@@ -893,6 +914,7 @@ export function transformPathData(pathData, matrix, precision = 6) {
       }
       result.push({ command, args: transformedArgs });
     } else if (command === "A") {
+      if (args.length < 7) continue; // Skip malformed command
       const [newRx, newRy, newRot, newLarge, newSweep, newEndX, newEndY] =
         transformArcParams(
           args[0],
@@ -956,11 +978,13 @@ export function pathToCubics(pathData) {
   let lastCommand = "";
   for (const { command, args } of commands) {
     if (command === "M") {
+      if (args.length < 2) continue; // Skip malformed command
       currentX = args[0];
       currentY = args[1];
       result.push({ command: "M", args: [currentX, currentY] });
       lastCommand = "M";
     } else if (command === "L") {
+      if (args.length < 2) continue; // Skip malformed command
       const x = args[0],
         y = args[1];
       result.push({ command: "C", args: [currentX, currentY, x, y, x, y] });
@@ -968,6 +992,7 @@ export function pathToCubics(pathData) {
       currentY = y;
       lastCommand = "L";
     } else if (command === "C") {
+      if (args.length < 6) continue; // Skip malformed command
       const [x1, y1, x2, y2, x, y] = args;
       result.push({ command: "C", args: [x1, y1, x2, y2, x, y] });
       lastControlX = x2;
@@ -976,6 +1001,7 @@ export function pathToCubics(pathData) {
       currentY = y;
       lastCommand = "C";
     } else if (command === "S") {
+      if (args.length < 4) continue; // Skip malformed command
       let x1, y1;
       if (lastCommand === "C" || lastCommand === "S") {
         x1 = currentX.mul(2).minus(lastControlX);
@@ -992,6 +1018,7 @@ export function pathToCubics(pathData) {
       currentY = y;
       lastCommand = "S";
     } else if (command === "Q") {
+      if (args.length < 4) continue; // Skip malformed command
       const [x1, y1, x, y] = args;
       const cubic = quadraticToCubic(currentX, currentY, x1, y1, x, y);
       result.push({ command: "C", args: cubic });
@@ -1001,6 +1028,7 @@ export function pathToCubics(pathData) {
       currentY = y;
       lastCommand = "Q";
     } else if (command === "T") {
+      if (args.length < 2) continue; // Skip malformed command
       let x1, y1;
       if (lastCommand === "Q" || lastCommand === "T") {
         x1 = currentX.mul(2).minus(lastControlX);
@@ -1110,5 +1138,11 @@ function stripUnits(val) {
   if (typeof val === "number") {
     return isNaN(val) ? 0 : val;
   }
-  return val;
+  // Handle Decimal type
+  if (val instanceof Decimal) {
+    return val.toNumber();
+  }
+  // Fallback: try to convert to number
+  const num = Number(val);
+  return isNaN(num) ? 0 : num;
 }

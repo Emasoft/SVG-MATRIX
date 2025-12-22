@@ -85,8 +85,13 @@ export function distance(p1, p2) {
   if (!p1 || !p2) throw new Error('distance: both points are required');
   if (p1.x === undefined || p1.y === undefined) throw new Error('distance: p1 must have x and y properties');
   if (p2.x === undefined || p2.y === undefined) throw new Error('distance: p2 must have x and y properties');
-  const dx = p2.x.minus(p1.x);
-  const dy = p2.y.minus(p1.y);
+  // Ensure coordinates are Decimal objects
+  const x1 = p1.x instanceof Decimal ? p1.x : D(p1.x);
+  const y1 = p1.y instanceof Decimal ? p1.y : D(p1.y);
+  const x2 = p2.x instanceof Decimal ? p2.x : D(p2.x);
+  const y2 = p2.y instanceof Decimal ? p2.y : D(p2.y);
+  const dx = x2.minus(x1);
+  const dy = y2.minus(y1);
   return dx.mul(dx).plus(dy.mul(dy)).sqrt();
 }
 
@@ -102,7 +107,12 @@ export function pointsEqual(p1, p2, tolerance = EPSILON) {
   if (p1.x === undefined || p1.y === undefined) throw new Error('pointsEqual: p1 must have x and y properties');
   if (p2.x === undefined || p2.y === undefined) throw new Error('pointsEqual: p2 must have x and y properties');
   const tol = D(tolerance);
-  return p1.x.minus(p2.x).abs().lessThan(tol) && p1.y.minus(p2.y).abs().lessThan(tol);
+  // Ensure coordinates are Decimal objects
+  const x1 = p1.x instanceof Decimal ? p1.x : D(p1.x);
+  const y1 = p1.y instanceof Decimal ? p1.y : D(p1.y);
+  const x2 = p2.x instanceof Decimal ? p2.x : D(p2.x);
+  const y2 = p2.y instanceof Decimal ? p2.y : D(p2.y);
+  return x1.minus(x2).abs().lessThan(tol) && y1.minus(y2).abs().lessThan(tol);
 }
 
 // ============================================================================
@@ -472,7 +482,10 @@ export function quadraticToSmooth(prevControl, x0, y0, x1, y1, x2, y2, tolerance
  * Used to avoid infinite recursion in verification.
  */
 function _toRelativeArgs(cmd, args, cx, cy) {
+  if (!cmd || typeof cmd !== 'string') throw new Error('_toRelativeArgs: cmd must be a non-empty string');
   if (!Array.isArray(args)) throw new Error('_toRelativeArgs: args must be an array');
+  if (cx === null || cx === undefined) throw new Error('_toRelativeArgs: cx is required');
+  if (cy === null || cy === undefined) throw new Error('_toRelativeArgs: cy is required');
 
   if (cmd === 'M' || cmd === 'L' || cmd === 'T') {
     if (args.length % 2 !== 0) throw new Error(`_toRelativeArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
@@ -520,7 +533,10 @@ function _toRelativeArgs(cmd, args, cx, cy) {
  * Used to avoid infinite recursion in verification.
  */
 function _toAbsoluteArgs(cmd, args, cx, cy) {
+  if (!cmd || typeof cmd !== 'string') throw new Error('_toAbsoluteArgs: cmd must be a non-empty string');
   if (!Array.isArray(args)) throw new Error('_toAbsoluteArgs: args must be an array');
+  if (cx === null || cx === undefined) throw new Error('_toAbsoluteArgs: cx is required');
+  if (cy === null || cy === undefined) throw new Error('_toAbsoluteArgs: cy is required');
 
   if (cmd === 'm' || cmd === 'l' || cmd === 't') {
     if (args.length % 2 !== 0) throw new Error(`_toAbsoluteArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
@@ -702,10 +718,15 @@ function formatCommand(command, precision = 6) {
   if (!command) throw new Error('formatCommand: command object is required');
   if (!command.command) throw new Error('formatCommand: command.command is required');
   if (!Array.isArray(command.args)) throw new Error('formatCommand: command.args must be an array');
+  if (typeof precision !== 'number' || precision < 0) throw new Error('formatCommand: precision must be a non-negative number');
 
   const cmd = command.command;
-  const args = command.args.map(arg => {
-    const num = arg.toNumber();
+  const args = command.args.map((arg, index) => {
+    // Convert to Decimal if not already, then to number
+    const argDecimal = arg instanceof Decimal ? arg : D(arg);
+    const num = argDecimal.toNumber();
+    // Validate the number is finite
+    if (!Number.isFinite(num)) throw new Error(`formatCommand: argument at index ${index} converted to non-finite number: ${num}`);
     // Format with specified precision and remove trailing zeros
     return parseFloat(num.toFixed(precision)).toString();
   }).join(',');
@@ -730,6 +751,7 @@ export function chooseShorterForm(absCommand, relCommand, precision = 6) {
   if (!relCommand) throw new Error('chooseShorterForm: relCommand is required');
   if (!relCommand.command) throw new Error('chooseShorterForm: relCommand.command is required');
   if (!Array.isArray(relCommand.args)) throw new Error('chooseShorterForm: relCommand.args must be an array');
+  if (typeof precision !== 'number' || precision < 0) throw new Error('chooseShorterForm: precision must be a non-negative number');
 
   const absStr = formatCommand({ command: absCommand.command, args: absCommand.args.map(D) }, precision);
   const relStr = formatCommand({ command: relCommand.command, args: relCommand.args.map(D) }, precision);
@@ -779,6 +801,13 @@ export function chooseShorterForm(absCommand, relCommand, precision = 6) {
  */
 export function collapseRepeated(commands) {
   if (!Array.isArray(commands)) throw new Error('collapseRepeated: commands must be an array');
+
+  // Validate each command object
+  for (let i = 0; i < commands.length; i++) {
+    if (!commands[i]) throw new Error(`collapseRepeated: command at index ${i} is null or undefined`);
+    if (!commands[i].command) throw new Error(`collapseRepeated: command at index ${i} is missing 'command' property`);
+    if (!Array.isArray(commands[i].args)) throw new Error(`collapseRepeated: command at index ${i} is missing 'args' array property`);
+  }
 
   if (commands.length < 2) {
     return {

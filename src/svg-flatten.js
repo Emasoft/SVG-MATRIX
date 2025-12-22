@@ -587,9 +587,10 @@ export function resolveLength(value, referenceSize, dpi = 96) {
   const D = (x) => new Decimal(x);
 
   // Validate dpi parameter
-  if (typeof dpi !== "number" || dpi <= 0 || !isFinite(dpi)) {
+  let validDpi = dpi;
+  if (typeof validDpi !== "number" || validDpi <= 0 || !isFinite(validDpi)) {
     console.warn("resolveLength: invalid dpi (must be positive finite number), using default 96");
-    dpi = 96;
+    validDpi = 96;
   }
 
   if (typeof value === "number") {
@@ -624,15 +625,15 @@ export function resolveLength(value, referenceSize, dpi = 96) {
     case "rem":
       return num.mul(16);
     case "pt":
-      return num.mul(dpi).div(72);
+      return num.mul(validDpi).div(72);
     case "pc":
-      return num.mul(dpi).div(6);
+      return num.mul(validDpi).div(6);
     case "in":
-      return num.mul(dpi);
+      return num.mul(validDpi);
     case "cm":
-      return num.mul(dpi).div(2.54);
+      return num.mul(validDpi).div(2.54);
     case "mm":
-      return num.mul(dpi).div(25.4);
+      return num.mul(validDpi).div(25.4);
     default:
       return num; // Unknown unit, treat as px
   }
@@ -1214,12 +1215,16 @@ export function transformArc(
     };
   }
 
-  // Validate flags are 0 or 1
-  if (largeArcFlag !== 0 && largeArcFlag !== 1) {
-    console.warn("transformArc: largeArcFlag must be 0 or 1");
+  // Validate and normalize flags to 0 or 1
+  let validLargeArcFlag = largeArcFlag;
+  if (typeof validLargeArcFlag !== "number" || (validLargeArcFlag !== 0 && validLargeArcFlag !== 1)) {
+    console.warn(`transformArc: largeArcFlag must be 0 or 1, got ${largeArcFlag}`);
+    validLargeArcFlag = validLargeArcFlag ? 1 : 0;
   }
-  if (sweepFlag !== 0 && sweepFlag !== 1) {
-    console.warn("transformArc: sweepFlag must be 0 or 1");
+  let validSweepFlag = sweepFlag;
+  if (typeof validSweepFlag !== "number" || (validSweepFlag !== 0 && validSweepFlag !== 1)) {
+    console.warn(`transformArc: sweepFlag must be 0 or 1, got ${sweepFlag}`);
+    validSweepFlag = validSweepFlag ? 1 : 0;
   }
 
   // Get matrix components
@@ -1306,10 +1311,10 @@ export function transformArc(
 
   // Check if matrix flips orientation (negative determinant)
   const det = a.mul(d).minus(b.mul(c));
-  let newSweepFlag = sweepFlag;
+  let newSweepFlag = validSweepFlag;
   if (det.lt(0)) {
     // Flip sweep direction
-    newSweepFlag = sweepFlag ? 0 : 1;
+    newSweepFlag = validSweepFlag ? 0 : 1;
   }
 
   // Convert rotation back to degrees and normalize to [0, 180)
@@ -1321,7 +1326,7 @@ export function transformArc(
     rx: newRx.toNumber(),
     ry: newRy.toNumber(),
     xAxisRotation: newRotDeg.toNumber(),
-    largeArcFlag: largeArcFlag,
+    largeArcFlag: validLargeArcFlag,
     sweepFlag: newSweepFlag,
     x: newX.toNumber(),
     y: newY.toNumber(),
@@ -1681,14 +1686,40 @@ export function applyToPoint(ctm, x, y) {
  * // Returns single matrix() function representing all transforms
  */
 export function toSVGMatrix(ctm, precision = 6) {
-  const a = ctm.data[0][0].toFixed(precision);
-  const b = ctm.data[1][0].toFixed(precision);
-  const c = ctm.data[0][1].toFixed(precision);
-  const d = ctm.data[1][1].toFixed(precision);
-  const e = ctm.data[0][2].toFixed(precision);
-  const f = ctm.data[1][2].toFixed(precision);
+  // Validate CTM structure
+  if (
+    !ctm ||
+    !ctm.data ||
+    !Array.isArray(ctm.data) ||
+    ctm.data.length < 3 ||
+    !Array.isArray(ctm.data[0]) ||
+    !Array.isArray(ctm.data[1]) ||
+    ctm.data[0].length < 3 ||
+    ctm.data[1].length < 3
+  ) {
+    throw new Error("toSVGMatrix: invalid CTM matrix structure");
+  }
 
-  return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
+  // Validate precision
+  let validPrecision = precision;
+  if (typeof validPrecision !== "number" || validPrecision < 0 || validPrecision > 20) {
+    console.warn("toSVGMatrix: invalid precision, using default 6");
+    validPrecision = 6;
+  }
+
+  // Validate matrix elements have toFixed method
+  try {
+    const a = ctm.data[0][0].toFixed(validPrecision);
+    const b = ctm.data[1][0].toFixed(validPrecision);
+    const c = ctm.data[0][1].toFixed(validPrecision);
+    const d = ctm.data[1][1].toFixed(validPrecision);
+    const e = ctm.data[0][2].toFixed(validPrecision);
+    const f = ctm.data[1][2].toFixed(validPrecision);
+
+    return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
+  } catch (err) {
+    throw new Error(`toSVGMatrix: invalid matrix elements - ${err.message}`);
+  }
 }
 
 /**
@@ -1734,6 +1765,16 @@ export function toSVGMatrix(ctm, precision = 6) {
  * // Returns: false
  */
 export function isIdentity(m, tolerance = "1e-10") {
+  // Validate matrix parameter
+  if (!m || !m.data || !Array.isArray(m.data)) {
+    throw new Error("isIdentity: invalid matrix parameter");
+  }
+
+  // Validate matrix has equals method
+  if (typeof m.equals !== "function") {
+    throw new Error("isIdentity: matrix must have equals method");
+  }
+
   const identity = Matrix.identity(3);
   return m.equals(identity, tolerance);
 }
@@ -1840,7 +1881,11 @@ export function transformPathData(pathData, ctm, options = {}) {
     switch (cmdUpper) {
       case "M": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 2) {
+        // Validate args length is multiple of 2
+        if (args.length % 2 !== 0) {
+          console.warn(`transformPathData: M command has ${args.length} args, expected multiple of 2`);
+        }
+        for (let i = 0; i + 1 < args.length; i += 2) {
           let x = D(args[i]),
             y = D(args[i + 1]);
           if (isRelative) {
@@ -1864,7 +1909,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "L": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 2) {
+        // Validate args length is multiple of 2
+        if (args.length % 2 !== 0) {
+          console.warn(`transformPathData: L command has ${args.length} args, expected multiple of 2`);
+        }
+        for (let i = 0; i + 1 < args.length; i += 2) {
           let x = D(args[i]),
             y = D(args[i + 1]);
           if (isRelative) {
@@ -1884,6 +1933,10 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "H": {
         // Horizontal line becomes L after transform (may have Y component)
+        if (args.length < 1) {
+          console.warn("transformPathData: H command requires at least 1 argument");
+          break;
+        }
         let x = D(args[0]);
         if (isRelative) {
           x = x.plus(curX);
@@ -1901,6 +1954,10 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "V": {
         // Vertical line becomes L after transform (may have X component)
+        if (args.length < 1) {
+          console.warn("transformPathData: V command requires at least 1 argument");
+          break;
+        }
         const x = curX;
         let y = D(args[0]);
         if (isRelative) {
@@ -1918,7 +1975,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "C": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 6) {
+        // Validate args length is multiple of 6
+        if (args.length % 6 !== 0) {
+          console.warn(`transformPathData: C command has ${args.length} args, expected multiple of 6`);
+        }
+        for (let i = 0; i + 5 < args.length; i += 6) {
           let x1 = D(args[i]),
             y1 = D(args[i + 1]);
           let x2 = D(args[i + 2]),
@@ -1957,7 +2018,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "S": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 4) {
+        // Validate args length is multiple of 4
+        if (args.length % 4 !== 0) {
+          console.warn(`transformPathData: S command has ${args.length} args, expected multiple of 4`);
+        }
+        for (let i = 0; i + 3 < args.length; i += 4) {
           let x2 = D(args[i]),
             y2 = D(args[i + 1]);
           let x = D(args[i + 2]),
@@ -1989,7 +2054,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "Q": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 4) {
+        // Validate args length is multiple of 4
+        if (args.length % 4 !== 0) {
+          console.warn(`transformPathData: Q command has ${args.length} args, expected multiple of 4`);
+        }
+        for (let i = 0; i + 3 < args.length; i += 4) {
           let x1 = D(args[i]),
             y1 = D(args[i + 1]);
           let x = D(args[i + 2]),
@@ -2021,7 +2090,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "T": {
         const transformed = [];
-        for (let i = 0; i < args.length; i += 2) {
+        // Validate args length is multiple of 2
+        if (args.length % 2 !== 0) {
+          console.warn(`transformPathData: T command has ${args.length} args, expected multiple of 2`);
+        }
+        for (let i = 0; i + 1 < args.length; i += 2) {
           let x = D(args[i]),
             y = D(args[i + 1]);
           if (isRelative) {
@@ -2042,7 +2115,11 @@ export function transformPathData(pathData, ctm, options = {}) {
       case "A": {
         // Use proper arc transformation
         const transformed = [];
-        for (let i = 0; i < args.length; i += 7) {
+        // Validate args length is multiple of 7
+        if (args.length % 7 !== 0) {
+          console.warn(`transformPathData: Arc command has ${args.length} args, expected multiple of 7`);
+        }
+        for (let i = 0; i + 6 < args.length; i += 7) {
           const rx = args[i];
           const ry = args[i + 1];
           const rotation = args[i + 2];

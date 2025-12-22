@@ -194,6 +194,9 @@ export function negativeExtraSpace(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
+
   // serializePath already handles this optimization
   return serializePath(commands, precision);
 }
@@ -217,6 +220,9 @@ export function convertToRelative(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
+
   let cx = 0,
     cy = 0;
   let startX = 0,
@@ -224,16 +230,12 @@ export function convertToRelative(d, precision = 3) {
   const result = [];
 
   for (const cmd of commands) {
-    validateCommand(cmd);
-
     // Convert to relative
     const rel = toRelative(cmd, cx, cy);
-    validateCommand(rel);
     result.push(rel);
 
     // Update position using absolute form
     const abs = toAbsolute(cmd, cx, cy);
-    validateCommand(abs);
     switch (abs.command) {
       case "M":
         cx = abs.args[0];
@@ -295,6 +297,9 @@ export function convertToAbsolute(d, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -372,6 +377,9 @@ export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -468,6 +476,9 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -851,6 +862,9 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
+
   let cx = 0,
     cy = 0;
   let startX = 0,
@@ -946,6 +960,9 @@ export function collapseRepeated(d, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
+
   // serializePath already collapses repeated commands
   return serializePath(commands, precision);
 }
@@ -974,6 +991,9 @@ export function floatPrecision(d, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   const factor = Math.pow(10, precision);
   const rounded = commands.map((cmd) => ({
@@ -1005,6 +1025,9 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -1267,6 +1290,9 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
+
   let cx = 0,
     cy = 0;
   let startX = 0,
@@ -1375,6 +1401,9 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -1492,6 +1521,9 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   let cx = 0,
     cy = 0;
@@ -1614,6 +1646,9 @@ export function arcShorthands(d, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate command structures
+  commands.forEach((cmd) => validateCommand(cmd));
 
   const result = commands.map((cmd) => {
     if (cmd.command === "A" || cmd.command === "a") {

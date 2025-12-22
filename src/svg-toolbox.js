@@ -597,6 +597,10 @@ const levenshteinCache = new Map();
  * @returns {number} Edit distance
  */
 const levenshteinDistance = (a, b) => {
+  // Validate parameters
+  if (typeof a !== "string" || typeof b !== "string") {
+    throw new Error("Both parameters must be strings");
+  }
   // Check cache first
   const key = `${a}|${b}`;
   if (levenshteinCache.has(key)) return levenshteinCache.get(key);
@@ -639,9 +643,12 @@ const resetLevenshteinCache = () => levenshteinCache.clear();
  * @returns {string|null} Closest match or null if none within threshold
  */
 const findClosestMatch = (name, validSet, maxDistance = 2) => {
+  if (!name || typeof name !== "string") return null;
+  if (!validSet || !(validSet instanceof Set) || validSet.size === 0) return null;
+  const validMaxDistance = (typeof maxDistance !== "number" || maxDistance < 0) ? 2 : maxDistance;
   const lower = name.toLowerCase();
   let closest = null;
-  let minDist = maxDistance + 1;
+  let minDist = validMaxDistance + 1;
 
   for (const valid of validSet) {
     const dist = levenshteinDistance(lower, valid.toLowerCase());
@@ -811,13 +818,14 @@ function isElement(obj) {
  */
 export function formatPrecision(value, precision = DEFAULT_PRECISION) {
   if (value === null || value === undefined) return "0";
+  let validPrecision = precision;
   if (typeof precision !== "number" || isNaN(precision) || precision < 0) {
-    precision = DEFAULT_PRECISION;
+    validPrecision = DEFAULT_PRECISION;
   }
-  if (precision > MAX_PRECISION) precision = MAX_PRECISION;
+  if (validPrecision > MAX_PRECISION) validPrecision = MAX_PRECISION;
   const d = D(value);
   // Round to precision, then remove trailing zeros
-  const fixed = d.toFixed(precision);
+  const fixed = d.toFixed(validPrecision);
   // Remove trailing zeros after decimal point
   if (fixed.includes(".")) {
     return fixed.replace(/\.?0+$/, "");

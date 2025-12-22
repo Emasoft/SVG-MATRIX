@@ -421,8 +421,6 @@ export function getPathVertices(pathData) {
   let currentY = 0;
   let startX = 0;
   let startY = 0;
-  let _lastControlX = 0;
-  let _lastControlY = 0;
 
   // Parse path commands
   const commands = parsePathCommands(pathData);
@@ -482,8 +480,6 @@ export function getPathVertices(pathData) {
 
       case "C": {
         // cubic bezier
-        _lastControlX = cmd.x2;
-        _lastControlY = cmd.y2;
         currentX = cmd.x;
         currentY = cmd.y;
 
@@ -511,8 +507,6 @@ export function getPathVertices(pathData) {
 
       case "Q": {
         // quadratic bezier
-        _lastControlX = cmd.x1;
-        _lastControlY = cmd.y1;
         currentX = cmd.x;
         currentY = cmd.y;
 

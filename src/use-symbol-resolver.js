@@ -657,6 +657,18 @@ export function resolveUse(useData, defs, options = {}) {
     throw new Error('resolveUse: useData.height must be null or a positive finite number');
   }
 
+  // Validate useData.style is an object or null/undefined
+  if (useData.style !== null && useData.style !== undefined) {
+    if (typeof useData.style !== 'object' || Array.isArray(useData.style)) {
+      throw new Error('resolveUse: useData.style must be null, undefined, or a valid non-array object');
+    }
+  }
+
+  // Validate useData.transform is a string or null/undefined
+  if (useData.transform !== null && useData.transform !== undefined && typeof useData.transform !== 'string') {
+    throw new Error('resolveUse: useData.transform must be null, undefined, or a string');
+  }
+
   // Validate options parameter
   if (options && typeof options !== 'object') {
     throw new Error('resolveUse: options must be an object or undefined');
@@ -695,6 +707,11 @@ export function resolveUse(useData, defs, options = {}) {
   // Handle symbol with viewBox (step 3)
   // ViewBox transform applies LAST (after translation and useTransform)
   if (target.type === "symbol" && target.viewBoxParsed) {
+    // Validate viewBoxParsed has required properties
+    if (typeof target.viewBoxParsed.width !== 'number' || typeof target.viewBoxParsed.height !== 'number') {
+      throw new Error('resolveUse: target.viewBoxParsed must have valid width and height properties');
+    }
+
     const width = useData.width || target.viewBoxParsed.width;
     const height = useData.height || target.viewBoxParsed.height;
 
@@ -702,7 +719,7 @@ export function resolveUse(useData, defs, options = {}) {
       target.viewBoxParsed,
       width,
       height,
-      target.preserveAspectRatio,
+      target.preserveAspectRatio || "xMidYMid meet",
     );
 
     // ViewBox transform is applied LAST, so it's the leftmost in multiplication

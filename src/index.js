@@ -443,8 +443,12 @@ export function translate3D(tx, ty, tz) {
  * @param {number|string|Decimal} [sy=sx] - Y scale factor
  * @param {number|string|Decimal} [sz=sx] - Z scale factor
  * @returns {Matrix} 4x4 scale matrix
+ * @throws {TypeError} If sx is null or undefined
  */
 export function scale3D(sx, sy = null, sz = null) {
+  if (sx == null) {
+    throw new TypeError("scale3D: sx cannot be null or undefined");
+  }
   return Transforms3D.scale(sx, sy, sz);
 }
 
@@ -456,8 +460,21 @@ export function scale3D(sx, sy = null, sz = null) {
  * @param {number|string|Decimal} y - Y coordinate
  * @param {number|string|Decimal} z - Z coordinate
  * @returns {[Decimal, Decimal, Decimal]} Transformed [x, y, z] coordinates
+ * @throws {TypeError} If matrix, x, y, or z is null or undefined
  */
 export function transform3D(matrix, x, y, z) {
+  if (matrix == null) {
+    throw new TypeError("transform3D: matrix cannot be null or undefined");
+  }
+  if (x == null) {
+    throw new TypeError("transform3D: x cannot be null or undefined");
+  }
+  if (y == null) {
+    throw new TypeError("transform3D: y cannot be null or undefined");
+  }
+  if (z == null) {
+    throw new TypeError("transform3D: z cannot be null or undefined");
+  }
   return Transforms3D.applyTransform(matrix, x, y, z);
 }
 
@@ -469,8 +486,25 @@ export function transform3D(matrix, x, y, z) {
  * @param {number|string|Decimal} r - Radius
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
+ * @throws {TypeError} If cx, cy, or r is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function circleToPath(cx, cy, r, precision = DEFAULT_PRECISION) {
+  if (cx == null) {
+    throw new TypeError("circleToPath: cx cannot be null or undefined");
+  }
+  if (cy == null) {
+    throw new TypeError("circleToPath: cy cannot be null or undefined");
+  }
+  if (r == null) {
+    throw new TypeError("circleToPath: r cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`circleToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`circleToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.circleToPathData(cx, cy, r, precision);
 }
 
@@ -482,8 +516,28 @@ export function circleToPath(cx, cy, r, precision = DEFAULT_PRECISION) {
  * @param {number|string|Decimal} ry - Y-axis radius
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
+ * @throws {TypeError} If cx, cy, rx, or ry is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function ellipseToPath(cx, cy, rx, ry, precision = DEFAULT_PRECISION) {
+  if (cx == null) {
+    throw new TypeError("ellipseToPath: cx cannot be null or undefined");
+  }
+  if (cy == null) {
+    throw new TypeError("ellipseToPath: cy cannot be null or undefined");
+  }
+  if (rx == null) {
+    throw new TypeError("ellipseToPath: rx cannot be null or undefined");
+  }
+  if (ry == null) {
+    throw new TypeError("ellipseToPath: ry cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`ellipseToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`ellipseToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.ellipseToPathData(cx, cy, rx, ry, precision);
 }
 
@@ -497,6 +551,8 @@ export function ellipseToPath(cx, cy, rx, ry, precision = DEFAULT_PRECISION) {
  * @param {number|string|Decimal} [ry=rx] - Corner Y radius
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
+ * @throws {TypeError} If x, y, width, or height is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function rectToPath(
   x,
@@ -507,6 +563,24 @@ export function rectToPath(
   ry = null,
   precision = DEFAULT_PRECISION,
 ) {
+  if (x == null) {
+    throw new TypeError("rectToPath: x cannot be null or undefined");
+  }
+  if (y == null) {
+    throw new TypeError("rectToPath: y cannot be null or undefined");
+  }
+  if (width == null) {
+    throw new TypeError("rectToPath: width cannot be null or undefined");
+  }
+  if (height == null) {
+    throw new TypeError("rectToPath: height cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`rectToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`rectToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.rectToPathData(
     x,
     y,
@@ -527,8 +601,28 @@ export function rectToPath(
  * @param {number|string|Decimal} y2 - End Y coordinate
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
+ * @throws {TypeError} If x1, y1, x2, or y2 is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function lineToPath(x1, y1, x2, y2, precision = DEFAULT_PRECISION) {
+  if (x1 == null) {
+    throw new TypeError("lineToPath: x1 cannot be null or undefined");
+  }
+  if (y1 == null) {
+    throw new TypeError("lineToPath: y1 cannot be null or undefined");
+  }
+  if (x2 == null) {
+    throw new TypeError("lineToPath: x2 cannot be null or undefined");
+  }
+  if (y2 == null) {
+    throw new TypeError("lineToPath: y2 cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`lineToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`lineToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.lineToPathData(x1, y1, x2, y2, precision);
 }
 
@@ -537,8 +631,19 @@ export function lineToPath(x1, y1, x2, y2, precision = DEFAULT_PRECISION) {
  * @param {string|Array<[number, number]>} points - SVG points attribute or array of [x, y] pairs
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string (closed)
+ * @throws {TypeError} If points is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function polygonToPath(points, precision = DEFAULT_PRECISION) {
+  if (points == null) {
+    throw new TypeError("polygonToPath: points cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`polygonToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`polygonToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.polygonToPathData(points, precision);
 }
 
@@ -547,8 +652,19 @@ export function polygonToPath(points, precision = DEFAULT_PRECISION) {
  * @param {string|Array<[number, number]>} points - SVG points attribute or array of [x, y] pairs
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string (open)
+ * @throws {TypeError} If points is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function polylineToPath(points, precision = DEFAULT_PRECISION) {
+  if (points == null) {
+    throw new TypeError("polylineToPath: points cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`polylineToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`polylineToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.polylineToPathData(points, precision);
 }
 
@@ -565,8 +681,12 @@ export function getKappa() {
  * Parse SVG path data into an array of commands with Decimal arguments.
  * @param {string} pathData - SVG path data string
  * @returns {Array<{command: string, args: Decimal[]}>} Parsed commands
+ * @throws {TypeError} If pathData is null or undefined
  */
 export function parsePath(pathData) {
+  if (pathData == null) {
+    throw new TypeError("parsePath: pathData cannot be null or undefined");
+  }
   return GeometryToPath.parsePathData(pathData);
 }
 
@@ -575,8 +695,19 @@ export function parsePath(pathData) {
  * @param {Array<{command: string, args: Decimal[]}>} commands - Path commands
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} SVG path data string
+ * @throws {TypeError} If commands is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function pathToString(commands, precision = DEFAULT_PRECISION) {
+  if (commands == null) {
+    throw new TypeError("pathToString: commands cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`pathToString: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`pathToString: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.pathArrayToString(commands, precision);
 }
 
@@ -584,8 +715,12 @@ export function pathToString(commands, precision = DEFAULT_PRECISION) {
  * Convert relative path commands to absolute.
  * @param {string} pathData - SVG path data (may contain relative commands)
  * @returns {string} SVG path data with only absolute commands
+ * @throws {TypeError} If pathData is null or undefined
  */
 export function pathToAbsolute(pathData) {
+  if (pathData == null) {
+    throw new TypeError("pathToAbsolute: pathData cannot be null or undefined");
+  }
   return GeometryToPath.pathToAbsolute(pathData);
 }
 
@@ -594,8 +729,12 @@ export function pathToAbsolute(pathData) {
  * Lines become degenerate cubics, quadratics are elevated to cubics.
  * @param {string} pathData - SVG path data
  * @returns {string} SVG path data with only M, C, and Z commands
+ * @throws {TypeError} If pathData is null or undefined
  */
 export function pathToCubics(pathData) {
+  if (pathData == null) {
+    throw new TypeError("pathToCubics: pathData cannot be null or undefined");
+  }
   return GeometryToPath.pathToCubics(pathData);
 }
 
@@ -605,8 +744,22 @@ export function pathToCubics(pathData) {
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string} Transformed SVG path data
+ * @throws {TypeError} If pathData or matrix is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function transformPath(pathData, matrix, precision = DEFAULT_PRECISION) {
+  if (pathData == null) {
+    throw new TypeError("transformPath: pathData cannot be null or undefined");
+  }
+  if (matrix == null) {
+    throw new TypeError("transformPath: matrix cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`transformPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`transformPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.transformPathData(pathData, matrix, precision);
 }
 
@@ -616,8 +769,19 @@ export function transformPath(pathData, matrix, precision = DEFAULT_PRECISION) {
  * @param {Object|Element} element - SVG element or object with tagName and attributes
  * @param {number} [precision=6] - Number of decimal places in output
  * @returns {string|null} SVG path data string, or null if element type not supported
+ * @throws {TypeError} If element is null/undefined, or precision is not a number
+ * @throws {RangeError} If precision is negative
  */
 export function elementToPath(element, precision = DEFAULT_PRECISION) {
+  if (element == null) {
+    throw new TypeError("elementToPath: element cannot be null or undefined");
+  }
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(`elementToPath: precision must be a finite number, got ${typeof precision}`);
+  }
+  if (precision < 0) {
+    throw new RangeError(`elementToPath: precision must be non-negative, got ${precision}`);
+  }
   return GeometryToPath.convertElementToPath(element, precision);
 }
 
@@ -676,8 +840,12 @@ export function zeros(rows, cols) {
  * Create a vector from an array of components.
  * @param {Array<number|string|Decimal>} components - Vector components
  * @returns {Vector} New vector instance
+ * @throws {TypeError} If components is null or undefined
  */
 export function vec(components) {
+  if (components == null) {
+    throw new TypeError("vec: components cannot be null or undefined");
+  }
   return Vector.from(components);
 }
 
@@ -685,8 +853,12 @@ export function vec(components) {
  * Create a matrix from a 2D array.
  * @param {Array<Array<number|string|Decimal>>} data - 2D array of matrix elements
  * @returns {Matrix} New matrix instance
+ * @throws {TypeError} If data is null or undefined
  */
 export function mat(data) {
+  if (data == null) {
+    throw new TypeError("mat: data cannot be null or undefined");
+  }
   return Matrix.from(data);
 }
 

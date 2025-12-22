@@ -236,6 +236,7 @@ export function parseMaskElement(maskElement) {
         }
         break;
       default:
+        // Unknown element type - childData will have basic properties only (type, fill, opacity, transform)
         break;
     }
 

@@ -854,13 +854,13 @@ function solveQuadratic(a, b, c) {
       "solveQuadratic: coefficients a, b, c must not be null or undefined",
     );
   }
-  // Convert to Decimal if needed
-  a = a instanceof Decimal ? a : D(a);
-  b = b instanceof Decimal ? b : D(b);
-  c = c instanceof Decimal ? c : D(c);
+  // Convert to Decimal if needed (use local variables to avoid param reassignment)
+  const aD = a instanceof Decimal ? a : D(a);
+  const bD = b instanceof Decimal ? b : D(b);
+  const cD = c instanceof Decimal ? c : D(c);
 
   // Check for non-finite values
-  if (!a.isFinite() || !b.isFinite() || !c.isFinite()) {
+  if (!aD.isFinite() || !bD.isFinite() || !cD.isFinite()) {
     throw new Error(
       "solveQuadratic: coefficients must be finite numbers, got non-finite values",
     );
@@ -869,34 +869,34 @@ function solveQuadratic(a, b, c) {
   // NUMERICAL STABILITY: Use threshold relative to coefficient magnitudes
   // to determine if 'a' is effectively zero (degenerate to linear equation)
   // WHY: Absolute thresholds fail when coefficients are scaled; relative threshold adapts
-  const coeffMag = Decimal.max(a.abs(), b.abs(), c.abs());
+  const coeffMag = Decimal.max(aD.abs(), bD.abs(), cD.abs());
 
   if (
     coeffMag.gt(0) &&
-    a.abs().div(coeffMag).lt(QUADRATIC_DEGENERATE_THRESHOLD)
+    aD.abs().div(coeffMag).lt(QUADRATIC_DEGENERATE_THRESHOLD)
   ) {
     // Linear equation: bx + c = 0
-    if (b.isZero()) return [];
-    return [c.neg().div(b)];
+    if (bD.isZero()) return [];
+    return [cD.neg().div(bD)];
   }
 
-  if (a.isZero()) {
-    if (b.isZero()) return [];
-    return [c.neg().div(b)];
+  if (aD.isZero()) {
+    if (bD.isZero()) return [];
+    return [cD.neg().div(bD)];
   }
 
-  const discriminant = b.times(b).minus(a.times(c).times(4));
+  const discriminant = bD.times(bD).minus(aD.times(cD).times(4));
 
   if (discriminant.lt(0)) {
     return []; // No real roots
   }
 
   if (discriminant.isZero()) {
-    return [b.neg().div(a.times(2))];
+    return [bD.neg().div(aD.times(2))];
   }
 
   const sqrtD = discriminant.sqrt();
-  const twoA = a.times(2);
+  const twoA = aD.times(2);
 
   // NUMERICAL STABILITY: Use Vieta's formula to compute the second root
   // when catastrophic cancellation would occur in the standard formula.
@@ -907,27 +907,27 @@ function solveQuadratic(a, b, c) {
   // x1 * x2 = c/a, so x2 = (c/a) / x1
 
   let root1, root2;
-  if (b.isNegative()) {
+  if (bD.isNegative()) {
     // -b is positive, so -b + sqrt(D) is well-conditioned
-    root1 = b.neg().plus(sqrtD).div(twoA);
+    root1 = bD.neg().plus(sqrtD).div(twoA);
     // Use Vieta's formula: x1 * x2 = c/a
     // DIVISION BY ZERO PROTECTION: Check if root1 is zero before dividing
     // WHY: When root1 is zero, Vieta's formula degenerates; use direct formula instead
     if (root1.abs().lt(NEAR_ZERO_THRESHOLD)) {
-      root2 = b.neg().minus(sqrtD).div(twoA);
+      root2 = bD.neg().minus(sqrtD).div(twoA);
     } else {
-      root2 = c.div(a).div(root1);
+      root2 = cD.div(aD).div(root1);
     }
   } else {
     // -b is negative or zero, so -b - sqrt(D) is well-conditioned
-    root1 = b.neg().minus(sqrtD).div(twoA);
+    root1 = bD.neg().minus(sqrtD).div(twoA);
     // Use Vieta's formula: x1 * x2 = c/a
     // DIVISION BY ZERO PROTECTION: Check if root1 is zero before dividing
     // WHY: When root1 is zero, Vieta's formula degenerates; use direct formula instead
     if (root1.abs().lt(NEAR_ZERO_THRESHOLD)) {
-      root2 = b.neg().plus(sqrtD).div(twoA);
+      root2 = bD.neg().plus(sqrtD).div(twoA);
     } else {
-      root2 = c.div(a).div(root1);
+      root2 = cD.div(aD).div(root1);
     }
   }
 
@@ -962,14 +962,14 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
       "findRootsBySubdivision: t0 and t1 must not be null or undefined",
     );
   }
-  t0 = t0 instanceof Decimal ? t0 : D(t0);
-  t1 = t1 instanceof Decimal ? t1 : D(t1);
-  if (!t0.isFinite() || !t1.isFinite()) {
+  const t0D = t0 instanceof Decimal ? t0 : D(t0);
+  const t1D = t1 instanceof Decimal ? t1 : D(t1);
+  if (!t0D.isFinite() || !t1D.isFinite()) {
     throw new Error(
       "findRootsBySubdivision: t0 and t1 must be finite numbers",
     );
   }
-  if (t1.lte(t0)) {
+  if (t1D.lte(t0D)) {
     throw new Error("findRootsBySubdivision: t1 must be greater than t0");
   }
 
@@ -994,19 +994,19 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
   }
 
   // WHY: Use named constant for subdivision convergence check
-  if (maxDepth <= 0 || t1.minus(t0).lt(SUBDIVISION_CONVERGENCE_THRESHOLD)) {
+  if (maxDepth <= 0 || t1D.minus(t0D).lt(SUBDIVISION_CONVERGENCE_THRESHOLD)) {
     // Converged, return midpoint
-    return [t0.plus(t1).div(2)];
+    return [t0D.plus(t1D).div(2)];
   }
 
   // Subdivide at midpoint
-  const tMid = t0.plus(t1).div(2);
+  const tMid = t0D.plus(t1D).div(2);
 
   // Compute subdivided control points using de Casteljau
   const { left, right } = subdivideBezier1D(coeffs);
 
-  const leftRoots = findRootsBySubdivision(left, t0, tMid, maxDepth - 1);
-  const rightRoots = findRootsBySubdivision(right, tMid, t1, maxDepth - 1);
+  const leftRoots = findRootsBySubdivision(left, t0D, tMid, maxDepth - 1);
+  const rightRoots = findRootsBySubdivision(right, tMid, t1D, maxDepth - 1);
 
   return leftRoots.concat(rightRoots);
 }
@@ -1073,6 +1073,22 @@ export function bezierToPolynomial(points) {
     throw new Error(
       "bezierToPolynomial: points must be an array with at least 2 control points",
     );
+  }
+
+  // POINT VALIDATION: Ensure each point is a valid [x, y] array
+  // WHY: Destructuring and index access fail on invalid point structures
+  for (let i = 0; i < points.length; i++) {
+    if (
+      !points[i] ||
+      !Array.isArray(points[i]) ||
+      points[i].length < 2 ||
+      points[i][0] == null ||
+      points[i][1] == null
+    ) {
+      throw new Error(
+        `bezierToPolynomial: points[${i}] must be a valid [x, y] array with non-null coordinates`,
+      );
+    }
   }
 
   const n = points.length - 1;
@@ -1150,6 +1166,21 @@ export function polynomialToBezier(xCoeffs, yCoeffs) {
     throw new Error(
       "polynomialToBezier: xCoeffs and yCoeffs must have the same length",
     );
+  }
+
+  // COEFFICIENT VALIDATION: Ensure all coefficients are valid (not null/undefined)
+  // WHY: Arithmetic operations fail on null/undefined values
+  for (let i = 0; i < xCoeffs.length; i++) {
+    if (xCoeffs[i] == null) {
+      throw new Error(
+        `polynomialToBezier: xCoeffs[${i}] is null or undefined`,
+      );
+    }
+    if (yCoeffs[i] == null) {
+      throw new Error(
+        `polynomialToBezier: yCoeffs[${i}] is null or undefined`,
+      );
+    }
   }
 
   const n = xCoeffs.length - 1;

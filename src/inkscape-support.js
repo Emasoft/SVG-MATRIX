@@ -90,7 +90,7 @@ export function getNamedViewSettings(doc) {
       namedview = el;
       return;
     }
-    if (el.children) {
+    if (el.children && Array.isArray(el.children)) {
       for (const child of el.children) {
         findNamedview(child);
         if (namedview) return;
@@ -347,7 +347,7 @@ export function findReferencedIds(element) {
     }
 
     // Recurse into children
-    if (el.children) {
+    if (el.children && Array.isArray(el.children)) {
       for (const child of el.children) {
         walk(child);
       }
@@ -380,7 +380,7 @@ export function buildDefsMapFromDefs(doc) {
     }
 
     // Recurse
-    if (el.children) {
+    if (el.children && Array.isArray(el.children)) {
       for (const child of el.children) {
         walk(child);
       }
@@ -393,7 +393,7 @@ export function buildDefsMapFromDefs(doc) {
     if (el.tagName === 'defs') {
       walk(el);
     }
-    if (el.children) {
+    if (el.children && Array.isArray(el.children)) {
       for (const child of el.children) {
         findDefs(child);
       }
@@ -458,7 +458,7 @@ export function cloneElement(element) {
   const attrs = {};
   if (element._attributes) {
     Object.assign(attrs, element._attributes);
-  } else if (element.getAttributeNames) {
+  } else if (typeof element.getAttributeNames === 'function') {
     for (const name of element.getAttributeNames()) {
       attrs[name] = element.getAttribute(name);
     }
@@ -466,7 +466,7 @@ export function cloneElement(element) {
 
   // Clone children recursively
   const clonedChildren = [];
-  if (element.children) {
+  if (element.children && Array.isArray(element.children)) {
     for (const child of element.children) {
       const clonedChild = cloneElement(child);
       if (clonedChild) {
@@ -544,7 +544,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
   const svgAttrs = {};
   if (svgRoot._attributes) {
     Object.assign(svgAttrs, svgRoot._attributes);
-  } else if (svgRoot.getAttributeNames) {
+  } else if (typeof svgRoot.getAttributeNames === 'function') {
     for (const name of svgRoot.getAttributeNames()) {
       svgAttrs[name] = svgRoot.getAttribute(name);
     }
@@ -614,6 +614,9 @@ export function extractAllLayers(doc, options = {}) {
 
     // Skip hidden layers unless requested
     if (!includeHidden) {
+      // Validate getAttribute method exists
+      if (typeof layer.getAttribute !== 'function') continue;
+
       const style = layer.getAttribute('style') || '';
       const display = layer.getAttribute('display');
       const visibility = layer.getAttribute('visibility');

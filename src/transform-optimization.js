@@ -940,6 +940,13 @@ export function optimizeTransformList(transforms) {
     const current = optimized[i];
     const next = optimized[i + 1];
 
+    // Validate transform objects before processing
+    if (!current || !current.type || !current.params ||
+        !next || !next.type || !next.params) {
+      i++;
+      continue;
+    }
+
     // Try to merge
     let merged = null;
 
@@ -993,11 +1000,29 @@ export function optimizeTransformList(transforms) {
     const t2 = optimized[i + 1];
     const t3 = optimized[i + 2];
 
+    // Validate transform objects before processing
+    if (!t1 || !t1.type || !t1.params ||
+        !t2 || !t2.type || !t2.params ||
+        !t3 || !t3.type || !t3.params) {
+      i++;
+      continue;
+    }
+
     if (
       t1.type === "translate" &&
       t2.type === "rotate" &&
       t3.type === "translate"
     ) {
+      // Validate required parameters exist
+      if (t1.params.tx === null || t1.params.tx === undefined ||
+          t1.params.ty === null || t1.params.ty === undefined ||
+          t2.params.angle === null || t2.params.angle === undefined ||
+          t3.params.tx === null || t3.params.tx === undefined ||
+          t3.params.ty === null || t3.params.ty === undefined) {
+        i++;
+        continue;
+      }
+
       // Check if t3 is inverse of t1
       const tx1 = D(t1.params.tx);
       const ty1 = D(t1.params.ty);
@@ -1028,7 +1053,17 @@ export function optimizeTransformList(transforms) {
   // Step 4: Convert matrices to simpler forms
   for (let j = 0; j < optimized.length; j++) {
     const t = optimized[j];
+
+    // Validate transform object before processing
+    if (!t || !t.type || !t.params) {
+      continue;
+    }
+
     if (t.type === "matrix") {
+      if (!t.params.matrix) {
+        continue; // Skip if matrix is missing
+      }
+
       const m = t.params.matrix;
 
       // Try to convert to simpler forms

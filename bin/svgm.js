@@ -826,6 +826,12 @@ function loadConfigFile(configPath) {
     // Why: Use safeLoad to prevent arbitrary code execution via YAML (security fix)
     const loadedConfig = yaml.load(content, { schema: yaml.FAILSAFE_SCHEMA });
 
+    // Why: Validate loaded config is an object to prevent runtime errors
+    if (loadedConfig === null || typeof loadedConfig !== "object") {
+      logError(`Invalid config file: expected object, got ${typeof loadedConfig}`);
+      process.exit(CONSTANTS.EXIT_ERROR);
+    }
+
     // Convert YAML config structure to CLI config structure
     const result = {};
 
@@ -889,6 +895,15 @@ function loadConfigFile(configPath) {
  * @returns {string} Next argument value
  */
 function getNextArg(args, i, flag) {
+  // Why: Validate parameters to prevent runtime errors
+  if (!Array.isArray(args)) {
+    logError(`getNextArg: expected array args, got ${typeof args}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  if (typeof i !== "number" || i < 0) {
+    logError(`getNextArg: expected non-negative number i, got ${typeof i}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
   // Why: Validate bounds to prevent accessing undefined arguments
   if (i + 1 >= args.length) {
     logError(`${flag} requires a value`);
@@ -903,6 +918,11 @@ function getNextArg(args, i, flag) {
  * @returns {Object} Parsed configuration object
  */
 function parseArgs(args) {
+  // Why: Validate parameter to prevent runtime errors
+  if (!Array.isArray(args)) {
+    logError(`parseArgs: expected array, got ${typeof args}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
   let cfg = { ...DEFAULT_CONFIG };
   const inputs = [];
   let i = 0;
@@ -972,8 +992,17 @@ function parseArgs(args) {
       case "-p":
       case "--precision":
         // Why: Use helper to safely get next argument with bounds checking
-        cfg.precision = parseInt(getNextArg(args, i, arg), 10);
-        i++;
+        {
+          const precisionArg = getNextArg(args, i, arg);
+          const parsed = parseInt(precisionArg, 10);
+          // Why: Validate parseInt result to prevent NaN values
+          if (isNaN(parsed)) {
+            logError(`--precision requires a valid number, got: ${precisionArg}`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          cfg.precision = parsed;
+          i++;
+        }
         break;
 
       case "--datauri":
@@ -992,8 +1021,17 @@ function parseArgs(args) {
 
       case "--indent":
         // Why: Use helper to safely get next argument with bounds checking
-        cfg.indent = parseInt(getNextArg(args, i, arg), 10);
-        i++;
+        {
+          const indentArg = getNextArg(args, i, arg);
+          const parsed = parseInt(indentArg, 10);
+          // Why: Validate parseInt result to prevent NaN values
+          if (isNaN(parsed)) {
+            logError(`--indent requires a valid number, got: ${indentArg}`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          cfg.indent = parsed;
+          i++;
+        }
         break;
 
       case "--eol":
@@ -1131,14 +1169,32 @@ function parseArgs(args) {
 
       case "--embed-max-depth":
         // Why: Use helper to safely get next argument with bounds checking
-        cfg.embedMaxRecursionDepth = parseInt(getNextArg(args, i, arg), 10);
-        i++;
+        {
+          const depthArg = getNextArg(args, i, arg);
+          const parsed = parseInt(depthArg, 10);
+          // Why: Validate parseInt result to prevent NaN values
+          if (isNaN(parsed)) {
+            logError(`--embed-max-depth requires a valid number, got: ${depthArg}`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          cfg.embedMaxRecursionDepth = parsed;
+          i++;
+        }
         break;
 
       case "--embed-timeout":
         // Why: Use helper to safely get next argument with bounds checking
-        cfg.embedTimeout = parseInt(getNextArg(args, i, arg), 10);
-        i++;
+        {
+          const timeoutArg = getNextArg(args, i, arg);
+          const parsed = parseInt(timeoutArg, 10);
+          // Why: Validate parseInt result to prevent NaN values
+          if (isNaN(parsed)) {
+            logError(`--embed-timeout requires a valid number, got: ${timeoutArg}`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          cfg.embedTimeout = parsed;
+          i++;
+        }
         break;
 
       case "--embed-on-missing":
@@ -1160,23 +1216,25 @@ function parseArgs(args) {
   cfg.inputs = inputs;
 
   // Validate numeric arguments
+  // Why: Check type first before using isNaN to prevent incorrect validation
   if (
-    cfg.precision !== undefined &&
-    (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 50)
+    cfg.precision !== undefined && cfg.precision !== null &&
+    (typeof cfg.precision !== "number" || isNaN(cfg.precision) ||
+     cfg.precision < CONSTANTS.MIN_PRECISION || cfg.precision > CONSTANTS.MAX_PRECISION)
   ) {
-    logError("--precision must be a number between 0 and 50");
+    logError(`--precision must be a number between ${CONSTANTS.MIN_PRECISION} and ${CONSTANTS.MAX_PRECISION}`);
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.indent !== undefined &&
-    (isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)
+    cfg.indent !== undefined && cfg.indent !== null &&
+    (typeof cfg.indent !== "number" || isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)
   ) {
     logError("--indent must be a number between 0 and 16");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.embedMaxRecursionDepth !== undefined &&
-    (isNaN(cfg.embedMaxRecursionDepth) ||
+    cfg.embedMaxRecursionDepth !== undefined && cfg.embedMaxRecursionDepth !== null &&
+    (typeof cfg.embedMaxRecursionDepth !== "number" || isNaN(cfg.embedMaxRecursionDepth) ||
       cfg.embedMaxRecursionDepth < 1 ||
       cfg.embedMaxRecursionDepth > 100)
   ) {
@@ -1184,8 +1242,8 @@ function parseArgs(args) {
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.embedTimeout !== undefined &&
-    (isNaN(cfg.embedTimeout) ||
+    cfg.embedTimeout !== undefined && cfg.embedTimeout !== null &&
+    (typeof cfg.embedTimeout !== "number" || isNaN(cfg.embedTimeout) ||
       cfg.embedTimeout < 1000 ||
       cfg.embedTimeout > 300000)
   ) {
@@ -1240,6 +1298,11 @@ function parseArgs(args) {
  * @returns {Promise<void>}
  */
 async function main() {
+  // Why: Validate process.argv exists and is an array to prevent runtime errors
+  if (!Array.isArray(process.argv)) {
+    logError("process.argv is not an array");
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
@@ -1350,7 +1413,12 @@ async function main() {
       if (config.output === "-") {
         outputPath = "-";
       } else if (Array.isArray(config.output)) {
-        outputPath = config.output[i] || config.output[0];
+        // Why: Bounds check when accessing array to prevent undefined values
+        if (config.output.length === 0) {
+          logError("Output array is empty");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        outputPath = config.output[i] || config.output[config.output.length - 1];
       } else if (files.length > 1 || isDir(resolvePath(config.output))) {
         // Multiple files or output is a directory
         outputPath = join(resolvePath(config.output), basename(inputPath));

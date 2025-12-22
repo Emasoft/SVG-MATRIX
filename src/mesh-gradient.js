@@ -643,10 +643,10 @@ export class CoonsPatch {
       throw new Error(`CoonsPatch.evaluate: v must be finite, got ${v}`);
 
     // Boundary curves
-    const Lc = evalCubicBezier(...this.top, u); // L_c(u,0)
-    const Ld = evalCubicBezier(...this.bottom, u); // L_d(u,1)
-    const La = evalCubicBezier(...this.left, v); // L_a(0,v)
-    const Lb = evalCubicBezier(...this.right, v); // L_b(1,v)
+    const Lc = evalCubicBezier(...this.top, uDecimal); // L_c(u,0)
+    const Ld = evalCubicBezier(...this.bottom, uDecimal); // L_d(u,1)
+    const La = evalCubicBezier(...this.left, vDecimal); // L_a(0,v)
+    const Lb = evalCubicBezier(...this.right, vDecimal); // L_b(1,v)
 
     // Corner points
     const P00 = this.top[0];
@@ -656,30 +656,30 @@ export class CoonsPatch {
 
     // Coons patch formula: S(u,v) = Lc(u) + Ld(u) - B(u,v)
     // where B is bilinear interpolation of corners
-    const mu = D(1).minus(u);
-    const mv = D(1).minus(v);
+    const mu = D(1).minus(uDecimal);
+    const mv = D(1).minus(vDecimal);
 
     // Ruled surface in u direction
-    const Sc_x = mv.mul(Lc.x).plus(v.mul(Ld.x));
-    const Sc_y = mv.mul(Lc.y).plus(v.mul(Ld.y));
+    const Sc_x = mv.mul(Lc.x).plus(vDecimal.mul(Ld.x));
+    const Sc_y = mv.mul(Lc.y).plus(vDecimal.mul(Ld.y));
 
     // Ruled surface in v direction
-    const Sd_x = mu.mul(La.x).plus(u.mul(Lb.x));
-    const Sd_y = mu.mul(La.y).plus(u.mul(Lb.y));
+    const Sd_x = mu.mul(La.x).plus(uDecimal.mul(Lb.x));
+    const Sd_y = mu.mul(La.y).plus(uDecimal.mul(Lb.y));
 
     // Bilinear interpolation of corners
     const B_x = mu
       .mul(mv)
       .mul(P00.x)
-      .plus(u.mul(mv).mul(P10.x))
-      .plus(mu.mul(v).mul(P01.x))
-      .plus(u.mul(v).mul(P11.x));
+      .plus(uDecimal.mul(mv).mul(P10.x))
+      .plus(mu.mul(vDecimal).mul(P01.x))
+      .plus(uDecimal.mul(vDecimal).mul(P11.x));
     const B_y = mu
       .mul(mv)
       .mul(P00.y)
-      .plus(u.mul(mv).mul(P10.y))
-      .plus(mu.mul(v).mul(P01.y))
-      .plus(u.mul(v).mul(P11.y));
+      .plus(uDecimal.mul(mv).mul(P10.y))
+      .plus(mu.mul(vDecimal).mul(P01.y))
+      .plus(uDecimal.mul(vDecimal).mul(P11.y));
 
     // Coons formula: Sc + Sd - B
     const pt = {
@@ -693,8 +693,8 @@ export class CoonsPatch {
       this.colors[0][1],
       this.colors[1][0],
       this.colors[1][1],
-      u,
-      v,
+      uDecimal,
+      vDecimal,
     );
 
     return { point: pt, color: col };
@@ -969,6 +969,15 @@ export function parseMeshGradient(meshGradientDef) {
 
   const x = D(meshGradientDef.x || 0);
   const y = D(meshGradientDef.y || 0);
+  if (!x.isFinite())
+    throw new Error(
+      `parseMeshGradient: x must be finite, got ${meshGradientDef.x}`,
+    );
+  if (!y.isFinite())
+    throw new Error(
+      `parseMeshGradient: y must be finite, got ${meshGradientDef.y}`,
+    );
+
   const type = meshGradientDef.type || "bilinear";
   const gradientUnits = meshGradientDef.gradientUnits || "userSpaceOnUse";
   const gradientTransform = meshGradientDef.gradientTransform || null;
@@ -1243,12 +1252,14 @@ function renderPatchQuad(patch, imageData, width, height) {
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       // Convert pixel to patch (u,v) coordinates
+      const uDenom = bbox.maxX.minus(bbox.minX);
+      const vDenom = bbox.maxY.minus(bbox.minY);
       const u = D(x)
         .minus(bbox.minX)
-        .div(bbox.maxX.minus(bbox.minX) || D(1));
+        .div(uDenom.isZero() ? D(1) : uDenom);
       const v = D(y)
         .minus(bbox.minY)
-        .div(bbox.maxY.minus(bbox.minY) || D(1));
+        .div(vDenom.isZero() ? D(1) : vDenom);
 
       if (u.gte(0) && u.lte(1) && v.gte(0) && v.lte(1)) {
         const { color: patchColor } = patch.evaluate(u, v);

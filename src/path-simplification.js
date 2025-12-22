@@ -444,6 +444,7 @@ export function isQuadraticBezierStraight(p0, p1, p2, tolerance = DEFAULT_TOLERA
  * @returns {{start: {x: Decimal, y: Decimal}, end: {x: Decimal, y: Decimal}, maxDeviation: Decimal} | null}
  */
 export function cubicBezierToLine(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  // Validation is done in isCubicBezierStraight
   const result = isCubicBezierStraight(p0, p1, p2, p3, tolerance);
   if (!result.isStraight || !result.verified) {
     return null;
@@ -480,7 +481,14 @@ export function cubicBezierToLine(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE)
  * @returns {{canLower: boolean, quadraticControl: {x: Decimal, y: Decimal} | null, maxDeviation: Decimal, verified: boolean}}
  */
 export function canLowerCubicToQuadratic(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  if (!p0 || !p1 || !p2 || !p3) throw new Error('canLowerCubicToQuadratic: points cannot be null or undefined');
+  if (!(p0.x instanceof Decimal) || !(p0.y instanceof Decimal)) throw new Error('canLowerCubicToQuadratic: p0 must have Decimal x and y properties');
+  if (!(p1.x instanceof Decimal) || !(p1.y instanceof Decimal)) throw new Error('canLowerCubicToQuadratic: p1 must have Decimal x and y properties');
+  if (!(p2.x instanceof Decimal) || !(p2.y instanceof Decimal)) throw new Error('canLowerCubicToQuadratic: p2 must have Decimal x and y properties');
+  if (!(p3.x instanceof Decimal) || !(p3.y instanceof Decimal)) throw new Error('canLowerCubicToQuadratic: p3 must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('canLowerCubicToQuadratic: tolerance parameter is null or undefined');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('canLowerCubicToQuadratic: tolerance must be a non-negative finite number');
   const three = D(3);
   const two = D(2);
 
@@ -548,6 +556,7 @@ export function canLowerCubicToQuadratic(p0, p1, p2, p3, tolerance = DEFAULT_TOL
  * @returns {{p0: {x: Decimal, y: Decimal}, p1: {x: Decimal, y: Decimal}, p2: {x: Decimal, y: Decimal}, maxDeviation: Decimal} | null}
  */
 export function cubicToQuadratic(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  // Validation is done in canLowerCubicToQuadratic
   const result = canLowerCubicToQuadratic(p0, p1, p2, p3, tolerance);
   if (!result.canLower || !result.quadraticControl) {
     return null;
@@ -662,7 +671,14 @@ export function fitCircleToPoints(points) {
  * @returns {{isArc: boolean, circle: {center: {x: Decimal, y: Decimal}, radius: Decimal} | null, maxDeviation: Decimal, verified: boolean}}
  */
 export function fitCircleToCubicBezier(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  if (!p0 || !p1 || !p2 || !p3) throw new Error('fitCircleToCubicBezier: points cannot be null or undefined');
+  if (!(p0.x instanceof Decimal) || !(p0.y instanceof Decimal)) throw new Error('fitCircleToCubicBezier: p0 must have Decimal x and y properties');
+  if (!(p1.x instanceof Decimal) || !(p1.y instanceof Decimal)) throw new Error('fitCircleToCubicBezier: p1 must have Decimal x and y properties');
+  if (!(p2.x instanceof Decimal) || !(p2.y instanceof Decimal)) throw new Error('fitCircleToCubicBezier: p2 must have Decimal x and y properties');
+  if (!(p3.x instanceof Decimal) || !(p3.y instanceof Decimal)) throw new Error('fitCircleToCubicBezier: p3 must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('fitCircleToCubicBezier: tolerance parameter is null or undefined');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('fitCircleToCubicBezier: tolerance must be a non-negative finite number');
 
   // Sample points along the curve for fitting
   const sampleCount = 9; // Including endpoints
@@ -719,6 +735,7 @@ export function fitCircleToCubicBezier(p0, p1, p2, p3, tolerance = DEFAULT_TOLER
  * @returns {{rx: Decimal, ry: Decimal, rotation: Decimal, largeArc: number, sweep: number, endX: Decimal, endY: Decimal, maxDeviation: Decimal} | null}
  */
 export function cubicBezierToArc(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  // Validation is done in fitCircleToCubicBezier
   const result = fitCircleToCubicBezier(p0, p1, p2, p3, tolerance);
 
   if (!result.isArc || !result.circle) {
@@ -787,8 +804,14 @@ export function cubicBezierToArc(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) 
  * @returns {Decimal | null} Sagitta value, or null if chord > diameter
  */
 export function calculateSagitta(radius, chordLength) {
+  if (radius === null || radius === undefined) throw new Error('calculateSagitta: radius parameter is null or undefined');
+  if (chordLength === null || chordLength === undefined) throw new Error('calculateSagitta: chordLength parameter is null or undefined');
   const r = D(radius);
   const c = D(chordLength);
+  if (!r.isFinite()) throw new Error('calculateSagitta: radius must be finite');
+  if (!c.isFinite()) throw new Error('calculateSagitta: chordLength must be finite');
+  if (r.lessThan(0)) throw new Error('calculateSagitta: radius must be non-negative');
+  if (c.lessThan(0)) throw new Error('calculateSagitta: chordLength must be non-negative');
   const halfChord = c.div(2);
 
   // Check if chord is valid (must be <= 2*r)
@@ -821,9 +844,23 @@ export function calculateSagitta(radius, chordLength) {
  * @returns {{isStraight: boolean, sagitta: Decimal | null, maxDeviation: Decimal, verified: boolean}}
  */
 export function isArcStraight(rx, ry, rotation, largeArc, sweep, start, end, tolerance = DEFAULT_TOLERANCE) {
+  if (rx === null || rx === undefined) throw new Error('isArcStraight: rx parameter is null or undefined');
+  if (ry === null || ry === undefined) throw new Error('isArcStraight: ry parameter is null or undefined');
+  if (rotation === null || rotation === undefined) throw new Error('isArcStraight: rotation parameter is null or undefined');
+  if (largeArc === null || largeArc === undefined) throw new Error('isArcStraight: largeArc parameter is null or undefined');
+  if (sweep === null || sweep === undefined) throw new Error('isArcStraight: sweep parameter is null or undefined');
+  if (!start || !end) throw new Error('isArcStraight: start and end points cannot be null or undefined');
+  if (!(start.x instanceof Decimal) || !(start.y instanceof Decimal)) throw new Error('isArcStraight: start must have Decimal x and y properties');
+  if (!(end.x instanceof Decimal) || !(end.y instanceof Decimal)) throw new Error('isArcStraight: end must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('isArcStraight: tolerance parameter is null or undefined');
+  if (largeArc !== 0 && largeArc !== 1) throw new Error('isArcStraight: largeArc must be 0 or 1');
+  if (sweep !== 0 && sweep !== 1) throw new Error('isArcStraight: sweep must be 0 or 1');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('isArcStraight: tolerance must be a non-negative finite number');
   const rxD = D(rx);
   const ryD = D(ry);
+  if (!rxD.isFinite()) throw new Error('isArcStraight: rx must be finite');
+  if (!ryD.isFinite()) throw new Error('isArcStraight: ry must be finite');
 
   // Check for zero or near-zero radii
   if (rxD.abs().lessThan(EPSILON) || ryD.abs().lessThan(EPSILON)) {
@@ -887,7 +924,13 @@ export function isArcStraight(rx, ry, rotation, largeArc, sweep, start, end, tol
  * @returns {boolean} True if collinear
  */
 export function areCollinear(p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  if (!p1 || !p2 || !p3) throw new Error('areCollinear: points cannot be null or undefined');
+  if (!(p1.x instanceof Decimal) || !(p1.y instanceof Decimal)) throw new Error('areCollinear: p1 must have Decimal x and y properties');
+  if (!(p2.x instanceof Decimal) || !(p2.y instanceof Decimal)) throw new Error('areCollinear: p2 must have Decimal x and y properties');
+  if (!(p3.x instanceof Decimal) || !(p3.y instanceof Decimal)) throw new Error('areCollinear: p3 must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('areCollinear: tolerance parameter is null or undefined');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('areCollinear: tolerance must be a non-negative finite number');
 
   // Check using cross product (area of triangle)
   const cross = crossProduct(p1, p2, p3).abs();
@@ -914,6 +957,7 @@ export function mergeCollinearSegments(points, tolerance = DEFAULT_TOLERANCE) {
   if (!points) throw new Error('mergeCollinearSegments: points array cannot be null or undefined');
   if (!Array.isArray(points)) throw new Error('mergeCollinearSegments: points must be an array');
   if (points.length === 0) throw new Error('mergeCollinearSegments: points array cannot be empty');
+  if (tolerance === null || tolerance === undefined) throw new Error('mergeCollinearSegments: tolerance parameter is null or undefined');
 
   // Validate all points have Decimal x and y properties
   for (let i = 0; i < points.length; i++) {
@@ -929,6 +973,7 @@ export function mergeCollinearSegments(points, tolerance = DEFAULT_TOLERANCE) {
   }
 
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('mergeCollinearSegments: tolerance must be a non-negative finite number');
   const result = [points[0]];
   let mergeCount = 0;
 
@@ -990,7 +1035,13 @@ export function mergeCollinearSegments(points, tolerance = DEFAULT_TOLERANCE) {
  * @returns {boolean} True if zero-length
  */
 export function isZeroLengthSegment(start, end, tolerance = EPSILON) {
-  return distance(start, end).lessThan(D(tolerance));
+  if (!start || !end) throw new Error('isZeroLengthSegment: points cannot be null or undefined');
+  if (!(start.x instanceof Decimal) || !(start.y instanceof Decimal)) throw new Error('isZeroLengthSegment: start must have Decimal x and y properties');
+  if (!(end.x instanceof Decimal) || !(end.y instanceof Decimal)) throw new Error('isZeroLengthSegment: end must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('isZeroLengthSegment: tolerance parameter is null or undefined');
+  const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('isZeroLengthSegment: tolerance must be a non-negative finite number');
+  return distance(start, end).lessThan(tol);
 }
 
 /**
@@ -1003,8 +1054,10 @@ export function isZeroLengthSegment(start, end, tolerance = EPSILON) {
 export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
   if (!pathData) throw new Error('removeZeroLengthSegments: pathData cannot be null or undefined');
   if (!Array.isArray(pathData)) throw new Error('removeZeroLengthSegments: pathData must be an array');
+  if (tolerance === null || tolerance === undefined) throw new Error('removeZeroLengthSegments: tolerance parameter is null or undefined');
 
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('removeZeroLengthSegments: tolerance must be a non-negative finite number');
   const result = [];
   let removeCount = 0;
   let currentX = D(0), currentY = D(0);
@@ -1066,9 +1119,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         if (endX.minus(currentX).abs().lessThan(tol)) {
           keep = false;
           removeCount++;
-        } else {
-          currentX = endX;
         }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentX = endX;
         break;
       }
 
@@ -1078,9 +1131,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         if (endY.minus(currentY).abs().lessThan(tol)) {
           keep = false;
           removeCount++;
-        } else {
-          currentY = endY;
         }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentY = endY;
         break;
       }
 
@@ -1102,10 +1155,10 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         if (allSame) {
           keep = false;
           removeCount++;
-        } else {
-          currentX = endX;
-          currentY = endY;
         }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentX = endX;
+        currentY = endY;
         break;
       }
 
@@ -1123,10 +1176,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
             removeCount++;
           }
         }
-        if (keep) {
-          currentX = endX;
-          currentY = endY;
-        }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentX = endX;
+        currentY = endY;
         break;
       }
 
@@ -1144,10 +1196,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
             removeCount++;
           }
         }
-        if (keep) {
-          currentX = endX;
-          currentY = endY;
-        }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentX = endX;
+        currentY = endY;
         break;
       }
 
@@ -1158,10 +1209,10 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol)) {
           keep = false;
           removeCount++;
-        } else {
-          currentX = endX;
-          currentY = endY;
         }
+        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        currentX = endX;
+        currentY = endY;
         break;
       }
 

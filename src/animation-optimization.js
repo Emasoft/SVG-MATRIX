@@ -253,7 +253,7 @@ export function optimizeKeySplines(keySplines, options = {}) {
  */
 export function parseKeyTimes(keyTimes) {
   if (!keyTimes || typeof keyTimes !== 'string') return [];
-  return keyTimes.split(';').map(s => parseFloat(s.trim())).filter(v => !isNaN(v));
+  return keyTimes.split(';').map(s => parseFloat(s.trim())).filter(v => Number.isFinite(v));
 }
 
 /**
@@ -403,11 +403,10 @@ export function optimizeElementTiming(el, options = {}) {
     }
   }
 
-  // Optimize values (only numeric, preserve ID refs)
+  // Optimize values (optimizeAnimationValues internally preserves ID refs)
   if (optimizeValues) {
     const values = el.getAttribute('values');
-    if (values && !values.includes('#')) {
-      // Only optimize if no ID references
+    if (values) {
       const optimized = optimizeAnimationValues(values, precision);
       if (optimized !== values) {
         el.setAttribute('values', optimized);
@@ -417,10 +416,10 @@ export function optimizeElementTiming(el, options = {}) {
     }
   }
 
-  // Optimize from/to
+  // Optimize from/to/by (optimizeAnimationValues internally preserves ID refs)
   for (const attr of ['from', 'to', 'by']) {
     const val = el.getAttribute(attr);
-    if (val && !val.includes('#')) {
+    if (val) {
       const optimized = optimizeAnimationValues(val, precision);
       if (optimized !== val) {
         el.setAttribute(attr, optimized);

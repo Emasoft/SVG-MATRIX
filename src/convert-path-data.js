@@ -1042,42 +1042,58 @@ export function convertPathData(d, options = {}) {
 
     // Update position
     const finalCmd = toAbsolute(cmd, cx, cy);
+    // BUG FIX #13: Add bounds checks before accessing finalCmd.args
     switch (finalCmd.command) {
       case "M":
-        cx = finalCmd.args[0];
-        cy = finalCmd.args[1];
-        startX = cx;
-        startY = cy;
+        if (finalCmd.args.length >= 2) {
+          cx = finalCmd.args[0];
+          cy = finalCmd.args[1];
+          startX = cx;
+          startY = cy;
+        }
         break;
       case "L":
       case "T":
-        cx = finalCmd.args[0];
-        cy = finalCmd.args[1];
+        if (finalCmd.args.length >= 2) {
+          cx = finalCmd.args[0];
+          cy = finalCmd.args[1];
+        }
         break;
       case "H":
-        cx = finalCmd.args[0];
+        if (finalCmd.args.length >= 1) {
+          cx = finalCmd.args[0];
+        }
         break;
       case "V":
-        cy = finalCmd.args[0];
+        if (finalCmd.args.length >= 1) {
+          cy = finalCmd.args[0];
+        }
         break;
       case "C":
-        cx = finalCmd.args[4];
-        cy = finalCmd.args[5];
+        if (finalCmd.args.length >= 6) {
+          cx = finalCmd.args[4];
+          cy = finalCmd.args[5];
+        }
         break;
       case "S":
       case "Q":
-        cx = finalCmd.args[2];
-        cy = finalCmd.args[3];
+        if (finalCmd.args.length >= 4) {
+          cx = finalCmd.args[2];
+          cy = finalCmd.args[3];
+        }
         break;
       case "A":
-        cx = finalCmd.args[5];
-        cy = finalCmd.args[6];
+        if (finalCmd.args.length >= 7) {
+          cx = finalCmd.args[5];
+          cy = finalCmd.args[6];
+        }
         break;
       case "Z":
         cx = startX;
         cy = startY;
         break;
       default:
+        // Unknown command - don't update position
         break;
     }
   }

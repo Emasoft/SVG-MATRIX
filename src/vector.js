@@ -309,8 +309,8 @@ export class Vector {
       throw new Error('orthogonal: cannot find orthogonal vector to zero vector');
     }
     if (this.length === 2) {
-      // 2D perpendicular: rotate 90 degrees counterclockwise, then normalize
-      return new Vector([this.data[1].negated(), this.data[0]]).normalize();
+      // 2D perpendicular: rotate 90 degrees counterclockwise [-y, x]
+      return new Vector([this.data[1].negated(), this.data[0]]);
     }
     // For n > 2: find a standard basis vector not parallel to this,
     // then use Gram-Schmidt orthogonalization

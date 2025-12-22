@@ -384,6 +384,17 @@ export class SVGRenderingContext {
         "expandBBoxForStroke: bbox must have x, y, width, height properties",
       );
     }
+    // Validate bbox properties are Decimal-like - Why: prevent crashes from calling Decimal methods on numbers
+    if (
+      typeof bbox.x.minus !== "function" ||
+      typeof bbox.y.minus !== "function" ||
+      typeof bbox.width.plus !== "function" ||
+      typeof bbox.height.plus !== "function"
+    ) {
+      throw new Error(
+        "expandBBoxForStroke: bbox properties must be Decimal instances",
+      );
+    }
 
     if (!this.hasStroke) return bbox;
 
@@ -420,6 +431,17 @@ export class SVGRenderingContext {
     ) {
       throw new Error(
         "expandBBoxForMarkers: bbox must have x, y, width, height properties",
+      );
+    }
+    // Validate bbox properties are Decimal-like - Why: prevent crashes from calling Decimal methods on numbers
+    if (
+      typeof bbox.x.minus !== "function" ||
+      typeof bbox.y.minus !== "function" ||
+      typeof bbox.width.plus !== "function" ||
+      typeof bbox.height.plus !== "function"
+    ) {
+      throw new Error(
+        "expandBBoxForMarkers: bbox properties must be Decimal instances",
       );
     }
 
@@ -489,6 +511,17 @@ export class SVGRenderingContext {
         "expandBBoxForFilter: bbox must have x, y, width, height properties",
       );
     }
+    // Validate bbox properties are Decimal-like - Why: prevent crashes from calling Decimal methods on numbers
+    if (
+      typeof bbox.x.minus !== "function" ||
+      typeof bbox.y.minus !== "function" ||
+      typeof bbox.width.times !== "function" ||
+      typeof bbox.height.times !== "function"
+    ) {
+      throw new Error(
+        "expandBBoxForFilter: bbox properties must be Decimal instances",
+      );
+    }
 
     const filterRef = this.properties.filter;
     if (!filterRef || filterRef === "none") return bbox;
@@ -554,6 +587,15 @@ export class SVGRenderingContext {
     ) {
       throw new Error(
         "getRenderedBBox: geometryBBox must have x, y, width, height properties",
+      );
+    }
+    // Validate geometryBBox properties are Decimal-like - Why: prevent crashes from calling Decimal methods on numbers
+    if (
+      typeof geometryBBox.x.minus !== "function" ||
+      typeof geometryBBox.y.minus !== "function"
+    ) {
+      throw new Error(
+        "getRenderedBBox: geometryBBox properties must be Decimal instances",
       );
     }
 

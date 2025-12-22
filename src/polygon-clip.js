@@ -722,6 +722,20 @@ export function clipPolygonSH(subject, clip) {
     return [];
   }
 
+  // Validate all subject points have x and y properties
+  for (let i = 0; i < subject.length; i++) {
+    if (!subject[i] || subject[i].x === null || subject[i].x === undefined || subject[i].y === null || subject[i].y === undefined) {
+      throw new Error(`clipPolygonSH: subject[${i}] must have x and y properties`);
+    }
+  }
+
+  // Validate all clip points have x and y properties
+  for (let i = 0; i < clip.length; i++) {
+    if (!clip[i] || clip[i].x === null || clip[i].x === undefined || clip[i].y === null || clip[i].y === undefined) {
+      throw new Error(`clipPolygonSH: clip[${i}] must have x and y properties`);
+    }
+  }
+
   // Convert all points to Decimal
   let output = subject.map((p) => point(p.x, p.y));
   const clipPoly = clip.map((p) => point(p.x, p.y));
@@ -1049,7 +1063,20 @@ export function convexHull(points) {
   }
 
   if (points.length < 3) {
+    // Validate and convert points
+    for (let i = 0; i < points.length; i++) {
+      if (!points[i] || points[i].x === null || points[i].x === undefined || points[i].y === null || points[i].y === undefined) {
+        throw new Error(`convexHull: points[${i}] must have x and y properties`);
+      }
+    }
     return points.map((p) => point(p.x, p.y));
+  }
+
+  // Validate all points have x and y properties before converting
+  for (let i = 0; i < points.length; i++) {
+    if (!points[i] || points[i].x === null || points[i].x === undefined || points[i].y === null || points[i].y === undefined) {
+      throw new Error(`convexHull: points[${i}] must have x and y properties`);
+    }
   }
 
   // Convert to Decimal points
@@ -1260,6 +1287,20 @@ export function polygonIntersection(subject, clip) {
     throw new Error("polygonIntersection: clip must be an array");
   }
 
+  // Validate all subject points have x and y properties
+  for (let i = 0; i < subject.length; i++) {
+    if (!subject[i] || subject[i].x === null || subject[i].x === undefined || subject[i].y === null || subject[i].y === undefined) {
+      throw new Error(`polygonIntersection: subject[${i}] must have x and y properties`);
+    }
+  }
+
+  // Validate all clip points have x and y properties
+  for (let i = 0; i < clip.length; i++) {
+    if (!clip[i] || clip[i].x === null || clip[i].x === undefined || clip[i].y === null || clip[i].y === undefined) {
+      throw new Error(`polygonIntersection: clip[${i}] must have x and y properties`);
+    }
+  }
+
   // Convert to Decimal points
   const subjectPoly = subject.map((p) => point(p.x, p.y));
   const clipPoly = clip.map((p) => point(p.x, p.y));
@@ -1321,6 +1362,13 @@ export function isConvex(polygon) {
 
   const n = polygon.length;
   if (n < 3) return false;
+
+  // Validate all polygon points have x and y properties
+  for (let i = 0; i < n; i++) {
+    if (!polygon[i] || polygon[i].x === null || polygon[i].x === undefined || polygon[i].y === null || polygon[i].y === undefined) {
+      throw new Error(`isConvex: polygon[${i}] must have x and y properties`);
+    }
+  }
 
   let crossSign = 0;
 
@@ -1491,6 +1539,20 @@ export function polygonUnion(polygon1, polygon2) {
   }
   if (!Array.isArray(polygon2)) {
     throw new Error("polygonUnion: polygon2 must be an array");
+  }
+
+  // Validate all polygon1 points have x and y properties
+  for (let i = 0; i < polygon1.length; i++) {
+    if (!polygon1[i] || polygon1[i].x === null || polygon1[i].x === undefined || polygon1[i].y === null || polygon1[i].y === undefined) {
+      throw new Error(`polygonUnion: polygon1[${i}] must have x and y properties`);
+    }
+  }
+
+  // Validate all polygon2 points have x and y properties
+  for (let i = 0; i < polygon2.length; i++) {
+    if (!polygon2[i] || polygon2[i].x === null || polygon2[i].x === undefined || polygon2[i].y === null || polygon2[i].y === undefined) {
+      throw new Error(`polygonUnion: polygon2[${i}] must have x and y properties`);
+    }
   }
 
   const poly1 = polygon1.map((p) => point(p.x, p.y));
@@ -1823,6 +1885,20 @@ export function polygonDifference(polygon1, polygon2) {
   }
   if (!Array.isArray(polygon2)) {
     throw new Error("polygonDifference: polygon2 must be an array");
+  }
+
+  // Validate all polygon1 points have x and y properties
+  for (let i = 0; i < polygon1.length; i++) {
+    if (!polygon1[i] || polygon1[i].x === null || polygon1[i].x === undefined || polygon1[i].y === null || polygon1[i].y === undefined) {
+      throw new Error(`polygonDifference: polygon1[${i}] must have x and y properties`);
+    }
+  }
+
+  // Validate all polygon2 points have x and y properties
+  for (let i = 0; i < polygon2.length; i++) {
+    if (!polygon2[i] || polygon2[i].x === null || polygon2[i].x === undefined || polygon2[i].y === null || polygon2[i].y === undefined) {
+      throw new Error(`polygonDifference: polygon2[${i}] must have x and y properties`);
+    }
   }
 
   const poly1 = polygon1.map((p) => point(p.x, p.y));

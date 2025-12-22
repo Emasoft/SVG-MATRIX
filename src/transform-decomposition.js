@@ -227,7 +227,6 @@ export function extractTranslation(matrix) {
  *   skewY: Decimal,
  *   verified: boolean,
  *   maxError?: Decimal,
- *   verificationError?: Decimal,
  *   singular?: boolean
  * }}
  * @throws {TypeError} If matrix is null or undefined
@@ -258,7 +257,7 @@ export function decomposeMatrix(matrix) {
       skewX: D(0),
       skewY: D(0),
       verified: false,
-      verificationError: D("Infinity"),
+      maxError: D("Infinity"), // Consistent with normal return path property name
       singular: true, // Flag to indicate singular matrix
     };
   }
@@ -617,8 +616,13 @@ export function matrixMaxDifference(m1, m2) {
  * @param {Matrix} m2 - Second matrix
  * @param {Decimal} [tolerance=VERIFICATION_TOLERANCE] - Maximum allowed difference
  * @returns {boolean} True if matrices are equal within tolerance
+ * @throws {TypeError} If tolerance is explicitly null (not undefined)
  */
 export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
+  // Parameter validation: why - D() cannot convert null to meaningful value
+  if (tolerance === null) {
+    throw new TypeError("matricesEqual: tolerance cannot be null");
+  }
   return matrixMaxDifference(m1, m2).lessThan(D(tolerance));
 }
 
