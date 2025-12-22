@@ -383,34 +383,9 @@ function validateSvgFile(filePath) {
 // WRITE VERIFICATION
 // Why: Detect silent write failures. Some filesystems (especially network
 // shares) may appear to write successfully but fail to persist data.
-// Verification catches this immediately rather than discovering corruption later.
+// Verification is done inline where needed (see processFlatten/Convert/Normalize)
+// rather than in a dedicated function to avoid double memory usage.
 // ============================================================================
-/**
- * Verify file was written correctly by comparing content.
- * @param {string} filePath - Path to file
- * @param {string} expectedContent - Expected file content
- * @returns {boolean} True if verification passed
- * @throws {Error} If verification failed
- * @private
- */
-function _verifyWriteSuccess(filePath, expectedContent) {
-  // Why: Read back what was written and compare
-  const actualContent = readFileSync(filePath, "utf8");
-
-  // Why: Compare lengths first (fast), then content if needed
-  if (actualContent.length !== expectedContent.length) {
-    throw new Error(
-      `Write verification failed: size mismatch (expected ${expectedContent.length}, got ${actualContent.length})`,
-    );
-  }
-
-  // Why: Full content comparison to catch bit flips or encoding issues
-  if (actualContent !== expectedContent) {
-    throw new Error("Write verification failed: content mismatch");
-  }
-
-  return true;
-}
 
 // ============================================================================
 // CRASH LOG
@@ -1377,6 +1352,13 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
     groupIterations++;
   }
 
+  // Why: Warn when iteration limit reached - may indicate deeply nested transforms
+  if (groupIterations >= CONSTANTS.MAX_GROUP_ITERATIONS) {
+    logWarn(
+      `Group transform propagation reached maximum iterations (${CONSTANTS.MAX_GROUP_ITERATIONS}). Deeply nested groups may not be fully flattened.`,
+    );
+  }
+
   logInfo(
     `Flattened ${transformCount} transforms (${pathCount} paths, ${shapeCount} shapes) [legacy mode]`,
   );
@@ -1846,10 +1828,18 @@ function parseArgs(args) {
     switch (arg) {
       case "-o":
       case "--output":
+        if (i + 1 >= args.length) {
+          logError("-o/--output requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         cfg.output = args[++i];
         break;
       case "-l":
       case "--list":
+        if (i + 1 >= args.length) {
+          logError("-l/--list requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         cfg.listFile = args[++i];
         break;
       case "-r":
@@ -1858,6 +1848,10 @@ function parseArgs(args) {
         break;
       case "-p":
       case "--precision": {
+        if (i + 1 >= args.length) {
+          logError("-p/--precision requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         const precision = parseInt(args[++i], 10);
         if (
           isNaN(precision) ||
@@ -1889,6 +1883,10 @@ function parseArgs(args) {
         cfg.verbose = true;
         break;
       case "--log-file":
+        if (i + 1 >= args.length) {
+          logError("--log-file requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         cfg.logFile = args[++i];
         break;
       case "-h":
@@ -1936,6 +1934,12 @@ function parseArgs(args) {
         break;
       // Namespace preservation option (comma-separated list)
       case "--preserve-ns": {
+        if (!argValue && i + 1 >= args.length) {
+          logError(
+            "--preserve-ns requires a comma-separated list of namespaces",
+          );
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         const namespaces = argValue || args[++i];
         if (!namespaces) {
           logError(
@@ -1947,6 +1951,13 @@ function parseArgs(args) {
           .split(",")
           .map((ns) => ns.trim().toLowerCase())
           .filter((ns) => ns.length > 0);
+        // Why: Reject empty array after filtering whitespace-only entries
+        if (cfg.preserveNamespaces.length === 0) {
+          logError(
+            "--preserve-ns list is empty after filtering whitespace",
+          );
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         break;
       }
       case "--svg2-polyfills":
@@ -1958,6 +1969,10 @@ function parseArgs(args) {
         break;
       // E2E verification precision options
       case "--clip-segments": {
+        if (i + 1 >= args.length) {
+          logError("--clip-segments requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         const segs = parseInt(args[++i], 10);
         if (isNaN(segs) || segs < 8 || segs > 512) {
           logError("clip-segments must be between 8 and 512");
@@ -1967,15 +1982,28 @@ function parseArgs(args) {
         break;
       }
       case "--bezier-arcs": {
+        if (i + 1 >= args.length) {
+          logError("--bezier-arcs requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         const arcs = parseInt(args[++i], 10);
         if (isNaN(arcs) || arcs < 4 || arcs > 128) {
           logError("bezier-arcs must be between 4 and 128");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        // Why: bezier-arcs must be multiple of 4 for proper arc approximation
+        if (arcs % 4 !== 0) {
+          logError("bezier-arcs must be a multiple of 4");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.bezierArcs = arcs;
         break;
       }
       case "--e2e-tolerance": {
+        if (i + 1 >= args.length) {
+          logError("--e2e-tolerance requires a value");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         const tol = args[++i];
         if (!/^1e-\d+$/.test(tol)) {
           logError("e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)");

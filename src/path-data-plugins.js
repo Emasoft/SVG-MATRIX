@@ -153,6 +153,8 @@ export function convertToRelative(d, precision = 3) {
         cx = startX;
         cy = startY;
         break;
+      default:
+        break;
     }
   }
 
@@ -220,6 +222,8 @@ export function convertToAbsolute(d, precision = 3) {
       case "Z":
         cx = startX;
         cy = startY;
+        break;
+      default:
         break;
     }
   }
@@ -310,6 +314,8 @@ export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
         cx = startX;
         cy = startY;
         break;
+      default:
+        break;
     }
   }
 
@@ -396,6 +402,8 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
       case "Z":
         cx = startX;
         cy = startY;
+        break;
+      default:
         break;
     }
   }
@@ -719,6 +727,8 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
         cx = startX;
         cy = startY;
         break;
+      default:
+        break;
     }
   }
 
@@ -832,6 +842,8 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
           keep = false;
         }
         break;
+      default:
+        break;
     }
 
     if (keep) {
@@ -872,6 +884,8 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
         case "Z":
           cx = startX;
           cy = startY;
+          break;
+        default:
           break;
       }
     }
@@ -1108,6 +1122,8 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
         cx = startX;
         cy = startY;
         break;
+      default:
+        break;
     }
   }
 
@@ -1211,6 +1227,8 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
       case "Z":
         cx = startX;
         cy = startY;
+        break;
+      default:
         break;
     }
   }
@@ -1326,6 +1344,8 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
       case "Z":
         cx = startX;
         cy = startY;
+        break;
+      default:
         break;
     }
   }

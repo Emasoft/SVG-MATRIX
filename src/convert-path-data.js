@@ -16,8 +16,6 @@ import Decimal from "decimal.js";
 
 Decimal.set({ precision: 80 });
 
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
-
 // SVG path command parameters count
 const COMMAND_PARAMS = {
   M: 2,
@@ -272,6 +270,8 @@ export function toAbsolute(cmd, cx, cy) {
       absArgs[5] += cx;
       absArgs[6] += cy;
       break;
+    default:
+      break;
   }
 
   return { command: absCmd, args: absArgs };
@@ -320,6 +320,8 @@ export function toRelative(cmd, cx, cy) {
     case "A":
       relArgs[5] -= cx;
       relArgs[6] -= cy;
+      break;
+    default:
       break;
   }
 
@@ -660,6 +662,8 @@ export function convertPathData(d, options = {}) {
       case "Z":
         cx = startX;
         cy = startY;
+        break;
+      default:
         break;
     }
   }

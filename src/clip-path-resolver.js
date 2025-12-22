@@ -94,6 +94,7 @@ export function pathToPolygon(
   pathData,
   samplesPerCurve = DEFAULT_CURVE_SAMPLES,
 ) {
+  if (typeof pathData !== 'string') throw new Error('pathToPolygon: pathData must be a string');
   const points = [];
   let currentX = D(0),
     currentY = D(0);

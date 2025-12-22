@@ -435,6 +435,9 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
  * // Complex rotation around axis (1,1,1) passing through (10,20,30)
  */
 export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
+  validateNumeric(px, 'px');
+  validateNumeric(py, 'py');
+  validateNumeric(pz, 'pz');
   const pxD = D(px),
     pyD = D(py),
     pzD = D(pz);

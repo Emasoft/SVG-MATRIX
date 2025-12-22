@@ -354,6 +354,8 @@ export function rotateAroundPoint(theta, px, py) {
  * // Both coordinates affect each other, creating complex shearing
  */
 export function skew(ax, ay) {
+  validateNumeric(ax, 'ax');
+  validateNumeric(ay, 'ay');
   return Matrix.from([
     [new Decimal(1), D(ax), new Decimal(0)],
     [D(ay), new Decimal(1), new Decimal(0)],

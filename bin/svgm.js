@@ -594,7 +594,10 @@ async function processFile(inputPath, outputPath, options) {
     }
 
     const savings = originalSize - optimizedSize;
-    const percent = ((savings / originalSize) * 100).toFixed(1);
+    // Why: Handle case where optimizedSize > originalSize (negative savings)
+    const percent = originalSize > 0
+      ? ((savings / originalSize) * 100).toFixed(1)
+      : "0.0";
 
     return {
       success: true,
@@ -723,7 +726,8 @@ function loadConfigFile(configPath) {
       process.exit(CONSTANTS.EXIT_ERROR);
     }
     const content = readFileSync(absolutePath, "utf8");
-    const loadedConfig = yaml.load(content);
+    // Why: Use safeLoad to prevent arbitrary code execution via YAML (security fix)
+    const loadedConfig = yaml.load(content, { schema: yaml.FAILSAFE_SCHEMA });
 
     // Convert YAML config structure to CLI config structure
     const result = {};
@@ -850,6 +854,7 @@ function parseArgs(args) {
 
       case "-p":
       case "--precision":
+        // Why: Always specify radix 10 to avoid octal interpretation
         cfg.precision = parseInt(args[++i], 10);
         break;
 
@@ -866,6 +871,7 @@ function parseArgs(args) {
         break;
 
       case "--indent":
+        // Why: Always specify radix 10 to avoid octal interpretation
         cfg.indent = parseInt(args[++i], 10);
         break;
 
@@ -995,10 +1001,12 @@ function parseArgs(args) {
         break;
 
       case "--embed-max-depth":
+        // Why: Always specify radix 10 to avoid octal interpretation
         cfg.embedMaxRecursionDepth = parseInt(args[++i], 10);
         break;
 
       case "--embed-timeout":
+        // Why: Always specify radix 10 to avoid octal interpretation
         cfg.embedTimeout = parseInt(args[++i], 10);
         break;
 
@@ -1021,9 +1029,9 @@ function parseArgs(args) {
   // Validate numeric arguments
   if (
     cfg.precision !== undefined &&
-    (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 20)
+    (isNaN(cfg.precision) || cfg.precision < 0 || cfg.precision > 50)
   ) {
-    logError("--precision must be a number between 0 and 20");
+    logError("--precision must be a number between 0 and 50");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (

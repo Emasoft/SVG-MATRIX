@@ -68,6 +68,7 @@ Decimal.set({ precision: 80 });
  * // }
  */
 export function parseMarkerElement(markerElement) {
+  if (!markerElement) throw new Error('parseMarkerElement: markerElement is required');
   const data = {
     id: markerElement.getAttribute("id") || "",
     markerWidth: parseFloat(markerElement.getAttribute("markerWidth") || "3"),
@@ -123,6 +124,7 @@ export function parseMarkerElement(markerElement) {
  * @returns {Object} Parsed element data
  */
 export function parseMarkerChild(element) {
+  if (!element) throw new Error('parseMarkerChild: element is required');
   const tagName = element.tagName.toLowerCase();
   const data = {
     type: tagName,

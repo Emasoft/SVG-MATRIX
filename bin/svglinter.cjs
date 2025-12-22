@@ -97,7 +97,8 @@ function parseIni(content) {
 
     // Key=value pair
     const eqIndex = trimmed.indexOf("=");
-    if (eqIndex > 0) {
+    // Why: Use >= 0 to handle edge case where "=" is first character (eqIndex === 0)
+    if (eqIndex >= 0) {
       const key = trimmed.slice(0, eqIndex).trim();
       let value = trimmed.slice(eqIndex + 1).trim();
 

@@ -131,6 +131,7 @@ export const MaskType = {
  * console.log(`Number of shapes: ${maskData.children.length}`);
  */
 export function parseMaskElement(maskElement) {
+  if (!maskElement) throw new Error('parseMaskElement: maskElement is required');
   const data = {
     id: maskElement.getAttribute("id") || "",
     maskUnits: maskElement.getAttribute("maskUnits") || "objectBoundingBox",

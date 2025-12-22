@@ -71,6 +71,7 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * // }
  */
 export function parsePatternElement(patternElement) {
+  if (!patternElement) throw new Error('parsePatternElement: patternElement is required');
   const data = {
     id: patternElement.getAttribute("id") || "",
     patternUnits:

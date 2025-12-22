@@ -86,6 +86,7 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
  * // }
  */
 export function parseUseElement(useElement) {
+  if (!useElement) throw new Error('parseUseElement: useElement is required');
   const href =
     useElement.getAttribute("href") ||
     useElement.getAttribute("xlink:href") ||
@@ -146,6 +147,7 @@ export function parseUseElement(useElement) {
  * // }
  */
 export function parseSymbolElement(symbolElement) {
+  if (!symbolElement) throw new Error('parseSymbolElement: symbolElement is required');
   const data = {
     id: symbolElement.getAttribute("id") || "",
     viewBox: symbolElement.getAttribute("viewBox") || null,
@@ -306,6 +308,8 @@ export function parseChildElement(element) {
       data.height = element.getAttribute("height")
         ? parseFloat(element.getAttribute("height"))
         : null;
+      break;
+    default:
       break;
   }
 
