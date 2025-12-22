@@ -92,12 +92,22 @@ export function pathArea(segments, options = {}) {
   if (!segments || !Array.isArray(segments)) {
     throw new Error("pathArea: segments must be an array");
   }
+  if (segments.length === 0) {
+    return D(0);
+  }
 
   const { samples = 50 } = options;
 
   let area = D(0);
 
-  for (const points of segments) {
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    const points = segments[segIdx];
+    // WHY: Validate each segment to prevent undefined behavior
+    if (!Array.isArray(points) || points.length < 2) {
+      throw new Error(
+        `pathArea: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
     const n = points.length - 1; // Degree
 
     if (n === 1) {
@@ -139,6 +149,12 @@ export function pathArea(segments, options = {}) {
  * @returns {Decimal} Area contribution
  */
 function bezierAreaContribution(points) {
+  // WHY: Validate input to prevent undefined behavior with invalid control points
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error(
+      "bezierAreaContribution: points must be an array with at least 2 elements",
+    );
+  }
   const n = points.length - 1;
 
   // Convert to Decimal
@@ -218,6 +234,18 @@ function bezierAreaContribution(points) {
  * @returns {Decimal} Area contribution
  */
 function numericalAreaContribution(points, samples) {
+  // WHY: Validate input to prevent division by zero and invalid control points
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error(
+      "numericalAreaContribution: points must be an array with at least 2 elements",
+    );
+  }
+  if (!Number.isFinite(samples) || samples <= 0) {
+    throw new Error(
+      "numericalAreaContribution: samples must be a positive number",
+    );
+  }
+
   // Use composite Simpson's rule
   let integral_x_dy = D(0);
   let integral_y_dx = D(0);
@@ -298,6 +326,12 @@ export function closestPointOnPath(segments, point, options = {}) {
   // Coarse sampling
   for (let segIdx = 0; segIdx < segments.length; segIdx++) {
     const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `closestPointOnPath: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
 
     for (let i = 0; i <= samples; i++) {
       const t = D(i).div(samples);
@@ -412,6 +446,12 @@ export function farthestPointOnPath(segments, point, options = {}) {
   // Coarse sampling
   for (let segIdx = 0; segIdx < segments.length; segIdx++) {
     const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `farthestPointOnPath: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
 
     for (let i = 0; i <= samples; i++) {
       const t = D(i).div(samples);
@@ -524,7 +564,15 @@ export function pointInPath(segments, point, options = {}) {
   // WHY: Use named constant instead of magic number for clarity and maintainability
   const boundaryTolerance = BOUNDARY_TOLERANCE;
 
-  for (const pts of segments) {
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `pointInPath: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
+
     // Sample the segment and count crossings
     let prevX = null;
     let prevY = null;
@@ -551,16 +599,20 @@ export function pointInPath(segments, point, options = {}) {
         // Check if segment crosses the ray's y-level
         if ((y1.lte(py) && y2.gt(py)) || (y1.gt(py) && y2.lte(py))) {
           // Find x at intersection
-          const fraction = py.minus(y1).div(y2.minus(y1));
-          const xIntersect = x1.plus(x2.minus(x1).times(fraction));
+          const yDiff = y2.minus(y1);
+          // WHY: Check for division by zero (horizontal segment at ray level)
+          if (yDiff.abs().gt(JACOBIAN_SINGULARITY_THRESHOLD)) {
+            const fraction = py.minus(y1).div(yDiff);
+            const xIntersect = x1.plus(x2.minus(x1).times(fraction));
 
-          // Count if intersection is to the right of point
-          if (xIntersect.gt(px)) {
-            // Determine winding direction
-            if (y2.gt(y1)) {
-              windingNumber++;
-            } else {
-              windingNumber--;
+            // Count if intersection is to the right of point
+            if (xIntersect.gt(px)) {
+              // Determine winding direction
+              if (y2.gt(y1)) {
+                windingNumber++;
+              } else {
+                windingNumber--;
+              }
             }
           }
         }
@@ -603,6 +655,24 @@ export function isPathClosed(
   const firstSeg = segments[0];
   const lastSeg = segments[segments.length - 1];
 
+  // WHY: Validate segment endpoints exist before accessing them
+  if (
+    !Array.isArray(firstSeg) ||
+    firstSeg.length === 0 ||
+    !Array.isArray(firstSeg[0]) ||
+    firstSeg[0].length < 2
+  ) {
+    throw new Error("isPathClosed: first segment has invalid structure");
+  }
+  if (
+    !Array.isArray(lastSeg) ||
+    lastSeg.length === 0 ||
+    !Array.isArray(lastSeg[lastSeg.length - 1]) ||
+    lastSeg[lastSeg.length - 1].length < 2
+  ) {
+    throw new Error("isPathClosed: last segment has invalid structure");
+  }
+
   const [x0, y0] = [D(firstSeg[0][0]), D(firstSeg[0][1])];
   const [xn, yn] = [
     D(lastSeg[lastSeg.length - 1][0]),
@@ -636,6 +706,26 @@ export function isPathContinuous(
   for (let i = 0; i < segments.length - 1; i++) {
     const seg1 = segments[i];
     const seg2 = segments[i + 1];
+
+    // WHY: Validate segment structure before accessing endpoints
+    if (
+      !Array.isArray(seg1) ||
+      seg1.length === 0 ||
+      !Array.isArray(seg1[seg1.length - 1]) ||
+      seg1[seg1.length - 1].length < 2
+    ) {
+      throw new Error(`isPathContinuous: segment ${i} has invalid structure`);
+    }
+    if (
+      !Array.isArray(seg2) ||
+      seg2.length === 0 ||
+      !Array.isArray(seg2[0]) ||
+      seg2[0].length < 2
+    ) {
+      throw new Error(
+        `isPathContinuous: segment ${i + 1} has invalid structure`,
+      );
+    }
 
     const [x1, y1] = [D(seg1[seg1.length - 1][0]), D(seg1[seg1.length - 1][1])];
     const [x2, y2] = [D(seg2[0][0]), D(seg2[0][1])];
@@ -766,7 +856,14 @@ export function pathBoundingBox(segments) {
   let ymin = new Decimal(Infinity);
   let ymax = new Decimal(-Infinity);
 
-  for (const pts of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const pts = segments[i];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `pathBoundingBox: segment ${i} must be an array with at least 2 control points`,
+      );
+    }
     const bbox = bezierBoundingBox(pts);
     xmin = Decimal.min(xmin, bbox.xmin);
     xmax = Decimal.max(xmax, bbox.xmax);
@@ -838,7 +935,14 @@ export function pathLength(segments, options = {}) {
 
   let total = D(0);
 
-  for (const pts of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const pts = segments[i];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `pathLength: segment ${i} must be an array with at least 2 control points`,
+      );
+    }
     total = total.plus(arcLength(pts, 0, 1, options));
   }
 
@@ -871,7 +975,14 @@ export function verifyPathArea(segments, samples = 100, tolerance = "1e-5") {
 
   // Method 2: Shoelace formula on sampled polygon
   const polygon = [];
-  for (const pts of segments) {
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `verifyPathArea: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
     for (let i = 0; i <= samples; i++) {
       const t = D(i).div(samples);
       const [x, y] = bezierPoint(pts, t);
@@ -993,7 +1104,14 @@ export function verifyFarthestPoint(segments, queryPoint, samples = 200) {
   // Sample all segments to find maximum distance
   let maxSampledDistance = D(0);
 
-  for (const pts of segments) {
+  for (let segIdx = 0; segIdx < segments.length; segIdx++) {
+    const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `verifyFarthestPoint: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
     for (let i = 0; i <= samples; i++) {
       const t = D(i).div(samples);
       const [x, y] = bezierPoint(pts, t);
@@ -1051,11 +1169,23 @@ export function verifyPointInPath(segments, testPoint) {
   let sumY = D(0);
   let count = 0;
 
-  for (const pts of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const pts = segments[i];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `verifyPointInPath: segment ${i} must be an array with at least 2 control points`,
+      );
+    }
     const [x, y] = bezierPoint(pts, 0.5);
     sumX = sumX.plus(x);
     sumY = sumY.plus(y);
     count++;
+  }
+
+  // WHY: Prevent division by zero if no segments
+  if (count === 0) {
+    return { valid: true, result, consistentWithNeighbors: true };
   }
 
   const centroidX = sumX.div(count);
@@ -1131,6 +1261,12 @@ export function verifyPathBoundingBox(segments, samples = 100) {
 
   for (let segIdx = 0; segIdx < segments.length; segIdx++) {
     const pts = segments[segIdx];
+    // WHY: Validate each segment before processing
+    if (!Array.isArray(pts) || pts.length < 2) {
+      throw new Error(
+        `verifyPathBoundingBox: segment ${segIdx} must be an array with at least 2 control points`,
+      );
+    }
 
     for (let i = 0; i <= samples; i++) {
       const t = D(i).div(samples);
@@ -1214,7 +1350,19 @@ export function verifyPathLength(segments) {
   const totalArcLength = pathLength(segments);
 
   let chordSum = D(0);
-  for (const pts of segments) {
+  for (let i = 0; i < segments.length; i++) {
+    const pts = segments[i];
+    // WHY: Validate segment endpoints exist before accessing them
+    if (
+      !Array.isArray(pts) ||
+      pts.length === 0 ||
+      !Array.isArray(pts[0]) ||
+      pts[0].length < 2 ||
+      !Array.isArray(pts[pts.length - 1]) ||
+      pts[pts.length - 1].length < 2
+    ) {
+      throw new Error(`verifyPathLength: segment ${i} has invalid structure`);
+    }
     const [x0, y0] = [D(pts[0][0]), D(pts[0][1])];
     const [xn, yn] = [D(pts[pts.length - 1][0]), D(pts[pts.length - 1][1])];
     const chord = xn.minus(x0).pow(2).plus(yn.minus(y0).pow(2)).sqrt();

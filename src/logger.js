@@ -126,11 +126,21 @@ export const Logger = {
    * @private
    */
   _format(level, message) {
+    // Why: Validate parameters to prevent crashes from invalid inputs
+    if (typeof level !== 'string' || !level) {
+      throw new Error('Logger._format: level must be a non-empty string');
+    }
+    if (message === null || message === undefined) {
+      throw new Error('Logger._format: message cannot be null or undefined');
+    }
+    // Why: Convert message to string to handle non-string inputs gracefully
+    const messageStr = String(message);
+
     if (this.timestamps) {
       const ts = new Date().toISOString();
-      return `[${ts}] [${level}] ${message}`;
+      return `[${ts}] [${level}] ${messageStr}`;
     }
-    return `[${level}] ${message}`;
+    return `[${level}] ${messageStr}`;
   },
 
   /**
@@ -144,7 +154,14 @@ export const Logger = {
   _bufferWrite(message) {
     if (!this.logToFile) return;
 
-    this._buffer.push(message);
+    // Why: Validate message parameter to prevent buffer corruption
+    if (message === null || message === undefined) {
+      throw new Error('Logger._bufferWrite: message cannot be null or undefined');
+    }
+    // Why: Convert to string to handle non-string inputs gracefully
+    const messageStr = String(message);
+
+    this._buffer.push(messageStr);
 
     // Why: Flush when buffer is full to prevent unbounded memory growth
     if (this._buffer.length >= LOG_BUFFER_SIZE) {
@@ -188,6 +205,10 @@ export const Logger = {
    * @param {...any} args - Additional arguments
    */
   error(message, ...args) {
+    // Why: Validate message parameter to prevent crashes
+    if (message === null || message === undefined) {
+      throw new Error('Logger.error: message cannot be null or undefined');
+    }
     if (this.level >= LogLevel.ERROR) {
       const formatted = this._format('ERROR', message);
       console.error(formatted, ...args);
@@ -203,6 +224,10 @@ export const Logger = {
    * @param {...any} args - Additional arguments
    */
   warn(message, ...args) {
+    // Why: Validate message parameter to prevent crashes
+    if (message === null || message === undefined) {
+      throw new Error('Logger.warn: message cannot be null or undefined');
+    }
     if (this.level >= LogLevel.WARN) {
       const formatted = this._format('WARN', message);
       console.warn(formatted, ...args);
@@ -216,6 +241,10 @@ export const Logger = {
    * @param {...any} args - Additional arguments
    */
   info(message, ...args) {
+    // Why: Validate message parameter to prevent crashes
+    if (message === null || message === undefined) {
+      throw new Error('Logger.info: message cannot be null or undefined');
+    }
     if (this.level >= LogLevel.INFO) {
       const formatted = this._format('INFO', message);
       console.log(formatted, ...args);
@@ -229,6 +258,10 @@ export const Logger = {
    * @param {...any} args - Additional arguments
    */
   debug(message, ...args) {
+    // Why: Validate message parameter to prevent crashes
+    if (message === null || message === undefined) {
+      throw new Error('Logger.debug: message cannot be null or undefined');
+    }
     if (this.level >= LogLevel.DEBUG) {
       const formatted = this._format('DEBUG', message);
       console.log(formatted, ...args);
@@ -257,6 +290,10 @@ export const Logger = {
  * @param {number} level - Log level from LogLevel enum
  */
 export function setLogLevel(level) {
+  // Why: Validate level is a number to catch type errors
+  if (typeof level !== 'number' || !Number.isFinite(level)) {
+    throw new Error(`setLogLevel: level must be a finite number, got ${typeof level}`);
+  }
   // Why: Validate level is within valid range to catch typos
   if (level < LogLevel.SILENT || level > LogLevel.DEBUG) {
     throw new Error(`Invalid log level: ${level}. Use LogLevel.SILENT (0) through LogLevel.DEBUG (4)`);
@@ -281,9 +318,17 @@ export function getLogLevel() {
  * @param {boolean} [withTimestamps=true] - Include timestamps
  */
 export function enableFileLogging(filePath, withTimestamps = true) {
+  // Why: Validate filePath type to catch type errors
+  if (typeof filePath !== 'string') {
+    throw new Error(`enableFileLogging: filePath must be a string, got ${typeof filePath}`);
+  }
   // Why: Don't accept empty/null paths - would cause confusing errors later
   if (!filePath) {
     throw new Error('File path required for enableFileLogging()');
+  }
+  // Why: Validate withTimestamps type to catch type errors
+  if (typeof withTimestamps !== 'boolean') {
+    throw new Error(`enableFileLogging: withTimestamps must be a boolean, got ${typeof withTimestamps}`);
   }
   Logger.logToFile = filePath;
   Logger.timestamps = withTimestamps;

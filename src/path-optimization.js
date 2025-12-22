@@ -70,6 +70,8 @@ const DEFAULT_TOLERANCE = new Decimal('1e-10');
  * @returns {{x: Decimal, y: Decimal}} Point object
  */
 export function point(x, y) {
+  if (x === null || x === undefined) throw new Error('point: x coordinate is required');
+  if (y === null || y === undefined) throw new Error('point: y coordinate is required');
   return { x: D(x), y: D(y) };
 }
 
@@ -80,6 +82,9 @@ export function point(x, y) {
  * @returns {Decimal} Distance
  */
 export function distance(p1, p2) {
+  if (!p1 || !p2) throw new Error('distance: both points are required');
+  if (p1.x === undefined || p1.y === undefined) throw new Error('distance: p1 must have x and y properties');
+  if (p2.x === undefined || p2.y === undefined) throw new Error('distance: p2 must have x and y properties');
   const dx = p2.x.minus(p1.x);
   const dy = p2.y.minus(p1.y);
   return dx.mul(dx).plus(dy.mul(dy)).sqrt();
@@ -93,6 +98,9 @@ export function distance(p1, p2) {
  * @returns {boolean} True if points are equal
  */
 export function pointsEqual(p1, p2, tolerance = EPSILON) {
+  if (!p1 || !p2) throw new Error('pointsEqual: both points are required');
+  if (p1.x === undefined || p1.y === undefined) throw new Error('pointsEqual: p1 must have x and y properties');
+  if (p2.x === undefined || p2.y === undefined) throw new Error('pointsEqual: p2 must have x and y properties');
   const tol = D(tolerance);
   return p1.x.minus(p2.x).abs().lessThan(tol) && p1.y.minus(p2.y).abs().lessThan(tol);
 }
@@ -113,6 +121,13 @@ export function pointsEqual(p1, p2, tolerance = EPSILON) {
  * @returns {{x: Decimal, y: Decimal}} Point on curve
  */
 export function evaluateCubicBezier(p0, p1, p2, p3, t) {
+  if (!p0 || !p1 || !p2 || !p3) throw new Error('evaluateCubicBezier: all points are required');
+  if (p0.x === undefined || p0.y === undefined) throw new Error('evaluateCubicBezier: p0 must have x and y properties');
+  if (p1.x === undefined || p1.y === undefined) throw new Error('evaluateCubicBezier: p1 must have x and y properties');
+  if (p2.x === undefined || p2.y === undefined) throw new Error('evaluateCubicBezier: p2 must have x and y properties');
+  if (p3.x === undefined || p3.y === undefined) throw new Error('evaluateCubicBezier: p3 must have x and y properties');
+  if (t === null || t === undefined) throw new Error('evaluateCubicBezier: parameter t is required');
+
   const tD = D(t);
   const oneMinusT = D(1).minus(tD);
 
@@ -139,6 +154,12 @@ export function evaluateCubicBezier(p0, p1, p2, p3, t) {
  * @returns {{x: Decimal, y: Decimal}} Point on curve
  */
 export function evaluateQuadraticBezier(p0, p1, p2, t) {
+  if (!p0 || !p1 || !p2) throw new Error('evaluateQuadraticBezier: all points are required');
+  if (p0.x === undefined || p0.y === undefined) throw new Error('evaluateQuadraticBezier: p0 must have x and y properties');
+  if (p1.x === undefined || p1.y === undefined) throw new Error('evaluateQuadraticBezier: p1 must have x and y properties');
+  if (p2.x === undefined || p2.y === undefined) throw new Error('evaluateQuadraticBezier: p2 must have x and y properties');
+  if (t === null || t === undefined) throw new Error('evaluateQuadraticBezier: parameter t is required');
+
   const tD = D(t);
   const oneMinusT = D(1).minus(tD);
 
@@ -170,6 +191,11 @@ export function evaluateQuadraticBezier(p0, p1, p2, t) {
  * @returns {{canConvert: boolean, endX: Decimal, verified: boolean}} Conversion result
  */
 export function lineToHorizontal(x1, y1, x2, y2, tolerance = EPSILON) {
+  if (x1 === null || x1 === undefined) throw new Error('lineToHorizontal: x1 is required');
+  if (y1 === null || y1 === undefined) throw new Error('lineToHorizontal: y1 is required');
+  if (x2 === null || x2 === undefined) throw new Error('lineToHorizontal: x2 is required');
+  if (y2 === null || y2 === undefined) throw new Error('lineToHorizontal: y2 is required');
+
   const tol = D(tolerance);
   const startY = D(y1);
   const endY = D(y2);
@@ -203,6 +229,11 @@ export function lineToHorizontal(x1, y1, x2, y2, tolerance = EPSILON) {
  * @returns {{canConvert: boolean, endY: Decimal, verified: boolean}} Conversion result
  */
 export function lineToVertical(x1, y1, x2, y2, tolerance = EPSILON) {
+  if (x1 === null || x1 === undefined) throw new Error('lineToVertical: x1 is required');
+  if (y1 === null || y1 === undefined) throw new Error('lineToVertical: y1 is required');
+  if (x2 === null || x2 === undefined) throw new Error('lineToVertical: x2 is required');
+  if (y2 === null || y2 === undefined) throw new Error('lineToVertical: y2 is required');
+
   const tol = D(tolerance);
   const startX = D(x1);
   const endX = D(x2);
@@ -236,6 +267,10 @@ export function lineToVertical(x1, y1, x2, y2, tolerance = EPSILON) {
  * @returns {{x: Decimal, y: Decimal}} Reflected point
  */
 export function reflectPoint(control, center) {
+  if (!control || !center) throw new Error('reflectPoint: both control and center points are required');
+  if (control.x === undefined || control.y === undefined) throw new Error('reflectPoint: control must have x and y properties');
+  if (center.x === undefined || center.y === undefined) throw new Error('reflectPoint: center must have x and y properties');
+
   // Reflection formula: reflected = center + (center - control) = 2*center - control
   return {
     x: D(2).mul(center.x).minus(control.x),
@@ -266,6 +301,15 @@ export function reflectPoint(control, center) {
  * @returns {{canConvert: boolean, cp2X: Decimal, cp2Y: Decimal, endX: Decimal, endY: Decimal, maxDeviation: Decimal, verified: boolean}}
  */
 export function curveToSmooth(prevControl, x0, y0, x1, y1, x2, y2, x3, y3, tolerance = DEFAULT_TOLERANCE) {
+  if (x0 === null || x0 === undefined) throw new Error('curveToSmooth: x0 is required');
+  if (y0 === null || y0 === undefined) throw new Error('curveToSmooth: y0 is required');
+  if (x1 === null || x1 === undefined) throw new Error('curveToSmooth: x1 is required');
+  if (y1 === null || y1 === undefined) throw new Error('curveToSmooth: y1 is required');
+  if (x2 === null || x2 === undefined) throw new Error('curveToSmooth: x2 is required');
+  if (y2 === null || y2 === undefined) throw new Error('curveToSmooth: y2 is required');
+  if (x3 === null || x3 === undefined) throw new Error('curveToSmooth: x3 is required');
+  if (y3 === null || y3 === undefined) throw new Error('curveToSmooth: y3 is required');
+
   const tol = D(tolerance);
   const p0 = point(x0, y0);
   const p1 = point(x1, y1);
@@ -351,6 +395,13 @@ export function curveToSmooth(prevControl, x0, y0, x1, y1, x2, y2, x3, y3, toler
  * @returns {{canConvert: boolean, endX: Decimal, endY: Decimal, maxDeviation: Decimal, verified: boolean}}
  */
 export function quadraticToSmooth(prevControl, x0, y0, x1, y1, x2, y2, tolerance = DEFAULT_TOLERANCE) {
+  if (x0 === null || x0 === undefined) throw new Error('quadraticToSmooth: x0 is required');
+  if (y0 === null || y0 === undefined) throw new Error('quadraticToSmooth: y0 is required');
+  if (x1 === null || x1 === undefined) throw new Error('quadraticToSmooth: x1 is required');
+  if (y1 === null || y1 === undefined) throw new Error('quadraticToSmooth: y1 is required');
+  if (x2 === null || x2 === undefined) throw new Error('quadraticToSmooth: x2 is required');
+  if (y2 === null || y2 === undefined) throw new Error('quadraticToSmooth: y2 is required');
+
   const tol = D(tolerance);
   const p0 = point(x0, y0);
   const p1 = point(x1, y1);
@@ -417,7 +468,10 @@ export function quadraticToSmooth(prevControl, x0, y0, x1, y1, x2, y2, tolerance
  * Used to avoid infinite recursion in verification.
  */
 function _toRelativeArgs(cmd, args, cx, cy) {
+  if (!Array.isArray(args)) throw new Error('_toRelativeArgs: args must be an array');
+
   if (cmd === 'M' || cmd === 'L' || cmd === 'T') {
+    if (args.length % 2 !== 0) throw new Error(`_toRelativeArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
     const relativeArgs = [];
     for (let i = 0; i < args.length; i += 2) {
       relativeArgs.push(args[i].minus(cx));
@@ -432,6 +486,7 @@ function _toRelativeArgs(cmd, args, cx, cy) {
     return args.map(y => y.minus(cy));
   }
   if (cmd === 'C' || cmd === 'S' || cmd === 'Q') {
+    if (args.length % 2 !== 0) throw new Error(`_toRelativeArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
     const relativeArgs = [];
     for (let i = 0; i < args.length; i += 2) {
       relativeArgs.push(args[i].minus(cx));
@@ -440,6 +495,7 @@ function _toRelativeArgs(cmd, args, cx, cy) {
     return relativeArgs;
   }
   if (cmd === 'A') {
+    if (args.length % 7 !== 0) throw new Error(`_toRelativeArgs: A requires groups of 7 args, got ${args.length} args`);
     const relativeArgs = [];
     for (let i = 0; i < args.length; i += 7) {
       relativeArgs.push(args[i]);
@@ -460,7 +516,10 @@ function _toRelativeArgs(cmd, args, cx, cy) {
  * Used to avoid infinite recursion in verification.
  */
 function _toAbsoluteArgs(cmd, args, cx, cy) {
+  if (!Array.isArray(args)) throw new Error('_toAbsoluteArgs: args must be an array');
+
   if (cmd === 'm' || cmd === 'l' || cmd === 't') {
+    if (args.length % 2 !== 0) throw new Error(`_toAbsoluteArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
     const absoluteArgs = [];
     for (let i = 0; i < args.length; i += 2) {
       absoluteArgs.push(args[i].plus(cx));
@@ -475,6 +534,7 @@ function _toAbsoluteArgs(cmd, args, cx, cy) {
     return args.map(dy => dy.plus(cy));
   }
   if (cmd === 'c' || cmd === 's' || cmd === 'q') {
+    if (args.length % 2 !== 0) throw new Error(`_toAbsoluteArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
     const absoluteArgs = [];
     for (let i = 0; i < args.length; i += 2) {
       absoluteArgs.push(args[i].plus(cx));
@@ -483,6 +543,7 @@ function _toAbsoluteArgs(cmd, args, cx, cy) {
     return absoluteArgs;
   }
   if (cmd === 'a') {
+    if (args.length % 7 !== 0) throw new Error(`_toAbsoluteArgs: a requires groups of 7 args, got ${args.length} args`);
     const absoluteArgs = [];
     for (let i = 0; i < args.length; i += 7) {
       absoluteArgs.push(args[i]);
@@ -510,6 +571,12 @@ function _toAbsoluteArgs(cmd, args, cx, cy) {
  * @returns {{command: string, args: Array<Decimal>, verified: boolean}}
  */
 export function toRelative(command, currentX, currentY) {
+  if (!command) throw new Error('toRelative: command object is required');
+  if (!command.command) throw new Error('toRelative: command.command is required');
+  if (!Array.isArray(command.args)) throw new Error('toRelative: command.args must be an array');
+  if (currentX === null || currentX === undefined) throw new Error('toRelative: currentX is required');
+  if (currentY === null || currentY === undefined) throw new Error('toRelative: currentY is required');
+
   const cmd = command.command;
   const args = command.args.map(D);
   const cx = D(currentX);
@@ -566,6 +633,12 @@ export function toRelative(command, currentX, currentY) {
  * @returns {{command: string, args: Array<Decimal>, verified: boolean}}
  */
 export function toAbsolute(command, currentX, currentY) {
+  if (!command) throw new Error('toAbsolute: command object is required');
+  if (!command.command) throw new Error('toAbsolute: command.command is required');
+  if (!Array.isArray(command.args)) throw new Error('toAbsolute: command.args must be an array');
+  if (currentX === null || currentX === undefined) throw new Error('toAbsolute: currentX is required');
+  if (currentY === null || currentY === undefined) throw new Error('toAbsolute: currentY is required');
+
   const cmd = command.command;
   const args = command.args.map(D);
   const cx = D(currentX);
@@ -622,6 +695,10 @@ export function toAbsolute(command, currentX, currentY) {
  * @returns {string} Formatted command string
  */
 function formatCommand(command, precision = 6) {
+  if (!command) throw new Error('formatCommand: command object is required');
+  if (!command.command) throw new Error('formatCommand: command.command is required');
+  if (!Array.isArray(command.args)) throw new Error('formatCommand: command.args must be an array');
+
   const cmd = command.command;
   const args = command.args.map(arg => {
     const num = arg.toNumber();
@@ -643,6 +720,13 @@ function formatCommand(command, precision = 6) {
  * @returns {{command: string, args: Array<Decimal>, isShorter: boolean, savedBytes: number, verified: boolean}}
  */
 export function chooseShorterForm(absCommand, relCommand, precision = 6) {
+  if (!absCommand) throw new Error('chooseShorterForm: absCommand is required');
+  if (!absCommand.command) throw new Error('chooseShorterForm: absCommand.command is required');
+  if (!Array.isArray(absCommand.args)) throw new Error('chooseShorterForm: absCommand.args must be an array');
+  if (!relCommand) throw new Error('chooseShorterForm: relCommand is required');
+  if (!relCommand.command) throw new Error('chooseShorterForm: relCommand.command is required');
+  if (!Array.isArray(relCommand.args)) throw new Error('chooseShorterForm: relCommand.args must be an array');
+
   const absStr = formatCommand({ command: absCommand.command, args: absCommand.args.map(D) }, precision);
   const relStr = formatCommand({ command: relCommand.command, args: relCommand.args.map(D) }, precision);
 
@@ -690,6 +774,8 @@ export function chooseShorterForm(absCommand, relCommand, precision = 6) {
  * @returns {{commands: Array<{command: string, args: Array<Decimal>}>, collapseCount: number, verified: boolean}}
  */
 export function collapseRepeated(commands) {
+  if (!Array.isArray(commands)) throw new Error('collapseRepeated: commands must be an array');
+
   if (commands.length < 2) {
     return {
       commands: commands.map(cmd => ({ command: cmd.command, args: cmd.args.map(D) })),
@@ -759,6 +845,11 @@ export function collapseRepeated(commands) {
  * @returns {{canConvert: boolean, deviation: Decimal, verified: boolean}}
  */
 export function lineToZ(lastX, lastY, startX, startY, tolerance = EPSILON) {
+  if (lastX === null || lastX === undefined) throw new Error('lineToZ: lastX is required');
+  if (lastY === null || lastY === undefined) throw new Error('lineToZ: lastY is required');
+  if (startX === null || startX === undefined) throw new Error('lineToZ: startX is required');
+  if (startY === null || startY === undefined) throw new Error('lineToZ: startY is required');
+
   const tol = D(tolerance);
   const last = point(lastX, lastY);
   const start = point(startX, startY);

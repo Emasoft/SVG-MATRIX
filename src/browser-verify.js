@@ -93,6 +93,23 @@ export class BrowserVerifier {
     if (!this.page) {
       throw new Error("BrowserVerifier not initialized. Call init() first.");
     }
+    if (!config || typeof config !== "object") {
+      throw new Error("config must be a valid object");
+    }
+    if (
+      typeof config.width !== "number" ||
+      !isFinite(config.width) ||
+      config.width <= 0
+    ) {
+      throw new Error("config.width must be a positive finite number");
+    }
+    if (
+      typeof config.height !== "number" ||
+      !isFinite(config.height) ||
+      config.height <= 0
+    ) {
+      throw new Error("config.height must be a positive finite number");
+    }
 
     return await this.page.evaluate((cfg) => {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -130,6 +147,23 @@ export class BrowserVerifier {
   async getBrowserScreenCTM(config) {
     if (!this.page) {
       throw new Error("BrowserVerifier not initialized. Call init() first.");
+    }
+    if (!config || typeof config !== "object") {
+      throw new Error("config must be a valid object");
+    }
+    if (
+      typeof config.width !== "number" ||
+      !isFinite(config.width) ||
+      config.width <= 0
+    ) {
+      throw new Error("config.width must be a positive finite number");
+    }
+    if (
+      typeof config.height !== "number" ||
+      !isFinite(config.height) ||
+      config.height <= 0
+    ) {
+      throw new Error("config.height must be a positive finite number");
     }
 
     return await this.page.evaluate((cfg) => {
@@ -170,6 +204,29 @@ export class BrowserVerifier {
   async transformPoint(config, x, y) {
     if (!this.page) {
       throw new Error("BrowserVerifier not initialized. Call init() first.");
+    }
+    if (!config || typeof config !== "object") {
+      throw new Error("config must be a valid object");
+    }
+    if (
+      typeof config.width !== "number" ||
+      !isFinite(config.width) ||
+      config.width <= 0
+    ) {
+      throw new Error("config.width must be a positive finite number");
+    }
+    if (
+      typeof config.height !== "number" ||
+      !isFinite(config.height) ||
+      config.height <= 0
+    ) {
+      throw new Error("config.height must be a positive finite number");
+    }
+    if (typeof x !== "number" || !isFinite(x)) {
+      throw new Error("x must be a finite number");
+    }
+    if (typeof y !== "number" || !isFinite(y)) {
+      throw new Error("y must be a finite number");
     }
 
     return await this.page.evaluate(
@@ -216,6 +273,27 @@ export class BrowserVerifier {
    * @returns {Promise<{matches: boolean, browserCTM: Object, libraryCTM: Object, differences: Object}>}
    */
   async verifyMatrix(matrix, config, tolerance = 1e-10) {
+    if (!matrix || typeof matrix !== "object") {
+      throw new Error("matrix must be a valid Matrix object");
+    }
+    if (!matrix.data || !Array.isArray(matrix.data)) {
+      throw new Error("matrix.data must be a valid array");
+    }
+    if (
+      matrix.data.length < 2 ||
+      !Array.isArray(matrix.data[0]) ||
+      matrix.data[0].length < 3 ||
+      !Array.isArray(matrix.data[1]) ||
+      matrix.data[1].length < 3
+    ) {
+      throw new Error(
+        "matrix.data must have at least 2 rows with at least 3 columns each",
+      );
+    }
+    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+      throw new Error("tolerance must be a non-negative finite number");
+    }
+
     const browserCTM = await this.getBrowserCTM(config);
 
     const libraryCTM = {
@@ -258,6 +336,25 @@ export class BrowserVerifier {
     preserveAspectRatio = "xMidYMid meet",
     tolerance = 1e-10,
   ) {
+    if (typeof width !== "number" || !isFinite(width) || width <= 0) {
+      throw new Error("width must be a positive finite number");
+    }
+    if (typeof height !== "number" || !isFinite(height) || height <= 0) {
+      throw new Error("height must be a positive finite number");
+    }
+    if (typeof viewBox !== "string" || viewBox.trim().length === 0) {
+      throw new Error("viewBox must be a non-empty string");
+    }
+    if (
+      typeof preserveAspectRatio !== "string" ||
+      preserveAspectRatio.trim().length === 0
+    ) {
+      throw new Error("preserveAspectRatio must be a non-empty string");
+    }
+    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+      throw new Error("tolerance must be a non-negative finite number");
+    }
+
     const vb = SVGFlatten.parseViewBox(viewBox);
     const par = SVGFlatten.parsePreserveAspectRatio(preserveAspectRatio);
     const matrix = SVGFlatten.computeViewBoxTransform(vb, width, height, par);
@@ -282,6 +379,13 @@ export class BrowserVerifier {
    * @returns {Promise<{matches: boolean, browserCTM: Object, libraryCTM: Object, differences: Object}>}
    */
   async verifyTransformAttribute(transform, tolerance = 1e-10) {
+    if (typeof transform !== "string" || transform.trim().length === 0) {
+      throw new Error("transform must be a non-empty string");
+    }
+    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+      throw new Error("tolerance must be a non-negative finite number");
+    }
+
     const matrix = SVGFlatten.parseTransformAttribute(transform);
 
     // Use a simple 100x100 SVG without viewBox to test just the transform
@@ -307,8 +411,34 @@ export class BrowserVerifier {
    * @returns {Promise<{matches: boolean, browserPoint: Object, libraryPoint: Object, difference: number}>}
    */
   async verifyPointTransform(matrix, x, y, config, tolerance = 1e-10) {
+    if (!matrix || typeof matrix !== "object") {
+      throw new Error("matrix must be a valid Matrix object");
+    }
+    if (typeof x !== "number" || !isFinite(x)) {
+      throw new Error("x must be a finite number");
+    }
+    if (typeof y !== "number" || !isFinite(y)) {
+      throw new Error("y must be a finite number");
+    }
+    if (!config || typeof config !== "object") {
+      throw new Error("config must be a valid object");
+    }
+    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+      throw new Error("tolerance must be a non-negative finite number");
+    }
+
     const browserPoint = await this.transformPoint(config, x, y);
     const libraryPoint = SVGFlatten.applyToPoint(matrix, x, y);
+
+    if (
+      !libraryPoint ||
+      !libraryPoint.x ||
+      !libraryPoint.y ||
+      typeof libraryPoint.x.toNumber !== "function" ||
+      typeof libraryPoint.y.toNumber !== "function"
+    ) {
+      throw new Error("applyToPoint returned invalid result");
+    }
 
     const libPt = {
       x: libraryPoint.x.toNumber(),
@@ -336,11 +466,38 @@ export class BrowserVerifier {
    * @returns {Promise<{passed: number, failed: number, results: Array}>}
    */
   async runBatch(testCases, tolerance = 1e-10) {
+    if (!Array.isArray(testCases)) {
+      throw new Error("testCases must be an array");
+    }
+    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+      throw new Error("tolerance must be a non-negative finite number");
+    }
+
     const results = [];
     let passed = 0;
     let failed = 0;
 
     for (const tc of testCases) {
+      if (!tc || typeof tc !== "object") {
+        throw new Error("Each test case must be a valid object");
+      }
+      if (
+        typeof tc.width !== "number" ||
+        !isFinite(tc.width) ||
+        tc.width <= 0
+      ) {
+        throw new Error("Each test case must have a positive finite width");
+      }
+      if (
+        typeof tc.height !== "number" ||
+        !isFinite(tc.height) ||
+        tc.height <= 0
+      ) {
+        throw new Error("Each test case must have a positive finite height");
+      }
+      if (typeof tc.viewBox !== "string" || tc.viewBox.trim().length === 0) {
+        throw new Error("Each test case must have a non-empty viewBox string");
+      }
       const result = await this.verifyViewBoxTransform(
         tc.width,
         tc.height,
@@ -372,6 +529,16 @@ export class BrowserVerifier {
  * @returns {Promise<boolean>} True if matrix matches browser's CTM
  */
 export async function quickVerify(matrix, config, tolerance = 1e-10) {
+  if (!matrix || typeof matrix !== "object") {
+    throw new Error("matrix must be a valid Matrix object");
+  }
+  if (!config || typeof config !== "object") {
+    throw new Error("config must be a valid object");
+  }
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    throw new Error("tolerance must be a non-negative finite number");
+  }
+
   const verifier = new BrowserVerifier();
   await verifier.init({ headless: true });
 
@@ -398,6 +565,22 @@ export async function verifyViewBox(
   viewBox,
   preserveAspectRatio = "xMidYMid meet",
 ) {
+  if (typeof width !== "number" || !isFinite(width) || width <= 0) {
+    throw new Error("width must be a positive finite number");
+  }
+  if (typeof height !== "number" || !isFinite(height) || height <= 0) {
+    throw new Error("height must be a positive finite number");
+  }
+  if (typeof viewBox !== "string" || viewBox.trim().length === 0) {
+    throw new Error("viewBox must be a non-empty string");
+  }
+  if (
+    typeof preserveAspectRatio !== "string" ||
+    preserveAspectRatio.trim().length === 0
+  ) {
+    throw new Error("preserveAspectRatio must be a non-empty string");
+  }
+
   const verifier = new BrowserVerifier();
   await verifier.init({ headless: true });
 
@@ -420,6 +603,10 @@ export async function verifyViewBox(
  * @returns {Promise<{matches: boolean, browserCTM: Object, libraryCTM: Object}>}
  */
 export async function verifyTransform(transform) {
+  if (typeof transform !== "string" || transform.trim().length === 0) {
+    throw new Error("transform must be a non-empty string");
+  }
+
   const verifier = new BrowserVerifier();
   await verifier.init({ headless: true });
 
@@ -439,6 +626,9 @@ export async function verifyTransform(transform) {
  * @returns {Promise<{passed: number, failed: number, results: Array}>}
  */
 export async function runStandardTests(options = { verbose: true }) {
+  if (!options || typeof options !== "object") {
+    throw new Error("options must be a valid object");
+  }
   const testCases = [
     // W3C SVG WG issue #215 cases
     {

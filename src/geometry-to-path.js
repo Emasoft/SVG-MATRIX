@@ -41,7 +41,16 @@ export function getKappa() {
  * @returns {Decimal} Control point distance factor (multiply by radius)
  */
 export function getKappaForArc(thetaRadians) {
+  if (thetaRadians == null) {
+    throw new Error("getKappaForArc: thetaRadians parameter is required");
+  }
   const theta = D(thetaRadians);
+  if (!theta.isFinite()) {
+    throw new Error("getKappaForArc: thetaRadians must be finite");
+  }
+  if (theta.isZero()) {
+    throw new Error("getKappaForArc: thetaRadians cannot be zero");
+  }
   const four = new Decimal(4);
   const three = new Decimal(3);
   // L = (4/3) * tan(theta/4)
@@ -71,6 +80,19 @@ export function getKappaForArc(thetaRadians) {
  * @returns {string} SVG path data
  */
 export function circleToPathDataHP(cx, cy, r, arcs = 8, precision = 6) {
+  if (cx == null || cy == null || r == null) {
+    throw new Error("circleToPathDataHP: cx, cy, and r parameters are required");
+  }
+  const rD = D(r);
+  if (!rD.isFinite() || rD.isNegative()) {
+    throw new Error("circleToPathDataHP: radius must be finite and non-negative");
+  }
+  if (!Number.isFinite(arcs) || arcs <= 0) {
+    throw new Error("circleToPathDataHP: arcs must be a positive number");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("circleToPathDataHP: precision must be non-negative");
+  }
   return ellipseToPathDataHP(cx, cy, r, r, arcs, precision);
 }
 
@@ -90,6 +112,15 @@ export function circleToPathDataHP(cx, cy, r, arcs = 8, precision = 6) {
  * @returns {string} SVG path data
  */
 export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
+  if (cx == null || cy == null || rx == null || ry == null) {
+    throw new Error("ellipseToPathDataHP: cx, cy, rx, and ry parameters are required");
+  }
+  if (!Number.isFinite(arcs) || arcs <= 0) {
+    throw new Error("ellipseToPathDataHP: arcs must be a positive number");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("ellipseToPathDataHP: precision must be non-negative");
+  }
   // Enforce multiple of 4 for symmetry
   let numArcs = arcs;
   if (numArcs % 4 !== 0) {
@@ -99,6 +130,12 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
     cyD = D(cy),
     rxD = D(rx),
     ryD = D(ry);
+  if (!rxD.isFinite() || rxD.isNegative()) {
+    throw new Error("ellipseToPathDataHP: rx must be finite and non-negative");
+  }
+  if (!ryD.isFinite() || ryD.isNegative()) {
+    throw new Error("ellipseToPathDataHP: ry must be finite and non-negative");
+  }
   const f = (v) => formatNumber(v, precision);
 
   // Angle per arc in radians
@@ -158,8 +195,18 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
  * @returns {string} Formatted number string
  */
 function formatNumber(value, precision = 6) {
+  if (value == null) {
+    throw new Error("formatNumber: value parameter is required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("formatNumber: precision must be non-negative");
+  }
+  const valueD = D(value);
+  if (!valueD.isFinite()) {
+    throw new Error("formatNumber: value must be finite");
+  }
   // Format with precision then remove trailing zeros for smaller output
-  let str = value.toFixed(precision);
+  let str = valueD.toFixed(precision);
   // Remove trailing zeros after decimal point
   if (str.includes(".")) {
     str = str.replace(/\.?0+$/, "");
@@ -176,9 +223,18 @@ function formatNumber(value, precision = 6) {
  * @returns {string} SVG path data string
  */
 export function circleToPathData(cx, cy, r, precision = 6) {
+  if (cx == null || cy == null || r == null) {
+    throw new Error("circleToPathData: cx, cy, and r parameters are required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("circleToPathData: precision must be non-negative");
+  }
   const cxD = D(cx),
     cyD = D(cy),
     rD = D(r);
+  if (!rD.isFinite() || rD.isNegative()) {
+    throw new Error("circleToPathData: radius must be finite and non-negative");
+  }
   const k = getKappa().mul(rD);
   const x0 = cxD.plus(rD),
     y0 = cyD;
@@ -218,10 +274,22 @@ export function circleToPathData(cx, cy, r, precision = 6) {
  * @returns {string} SVG path data string
  */
 export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
+  if (cx == null || cy == null || rx == null || ry == null) {
+    throw new Error("ellipseToPathData: cx, cy, rx, and ry parameters are required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("ellipseToPathData: precision must be non-negative");
+  }
   const cxD = D(cx),
     cyD = D(cy),
     rxD = D(rx),
     ryD = D(ry);
+  if (!rxD.isFinite() || rxD.isNegative()) {
+    throw new Error("ellipseToPathData: rx must be finite and non-negative");
+  }
+  if (!ryD.isFinite() || ryD.isNegative()) {
+    throw new Error("ellipseToPathData: ry must be finite and non-negative");
+  }
   const kappa = getKappa(),
     kx = kappa.mul(rxD),
     ky = kappa.mul(ryD);
@@ -275,10 +343,22 @@ export function rectToPathData(
   useArcs = false,
   precision = 6,
 ) {
+  if (x == null || y == null || width == null || height == null) {
+    throw new Error("rectToPathData: x, y, width, and height parameters are required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("rectToPathData: precision must be non-negative");
+  }
   const xD = D(x),
     yD = D(y),
     wD = D(width),
     hD = D(height);
+  if (!wD.isFinite() || wD.isNegative()) {
+    throw new Error("rectToPathData: width must be finite and non-negative");
+  }
+  if (!hD.isFinite() || hD.isNegative()) {
+    throw new Error("rectToPathData: height must be finite and non-negative");
+  }
   let rxD = D(rx || 0),
     ryD = ry !== null ? D(ry) : rxD;
   const halfW = wD.div(2),
@@ -322,6 +402,12 @@ export function rectToPathData(
  * @returns {string} SVG path data string
  */
 export function lineToPathData(x1, y1, x2, y2, precision = 6) {
+  if (x1 == null || y1 == null || x2 == null || y2 == null) {
+    throw new Error("lineToPathData: x1, y1, x2, and y2 parameters are required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("lineToPathData: precision must be non-negative");
+  }
   const f = (v) => formatNumber(D(v), precision);
   return `M${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}`;
 }
@@ -367,6 +453,9 @@ function parsePoints(points) {
  * @returns {string} SVG path data string
  */
 export function polylineToPathData(points, precision = 6) {
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("polylineToPathData: precision must be non-negative");
+  }
   const pairs = parsePoints(points);
   if (pairs.length === 0) return "";
   const f = (v) => formatNumber(v, precision);
@@ -386,6 +475,9 @@ export function polylineToPathData(points, precision = 6) {
  * @returns {string} SVG path data string with Z (closepath) command
  */
 export function polygonToPathData(points, precision = 6) {
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("polygonToPathData: precision must be non-negative");
+  }
   const path = polylineToPathData(points, precision);
   return path ? path + " Z" : "";
 }
@@ -420,6 +512,12 @@ const COMMAND_PARAMS = {
  * @returns {Array<Object>} Array of {command, args} objects
  */
 export function parsePathData(pathData) {
+  if (pathData == null) {
+    throw new Error("parsePathData: pathData parameter is required");
+  }
+  if (typeof pathData !== "string") {
+    throw new Error("parsePathData: pathData must be a string");
+  }
   const commands = [];
   const commandRegex = /([MmLlHhVvCcSsQqTtAaZz])\s*([^MmLlHhVvCcSsQqTtAaZz]*)/g;
   let match;
@@ -467,6 +565,15 @@ export function parsePathData(pathData) {
  * @returns {string} SVG path data string
  */
 export function pathArrayToString(commands, precision = 6) {
+  if (commands == null) {
+    throw new Error("pathArrayToString: commands parameter is required");
+  }
+  if (!Array.isArray(commands)) {
+    throw new Error("pathArrayToString: commands must be an array");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("pathArrayToString: precision must be non-negative");
+  }
   return commands
     .map(({ command, args }) => {
       const argsStr = args.map((a) => formatNumber(a, precision)).join(" ");
@@ -481,6 +588,9 @@ export function pathArrayToString(commands, precision = 6) {
  * @returns {string} Path data with all absolute commands
  */
 export function pathToAbsolute(pathData) {
+  if (pathData == null) {
+    throw new Error("pathToAbsolute: pathData parameter is required");
+  }
   const commands = parsePathData(pathData);
   const result = [];
   let currentX = new Decimal(0),
@@ -630,6 +740,15 @@ export function transformArcParams(
   endY,
   matrix,
 ) {
+  if (rx == null || ry == null || xAxisRotation == null || largeArc == null || sweep == null || endX == null || endY == null) {
+    throw new Error("transformArcParams: all parameters (rx, ry, xAxisRotation, largeArc, sweep, endX, endY) are required");
+  }
+  if (matrix == null) {
+    throw new Error("transformArcParams: matrix parameter is required");
+  }
+  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length < 3) {
+    throw new Error("transformArcParams: matrix must have valid data property with at least 3 rows");
+  }
   const rxD = D(rx),
     ryD = D(ry),
     rotD = D(xAxisRotation);
@@ -639,8 +758,12 @@ export function transformArcParams(
   // Transform the endpoint
   const endPoint = Matrix.from([[endXD], [endYD], [new Decimal(1)]]);
   const transformedEnd = matrix.mul(endPoint);
-  const newEndX = transformedEnd.data[0][0].div(transformedEnd.data[2][0]);
-  const newEndY = transformedEnd.data[1][0].div(transformedEnd.data[2][0]);
+  const w = transformedEnd.data[2][0];
+  if (w.isZero()) {
+    throw new Error("transformArcParams: division by zero in homogeneous coordinate transformation");
+  }
+  const newEndX = transformedEnd.data[0][0].div(w);
+  const newEndY = transformedEnd.data[1][0].div(w);
 
   // Extract the 2x2 linear part of the affine transformation
   const a = matrix.data[0][0],
@@ -697,6 +820,18 @@ export function transformArcParams(
  * @returns {string} Transformed SVG path data
  */
 export function transformPathData(pathData, matrix, precision = 6) {
+  if (pathData == null) {
+    throw new Error("transformPathData: pathData parameter is required");
+  }
+  if (matrix == null) {
+    throw new Error("transformPathData: matrix parameter is required");
+  }
+  if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length < 3) {
+    throw new Error("transformPathData: matrix must have valid data property with at least 3 rows");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("transformPathData: precision must be non-negative");
+  }
   const absPath = pathToAbsolute(pathData);
   const commands = parsePathData(absPath);
   const result = [];
@@ -704,20 +839,24 @@ export function transformPathData(pathData, matrix, precision = 6) {
     if (command === "M" || command === "L") {
       const pt = Matrix.from([[args[0]], [args[1]], [new Decimal(1)]]);
       const transformed = matrix.mul(pt);
-      const x = transformed.data[0][0].div(transformed.data[2][0]);
-      const y = transformed.data[1][0].div(transformed.data[2][0]);
+      const w = transformed.data[2][0];
+      if (w.isZero()) {
+        throw new Error("transformPathData: division by zero in homogeneous coordinate transformation");
+      }
+      const x = transformed.data[0][0].div(w);
+      const y = transformed.data[1][0].div(w);
       result.push({ command, args: [x, y] });
     } else if (command === "C") {
       const transformedArgs = [];
       for (let i = 0; i < 6; i += 2) {
         const pt = Matrix.from([[args[i]], [args[i + 1]], [new Decimal(1)]]);
         const transformed = matrix.mul(pt);
-        transformedArgs.push(
-          transformed.data[0][0].div(transformed.data[2][0]),
-        );
-        transformedArgs.push(
-          transformed.data[1][0].div(transformed.data[2][0]),
-        );
+        const w = transformed.data[2][0];
+        if (w.isZero()) {
+          throw new Error("transformPathData: division by zero in homogeneous coordinate transformation");
+        }
+        transformedArgs.push(transformed.data[0][0].div(w));
+        transformedArgs.push(transformed.data[1][0].div(w));
       }
       result.push({ command, args: transformedArgs });
     } else if (command === "A") {
@@ -754,6 +893,9 @@ export function transformPathData(pathData, matrix, precision = 6) {
  * @returns {Array<Decimal>} Cubic Bezier control points [cp1x, cp1y, cp2x, cp2y, x2, y2]
  */
 function quadraticToCubic(x0, y0, x1, y1, x2, y2) {
+  if (x0 == null || y0 == null || x1 == null || y1 == null || x2 == null || y2 == null) {
+    throw new Error("quadraticToCubic: all parameters (x0, y0, x1, y1, x2, y2) are required");
+  }
   const twoThirds = new Decimal(2).div(3);
   const cp1x = x0.plus(twoThirds.mul(x1.minus(x0)));
   const cp1y = y0.plus(twoThirds.mul(y1.minus(y0)));
@@ -768,6 +910,9 @@ function quadraticToCubic(x0, y0, x1, y1, x2, y2) {
  * @returns {string} Path data with only M, C, and Z commands
  */
 export function pathToCubics(pathData) {
+  if (pathData == null) {
+    throw new Error("pathToCubics: pathData parameter is required");
+  }
   const absPath = pathToAbsolute(pathData);
   const commands = parsePathData(absPath);
   const result = [];
@@ -857,6 +1002,12 @@ export function pathToCubics(pathData) {
  * @returns {string|null} SVG path data string, or null if element type not supported
  */
 export function convertElementToPath(element, precision = 6) {
+  if (element == null) {
+    throw new Error("convertElementToPath: element parameter is required");
+  }
+  if (!Number.isFinite(precision) || precision < 0) {
+    throw new Error("convertElementToPath: precision must be non-negative");
+  }
   const getAttr = (name, defaultValue = 0) => {
     const rawValue = element.getAttribute
       ? element.getAttribute(name)
@@ -916,8 +1067,15 @@ export function convertElementToPath(element, precision = 6) {
  * @returns {number} Numeric value without units
  */
 function stripUnits(val) {
+  if (val == null) {
+    return 0;
+  }
   if (typeof val === "string") {
-    return parseFloat(val) || 0;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof val === "number") {
+    return isNaN(val) ? 0 : val;
   }
   return val;
 }

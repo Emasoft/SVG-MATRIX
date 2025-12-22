@@ -69,16 +69,38 @@ Decimal.set({ precision: 80 });
  * // Shows region from (-50,-50) to (150,150) in user space
  */
 export function parseViewBox(viewBoxStr) {
-  if (!viewBoxStr || viewBoxStr.trim() === "") {
+  // Validate input type and content
+  if (!viewBoxStr || typeof viewBoxStr !== "string" || viewBoxStr.trim() === "") {
     return null;
   }
 
-  const parts = viewBoxStr
-    .trim()
-    .split(/[\s,]+/)
-    .map((s) => new Decimal(s));
+  let parts;
+  try {
+    parts = viewBoxStr
+      .trim()
+      .split(/[\s,]+/)
+      .map((s) => new Decimal(s));
+  } catch (_err) {
+    console.warn(`Invalid viewBox (parse error): ${viewBoxStr}`);
+    return null;
+  }
+
   if (parts.length !== 4) {
-    console.warn(`Invalid viewBox: ${viewBoxStr}`);
+    console.warn(`Invalid viewBox (expected 4 values): ${viewBoxStr}`);
+    return null;
+  }
+
+  const width = parts[2];
+  const height = parts[3];
+
+  // Validate dimensions are positive and finite
+  if (width.lte(0) || height.lte(0)) {
+    console.warn(`Invalid viewBox (non-positive dimensions): ${viewBoxStr}`);
+    return null;
+  }
+
+  if (!width.isFinite() || !height.isFinite() || !parts[0].isFinite() || !parts[1].isFinite()) {
+    console.warn(`Invalid viewBox (non-finite values): ${viewBoxStr}`);
     return null;
   }
 
@@ -228,6 +250,20 @@ export function computeViewBoxTransform(
   const vpW = D(viewportWidth);
   const vpH = D(viewportHeight);
 
+  // Validate dimensions are positive and finite to prevent division by zero
+  if (vbW.lte(0) || vbH.lte(0)) {
+    console.warn("Invalid viewBox dimensions (must be positive)");
+    return Matrix.identity(3);
+  }
+  if (vpW.lte(0) || vpH.lte(0)) {
+    console.warn("Invalid viewport dimensions (must be positive)");
+    return Matrix.identity(3);
+  }
+  if (!vbW.isFinite() || !vbH.isFinite() || !vpW.isFinite() || !vpH.isFinite()) {
+    console.warn("Invalid dimensions (must be finite)");
+    return Matrix.identity(3);
+  }
+
   // Default preserveAspectRatio
   const parValue = par || { align: "xMidYMid", meetOrSlice: "meet" };
 
@@ -340,8 +376,19 @@ export class SVGViewport {
     preserveAspectRatio = null,
     transform = null,
   ) {
-    this.width = new Decimal(width);
-    this.height = new Decimal(height);
+    // Validate width and height
+    const w = new Decimal(width);
+    const h = new Decimal(height);
+
+    if (w.lte(0) || h.lte(0)) {
+      throw new Error("SVGViewport dimensions must be positive");
+    }
+    if (!w.isFinite() || !h.isFinite()) {
+      throw new Error("SVGViewport dimensions must be finite");
+    }
+
+    this.width = w;
+    this.height = h;
     this.viewBox = viewBox ? parseViewBox(viewBox) : null;
     this.preserveAspectRatio = parsePreserveAspectRatio(preserveAspectRatio);
     this.transform = transform;
@@ -438,9 +485,19 @@ export class SVGViewport {
  * // Combines two viewBox transforms and a rotation
  */
 export function buildFullCTM(hierarchy) {
+  // Validate input is an array
+  if (!hierarchy || !Array.isArray(hierarchy)) {
+    console.warn("buildFullCTM: hierarchy must be an array");
+    return Matrix.identity(3);
+  }
+
   let ctm = Matrix.identity(3);
 
   for (const item of hierarchy) {
+    if (!item) {
+      continue; // Skip null/undefined items
+    }
+
     if (typeof item === "string") {
       // Backwards compatibility: treat string as transform attribute
       if (item) {
@@ -448,15 +505,24 @@ export function buildFullCTM(hierarchy) {
         ctm = ctm.mul(matrix);
       }
     } else if (item.type === "svg") {
-      // SVG viewport with potential viewBox
-      const viewport = new SVGViewport(
-        item.width,
-        item.height,
-        item.viewBox || null,
-        item.preserveAspectRatio || null,
-        item.transform || null,
-      );
-      ctm = ctm.mul(viewport.getTransformMatrix());
+      // SVG viewport with potential viewBox - validate required properties
+      if (item.width === undefined || item.height === undefined) {
+        console.warn("buildFullCTM: SVG viewport missing width or height");
+        continue;
+      }
+      try {
+        const viewport = new SVGViewport(
+          item.width,
+          item.height,
+          item.viewBox || null,
+          item.preserveAspectRatio || null,
+          item.transform || null,
+        );
+        ctm = ctm.mul(viewport.getTransformMatrix());
+      } catch (err) {
+        console.warn(`buildFullCTM: Failed to create viewport: ${err.message}`);
+        continue;
+      }
     } else if (item.type === "g" || item.type === "element") {
       // Group or element with optional transform
       if (item.transform) {
@@ -664,7 +730,19 @@ export function objectBoundingBoxTransform(
   bboxWidth,
   bboxHeight,
 ) {
-  const _D = (x) => new Decimal(x);
+  const D = (x) => new Decimal(x);
+
+  const wD = D(bboxWidth);
+  const hD = D(bboxHeight);
+
+  // Validate dimensions are positive (zero is technically valid for degenerate case, but warn)
+  if (wD.lte(0) || hD.lte(0)) {
+    console.warn("objectBoundingBoxTransform: zero or negative dimensions create degenerate transform");
+  }
+  if (!wD.isFinite() || !hD.isFinite()) {
+    throw new Error("objectBoundingBoxTransform: dimensions must be finite");
+  }
+
   // Transform: scale(bboxWidth, bboxHeight) then translate(bboxX, bboxY)
   const scaleM = Transforms2D.scale(bboxWidth, bboxHeight);
   const translateM = Transforms2D.translation(bboxX, bboxY);
@@ -735,6 +813,14 @@ export function ellipseToPath(cx, cy, rx, ry) {
     cyD = D(cy),
     rxD = D(rx),
     ryD = D(ry);
+
+  // Validate radii are positive
+  if (rxD.lte(0) || ryD.lte(0)) {
+    throw new Error("Ellipse radii must be positive");
+  }
+  if (!rxD.isFinite() || !ryD.isFinite() || !cxD.isFinite() || !cyD.isFinite()) {
+    throw new Error("Ellipse parameters must be finite");
+  }
 
   // Kappa for bezier approximation of circle/ellipse: 4 * (sqrt(2) - 1) / 3
   const kappa = D("0.5522847498307936");
@@ -810,8 +896,22 @@ export function rectToPath(x, y, width, height, rx = 0, ry = null) {
     yD = D(y),
     wD = D(width),
     hD = D(height);
+
+  // Validate dimensions are positive
+  if (wD.lte(0) || hD.lte(0)) {
+    throw new Error("Rectangle dimensions must be positive");
+  }
+  if (!wD.isFinite() || !hD.isFinite() || !xD.isFinite() || !yD.isFinite()) {
+    throw new Error("Rectangle parameters must be finite");
+  }
+
   let rxD = D(rx);
   let ryD = ry !== null ? D(ry) : rxD;
+
+  // Validate radii are non-negative
+  if (rxD.lt(0) || ryD.lt(0)) {
+    throw new Error("Rectangle corner radii must be non-negative");
+  }
 
   // Clamp radii to half dimensions
   const halfW = wD.div(2);
@@ -946,15 +1046,35 @@ export function polylineToPath(points) {
  * @returns {Array<[string, string]>} Array of [x, y] coordinate pairs as strings
  */
 function parsePointPairs(points) {
-  let coords;
-  if (Array.isArray(points)) {
-    coords = points.flat().map((n) => new Decimal(n).toFixed(6));
-  } else {
-    coords = points
-      .trim()
-      .split(/[\s,]+/)
-      .map((s) => new Decimal(s).toFixed(6));
+  // Validate input
+  if (!points) {
+    return [];
   }
+
+  let coords;
+  try {
+    if (Array.isArray(points)) {
+      coords = points.flat().map((n) => new Decimal(n).toFixed(6));
+    } else if (typeof points === "string") {
+      coords = points
+        .trim()
+        .split(/[\s,]+/)
+        .filter((s) => s.length > 0)
+        .map((s) => new Decimal(s).toFixed(6));
+    } else {
+      console.warn("parsePointPairs: invalid input type");
+      return [];
+    }
+  } catch (err) {
+    console.warn(`parsePointPairs: parse error - ${err.message}`);
+    return [];
+  }
+
+  // Validate even number of coordinates
+  if (coords.length % 2 !== 0) {
+    console.warn("parsePointPairs: odd number of coordinates, ignoring last value");
+  }
+
   const pairs = [];
   for (let i = 0; i < coords.length - 1; i += 2) {
     pairs.push([coords[i], coords[i + 1]]);
@@ -1047,6 +1167,36 @@ export function transformArc(
   const D = (n) => new Decimal(n);
   const NEAR_ZERO = D("1e-16");
 
+  // Validate inputs
+  if (!matrix || !matrix.data || !Array.isArray(matrix.data) || matrix.data.length < 3) {
+    throw new Error("transformArc: invalid matrix");
+  }
+
+  const rxD = D(rx);
+  const ryD = D(ry);
+
+  // Validate radii are positive
+  if (rxD.lte(0) || ryD.lte(0)) {
+    console.warn("transformArc: radii must be positive, returning degenerate arc");
+    return {
+      rx: 0,
+      ry: 0,
+      xAxisRotation: 0,
+      largeArcFlag: largeArcFlag,
+      sweepFlag: sweepFlag,
+      x: D(x).toNumber(),
+      y: D(y).toNumber(),
+    };
+  }
+
+  // Validate flags are 0 or 1
+  if (largeArcFlag !== 0 && largeArcFlag !== 1) {
+    console.warn("transformArc: largeArcFlag must be 0 or 1");
+  }
+  if (sweepFlag !== 0 && sweepFlag !== 1) {
+    console.warn("transformArc: sweepFlag must be 0 or 1");
+  }
+
   // Get matrix components
   const a = matrix.data[0][0];
   const b = matrix.data[1][0];
@@ -1066,8 +1216,7 @@ export function transformArc(
   const sinRot = Decimal.sin(rotRad);
   const cosRot = Decimal.cos(rotRad);
 
-  const rxD = D(rx),
-    ryD = D(ry);
+  // rxD and ryD already declared in validation section above
 
   // Transform the ellipse axes using the algorithm from lean-svg
   // m0, m1 represent the transformed X-axis direction of the ellipse
@@ -1210,6 +1359,16 @@ export function transformArc(
  * // Translation by (50, 50) specified in matrix form
  */
 export function parseTransformFunction(func, args) {
+  // Validate inputs
+  if (!func || typeof func !== "string") {
+    console.warn("parseTransformFunction: invalid function name");
+    return Matrix.identity(3);
+  }
+  if (!args || !Array.isArray(args)) {
+    console.warn("parseTransformFunction: invalid arguments array");
+    return Matrix.identity(3);
+  }
+
   const D = (x) => new Decimal(x);
 
   switch (func.toLowerCase()) {
@@ -1585,11 +1744,31 @@ export function isIdentity(m, tolerance = "1e-10") {
  * // Relative commands preserved in output
  */
 export function transformPathData(pathData, ctm, options = {}) {
+  // Validate inputs
+  if (!pathData || typeof pathData !== "string") {
+    console.warn("transformPathData: invalid pathData (must be string)");
+    return "";
+  }
+  if (!ctm || !ctm.data) {
+    console.warn("transformPathData: invalid CTM matrix");
+    return pathData; // Return unchanged if matrix is invalid
+  }
+
   const { toAbsolute = true, precision = 6 } = options;
+
+  // Validate precision
+  if (typeof precision !== "number" || precision < 0 || precision > 20) {
+    console.warn("transformPathData: invalid precision, using default 6");
+  }
+
   const D = (x) => new Decimal(x);
 
   // Parse path into commands
   const commands = parsePathCommands(pathData);
+  if (commands.length === 0) {
+    return "";
+  }
+
   const result = [];
 
   // Track current position for relative commands
@@ -1899,6 +2078,11 @@ export function transformPathData(pathData, ctm, options = {}) {
  * // ]
  */
 function parsePathCommands(pathData) {
+  // Validate input
+  if (!pathData || typeof pathData !== "string") {
+    return [];
+  }
+
   const commands = [];
   const commandRegex = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
   let match;
@@ -1911,7 +2095,14 @@ function parsePathCommands(pathData) {
         ? argsStr
             .split(/[\s,]+/)
             .filter((s) => s.length > 0)
-            .map((s) => parseFloat(s))
+            .map((s) => {
+              const val = parseFloat(s);
+              if (isNaN(val)) {
+                console.warn(`parsePathCommands: invalid number '${s}'`);
+                return 0;
+              }
+              return val;
+            })
         : [];
     commands.push({ cmd, args });
   }

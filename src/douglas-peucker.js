@@ -18,6 +18,24 @@
  * @returns {number} Perpendicular distance
  */
 export function perpendicularDistance(point, lineStart, lineEnd) {
+  // Validate parameters to prevent undefined access and ensure numeric properties
+  if (!point || typeof point.x !== 'number' || typeof point.y !== 'number') {
+    throw new TypeError('perpendicularDistance: point must be an object with numeric x and y properties');
+  }
+  if (!lineStart || typeof lineStart.x !== 'number' || typeof lineStart.y !== 'number') {
+    throw new TypeError('perpendicularDistance: lineStart must be an object with numeric x and y properties');
+  }
+  if (!lineEnd || typeof lineEnd.x !== 'number' || typeof lineEnd.y !== 'number') {
+    throw new TypeError('perpendicularDistance: lineEnd must be an object with numeric x and y properties');
+  }
+
+  // Check for NaN/Infinity in coordinates to prevent invalid calculations
+  if (!Number.isFinite(point.x) || !Number.isFinite(point.y) ||
+      !Number.isFinite(lineStart.x) || !Number.isFinite(lineStart.y) ||
+      !Number.isFinite(lineEnd.x) || !Number.isFinite(lineEnd.y)) {
+    throw new RangeError('perpendicularDistance: all coordinates must be finite numbers');
+  }
+
   const dx = lineEnd.x - lineStart.x;
   const dy = lineEnd.y - lineStart.y;
 
@@ -46,6 +64,22 @@ export function perpendicularDistance(point, lineStart, lineEnd) {
  * @returns {Array<{x: number, y: number}>} Simplified points
  */
 export function douglasPeucker(points, tolerance) {
+  // Validate points parameter to prevent crashes on invalid input
+  if (!Array.isArray(points)) {
+    throw new TypeError('douglasPeucker: points must be an array');
+  }
+  if (points.length === 0) {
+    throw new RangeError('douglasPeucker: points array cannot be empty');
+  }
+
+  // Validate tolerance parameter to ensure valid numeric simplification threshold
+  if (typeof tolerance !== 'number' || !Number.isFinite(tolerance)) {
+    throw new TypeError('douglasPeucker: tolerance must be a finite number');
+  }
+  if (tolerance < 0) {
+    throw new RangeError('douglasPeucker: tolerance cannot be negative');
+  }
+
   if (points.length <= 2) {
     return points;
   }
@@ -90,6 +124,22 @@ export function douglasPeucker(points, tolerance) {
  * @returns {Array<{x: number, y: number}>} Simplified points
  */
 export function visvalingamWhyatt(points, minArea) {
+  // Validate points parameter to prevent crashes on invalid input
+  if (!Array.isArray(points)) {
+    throw new TypeError('visvalingamWhyatt: points must be an array');
+  }
+  if (points.length === 0) {
+    throw new RangeError('visvalingamWhyatt: points array cannot be empty');
+  }
+
+  // Validate minArea parameter to ensure valid numeric threshold
+  if (typeof minArea !== 'number' || !Number.isFinite(minArea)) {
+    throw new TypeError('visvalingamWhyatt: minArea must be a finite number');
+  }
+  if (minArea < 0) {
+    throw new RangeError('visvalingamWhyatt: minArea cannot be negative');
+  }
+
   if (points.length <= 2) {
     return points;
   }
@@ -171,6 +221,15 @@ export function visvalingamWhyatt(points, minArea) {
  * @returns {Array<{x: number, y: number}>} Simplified points
  */
 export function simplifyPolyline(points, tolerance, algorithm = 'douglas-peucker') {
+  // Validate algorithm parameter to ensure only valid algorithms are used
+  if (typeof algorithm !== 'string') {
+    throw new TypeError('simplifyPolyline: algorithm must be a string');
+  }
+  const validAlgorithms = ['douglas-peucker', 'visvalingam'];
+  if (!validAlgorithms.includes(algorithm)) {
+    throw new RangeError(`simplifyPolyline: algorithm must be one of: ${validAlgorithms.join(', ')}`);
+  }
+
   if (algorithm === 'visvalingam') {
     // For Visvalingam, tolerance is the minimum triangle area
     return visvalingamWhyatt(points, tolerance * tolerance);
@@ -184,43 +243,76 @@ export function simplifyPolyline(points, tolerance, algorithm = 'douglas-peucker
  * @returns {Array<{x: number, y: number}>} Extracted points
  */
 export function extractPolylinePoints(commands) {
+  // Validate commands parameter to prevent crashes on invalid input
+  if (!Array.isArray(commands)) {
+    throw new TypeError('extractPolylinePoints: commands must be an array');
+  }
+
   const points = [];
   let cx = 0, cy = 0;
   let startX = 0, startY = 0;
 
-  for (const { command, args } of commands) {
+  for (const cmd of commands) {
+    // Validate each command object to prevent undefined access
+    if (!cmd || typeof cmd !== 'object') {
+      throw new TypeError('extractPolylinePoints: each command must be an object');
+    }
+    if (typeof cmd.command !== 'string') {
+      throw new TypeError('extractPolylinePoints: each command must have a string "command" property');
+    }
+    if (!Array.isArray(cmd.args)) {
+      throw new TypeError('extractPolylinePoints: each command must have an "args" array');
+    }
+
+    const { command, args } = cmd;
+
+    // Helper to validate args length to prevent out-of-bounds access
+    const requireArgs = (count) => {
+      if (args.length < count) {
+        throw new RangeError(`extractPolylinePoints: command "${command}" requires at least ${count} arguments, got ${args.length}`);
+      }
+    };
+
     switch (command) {
       case 'M':
+        requireArgs(2);
         cx = args[0]; cy = args[1];
         startX = cx; startY = cy;
         points.push({ x: cx, y: cy });
         break;
       case 'm':
+        requireArgs(2);
         cx += args[0]; cy += args[1];
         startX = cx; startY = cy;
         points.push({ x: cx, y: cy });
         break;
       case 'L':
+        requireArgs(2);
         cx = args[0]; cy = args[1];
         points.push({ x: cx, y: cy });
         break;
       case 'l':
+        requireArgs(2);
         cx += args[0]; cy += args[1];
         points.push({ x: cx, y: cy });
         break;
       case 'H':
+        requireArgs(1);
         cx = args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'h':
+        requireArgs(1);
         cx += args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'V':
+        requireArgs(1);
         cy = args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'v':
+        requireArgs(1);
         cy += args[0];
         points.push({ x: cx, y: cy });
         break;
@@ -233,20 +325,28 @@ export function extractPolylinePoints(commands) {
         break;
       // For curves (C, S, Q, T, A), we just track the endpoint
       case 'C':
+        requireArgs(6);
         cx = args[4]; cy = args[5]; break;
       case 'c':
+        requireArgs(6);
         cx += args[4]; cy += args[5]; break;
       case 'S': case 'Q':
+        requireArgs(4);
         cx = args[2]; cy = args[3]; break;
       case 's': case 'q':
+        requireArgs(4);
         cx += args[2]; cy += args[3]; break;
       case 'T':
+        requireArgs(2);
         cx = args[0]; cy = args[1]; break;
       case 't':
+        requireArgs(2);
         cx += args[0]; cy += args[1]; break;
       case 'A':
+        requireArgs(7);
         cx = args[5]; cy = args[6]; break;
       case 'a':
+        requireArgs(7);
         cx += args[5]; cy += args[6]; break;
       default:
         break;
@@ -263,7 +363,17 @@ export function extractPolylinePoints(commands) {
  * @returns {Array<{command: string, args: number[]}>} Path commands
  */
 export function rebuildPathFromPoints(points, closed = false) {
+  // Validate points parameter to prevent crashes on invalid input
+  if (!Array.isArray(points)) {
+    throw new TypeError('rebuildPathFromPoints: points must be an array');
+  }
+
   if (points.length === 0) return [];
+
+  // Validate closed parameter to ensure boolean type
+  if (typeof closed !== 'boolean') {
+    throw new TypeError('rebuildPathFromPoints: closed must be a boolean');
+  }
 
   const commands = [];
 
@@ -288,8 +398,19 @@ export function rebuildPathFromPoints(points, closed = false) {
  * @returns {boolean} True if pure polyline
  */
 export function isPurePolyline(commands) {
+  // Validate commands parameter to prevent crashes on invalid input
+  if (!Array.isArray(commands)) {
+    throw new TypeError('isPurePolyline: commands must be an array');
+  }
+
   const polylineCommands = new Set(['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'Z', 'z']);
-  return commands.every(cmd => polylineCommands.has(cmd.command));
+  return commands.every(cmd => {
+    // Validate each command has the required structure to prevent undefined access
+    if (!cmd || typeof cmd !== 'object' || typeof cmd.command !== 'string') {
+      return false;
+    }
+    return polylineCommands.has(cmd.command);
+  });
 }
 
 /**
@@ -300,6 +421,19 @@ export function isPurePolyline(commands) {
  * @returns {{commands: Array<{command: string, args: number[]}>, simplified: boolean, originalPoints: number, simplifiedPoints: number}}
  */
 export function simplifyPath(commands, tolerance, algorithm = 'douglas-peucker') {
+  // Validate commands parameter to prevent crashes on invalid input
+  if (!Array.isArray(commands)) {
+    throw new TypeError('simplifyPath: commands must be an array');
+  }
+
+  // Validate tolerance parameter to ensure valid numeric threshold
+  if (typeof tolerance !== 'number' || !Number.isFinite(tolerance)) {
+    throw new TypeError('simplifyPath: tolerance must be a finite number');
+  }
+  if (tolerance < 0) {
+    throw new RangeError('simplifyPath: tolerance cannot be negative');
+  }
+
   if (!isPurePolyline(commands) || commands.length < 3) {
     return {
       commands,

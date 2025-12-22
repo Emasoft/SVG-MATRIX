@@ -173,6 +173,11 @@ export const editorNamespaces = new Set([
   'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   'http://www.serif.com/',
   'http://www.vector.evaxdesign.sk',
+  // Additional editor namespaces
+  'http://www.corel.com/coreldraw/svg',
+  'http://gravit.io/ns',
+  'http://serif.com/affinity',
+  'http://canva.com/ns',
 ]);
 
 // ============================================================================
@@ -921,6 +926,8 @@ export const pseudoClasses = {
 
 /**
  * Additional editor namespaces beyond the base set
+ * Note: These are now integrated directly into editorNamespaces above
+ * to avoid post-export mutation issues. This export is kept for backwards compatibility.
  */
 export const additionalEditorNamespaces = new Set([
   // CorelDraw
@@ -932,8 +939,3 @@ export const additionalEditorNamespaces = new Set([
   // Canva
   'http://canva.com/ns',
 ]);
-
-// Merge additional namespaces into main set at initialization (avoid post-export mutation)
-for (const ns of additionalEditorNamespaces) {
-  editorNamespaces.add(ns);
-}

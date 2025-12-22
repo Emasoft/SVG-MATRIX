@@ -21,6 +21,10 @@ function validateNumeric(value, name) {
   if (typeof value !== 'number' && typeof value !== 'string' && !(value instanceof Decimal)) {
     throw new Error(`${name} must be a number, string, or Decimal`);
   }
+  // Check for NaN and Infinity in numeric values
+  if (typeof value === 'number' && !isFinite(value)) {
+    throw new Error(`${name} must be a finite number (got ${value})`);
+  }
 }
 
 /**
@@ -175,9 +179,15 @@ export function scale(sx, sy = null) {
     validateNumeric(sy, 'sy');
   }
   const syValue = sy === null ? sx : sy;
+  // Check for zero scale factors which create singular matrices
+  const sxD = D(sx);
+  const syD = D(syValue);
+  if (sxD.isZero() || syD.isZero()) {
+    throw new Error('Scale factors cannot be zero (creates singular matrix)');
+  }
   return Matrix.from([
-    [D(sx), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), D(syValue), new Decimal(0)],
+    [sxD, new Decimal(0), new Decimal(0)],
+    [new Decimal(0), syD, new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
@@ -292,6 +302,9 @@ export function rotate(theta) {
  * // Result: point moves 30° counterclockwise around the center
  */
 export function rotateAroundPoint(theta, px, py) {
+  validateNumeric(theta, 'theta');
+  validateNumeric(px, 'px');
+  validateNumeric(py, 'py');
   const pxD = D(px);
   const pyD = D(py);
   return translation(pxD, pyD)
@@ -356,9 +369,16 @@ export function rotateAroundPoint(theta, px, py) {
 export function skew(ax, ay) {
   validateNumeric(ax, 'ax');
   validateNumeric(ay, 'ay');
+  const axD = D(ax);
+  const ayD = D(ay);
+  // Check determinant: det = 1 - ax*ay. If det <= 0, matrix is singular or inverts orientation
+  const det = new Decimal(1).minus(axD.mul(ayD));
+  if (det.lessThanOrEqualTo(0)) {
+    throw new Error(`Skew parameters create singular or orientation-inverting matrix (ax*ay = ${axD.mul(ayD).toString()}, must be < 1)`);
+  }
   return Matrix.from([
-    [new Decimal(1), D(ax), new Decimal(0)],
-    [D(ay), new Decimal(1), new Decimal(0)],
+    [new Decimal(1), axD, new Decimal(0)],
+    [ayD, new Decimal(1), new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
@@ -423,9 +443,21 @@ export function skew(ax, ay) {
  * // Result: x = 10, y = 10 (Y compressed to half)
  */
 export function stretchAlongAxis(ux, uy, k) {
-  const uxD = D(ux),
-    uyD = D(uy),
-    kD = D(k);
+  validateNumeric(ux, 'ux');
+  validateNumeric(uy, 'uy');
+  validateNumeric(k, 'k');
+  const uxD = D(ux);
+  const uyD = D(uy);
+  const kD = D(k);
+  // Check if k is zero which creates singular matrix
+  if (kD.isZero()) {
+    throw new Error('Stretch factor k cannot be zero (creates singular matrix)');
+  }
+  // Warn if axis vector is not normalized (optional but recommended)
+  const normSquared = uxD.mul(uxD).plus(uyD.mul(uyD));
+  if (normSquared.isZero()) {
+    throw new Error('Axis vector (ux, uy) cannot be zero');
+  }
   const one = new Decimal(1);
   const factor = kD.minus(one);
   const m00 = one.plus(factor.mul(uxD.mul(uxD)));
@@ -500,6 +532,13 @@ export function applyTransform(M, x, y) {
   if (!M || typeof M.mul !== 'function') {
     throw new Error('applyTransform: first argument must be a Matrix');
   }
+  // Check matrix dimensions
+  if (!M.data || !Array.isArray(M.data) || M.data.length !== 3 ||
+      !M.data[0] || M.data[0].length !== 3 ||
+      !M.data[1] || M.data[1].length !== 3 ||
+      !M.data[2] || M.data[2].length !== 3) {
+    throw new Error('applyTransform: matrix must be 3x3');
+  }
   validateNumeric(x, 'x');
   validateNumeric(y, 'y');
   const P = Matrix.from([[D(x)], [D(y)], [new Decimal(1)]]);
@@ -507,6 +546,10 @@ export function applyTransform(M, x, y) {
   const rx = R.data[0][0],
     ry = R.data[1][0],
     rw = R.data[2][0];
+  // Check for zero division in perspective division
+  if (rw.isZero()) {
+    throw new Error('applyTransform: perspective division by zero (invalid transformation matrix)');
+  }
   // Perspective division (for affine transforms, rw is always 1)
   return [rx.div(rw), ry.div(rw)];
 }

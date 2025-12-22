@@ -120,11 +120,23 @@ export class SVGRenderingContext {
    * @param {Map} defsMap - Map of definitions (gradients, markers, clipPaths, etc.)
    */
   constructor(element, inherited = {}, defsMap = null) {
+    // Validate element parameter - Why: prevent crashes from null/undefined element
+    if (!element) {
+      throw new Error("SVGRenderingContext: element parameter is required");
+    }
+
+    // Validate inherited parameter - Why: ensure we can safely spread it
+    if (inherited !== null && typeof inherited !== "object") {
+      throw new Error(
+        "SVGRenderingContext: inherited must be an object or null",
+      );
+    }
+
     this.element = element;
     this.defsMap = defsMap || new Map();
 
     // Extract all properties with inheritance
-    this.properties = this._extractProperties(element, inherited);
+    this.properties = this._extractProperties(element, inherited || {});
 
     // Parse stroke-dasharray into array
     this.dashArray = this._parseDashArray(this.properties["stroke-dasharray"]);
@@ -157,6 +169,11 @@ export class SVGRenderingContext {
    * @private
    */
   _extractProperties(element, inherited) {
+    // Validate inherited is an object - Why: prevent spreading non-objects
+    if (typeof inherited !== "object" || inherited === null) {
+      throw new Error("_extractProperties: inherited must be an object");
+    }
+
     const props = { ...SVG_DEFAULTS, ...inherited };
 
     // Get attributes from element
@@ -206,6 +223,9 @@ export class SVGRenderingContext {
 
     const declarations = style.split(";");
     for (const decl of declarations) {
+      // Validate declaration has a colon - Why: prevent crashes on malformed CSS
+      if (!decl.includes(":")) continue;
+
       const [prop, value] = decl.split(":").map((s) => s.trim());
       if (prop && value) {
         props[prop] = value;
@@ -225,7 +245,24 @@ export class SVGRenderingContext {
       .toString()
       .split(/[\s,]+/)
       .filter((s) => s);
-    const values = parts.map((s) => D(parseFloat(s)));
+
+    // Validate each value is a valid number - Why: prevent NaN values in array
+    const values = [];
+    for (const part of parts) {
+      const num = parseFloat(part);
+      if (isNaN(num) || !isFinite(num)) {
+        throw new Error(`_parseDashArray: invalid dash value '${part}'`);
+      }
+      // Validate non-negative - Why: SVG spec requires non-negative dash values
+      if (num < 0) {
+        throw new Error(
+          `_parseDashArray: dash values must be non-negative, got ${num}`,
+        );
+      }
+      values.push(D(num));
+    }
+
+    if (values.length === 0) return null;
 
     // Per SVG spec, if odd number of values, duplicate the array
     if (values.length % 2 === 1) {
@@ -332,6 +369,22 @@ export class SVGRenderingContext {
    * @returns {Object} Expanded bounding box
    */
   expandBBoxForStroke(bbox) {
+    // Validate bbox parameter - Why: prevent crashes from missing properties
+    if (!bbox || typeof bbox !== "object") {
+      throw new Error("expandBBoxForStroke: bbox must be an object");
+    }
+    // Use 'in' operator to check for properties - Why: allow 0 values which are falsy but valid
+    if (
+      !("x" in bbox) ||
+      !("y" in bbox) ||
+      !("width" in bbox) ||
+      !("height" in bbox)
+    ) {
+      throw new Error(
+        "expandBBoxForStroke: bbox must have x, y, width, height properties",
+      );
+    }
+
     if (!this.hasStroke) return bbox;
 
     const extent = this.getStrokeExtent();
@@ -354,15 +407,43 @@ export class SVGRenderingContext {
    * @returns {Object} Expanded bounding box
    */
   expandBBoxForMarkers(bbox, markerSizes = null) {
+    // Validate bbox parameter - Why: prevent crashes from missing properties
+    if (!bbox || typeof bbox !== "object") {
+      throw new Error("expandBBoxForMarkers: bbox must be an object");
+    }
+    // Use 'in' operator to check for properties - Why: allow 0 values which are falsy but valid
+    if (
+      !("x" in bbox) ||
+      !("y" in bbox) ||
+      !("width" in bbox) ||
+      !("height" in bbox)
+    ) {
+      throw new Error(
+        "expandBBoxForMarkers: bbox must have x, y, width, height properties",
+      );
+    }
+
     if (!this.hasMarkers) return bbox;
 
     // If marker sizes provided, use them; otherwise estimate from marker definitions
     let maxMarkerSize = D(0);
 
     if (markerSizes) {
+      // Validate markerSizes is an object - Why: prevent crashes when accessing properties
+      if (typeof markerSizes !== "object") {
+        throw new Error("expandBBoxForMarkers: markerSizes must be an object");
+      }
+
       const sizes = [markerSizes.start, markerSizes.mid, markerSizes.end]
-        .filter((s) => s)
-        .map((s) => D(s));
+        .filter((s) => s !== null && s !== undefined)
+        .map((s) => {
+          const num = typeof s === "number" ? s : parseFloat(s);
+          if (isNaN(num) || !isFinite(num)) {
+            throw new Error(`expandBBoxForMarkers: invalid marker size '${s}'`);
+          }
+          return D(num);
+        });
+
       if (sizes.length > 0) {
         maxMarkerSize = Decimal.max(...sizes);
       }
@@ -393,6 +474,22 @@ export class SVGRenderingContext {
    * @returns {Object} Expanded bounding box
    */
   expandBBoxForFilter(bbox, filterDef = null) {
+    // Validate bbox parameter - Why: prevent crashes from missing properties
+    if (!bbox || typeof bbox !== "object") {
+      throw new Error("expandBBoxForFilter: bbox must be an object");
+    }
+    // Use 'in' operator to check for properties - Why: allow 0 values which are falsy but valid
+    if (
+      !("x" in bbox) ||
+      !("y" in bbox) ||
+      !("width" in bbox) ||
+      !("height" in bbox)
+    ) {
+      throw new Error(
+        "expandBBoxForFilter: bbox must have x, y, width, height properties",
+      );
+    }
+
     const filterRef = this.properties.filter;
     if (!filterRef || filterRef === "none") return bbox;
 
@@ -403,8 +500,29 @@ export class SVGRenderingContext {
 
     // If filter definition provided with explicit bounds, use those
     if (filterDef) {
-      if (filterDef.x !== undefined) extentX = D(filterDef.x).abs();
-      if (filterDef.y !== undefined) extentY = D(filterDef.y).abs();
+      // Validate filterDef is an object - Why: prevent crashes when accessing properties
+      if (typeof filterDef !== "object") {
+        throw new Error("expandBBoxForFilter: filterDef must be an object");
+      }
+
+      if (filterDef.x !== undefined) {
+        const xVal = parseFloat(filterDef.x);
+        if (isNaN(xVal) || !isFinite(xVal)) {
+          throw new Error(
+            `expandBBoxForFilter: invalid filterDef.x value '${filterDef.x}'`,
+          );
+        }
+        extentX = D(xVal).abs();
+      }
+      if (filterDef.y !== undefined) {
+        const yVal = parseFloat(filterDef.y);
+        if (isNaN(yVal) || !isFinite(yVal)) {
+          throw new Error(
+            `expandBBoxForFilter: invalid filterDef.y value '${filterDef.y}'`,
+          );
+        }
+        extentY = D(yVal).abs();
+      }
     }
 
     return {
@@ -423,6 +541,27 @@ export class SVGRenderingContext {
    * @returns {Object} Full rendered bounding box
    */
   getRenderedBBox(geometryBBox, options = {}) {
+    // Validate geometryBBox parameter - Why: prevent crashes from missing properties
+    if (!geometryBBox || typeof geometryBBox !== "object") {
+      throw new Error("getRenderedBBox: geometryBBox must be an object");
+    }
+    // Use 'in' operator to check for properties - Why: allow 0 values which are falsy but valid
+    if (
+      !("x" in geometryBBox) ||
+      !("y" in geometryBBox) ||
+      !("width" in geometryBBox) ||
+      !("height" in geometryBBox)
+    ) {
+      throw new Error(
+        "getRenderedBBox: geometryBBox must have x, y, width, height properties",
+      );
+    }
+
+    // Validate options parameter - Why: prevent crashes when accessing properties
+    if (options !== null && typeof options !== "object") {
+      throw new Error("getRenderedBBox: options must be an object or null");
+    }
+
     let bbox = { ...geometryBBox };
 
     // Expand for stroke
@@ -444,6 +583,14 @@ export class SVGRenderingContext {
    * @returns {Array} Polygon(s) representing the full rendered area
    */
   getFilledArea(polygon) {
+    // Validate polygon parameter - Why: prevent crashes from non-array or empty polygon
+    if (!Array.isArray(polygon)) {
+      throw new Error("getFilledArea: polygon must be an array");
+    }
+    if (polygon.length === 0) {
+      throw new Error("getFilledArea: polygon must not be empty");
+    }
+
     const areas = [];
 
     // Add fill area (if filled)
@@ -484,6 +631,24 @@ export class SVGRenderingContext {
    * @returns {boolean} True if point is inside rendered area
    */
   isPointInRenderedArea(point, polygon) {
+    // Validate point parameter - Why: prevent crashes from missing x, y properties
+    if (!point || typeof point !== "object") {
+      throw new Error("isPointInRenderedArea: point must be an object");
+    }
+    if (point.x === undefined || point.y === undefined) {
+      throw new Error(
+        "isPointInRenderedArea: point must have x and y properties",
+      );
+    }
+
+    // Validate polygon parameter - Why: prevent crashes from non-array or empty polygon
+    if (!Array.isArray(polygon)) {
+      throw new Error("isPointInRenderedArea: polygon must be an array");
+    }
+    if (polygon.length === 0) {
+      throw new Error("isPointInRenderedArea: polygon must not be empty");
+    }
+
     // Check fill area
     if (this.hasFill) {
       const fillRule =
@@ -523,6 +688,13 @@ export class SVGRenderingContext {
    * @returns {Object} {canMerge: boolean, reason: string}
    */
   canMergeWith(other) {
+    // Validate other parameter - Why: prevent crashes from non-SVGRenderingContext instances
+    if (!(other instanceof SVGRenderingContext)) {
+      throw new Error(
+        "canMergeWith: other must be an instance of SVGRenderingContext",
+      );
+    }
+
     // Fill rules must match
     if (this.fillRule !== other.fillRule) {
       return { canMerge: false, reason: "Different fill-rule" };
@@ -608,6 +780,11 @@ export function createRenderingContext(
   inherited = {},
   defsMap = null,
 ) {
+  // Validate parameters - Why: delegate validation to constructor which has proper error messages
+  if (!element) {
+    throw new Error("createRenderingContext: element parameter is required");
+  }
+
   return new SVGRenderingContext(element, inherited, defsMap);
 }
 
@@ -618,6 +795,11 @@ export function createRenderingContext(
  * @returns {Object} Inherited properties
  */
 export function getInheritedProperties(element) {
+  // Validate element parameter - Why: prevent crashes from null/undefined element
+  if (!element) {
+    throw new Error("getInheritedProperties: element parameter is required");
+  }
+
   const inherited = {};
 
   // Inheritable properties per SVG spec
@@ -643,6 +825,11 @@ export function getInheritedProperties(element) {
     "font-style",
     "font-weight",
   ];
+
+  // Check if element has parentNode - Why: prevent crashes when accessing parentNode
+  if (!element.parentNode) {
+    return inherited;
+  }
 
   let current = element.parentNode;
   while (current && current.tagName) {

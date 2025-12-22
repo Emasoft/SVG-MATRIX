@@ -42,6 +42,68 @@ import {
 } from "./convert-path-data.js";
 
 // ============================================================================
+// INPUT VALIDATION HELPERS
+// ============================================================================
+
+/**
+ * Validate path string input - fail fast on invalid input
+ * @param {string} d - Path d attribute to validate
+ * @throws {TypeError} If d is not a valid string
+ */
+function validatePathString(d) {
+  if (typeof d !== "string") {
+    throw new TypeError("Path d must be a string");
+  }
+}
+
+/**
+ * Validate numeric parameter - fail fast on invalid numbers
+ * Reserved for future use - prefixed with underscore to indicate internal/unused status
+ * @param {number} value - Numeric value to validate
+ * @param {string} name - Parameter name for error message
+ * @throws {TypeError} If value is not a finite number
+ */
+function _validateNumber(value, name) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new TypeError(`${name} must be a finite number, got ${value}`);
+  }
+}
+
+/**
+ * Validate precision parameter - fail fast on invalid precision
+ * @param {number} precision - Precision value to validate
+ * @throws {TypeError} If precision is not a valid non-negative finite number
+ */
+function validatePrecision(precision) {
+  if (
+    typeof precision !== "number" ||
+    !Number.isFinite(precision) ||
+    precision < 0
+  ) {
+    throw new TypeError(
+      `Precision must be a finite non-negative number, got ${precision}`,
+    );
+  }
+}
+
+/**
+ * Validate tolerance parameter - fail fast on invalid tolerance
+ * @param {number} tolerance - Tolerance value to validate
+ * @throws {TypeError} If tolerance is not a valid non-negative finite number
+ */
+function validateTolerance(tolerance) {
+  if (
+    typeof tolerance !== "number" ||
+    !Number.isFinite(tolerance) ||
+    tolerance < 0
+  ) {
+    throw new TypeError(
+      `Tolerance must be a finite non-negative number, got ${tolerance}`,
+    );
+  }
+}
+
+// ============================================================================
 // PLUGIN: removeLeadingZero
 // Removes leading zeros from decimal numbers (0.5 -> .5)
 // ============================================================================
@@ -54,6 +116,10 @@ import {
  * @returns {string} Optimized path
  */
 export function removeLeadingZero(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -62,8 +128,12 @@ export function removeLeadingZero(d, precision = 3) {
     command: cmd.command,
     args: cmd.args.map((n) => {
       const str = formatNumber(n, precision);
-      // formatNumber already handles leading zero removal
-      return parseFloat(str);
+      const parsed = parseFloat(str);
+      // Ensure the parsed value is valid - fail fast if corrupted
+      if (!Number.isFinite(parsed)) {
+        throw new Error(`Invalid numeric value encountered: ${str}`);
+      }
+      return parsed;
     }),
   }));
 
@@ -83,6 +153,10 @@ export function removeLeadingZero(d, precision = 3) {
  * @returns {string} Optimized path
  */
 export function negativeExtraSpace(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -102,6 +176,10 @@ export function negativeExtraSpace(d, precision = 3) {
  * @returns {string} Path with relative commands
  */
 export function convertToRelative(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -173,6 +251,10 @@ export function convertToRelative(d, precision = 3) {
  * @returns {string} Path with absolute commands
  */
 export function convertToAbsolute(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -245,6 +327,11 @@ export function convertToAbsolute(d, precision = 3) {
  * @returns {string} Optimized path
  */
 export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -336,6 +423,11 @@ export function lineShorthands(d, tolerance = 1e-6, precision = 3) {
  * @returns {string} Optimized path
  */
 export function convertToZ(d, tolerance = 1e-6, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -416,6 +508,36 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
 // ============================================================================
 
 /**
+ * Validate that all coordinate parameters are finite numbers
+ * @param {...number} coords - Coordinate values to validate
+ * @throws {TypeError} If any coordinate is not a finite number
+ */
+function validateCoordinates(...coords) {
+  for (let i = 0; i < coords.length; i++) {
+    if (typeof coords[i] !== "number" || !Number.isFinite(coords[i])) {
+      throw new TypeError(
+        `Coordinate at position ${i} must be a finite number, got ${coords[i]}`,
+      );
+    }
+  }
+}
+
+/**
+ * Validate t parameter is in valid range [0, 1]
+ * @param {number} t - Parameter value to validate
+ * @throws {TypeError} If t is not a valid number
+ * @throws {RangeError} If t is outside [0, 1] range
+ */
+function validateT(t) {
+  if (typeof t !== "number" || !Number.isFinite(t)) {
+    throw new TypeError(`Parameter t must be a finite number, got ${t}`);
+  }
+  if (t < 0 || t > 1) {
+    throw new RangeError(`Parameter t must be in range [0, 1], got ${t}`);
+  }
+}
+
+/**
  * Evaluate a cubic Bezier curve at parameter t.
  * B(t) = (1-t)^3*P0 + 3*(1-t)^2*t*P1 + 3*(1-t)*t^2*P2 + t^3*P3
  * @param {number} t - Parameter value (0 to 1)
@@ -430,6 +552,10 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
  * @returns {{x: number, y: number}} Point on curve
  */
 function cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
+  // Validate all inputs - fail fast on invalid data
+  validateT(t);
+  validateCoordinates(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
+
   const mt = 1 - t;
   const mt2 = mt * mt;
   const mt3 = mt2 * mt;
@@ -456,6 +582,10 @@ function cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
  * @returns {{x: number, y: number}} First derivative vector
  */
 function cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
+  // Validate all inputs - fail fast on invalid data
+  validateT(t);
+  validateCoordinates(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
+
   const mt = 1 - t;
   const mt2 = mt * mt;
   const t2 = t * t;
@@ -480,6 +610,10 @@ function cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
  * @returns {{x: number, y: number}} Second derivative vector
  */
 function cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y) {
+  // Validate all inputs - fail fast on invalid data
+  validateT(t);
+  validateCoordinates(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
+
   const mt = 1 - t;
   return {
     x: 6 * mt * (p2x - 2 * p1x + p0x) + 6 * t * (p3x - 2 * p2x + p1x),
@@ -516,9 +650,14 @@ function _closestTOnCubicBezier(
   p3y,
   tInit = 0.5,
 ) {
+  // Validate all coordinate inputs - fail fast on invalid data
+  validateCoordinates(px, py, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
+  // Note: tInit is clamped below so no need to strictly validate it
+
   let t = Math.max(0, Math.min(1, tInit));
 
   for (let iter = 0; iter < 10; iter++) {
+    // Note: t is always clamped to [0,1] so cubicBezierPoint validation won't fail
     const Q = cubicBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
     const Q1 = cubicBezierDeriv1(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
     const Q2 = cubicBezierDeriv2(t, p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
@@ -531,6 +670,7 @@ function _closestTOnCubicBezier(
     // f'(t) = B'(t)·B'(t) + (B(t)-p)·B''(t)
     const fp = Q1.x * Q1.x + Q1.y * Q1.y + diffX * Q2.x + diffY * Q2.y;
 
+    // Division by zero check - fail fast if derivative is zero
     if (Math.abs(fp) < 1e-12) break;
 
     const tNext = Math.max(0, Math.min(1, t - f / fp));
@@ -555,10 +695,14 @@ function _closestTOnCubicBezier(
  * @returns {number} Distance from point to line segment
  */
 function pointToLineDistance(px, py, x0, y0, x1, y1) {
+  // Validate all coordinate inputs - fail fast on invalid data
+  validateCoordinates(px, py, x0, y0, x1, y1);
+
   const dx = x1 - x0;
   const dy = y1 - y0;
   const lengthSq = dx * dx + dy * dy;
 
+  // Handle degenerate case where line segment is a point
   if (lengthSq < 1e-10) {
     return Math.sqrt((px - x0) ** 2 + (py - y0) ** 2);
   }
@@ -587,6 +731,9 @@ function pointToLineDistance(px, py, x0, y0, x1, y1) {
  * @returns {number} Maximum distance from any curve point to the line
  */
 function maxErrorCurveToLine(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y) {
+  // Validate all coordinate inputs - fail fast on invalid data
+  validateCoordinates(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y);
+
   let maxErr = 0;
 
   // Sample at regular t intervals and find closest point on line
@@ -658,6 +805,11 @@ function isCurveStraight(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, tolerance) {
  * @returns {string} Optimized path
  */
 export function straightCurves(d, tolerance = 0.5, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -749,6 +901,10 @@ export function straightCurves(d, tolerance = 0.5, precision = 3) {
  * @returns {string} Optimized path
  */
 export function collapseRepeated(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -769,6 +925,15 @@ export function collapseRepeated(d, precision = 3) {
  * @returns {string} Path with rounded numbers
  */
 export function floatPrecision(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
+  // Ensure precision is reasonable to avoid overflow
+  if (precision > 15) {
+    throw new RangeError(`Precision ${precision} is too large (max 15)`);
+  }
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -795,6 +960,11 @@ export function floatPrecision(d, precision = 3) {
  * @returns {string} Optimized path
  */
 export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -912,6 +1082,10 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
  * @returns {{x: number, y: number}} Point on curve
  */
 function quadraticBezierPoint(t, p0x, p0y, p1x, p1y, p2x, p2y) {
+  // Validate all inputs - fail fast on invalid data
+  validateT(t);
+  validateCoordinates(p0x, p0y, p1x, p1y, p2x, p2y);
+
   const mt = 1 - t;
   const mt2 = mt * mt;
   const t2 = t * t;
@@ -948,6 +1122,9 @@ function maxErrorCubicToQuadratic(
   qx,
   qy,
 ) {
+  // Validate all coordinate inputs - fail fast on invalid data
+  validateCoordinates(p0x, p0y, cp1x, cp1y, cp2x, cp2y, p3x, p3y, qx, qy);
+
   let maxErr = 0;
 
   // Dense sampling including midpoints
@@ -1004,6 +1181,10 @@ function cubicToQuadraticControlPoint(
   y3,
   tolerance,
 ) {
+  // Validate all coordinate inputs - fail fast on invalid data
+  validateCoordinates(x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3);
+  validateTolerance(tolerance);
+
   // Calculate the best-fit quadratic control point
   // For a cubic to be exactly representable as quadratic:
   // Q = (3*(P1 + P2) - P0 - P3) / 4
@@ -1040,6 +1221,11 @@ function cubicToQuadraticControlPoint(
  * @returns {string} Optimized path
  */
 export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -1144,6 +1330,11 @@ export function convertCubicToQuadratic(d, tolerance = 0.5, precision = 3) {
  * @returns {string} Optimized path
  */
 export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -1184,9 +1375,15 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
       lastQcpX = abs.args[0];
       lastQcpY = abs.args[1];
     } else if (abs.command === "T") {
-      // T uses reflected control point
-      lastQcpX = 2 * cx - lastQcpX;
-      lastQcpY = 2 * cy - lastQcpY;
+      // T uses reflected control point - only valid if previous was Q or T
+      if (lastQcpX !== null) {
+        lastQcpX = 2 * cx - lastQcpX;
+        lastQcpY = 2 * cy - lastQcpY;
+      } else {
+        // T after non-Q command - control point is current position (no reflection)
+        lastQcpX = cx;
+        lastQcpY = cy;
+      }
     } else {
       lastQcpX = null;
       lastQcpY = null;
@@ -1250,6 +1447,11 @@ export function convertQuadraticToSmooth(d, tolerance = 1e-6, precision = 3) {
  * @returns {string} Optimized path
  */
 export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validateTolerance(tolerance);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
@@ -1302,6 +1504,7 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
       lastCcp2Y = abs.args[3];
     } else if (abs.command === "S") {
       // S uses its control point as the second cubic control point
+      // This is always valid since S command provides explicit control point
       lastCcp2X = abs.args[0];
       lastCcp2Y = abs.args[1];
     } else {
@@ -1367,12 +1570,20 @@ export function convertCubicToSmooth(d, tolerance = 1e-6, precision = 3) {
  * @returns {string} Optimized path
  */
 export function arcShorthands(d, precision = 3) {
+  // Validate input parameters - fail fast if invalid
+  validatePathString(d);
+  validatePrecision(precision);
+
   const commands = parsePath(d);
   if (commands.length === 0) return d;
 
   const result = commands.map((cmd) => {
     if (cmd.command === "A" || cmd.command === "a") {
       const args = [...cmd.args];
+      // Ensure args array has correct length for arc command
+      if (args.length !== 7) {
+        throw new Error(`Arc command requires 7 arguments, got ${args.length}`);
+      }
       // Normalize rotation angle to 0-360
       args[2] = ((args[2] % 360) + 360) % 360;
       // If rx == ry, rotation doesn't matter, set to 0

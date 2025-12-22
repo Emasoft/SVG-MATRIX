@@ -42,7 +42,15 @@ const SUBDIVISION_THRESHOLD = 2;
  * const p = point("3.14159265358979323846", "2.71828182845904523536");
  */
 export function point(x, y) {
-  return { x: D(x), y: D(y) };
+  if (x === null || x === undefined)
+    throw new Error("point: x parameter is required");
+  if (y === null || y === undefined)
+    throw new Error("point: y parameter is required");
+  const dx = D(x);
+  const dy = D(y);
+  if (!dx.isFinite()) throw new Error(`point: x must be finite, got ${x}`);
+  if (!dy.isFinite()) throw new Error(`point: y must be finite, got ${y}`);
+  return { x: dx, y: dy };
 }
 
 /**
@@ -66,12 +74,32 @@ export function point(x, y) {
  * const blue = color(0, 0, 255, 128);
  */
 export function color(r, g, b, a = 255) {
-  return {
-    r: Math.round(r),
-    g: Math.round(g),
-    b: Math.round(b),
-    a: Math.round(a),
-  };
+  if (r === null || r === undefined)
+    throw new Error("color: r parameter is required");
+  if (g === null || g === undefined)
+    throw new Error("color: g parameter is required");
+  if (b === null || b === undefined)
+    throw new Error("color: b parameter is required");
+  if (!Number.isFinite(r)) throw new Error(`color: r must be finite, got ${r}`);
+  if (!Number.isFinite(g)) throw new Error(`color: g must be finite, got ${g}`);
+  if (!Number.isFinite(b)) throw new Error(`color: b must be finite, got ${b}`);
+  if (!Number.isFinite(a)) throw new Error(`color: a must be finite, got ${a}`);
+
+  const rVal = Math.round(r);
+  const gVal = Math.round(g);
+  const bVal = Math.round(b);
+  const aVal = Math.round(a);
+
+  if (rVal < 0 || rVal > 255)
+    throw new Error(`color: r must be 0-255, got ${rVal}`);
+  if (gVal < 0 || gVal > 255)
+    throw new Error(`color: g must be 0-255, got ${gVal}`);
+  if (bVal < 0 || bVal > 255)
+    throw new Error(`color: b must be 0-255, got ${bVal}`);
+  if (aVal < 0 || aVal > 255)
+    throw new Error(`color: a must be 0-255, got ${aVal}`);
+
+  return { r: rVal, g: gVal, b: bVal, a: aVal };
 }
 
 /**
@@ -105,20 +133,26 @@ export function color(r, g, b, a = 255) {
  * // {r: 0, g: 255, b: 255, a: 255}
  */
 export function parseColor(colorStr, opacity = 1) {
-  if (!colorStr) return color(0, 0, 0, 255);
+  if (!colorStr || typeof colorStr !== "string") return color(0, 0, 0, 255);
+  if (!Number.isFinite(opacity))
+    throw new Error(`parseColor: opacity must be finite, got ${opacity}`);
+  if (opacity < 0 || opacity > 1)
+    throw new Error(`parseColor: opacity must be 0-1, got ${opacity}`);
 
   // Handle rgb() and rgba()
   const rgbMatch = colorStr.match(
     /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i,
   );
   if (rgbMatch) {
-    const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) * 255 : 255;
-    return color(
-      parseInt(rgbMatch[1], 10),
-      parseInt(rgbMatch[2], 10),
-      parseInt(rgbMatch[3], 10),
-      a * opacity,
-    );
+    const r = parseInt(rgbMatch[1], 10);
+    const g = parseInt(rgbMatch[2], 10);
+    const b = parseInt(rgbMatch[3], 10);
+    if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
+      return color(0, 0, 0, 255 * opacity);
+    }
+    const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
+    if (!Number.isFinite(a)) return color(r, g, b, 255 * opacity);
+    return color(r, g, b, Math.min(255, a * 255 * opacity));
   }
 
   // Handle hex colors
@@ -199,7 +233,18 @@ export function parseColor(colorStr, opacity = 1) {
  * // {r: 100, g: 150, b: 200, a: 64}
  */
 export function lerpColor(c1, c2, t) {
+  if (!c1 || !c2) throw new Error("lerpColor: c1 and c2 are required");
+  if (!("r" in c1 && "g" in c1 && "b" in c1 && "a" in c1))
+    throw new Error("lerpColor: c1 must have r, g, b, a properties");
+  if (!("r" in c2 && "g" in c2 && "b" in c2 && "a" in c2))
+    throw new Error("lerpColor: c2 must have r, g, b, a properties");
+  if (t === null || t === undefined)
+    throw new Error("lerpColor: t parameter is required");
+
   const tNum = Number(t);
+  if (!Number.isFinite(tNum))
+    throw new Error(`lerpColor: t must be finite, got ${t}`);
+
   const mt = 1 - tNum;
   return color(
     c1.r * mt + c2.r * tNum,
@@ -238,8 +283,28 @@ export function lerpColor(c1, c2, t) {
  * // Average of all four corners
  */
 export function bilinearColor(c00, c10, c01, c11, u, v) {
+  if (!c00 || !c10 || !c01 || !c11)
+    throw new Error("bilinearColor: all corner colors are required");
+  if (!("r" in c00 && "g" in c00 && "b" in c00 && "a" in c00))
+    throw new Error("bilinearColor: c00 must have r, g, b, a properties");
+  if (!("r" in c10 && "g" in c10 && "b" in c10 && "a" in c10))
+    throw new Error("bilinearColor: c10 must have r, g, b, a properties");
+  if (!("r" in c01 && "g" in c01 && "b" in c01 && "a" in c01))
+    throw new Error("bilinearColor: c01 must have r, g, b, a properties");
+  if (!("r" in c11 && "g" in c11 && "b" in c11 && "a" in c11))
+    throw new Error("bilinearColor: c11 must have r, g, b, a properties");
+  if (u === null || u === undefined)
+    throw new Error("bilinearColor: u parameter is required");
+  if (v === null || v === undefined)
+    throw new Error("bilinearColor: v parameter is required");
+
   const uNum = Number(u);
   const vNum = Number(v);
+  if (!Number.isFinite(uNum))
+    throw new Error(`bilinearColor: u must be finite, got ${u}`);
+  if (!Number.isFinite(vNum))
+    throw new Error(`bilinearColor: v must be finite, got ${v}`);
+
   const mu = 1 - uNum;
   const mv = 1 - vNum;
 
@@ -302,6 +367,19 @@ export function bilinearColor(c00, c10, c01, c11, u, v) {
  * }
  */
 export function evalCubicBezier(p0, p1, p2, p3, t) {
+  if (!p0 || !p1 || !p2 || !p3)
+    throw new Error("evalCubicBezier: all points are required");
+  if (!("x" in p0 && "y" in p0))
+    throw new Error("evalCubicBezier: p0 must have x, y properties");
+  if (!("x" in p1 && "y" in p1))
+    throw new Error("evalCubicBezier: p1 must have x, y properties");
+  if (!("x" in p2 && "y" in p2))
+    throw new Error("evalCubicBezier: p2 must have x, y properties");
+  if (!("x" in p3 && "y" in p3))
+    throw new Error("evalCubicBezier: p3 must have x, y properties");
+  if (t === null || t === undefined)
+    throw new Error("evalCubicBezier: t parameter is required");
+
   const mt = D(1).minus(t);
   const mt2 = mt.mul(mt);
   const mt3 = mt2.mul(mt);
@@ -358,7 +436,24 @@ export function evalCubicBezier(p0, p1, p2, p3, t) {
  * }
  */
 export function splitBezier(curve) {
+  if (!Array.isArray(curve))
+    throw new Error("splitBezier: curve must be an array");
+  if (curve.length !== 4)
+    throw new Error(
+      `splitBezier: curve must have exactly 4 points, got ${curve.length}`,
+    );
+
   const [p0, p1, p2, p3] = curve;
+  if (!p0 || !p1 || !p2 || !p3)
+    throw new Error("splitBezier: all curve points must be defined");
+  if (!("x" in p0 && "y" in p0))
+    throw new Error("splitBezier: p0 must have x, y properties");
+  if (!("x" in p1 && "y" in p1))
+    throw new Error("splitBezier: p1 must have x, y properties");
+  if (!("x" in p2 && "y" in p2))
+    throw new Error("splitBezier: p2 must have x, y properties");
+  if (!("x" in p3 && "y" in p3))
+    throw new Error("splitBezier: p3 must have x, y properties");
 
   // De Casteljau subdivision at t=0.5
   const mid = (a, b) => ({
@@ -434,6 +529,25 @@ export class CoonsPatch {
    * );
    */
   constructor(top, right, bottom, left, colors) {
+    if (!Array.isArray(top) || top.length !== 4)
+      throw new Error("CoonsPatch: top must be an array of 4 points");
+    if (!Array.isArray(right) || right.length !== 4)
+      throw new Error("CoonsPatch: right must be an array of 4 points");
+    if (!Array.isArray(bottom) || bottom.length !== 4)
+      throw new Error("CoonsPatch: bottom must be an array of 4 points");
+    if (!Array.isArray(left) || left.length !== 4)
+      throw new Error("CoonsPatch: left must be an array of 4 points");
+    if (
+      !Array.isArray(colors) ||
+      colors.length !== 2 ||
+      !Array.isArray(colors[0]) ||
+      colors[0].length !== 2 ||
+      !Array.isArray(colors[1]) ||
+      colors[1].length !== 2
+    ) {
+      throw new Error("CoonsPatch: colors must be a 2x2 array");
+    }
+
     this.top = top;
     this.right = right;
     this.bottom = bottom;
@@ -482,6 +596,11 @@ export class CoonsPatch {
    * }
    */
   evaluate(u, v) {
+    if (u === null || u === undefined)
+      throw new Error("CoonsPatch.evaluate: u parameter is required");
+    if (v === null || v === undefined)
+      throw new Error("CoonsPatch.evaluate: v parameter is required");
+
     // Boundary curves
     const Lc = evalCubicBezier(...this.top, u); // L_c(u,0)
     const Ld = evalCubicBezier(...this.bottom, u); // L_d(u,1)
@@ -723,12 +842,18 @@ export class CoonsPatch {
       ...this.bottom,
       ...this.left,
     ];
+
+    if (allPoints.length === 0)
+      throw new Error("CoonsPatch.getBBox: no points in patch");
+
     let minX = allPoints[0].x,
       maxX = allPoints[0].x;
     let minY = allPoints[0].y,
       maxY = allPoints[0].y;
 
     for (const p of allPoints) {
+      if (!p || !("x" in p) || !("y" in p))
+        throw new Error("CoonsPatch.getBBox: invalid point in patch");
       if (p.x.lt(minX)) minX = p.x;
       if (p.x.gt(maxX)) maxX = p.x;
       if (p.y.lt(minY)) minY = p.y;
@@ -797,6 +922,10 @@ export class CoonsPatch {
  * console.log(`Parsed ${meshData.patches.length} patches`);
  */
 export function parseMeshGradient(meshGradientDef) {
+  if (!meshGradientDef || typeof meshGradientDef !== "object") {
+    throw new Error("parseMeshGradient: meshGradientDef must be an object");
+  }
+
   const x = D(meshGradientDef.x || 0);
   const y = D(meshGradientDef.y || 0);
   const type = meshGradientDef.type || "bilinear";
@@ -804,64 +933,10 @@ export function parseMeshGradient(meshGradientDef) {
   const gradientTransform = meshGradientDef.gradientTransform || null;
 
   const patches = [];
-  const meshRows = meshGradientDef.meshrows || [];
+  const _meshRows = meshGradientDef.meshrows || [];
 
-  // Build the mesh grid
-  // nodes[row][col] = point, colors[row][col] = color
-  const nodes = [[point(x, y)]];
-  const colors = [[]];
-
-  const _currentX = x;
-  const _currentY = y;
-
-  for (let rowIdx = 0; rowIdx < meshRows.length; rowIdx++) {
-    const row = meshRows[rowIdx];
-    const meshPatches = row.meshpatches || [];
-
-    if (rowIdx > 0) {
-      nodes.push([]);
-      colors.push([]);
-    }
-
-    for (let colIdx = 0; colIdx < meshPatches.length; colIdx++) {
-      const patch = meshPatches[colIdx];
-      const stops = patch.stops || [];
-
-      // Each patch has up to 4 stops defining edges
-      for (let stopIdx = 0; stopIdx < stops.length; stopIdx++) {
-        const stop = stops[stopIdx];
-        const pathData = stop.path || "";
-        const stopColor = stop.color
-          ? parseColor(stop.color, stop.opacity || 1)
-          : null;
-
-        // Parse path command (c/C/l/L for bezier/line)
-        const pathMatch = pathData.match(/^\s*([cClL])\s*(.*)/);
-        if (pathMatch) {
-          const cmd = pathMatch[1];
-          const _coords = pathMatch[2]
-            .trim()
-            .split(/[\s,]+/)
-            .map(Number);
-
-          if (cmd === "c" || cmd === "C") {
-            // Cubic bezier: c x1,y1 x2,y2 x3,y3 (relative)
-            // or C x1,y1 x2,y2 x3,y3 (absolute)
-            const _isRelative = cmd === "c";
-            // Store bezier control points for patch construction
-          } else if (cmd === "l" || cmd === "L") {
-            // Line: l dx,dy (relative) or L x,y (absolute)
-            const _isRelative = cmd === "l";
-          }
-        }
-
-        // Store color at corner
-        if (stopColor && (stopIdx === 0 || stopIdx === 3)) {
-          // Corner colors
-        }
-      }
-    }
-  }
+  // NOTE: This is a stub implementation - full parsing logic needs to be added
+  // The current implementation only extracts metadata without building actual patches
 
   return {
     patches,
@@ -903,6 +978,10 @@ export function parseMeshGradient(meshGradientDef) {
  * const imageData = rasterizeMeshGradient(meshData, 800, 600);
  */
 export function parseMeshGradientElement(element) {
+  if (!element || typeof element !== "object" || !element.getAttribute) {
+    throw new Error("parseMeshGradientElement: element must be a DOM element");
+  }
+
   const data = {
     x: element.getAttribute("x") || "0",
     y: element.getAttribute("y") || "0",
@@ -926,10 +1005,13 @@ export function parseMeshGradientElement(element) {
         const colorMatch = style.match(/stop-color:\s*([^;]+)/);
         const opacityMatch = style.match(/stop-opacity:\s*([^;]+)/);
 
+        const opacityValue = opacityMatch ? parseFloat(opacityMatch[1]) : 1;
+        const validOpacity = Number.isFinite(opacityValue) ? opacityValue : 1;
+
         patchData.stops.push({
           path: stop.getAttribute("path") || "",
           color: colorMatch ? colorMatch[1].trim() : null,
-          opacity: opacityMatch ? parseFloat(opacityMatch[1]) : 1,
+          opacity: validOpacity,
         });
       });
 
@@ -984,13 +1066,30 @@ export function parseMeshGradientElement(element) {
  * const imageData = rasterizeMeshGradient(meshData, 1920, 1080, { samples: 32 });
  */
 export function rasterizeMeshGradient(meshData, width, height, options = {}) {
+  if (!meshData || typeof meshData !== "object") {
+    throw new Error("rasterizeMeshGradient: meshData must be an object");
+  }
+  if (!Number.isInteger(width) || width <= 0) {
+    throw new Error(
+      `rasterizeMeshGradient: width must be a positive integer, got ${width}`,
+    );
+  }
+  if (!Number.isInteger(height) || height <= 0) {
+    throw new Error(
+      `rasterizeMeshGradient: height must be a positive integer, got ${height}`,
+    );
+  }
+
   const { samples = DEFAULT_PATCH_SAMPLES } = options;
 
   // Create image data buffer
   const imageData = new Uint8ClampedArray(width * height * 4);
 
   // For each patch, rasterize to the buffer
-  for (const patch of meshData.patches || []) {
+  const patches = meshData.patches || [];
+  for (const patch of patches) {
+    if (!patch)
+      throw new Error("rasterizeMeshGradient: patch is null or undefined");
     rasterizePatch(patch, imageData, width, height, samples);
   }
 
@@ -1012,14 +1111,37 @@ export function rasterizeMeshGradient(meshData, width, height, options = {}) {
  * @param {number} height - Image height in pixels
  * @param {number} samples - Subdivision control parameter (unused in adaptive mode)
  */
-function rasterizePatch(patch, imageData, width, height, samples) {
+function rasterizePatch(patch, imageData, width, height, _samples) {
+  if (
+    !patch ||
+    typeof patch.isFlat !== "function" ||
+    typeof patch.subdivide !== "function"
+  ) {
+    throw new Error(
+      "rasterizePatch: patch must be a valid CoonsPatch instance",
+    );
+  }
+  if (!imageData || !(imageData instanceof Uint8ClampedArray)) {
+    throw new Error("rasterizePatch: imageData must be a Uint8ClampedArray");
+  }
+  if (!Number.isInteger(width) || width <= 0) {
+    throw new Error(
+      `rasterizePatch: width must be a positive integer, got ${width}`,
+    );
+  }
+  if (!Number.isInteger(height) || height <= 0) {
+    throw new Error(
+      `rasterizePatch: height must be a positive integer, got ${height}`,
+    );
+  }
+
   // Adaptive subdivision approach
   const stack = [patch];
 
   while (stack.length > 0) {
     const currentPatch = stack.pop();
 
-    if (currentPatch.isFlat() || samples <= 2) {
+    if (currentPatch.isFlat()) {
       // Render as quad
       renderPatchQuad(currentPatch, imageData, width, height);
     } else {
@@ -1047,6 +1169,29 @@ function rasterizePatch(patch, imageData, width, height, samples) {
  * @param {number} height - Image height in pixels
  */
 function renderPatchQuad(patch, imageData, width, height) {
+  if (
+    !patch ||
+    typeof patch.getBBox !== "function" ||
+    typeof patch.evaluate !== "function"
+  ) {
+    throw new Error(
+      "renderPatchQuad: patch must be a valid CoonsPatch instance",
+    );
+  }
+  if (!imageData || !(imageData instanceof Uint8ClampedArray)) {
+    throw new Error("renderPatchQuad: imageData must be a Uint8ClampedArray");
+  }
+  if (!Number.isInteger(width) || width <= 0) {
+    throw new Error(
+      `renderPatchQuad: width must be a positive integer, got ${width}`,
+    );
+  }
+  if (!Number.isInteger(height) || height <= 0) {
+    throw new Error(
+      `renderPatchQuad: height must be a positive integer, got ${height}`,
+    );
+  }
+
   const bbox = patch.getBBox();
   const minX = Math.max(0, Math.floor(Number(bbox.minX)));
   const maxX = Math.min(width - 1, Math.ceil(Number(bbox.maxX)));
@@ -1129,10 +1274,17 @@ function renderPatchQuad(patch, imageData, width, height) {
  * console.log(`Generated ${polygons.length} polygons`);
  */
 export function meshGradientToPolygons(meshData, options = {}) {
+  if (!meshData || typeof meshData !== "object") {
+    throw new Error("meshGradientToPolygons: meshData must be an object");
+  }
+
   const { subdivisions = 8 } = options;
   const result = [];
 
-  for (const patch of meshData.patches || []) {
+  const patches = meshData.patches || [];
+  for (const patch of patches) {
+    if (!patch)
+      throw new Error("meshGradientToPolygons: patch is null or undefined");
     const polys = patchToPolygons(patch, subdivisions);
     result.push(...polys);
   }
@@ -1153,6 +1305,17 @@ export function meshGradientToPolygons(meshData, options = {}) {
  * @returns {Array<{polygon: Array, color: Object}>} Array of colored quads
  */
 function patchToPolygons(patch, subdivisions) {
+  if (!patch || typeof patch.evaluate !== "function") {
+    throw new Error(
+      "patchToPolygons: patch must be a valid CoonsPatch instance",
+    );
+  }
+  if (!Number.isInteger(subdivisions) || subdivisions <= 0) {
+    throw new Error(
+      `patchToPolygons: subdivisions must be a positive integer, got ${subdivisions}`,
+    );
+  }
+
   const result = [];
   const step = D(1).div(subdivisions);
 
@@ -1234,6 +1397,13 @@ function patchToPolygons(patch, subdivisions) {
  * const clipped = clipMeshGradient(meshData, viewport, { subdivisions: 32 });
  */
 export function clipMeshGradient(meshData, clipPolygon, options = {}) {
+  if (!meshData || typeof meshData !== "object") {
+    throw new Error("clipMeshGradient: meshData must be an object");
+  }
+  if (!Array.isArray(clipPolygon)) {
+    throw new Error("clipMeshGradient: clipPolygon must be an array");
+  }
+
   const { subdivisions = 16 } = options;
 
   // First convert mesh to polygons
@@ -1243,6 +1413,8 @@ export function clipMeshGradient(meshData, clipPolygon, options = {}) {
   const clippedPolygons = [];
 
   for (const { polygon, color: polyColor } of meshPolygons) {
+    if (!Array.isArray(polygon))
+      throw new Error("clipMeshGradient: polygon must be an array");
     const clipped = PolygonClip.polygonIntersection(polygon, clipPolygon);
 
     for (const clippedPoly of clipped) {
@@ -1287,10 +1459,36 @@ export function clipMeshGradient(meshData, clipPolygon, options = {}) {
  * ).join('\n');
  */
 export function clippedMeshToSVG(clippedPolygons) {
+  if (!Array.isArray(clippedPolygons)) {
+    throw new Error("clippedMeshToSVG: clippedPolygons must be an array");
+  }
+
   return clippedPolygons.map(({ polygon, color: polyColor }) => {
+    if (!Array.isArray(polygon))
+      throw new Error("clippedMeshToSVG: polygon must be an array");
+    if (
+      !polyColor ||
+      !(
+        "r" in polyColor &&
+        "g" in polyColor &&
+        "b" in polyColor &&
+        "a" in polyColor
+      )
+    ) {
+      throw new Error(
+        "clippedMeshToSVG: polygon must have color with r, g, b, a properties",
+      );
+    }
+
     let pathData = "";
     for (let i = 0; i < polygon.length; i++) {
       const p = polygon[i];
+      if (!p || !("x" in p && "y" in p)) {
+        throw new Error(
+          `clippedMeshToSVG: point at index ${i} must have x, y properties`,
+        );
+      }
+
       if (i === 0) {
         pathData += `M ${Number(p.x).toFixed(6)} ${Number(p.y).toFixed(6)}`;
       } else {

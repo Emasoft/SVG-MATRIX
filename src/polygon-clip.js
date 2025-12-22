@@ -127,6 +127,13 @@ const EPSILON = new Decimal("1e-40");
  * const p3 = point(new Decimal('1.5'), new Decimal('2.5'));
  */
 export function point(x, y) {
+  // Validate parameters exist
+  if (x === null || x === undefined) {
+    throw new Error("point: x coordinate is required");
+  }
+  if (y === null || y === undefined) {
+    throw new Error("point: y coordinate is required");
+  }
   return { x: D(x), y: D(y) };
 }
 
@@ -153,6 +160,13 @@ export function point(x, y) {
  * pointsEqual(p1, p2); // false
  */
 export function pointsEqual(p1, p2, tolerance = EPSILON) {
+  // Validate parameters
+  if (!p1 || typeof p1 !== "object" || !p1.x || !p1.y) {
+    throw new Error("pointsEqual: p1 must be a point with x and y properties");
+  }
+  if (!p2 || typeof p2 !== "object" || !p2.x || !p2.y) {
+    throw new Error("pointsEqual: p2 must be a point with x and y properties");
+  }
   return (
     p1.x.minus(p2.x).abs().lt(tolerance) && p1.y.minus(p2.y).abs().lt(tolerance)
   );
@@ -198,6 +212,16 @@ export function pointsEqual(p1, p2, tolerance = EPSILON) {
  * cross(o, a, b); // ≈ 0
  */
 export function cross(o, a, b) {
+  // Validate parameters - points must have x and y properties
+  if (!o || !o.x || !o.y) {
+    throw new Error("cross: origin point o must have x and y properties");
+  }
+  if (!a || !a.x || !a.y) {
+    throw new Error("cross: point a must have x and y properties");
+  }
+  if (!b || !b.x || !b.y) {
+    throw new Error("cross: point b must have x and y properties");
+  }
   const ax = a.x.minus(o.x);
   const ay = a.y.minus(o.y);
   const bx = b.x.minus(o.x);
@@ -246,6 +270,16 @@ export function cross(o, a, b) {
  * dot(o, a, b); // < 0
  */
 export function dot(o, a, b) {
+  // Validate parameters - points must have x and y properties
+  if (!o || !o.x || !o.y) {
+    throw new Error("dot: origin point o must have x and y properties");
+  }
+  if (!a || !a.x || !a.y) {
+    throw new Error("dot: point a must have x and y properties");
+  }
+  if (!b || !b.x || !b.y) {
+    throw new Error("dot: point b must have x and y properties");
+  }
   const ax = a.x.minus(o.x);
   const ay = a.y.minus(o.y);
   const bx = b.x.minus(o.x);
@@ -271,6 +305,10 @@ export function dot(o, a, b) {
  * sign(new Decimal('5')); // 1
  */
 export function sign(val) {
+  // Validate parameter is a Decimal
+  if (!val || typeof val.abs !== "function") {
+    throw new Error("sign: val must be a Decimal instance");
+  }
   if (val.abs().lt(EPSILON)) return 0;
   return val.lt(0) ? -1 : 1;
 }
@@ -325,6 +363,20 @@ export function sign(val) {
  * segmentIntersection(a, b, c, d); // null
  */
 export function segmentIntersection(a, b, c, d) {
+  // Validate all segment endpoints
+  if (!a || !a.x || !a.y) {
+    throw new Error("segmentIntersection: point a must have x and y properties");
+  }
+  if (!b || !b.x || !b.y) {
+    throw new Error("segmentIntersection: point b must have x and y properties");
+  }
+  if (!c || !c.x || !c.y) {
+    throw new Error("segmentIntersection: point c must have x and y properties");
+  }
+  if (!d || !d.x || !d.y) {
+    throw new Error("segmentIntersection: point d must have x and y properties");
+  }
+
   // Direction vectors
   const dx1 = b.x.minus(a.x);
   const dy1 = b.y.minus(a.y);
@@ -402,6 +454,20 @@ export function segmentIntersection(a, b, c, d) {
  * lineSegmentIntersection(lineA, lineB, segA, segB); // null
  */
 export function lineSegmentIntersection(lineA, lineB, segA, segB) {
+  // Validate all points
+  if (!lineA || !lineA.x || !lineA.y) {
+    throw new Error("lineSegmentIntersection: lineA must have x and y properties");
+  }
+  if (!lineB || !lineB.x || !lineB.y) {
+    throw new Error("lineSegmentIntersection: lineB must have x and y properties");
+  }
+  if (!segA || !segA.x || !segA.y) {
+    throw new Error("lineSegmentIntersection: segA must have x and y properties");
+  }
+  if (!segB || !segB.x || !segB.y) {
+    throw new Error("lineSegmentIntersection: segB must have x and y properties");
+  }
+
   const dx1 = lineB.x.minus(lineA.x);
   const dy1 = lineB.y.minus(lineA.y);
   const dx2 = segB.x.minus(segA.x);
@@ -476,6 +542,15 @@ export function lineSegmentIntersection(lineA, lineB, segA, segB) {
  * pointInPolygon(point(3, 2), concave); // 1 (inside concave region)
  */
 export function pointInPolygon(pt, polygon) {
+  // Validate point parameter
+  if (!pt || !pt.x || !pt.y) {
+    throw new Error("pointInPolygon: pt must have x and y properties");
+  }
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("pointInPolygon: polygon must be an array");
+  }
+
   const n = polygon.length;
   if (n < 3) return -1;
 
@@ -546,6 +621,17 @@ export function pointInPolygon(pt, polygon) {
  * pointOnSegment(pt3, a, b); // false (not collinear)
  */
 export function pointOnSegment(pt, a, b) {
+  // Validate all points
+  if (!pt || !pt.x || !pt.y) {
+    throw new Error("pointOnSegment: pt must have x and y properties");
+  }
+  if (!a || !a.x || !a.y) {
+    throw new Error("pointOnSegment: segment point a must have x and y properties");
+  }
+  if (!b || !b.x || !b.y) {
+    throw new Error("pointOnSegment: segment point b must have x and y properties");
+  }
+
   // Check collinearity
   const crossVal = cross(a, b, pt);
   if (crossVal.abs().gt(EPSILON)) {
@@ -614,6 +700,14 @@ export function pointOnSegment(pt, a, b) {
  * clipPolygonSH(subject, clip); // []
  */
 export function clipPolygonSH(subject, clip) {
+  // Validate inputs are arrays
+  if (!Array.isArray(subject)) {
+    throw new Error("clipPolygonSH: subject must be an array");
+  }
+  if (!Array.isArray(clip)) {
+    throw new Error("clipPolygonSH: clip must be an array");
+  }
+
   if (subject.length < 3 || clip.length < 3) {
     return [];
   }
@@ -686,6 +780,17 @@ export function clipPolygonSH(subject, clip) {
  * @returns {boolean} True if point is on left side or on the edge
  */
 function isInsideEdge(pt, edgeStart, edgeEnd) {
+  // Validate inputs (defensive check for internal function)
+  if (!pt || !pt.x || !pt.y) {
+    throw new Error("isInsideEdge: pt must have x and y properties");
+  }
+  if (!edgeStart || !edgeStart.x || !edgeStart.y) {
+    throw new Error("isInsideEdge: edgeStart must have x and y properties");
+  }
+  if (!edgeEnd || !edgeEnd.x || !edgeEnd.y) {
+    throw new Error("isInsideEdge: edgeEnd must have x and y properties");
+  }
+
   // Point is "inside" if it's on the left side of the edge (CCW polygon)
   return cross(edgeStart, edgeEnd, pt).gte(0);
 }
@@ -704,6 +809,20 @@ function isInsideEdge(pt, edgeStart, edgeEnd) {
  * @returns {Object|null} Intersection point {x, y} or null if parallel
  */
 function lineIntersection(a, b, c, d) {
+  // Validate inputs (defensive check for internal function)
+  if (!a || !a.x || !a.y) {
+    throw new Error("lineIntersection: point a must have x and y properties");
+  }
+  if (!b || !b.x || !b.y) {
+    throw new Error("lineIntersection: point b must have x and y properties");
+  }
+  if (!c || !c.x || !c.y) {
+    throw new Error("lineIntersection: point c must have x and y properties");
+  }
+  if (!d || !d.x || !d.y) {
+    throw new Error("lineIntersection: point d must have x and y properties");
+  }
+
   const dx1 = b.x.minus(a.x);
   const dy1 = b.y.minus(a.y);
   const dx2 = d.x.minus(c.x);
@@ -766,6 +885,11 @@ function lineIntersection(a, b, c, d) {
  * polygonArea(triangle); // 6
  */
 export function polygonArea(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("polygonArea: polygon must be an array");
+  }
+
   const n = polygon.length;
   if (n < 3) return D(0);
 
@@ -798,6 +922,10 @@ export function polygonArea(polygon) {
  * isCounterClockwise(cw); // false
  */
 export function isCounterClockwise(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("isCounterClockwise: polygon must be an array");
+  }
   return polygonArea(polygon).gt(0);
 }
 
@@ -816,6 +944,10 @@ export function isCounterClockwise(polygon) {
  * // reversed = [point(1,1), point(1,0), point(0,0)]
  */
 export function reversePolygon(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("reversePolygon: polygon must be an array");
+  }
   return [...polygon].reverse();
 }
 
@@ -834,6 +966,10 @@ export function reversePolygon(polygon) {
  * isCounterClockwise(ccw); // true
  */
 export function ensureCCW(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("ensureCCW: polygon must be an array");
+  }
   if (!isCounterClockwise(polygon)) {
     return reversePolygon(polygon);
   }
@@ -890,6 +1026,11 @@ export function ensureCCW(polygon) {
  * // Returns vertices of convex boundary in CCW order
  */
 export function convexHull(points) {
+  // Validate points is an array
+  if (!Array.isArray(points)) {
+    throw new Error("convexHull: points must be an array");
+  }
+
   if (points.length < 3) {
     return points.map((p) => point(p.x, p.y));
   }
@@ -965,6 +1106,11 @@ export function convexHull(points) {
  * boundingBox(empty); // null
  */
 export function boundingBox(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("boundingBox: polygon must be an array");
+  }
+
   if (polygon.length === 0) {
     return null;
   }
@@ -1015,7 +1161,17 @@ export function boundingBox(polygon) {
  * bboxIntersects(bb1, bb3); // false (separate)
  */
 export function bboxIntersects(bb1, bb2) {
+  // Check if bounding boxes are null
   if (!bb1 || !bb2) return false;
+
+  // Validate bounding boxes have required properties
+  if (!bb1.minX || !bb1.minY || !bb1.maxX || !bb1.maxY) {
+    throw new Error("bboxIntersects: bb1 must have minX, minY, maxX, maxY properties");
+  }
+  if (!bb2.minX || !bb2.minY || !bb2.maxX || !bb2.maxY) {
+    throw new Error("bboxIntersects: bb2 must have minX, minY, maxX, maxY properties");
+  }
+
   return !(
     bb1.maxX.lt(bb2.minX) ||
     bb2.maxX.lt(bb1.minX) ||
@@ -1067,6 +1223,14 @@ export function bboxIntersects(bb1, bb2) {
  * polygonIntersection(square1, square2); // []
  */
 export function polygonIntersection(subject, clip) {
+  // Validate inputs are arrays
+  if (!Array.isArray(subject)) {
+    throw new Error("polygonIntersection: subject must be an array");
+  }
+  if (!Array.isArray(clip)) {
+    throw new Error("polygonIntersection: clip must be an array");
+  }
+
   // Convert to Decimal points
   const subjectPoly = subject.map((p) => point(p.x, p.y));
   const clipPoly = clip.map((p) => point(p.x, p.y));
@@ -1121,6 +1285,11 @@ export function polygonIntersection(subject, clip) {
  * isConvex(triangle); // true
  */
 export function isConvex(polygon) {
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    throw new Error("isConvex: polygon must be an array");
+  }
+
   const n = polygon.length;
   if (n < 3) return false;
 
@@ -1167,6 +1336,11 @@ export function isConvex(polygon) {
  * @returns {Array} Single result polygon or empty array
  */
 function generalPolygonIntersection(subject, clip) {
+  // Validate inputs are arrays (defensive check for internal function)
+  if (!Array.isArray(subject) || !Array.isArray(clip)) {
+    throw new Error("generalPolygonIntersection: both arguments must be arrays");
+  }
+
   const intersectionPoints = [];
 
   // Find all edge intersection points
@@ -1222,6 +1396,11 @@ function generalPolygonIntersection(subject, clip) {
  * @returns {Array} Array with duplicates removed
  */
 function removeDuplicatePoints(points) {
+  // Validate points is an array (defensive check for internal function)
+  if (!Array.isArray(points)) {
+    throw new Error("removeDuplicatePoints: points must be an array");
+  }
+
   const result = [];
 
   for (const p of points) {
@@ -1277,6 +1456,14 @@ function removeDuplicatePoints(points) {
  * polygonUnion(square1, square2); // [square1, square2]
  */
 export function polygonUnion(polygon1, polygon2) {
+  // Validate inputs are arrays
+  if (!Array.isArray(polygon1)) {
+    throw new Error("polygonUnion: polygon1 must be an array");
+  }
+  if (!Array.isArray(polygon2)) {
+    throw new Error("polygonUnion: polygon2 must be an array");
+  }
+
   const poly1 = polygon1.map((p) => point(p.x, p.y));
   const poly2 = polygon2.map((p) => point(p.x, p.y));
 
@@ -1305,6 +1492,11 @@ export function polygonUnion(polygon1, polygon2) {
  * @returns {Array} Array containing result polygon(s)
  */
 function traceBoundaryUnion(poly1, poly2) {
+  // Validate inputs (defensive check for internal function)
+  if (!Array.isArray(poly1) || !Array.isArray(poly2)) {
+    throw new Error("traceBoundaryUnion: both arguments must be arrays");
+  }
+
   // Find all intersection points with edge indices
   const intersections = findAllIntersections(poly1, poly2);
 
@@ -1470,6 +1662,11 @@ function traceBoundaryUnion(poly1, poly2) {
  * @returns {Array} Array of intersection objects with edge indices and parameters
  */
 function findAllIntersections(poly1, poly2) {
+  // Validate inputs are arrays (defensive check for internal function)
+  if (!Array.isArray(poly1) || !Array.isArray(poly2)) {
+    throw new Error("findAllIntersections: both arguments must be arrays");
+  }
+
   const intersections = [];
   let id = 0;
 
@@ -1507,6 +1704,14 @@ function findAllIntersections(poly1, poly2) {
  * @returns {Array} Augmented polygon with intersection points inserted
  */
 function augmentPolygon(polygon, insertions) {
+  // Validate inputs (defensive check for internal function)
+  if (!Array.isArray(polygon)) {
+    throw new Error("augmentPolygon: polygon must be an array");
+  }
+  if (!Array.isArray(insertions)) {
+    throw new Error("augmentPolygon: insertions must be an array");
+  }
+
   // Group insertions by edge
   const byEdge = new Map();
   for (const ins of insertions) {
@@ -1583,6 +1788,14 @@ function augmentPolygon(polygon, insertions) {
  * polygonDifference(small, large); // []
  */
 export function polygonDifference(polygon1, polygon2) {
+  // Validate inputs are arrays
+  if (!Array.isArray(polygon1)) {
+    throw new Error("polygonDifference: polygon1 must be an array");
+  }
+  if (!Array.isArray(polygon2)) {
+    throw new Error("polygonDifference: polygon2 must be an array");
+  }
+
   const poly1 = polygon1.map((p) => point(p.x, p.y));
   const poly2 = polygon2.map((p) => point(p.x, p.y));
 
@@ -1610,6 +1823,11 @@ export function polygonDifference(polygon1, polygon2) {
  * @returns {Array} Array containing result polygon(s)
  */
 function traceBoundaryDifference(poly1, poly2) {
+  // Validate inputs (defensive check for internal function)
+  if (!Array.isArray(poly1) || !Array.isArray(poly2)) {
+    throw new Error("traceBoundaryDifference: both arguments must be arrays");
+  }
+
   // Find all intersection points with edge indices
   const intersections = findAllIntersections(poly1, poly2);
 

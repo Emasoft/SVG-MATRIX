@@ -71,6 +71,28 @@ export function lineLineIntersection(line1, line2) {
     throw new Error("lineLineIntersection: line2 must be an array of 2 points");
   }
 
+  // WHY: Validate point structure to prevent undefined access errors
+  if (
+    !Array.isArray(line1[0]) ||
+    line1[0].length < 2 ||
+    !Array.isArray(line1[1]) ||
+    line1[1].length < 2
+  ) {
+    throw new Error(
+      "lineLineIntersection: line1 points must be arrays with at least 2 elements [x, y]",
+    );
+  }
+  if (
+    !Array.isArray(line2[0]) ||
+    line2[0].length < 2 ||
+    !Array.isArray(line2[1]) ||
+    line2[1].length < 2
+  ) {
+    throw new Error(
+      "lineLineIntersection: line2 points must be arrays with at least 2 elements [x, y]",
+    );
+  }
+
   const [x1, y1] = [D(line1[0][0]), D(line1[0][1])];
   const [x2, y2] = [D(line1[1][0]), D(line1[1][1])];
   const [x3, y3] = [D(line2[0][0]), D(line2[0][1])];
@@ -145,6 +167,38 @@ export function bezierLineIntersection(bezier, line, options = {}) {
     throw new Error(
       "bezierLineIntersection: line must be an array of 2 points",
     );
+  }
+
+  // WHY: Validate options parameters to prevent invalid behavior
+  if (
+    typeof samplesPerDegree !== "number" ||
+    samplesPerDegree <= 0 ||
+    !isFinite(samplesPerDegree)
+  ) {
+    throw new Error(
+      "bezierLineIntersection: samplesPerDegree must be a positive finite number",
+    );
+  }
+
+  // WHY: Validate line point structure to prevent undefined access
+  if (
+    !Array.isArray(line[0]) ||
+    line[0].length < 2 ||
+    !Array.isArray(line[1]) ||
+    line[1].length < 2
+  ) {
+    throw new Error(
+      "bezierLineIntersection: line points must be arrays with at least 2 elements [x, y]",
+    );
+  }
+
+  // WHY: Validate bezier control points structure
+  for (let i = 0; i < bezier.length; i++) {
+    if (!Array.isArray(bezier[i]) || bezier[i].length < 2) {
+      throw new Error(
+        `bezierLineIntersection: bezier control point ${i} must be an array with at least 2 elements [x, y]`,
+      );
+    }
   }
 
   const [lx0, ly0] = [D(line[0][0]), D(line[0][1])];
@@ -232,6 +286,25 @@ export function bezierLineIntersection(bezier, line, options = {}) {
  * @returns {Decimal} Refined parameter value
  */
 function refineBezierLineRoot(bezier, line, t0, t1, tol) {
+  // WHY: Validate inputs to prevent undefined behavior in internal function
+  if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
+    throw new Error(
+      "refineBezierLineRoot: bezier must have at least 2 control points",
+    );
+  }
+  if (!line || !Array.isArray(line) || line.length !== 2) {
+    throw new Error("refineBezierLineRoot: line must be an array of 2 points");
+  }
+  if (t0 === undefined || t0 === null) {
+    throw new Error("refineBezierLineRoot: t0 is required");
+  }
+  if (t1 === undefined || t1 === null) {
+    throw new Error("refineBezierLineRoot: t1 is required");
+  }
+  if (tol === undefined || tol === null) {
+    throw new Error("refineBezierLineRoot: tol is required");
+  }
+
   const [lx0, ly0] = [D(line[0][0]), D(line[0][1])];
   const [lx1, ly1] = [D(line[1][0]), D(line[1][1])];
   const dlx = lx1.minus(lx0);
@@ -308,6 +381,36 @@ export function bezierBezierIntersection(bezier1, bezier2, options = {}) {
     );
   }
 
+  // WHY: Validate maxDepth to prevent infinite recursion or invalid behavior
+  if (
+    typeof maxDepth !== "number" ||
+    maxDepth <= 0 ||
+    !isFinite(maxDepth) ||
+    Math.floor(maxDepth) !== maxDepth
+  ) {
+    throw new Error(
+      "bezierBezierIntersection: maxDepth must be a positive integer",
+    );
+  }
+
+  // WHY: Validate control point structure for bezier1
+  for (let i = 0; i < bezier1.length; i++) {
+    if (!Array.isArray(bezier1[i]) || bezier1[i].length < 2) {
+      throw new Error(
+        `bezierBezierIntersection: bezier1 control point ${i} must be an array with at least 2 elements [x, y]`,
+      );
+    }
+  }
+
+  // WHY: Validate control point structure for bezier2
+  for (let i = 0; i < bezier2.length; i++) {
+    if (!Array.isArray(bezier2[i]) || bezier2[i].length < 2) {
+      throw new Error(
+        `bezierBezierIntersection: bezier2 control point ${i} must be an array with at least 2 elements [x, y]`,
+      );
+    }
+  }
+
   const tol = D(tolerance);
   const results = [];
 
@@ -381,6 +484,27 @@ export function bezierBezierIntersection(bezier1, bezier2, options = {}) {
  * @returns {Object|null} Refined intersection or null
  */
 function refineIntersection(bez1, bez2, t1, t2, tol) {
+  // WHY: Validate inputs to prevent undefined behavior in internal function
+  if (!bez1 || !Array.isArray(bez1) || bez1.length < 2) {
+    throw new Error(
+      "refineIntersection: bez1 must have at least 2 control points",
+    );
+  }
+  if (!bez2 || !Array.isArray(bez2) || bez2.length < 2) {
+    throw new Error(
+      "refineIntersection: bez2 must have at least 2 control points",
+    );
+  }
+  if (t1 === undefined || t1 === null) {
+    throw new Error("refineIntersection: t1 is required");
+  }
+  if (t2 === undefined || t2 === null) {
+    throw new Error("refineIntersection: t2 is required");
+  }
+  if (tol === undefined || tol === null) {
+    throw new Error("refineIntersection: tol is required");
+  }
+
   let currentT1 = D(t1);
   let currentT2 = D(t2);
 
@@ -469,6 +593,30 @@ function bboxOverlap(bbox1, bbox2) {
     return false; // No overlap if either bbox is missing
   }
 
+  // WHY: Validate bbox objects have required properties with proper types
+  if (
+    !bbox1.xmin ||
+    !bbox1.xmax ||
+    !bbox1.ymin ||
+    !bbox1.ymax ||
+    typeof bbox1.xmin.lt !== "function"
+  ) {
+    throw new Error(
+      "bboxOverlap: bbox1 must have xmin, xmax, ymin, ymax Decimal properties",
+    );
+  }
+  if (
+    !bbox2.xmin ||
+    !bbox2.xmax ||
+    !bbox2.ymin ||
+    !bbox2.ymax ||
+    typeof bbox2.xmin.lt !== "function"
+  ) {
+    throw new Error(
+      "bboxOverlap: bbox2 must have xmin, xmax, ymin, ymax Decimal properties",
+    );
+  }
+
   return !(
     bbox1.xmax.lt(bbox2.xmin) ||
     bbox1.xmin.gt(bbox2.xmax) ||
@@ -484,9 +632,34 @@ function bboxOverlap(bbox1, bbox2) {
  * @returns {Array} Array of unique intersections
  */
 function deduplicateIntersections(intersections, tol) {
+  // WHY: Validate inputs to prevent cryptic errors from invalid data
+  if (!intersections || !Array.isArray(intersections)) {
+    throw new Error("deduplicateIntersections: intersections must be an array");
+  }
+  if (tol === undefined || tol === null) {
+    throw new Error("deduplicateIntersections: tol is required");
+  }
+
   const result = [];
 
   for (const isect of intersections) {
+    // WHY: Validate each intersection has required properties
+    if (!isect || typeof isect !== "object") {
+      throw new Error(
+        "deduplicateIntersections: intersection must be an object",
+      );
+    }
+    if (!isect.t1 || typeof isect.t1.minus !== "function") {
+      throw new Error(
+        "deduplicateIntersections: intersection must have t1 Decimal property",
+      );
+    }
+    if (!isect.t2 || typeof isect.t2.minus !== "function") {
+      throw new Error(
+        "deduplicateIntersections: intersection must have t2 Decimal property",
+      );
+    }
+
     let isDuplicate = false;
 
     for (const existing of result) {
@@ -538,10 +711,31 @@ export function bezierSelfIntersection(bezier, options = {}) {
   const minSep = D(minSeparation);
 
   // Input validation
-  if (!bezier || bezier.length < 2) {
+  if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
     throw new Error(
-      "bezierSelfIntersection: bezier must have at least 2 control points",
+      "bezierSelfIntersection: bezier must be an array with at least 2 control points",
     );
+  }
+
+  // WHY: Validate maxDepth to prevent infinite recursion or invalid behavior
+  if (
+    typeof maxDepth !== "number" ||
+    maxDepth <= 0 ||
+    !isFinite(maxDepth) ||
+    Math.floor(maxDepth) !== maxDepth
+  ) {
+    throw new Error(
+      "bezierSelfIntersection: maxDepth must be a positive integer",
+    );
+  }
+
+  // WHY: Validate control point structure
+  for (let i = 0; i < bezier.length; i++) {
+    if (!Array.isArray(bezier[i]) || bezier[i].length < 2) {
+      throw new Error(
+        `bezierSelfIntersection: control point ${i} must be an array with at least 2 elements [x, y]`,
+      );
+    }
   }
 
   // Self-intersections only possible for cubic and higher
@@ -648,6 +842,25 @@ export function bezierSelfIntersection(bezier, options = {}) {
  * @returns {Object|null} Refined intersection or null if failed
  */
 function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
+  // WHY: Validate inputs to prevent undefined behavior in internal function
+  if (!bezier || !Array.isArray(bezier) || bezier.length < 2) {
+    throw new Error(
+      "refineSelfIntersection: bezier must have at least 2 control points",
+    );
+  }
+  if (t1Init === undefined || t1Init === null) {
+    throw new Error("refineSelfIntersection: t1Init is required");
+  }
+  if (t2Init === undefined || t2Init === null) {
+    throw new Error("refineSelfIntersection: t2Init is required");
+  }
+  if (tol === undefined || tol === null) {
+    throw new Error("refineSelfIntersection: tol is required");
+  }
+  if (minSep === undefined || minSep === null) {
+    throw new Error("refineSelfIntersection: minSep is required");
+  }
+
   let t1 = D(t1Init);
   let t2 = D(t2Init);
 

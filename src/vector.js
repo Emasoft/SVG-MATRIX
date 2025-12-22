@@ -28,11 +28,21 @@ export class Vector {
   /**
    * Create a new Vector from an array of components.
    * @param {Array<number|string|Decimal>} components - Array of vector components
-   * @throws {Error} If components is not an array
+   * @throws {Error} If components is not an array, is empty, or contains invalid values
    */
   constructor(components) {
     if (!Array.isArray(components)) throw new Error('Vector requires array');
-    this.data = components.map(c => D(c));
+    if (components.length === 0) throw new Error('Vector requires at least one component');
+    try {
+      this.data = components.map((c, i) => {
+        if (c === null || c === undefined) {
+          throw new Error(`Vector component at index ${i} is ${c === null ? 'null' : 'undefined'}`);
+        }
+        return D(c);
+      });
+    } catch (err) {
+      throw new Error(`Vector constructor failed: ${err.message}`);
+    }
     this.length = this.data.length;
   }
 
@@ -40,8 +50,12 @@ export class Vector {
    * Factory method to create a Vector from an array.
    * @param {Array<number|string|Decimal>} arr - Array of vector components
    * @returns {Vector} New Vector instance
+   * @throws {Error} If arr is null or undefined
    */
   static from(arr) {
+    if (arr === null || arr === undefined) {
+      throw new Error(`Vector.from: argument is ${arr === null ? 'null' : 'undefined'}`);
+    }
     return new Vector(arr);
   }
 
@@ -116,8 +130,12 @@ export class Vector {
    * Scalar multiplication.
    * @param {number|string|Decimal} scalar - Scalar to multiply by
    * @returns {Vector} New scaled Vector
+   * @throws {Error} If scalar is null or undefined
    */
   scale(scalar) {
+    if (scalar === null || scalar === undefined) {
+      throw new Error(`scale: scalar is ${scalar === null ? 'null' : 'undefined'}`);
+    }
     const s = D(scalar);
     return new Vector(this.data.map(v => v.mul(s)));
   }
@@ -156,11 +174,14 @@ export class Vector {
    *
    * @param {Vector} other - Vector to compute outer product with
    * @returns {Decimal[][]} 2D array of Decimals (can be passed to Matrix.from())
-   * @throws {Error} If other is not a Vector
+   * @throws {Error} If other is not a Vector or either vector is empty
    */
   outer(other) {
     if (!other || !(other instanceof Vector)) {
       throw new Error('outer: argument must be a Vector');
+    }
+    if (this.length === 0 || other.length === 0) {
+      throw new Error('outer: cannot compute outer product with empty vector');
     }
     const rows = this.length, cols = other.length;
     const out = Array.from({ length: rows }, (_, i) =>
@@ -267,6 +288,10 @@ export class Vector {
    * @throws {Error} If unable to find orthogonal vector (e.g., zero vector)
    */
   orthogonal() {
+    const n = this.norm();
+    if (n.isZero()) {
+      throw new Error('orthogonal: cannot find orthogonal vector to zero vector');
+    }
     if (this.length === 2) {
       // 2D perpendicular: rotate 90 degrees counterclockwise
       return new Vector([this.data[1].negated(), this.data[0]]);
@@ -282,7 +307,7 @@ export class Vector {
       const orthNorm = orth.norm();
       if (!orthNorm.isZero()) return orth.normalize();
     }
-    throw new Error('Unable to find orthogonal vector');
+    throw new Error('orthogonal: unable to find orthogonal vector (degenerate case)');
   }
 
   /**
@@ -322,11 +347,26 @@ export class Vector {
    * @param {Vector} other - Vector to compare with
    * @param {number|string|Decimal} [tolerance=0] - Maximum allowed difference per component
    * @returns {boolean} True if vectors are equal within tolerance
+   * @throws {Error} If tolerance is invalid (null, NaN, or negative)
    */
   equals(other, tolerance = 0) {
     if (!(other instanceof Vector)) return false;
     if (other.length !== this.length) return false;
-    const tol = D(tolerance);
+    if (tolerance === null) {
+      throw new Error('equals: tolerance cannot be null');
+    }
+    let tol;
+    try {
+      tol = D(tolerance);
+      if (tol.isNaN()) {
+        throw new Error('equals: tolerance cannot be NaN');
+      }
+      if (tol.isNegative()) {
+        throw new Error('equals: tolerance must be non-negative');
+      }
+    } catch (err) {
+      throw new Error(`equals: invalid tolerance - ${err.message}`);
+    }
     for (let i = 0; i < this.length; i++) {
       const diff = this.data[i].minus(other.data[i]).abs();
       if (diff.greaterThan(tol)) return false;

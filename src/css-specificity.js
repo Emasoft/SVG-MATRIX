@@ -46,7 +46,6 @@ export function parseSelector(selectorString) {
 
   const selector = selectorString.trim();
   const components = [];
-  const _i = 0;
 
   // Split by combinators first (>, +, ~, space) to handle complex selectors
   const parts = splitByCombinators(selector);
@@ -69,6 +68,10 @@ export function parseSelector(selectorString) {
  * @returns {Array<string>} Parts split by combinators
  */
 function splitByCombinators(selector) {
+  if (typeof selector !== "string") {
+    throw new Error("Selector must be a string");
+  }
+
   // Match combinators outside of brackets and parentheses
   const parts = [];
   let current = "";
@@ -84,12 +87,18 @@ function splitByCombinators(selector) {
       depth++;
     } else if (char === "]") {
       depth--;
+      if (depth < 0) {
+        throw new Error(`Unbalanced brackets at position ${i}`);
+      }
       if (depth === 0) inBracket = false;
     } else if (char === "(") {
       inParen = true;
       depth++;
     } else if (char === ")") {
       depth--;
+      if (depth < 0) {
+        throw new Error(`Unbalanced parentheses at position ${i}`);
+      }
       if (depth === 0) inParen = false;
     }
 
@@ -111,6 +120,10 @@ function splitByCombinators(selector) {
     current += char;
   }
 
+  if (depth !== 0) {
+    throw new Error("Unclosed brackets or parentheses in selector");
+  }
+
   if (current.trim()) {
     parts.push(current.trim());
   }
@@ -125,6 +138,10 @@ function splitByCombinators(selector) {
  * @returns {Array<Object>} Array of component objects
  */
 function parseSimpleSelector(selector) {
+  if (typeof selector !== "string") {
+    throw new Error("Selector must be a string");
+  }
+
   const components = [];
   let i = 0;
 
@@ -156,7 +173,7 @@ function parseSimpleSelector(selector) {
     }
     // Pseudo-element (::) or pseudo-class (:)
     else if (char === ":") {
-      if (selector[i + 1] === ":") {
+      if (i + 1 < selector.length && selector[i + 1] === ":") {
         // Pseudo-element
         const match = selector.slice(i).match(/^::([\w-]+)/);
         if (!match) throw new Error(`Invalid pseudo-element at position ${i}`);
@@ -174,7 +191,7 @@ function parseSimpleSelector(selector) {
         i += match[0].length;
 
         // Check for function notation like :not()
-        if (selector[i] === "(") {
+        if (i < selector.length && selector[i] === "(") {
           const endIdx = findMatchingParen(selector, i);
           if (endIdx === -1)
             throw new Error(`Unclosed pseudo-class function at position ${i}`);
@@ -219,6 +236,13 @@ function parseSimpleSelector(selector) {
  * @returns {number} Index of closing bracket or -1 if not found
  */
 function findMatchingBracket(str, startIdx) {
+  if (typeof str !== "string") {
+    throw new Error("str must be a string");
+  }
+  if (typeof startIdx !== "number" || startIdx < 0 || startIdx >= str.length) {
+    throw new Error("startIdx must be a valid index within the string");
+  }
+
   let depth = 0;
   for (let i = startIdx; i < str.length; i++) {
     if (str[i] === "[") depth++;
@@ -238,6 +262,13 @@ function findMatchingBracket(str, startIdx) {
  * @returns {number} Index of closing parenthesis or -1 if not found
  */
 function findMatchingParen(str, startIdx) {
+  if (typeof str !== "string") {
+    throw new Error("str must be a string");
+  }
+  if (typeof startIdx !== "number" || startIdx < 0 || startIdx >= str.length) {
+    throw new Error("startIdx must be a valid index within the string");
+  }
+
   let depth = 0;
   for (let i = startIdx; i < str.length; i++) {
     if (str[i] === "(") depth++;
@@ -272,11 +303,18 @@ export function calculateSpecificity(selector) {
   const components =
     typeof selector === "string" ? parseSelector(selector) : selector;
 
+  if (!Array.isArray(components)) {
+    throw new Error("Selector must be a string or an array of components");
+  }
+
   let a = 0; // IDs
   let b = 0; // Classes, attributes, pseudo-classes
   let c = 0; // Types, pseudo-elements
 
   for (const component of components) {
+    if (!component || typeof component.type !== "string") {
+      throw new Error("Invalid component: must have a 'type' property");
+    }
     switch (component.type) {
       case SELECTOR_TYPES.ID:
         a++;
@@ -335,6 +373,16 @@ export function compareSpecificity(spec1, spec2) {
   }
   if (!Array.isArray(spec2) || spec2.length !== 3) {
     throw new Error("spec2 must be an array of 3 numbers");
+  }
+
+  // Validate all elements are valid numbers
+  for (let i = 0; i < 3; i++) {
+    if (typeof spec1[i] !== "number" || !Number.isFinite(spec1[i]) || spec1[i] < 0) {
+      throw new Error(`spec1[${i}] must be a non-negative finite number`);
+    }
+    if (typeof spec2[i] !== "number" || !Number.isFinite(spec2[i]) || spec2[i] < 0) {
+      throw new Error(`spec2[${i}] must be a non-negative finite number`);
+    }
   }
 
   // Compare lexicographically: a first, then b, then c
@@ -400,7 +448,13 @@ export function stringifySelector(components) {
   }
 
   return components
-    .map((component) => {
+    .map((component, index) => {
+      if (!component || typeof component.type !== "string") {
+        throw new Error(`Component at index ${index} must have a 'type' property`);
+      }
+      if (component.value === undefined) {
+        throw new Error(`Component at index ${index} must have a 'value' property`);
+      }
       switch (component.type) {
         case SELECTOR_TYPES.ID:
           return `#${component.value}`;
@@ -431,6 +485,10 @@ export function stringifySelector(components) {
  * @returns {boolean} True if round-trip matches
  */
 export function verifySelector(selector) {
+  if (typeof selector !== "string") {
+    throw new Error("Selector must be a string");
+  }
+
   const components = parseSelector(selector);
   const reconstructed = stringifySelector(components);
 

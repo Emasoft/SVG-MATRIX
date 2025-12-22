@@ -55,11 +55,14 @@ export function findLayers(doc) {
       layers.push({
         element: el,
         label: getLayerLabel(el),
-        id: el.getAttribute('id')
+        id: (typeof el.getAttribute === 'function' ? el.getAttribute('id') : null)
       });
     }
-    for (const child of el.children) {
-      walk(child);
+    // Safety check: ensure children is an array before iteration
+    if (Array.isArray(el.children)) {
+      for (const child of el.children) {
+        walk(child);
+      }
     }
   };
 
@@ -93,7 +96,7 @@ export function getNamedViewSettings(doc) {
   };
 
   findNamedview(doc);
-  if (!namedview) return null;
+  if (!namedview || typeof namedview.getAttribute !== 'function') return null;
 
   return {
     pagecolor: namedview.getAttribute('pagecolor'),
@@ -124,15 +127,18 @@ export function findGuides(doc) {
     if (!el || !el.children) return;
     if (el.tagName === 'sodipodi:guide') {
       guides.push({
-        position: el.getAttribute('position'),
-        orientation: el.getAttribute('orientation'),
-        id: el.getAttribute('id'),
-        inkscapeColor: el.getAttribute('inkscape:color'),
-        inkscapeLabel: el.getAttribute('inkscape:label')
+        position: el.getAttribute?.('position') || null,
+        orientation: el.getAttribute?.('orientation') || null,
+        id: el.getAttribute?.('id') || null,
+        inkscapeColor: el.getAttribute?.('inkscape:color') || null,
+        inkscapeLabel: el.getAttribute?.('inkscape:label') || null
       });
     }
-    for (const child of el.children) {
-      walk(child);
+    // Safety check: ensure children is an array before iteration
+    if (Array.isArray(el.children)) {
+      for (const child of el.children) {
+        walk(child);
+      }
     }
   };
 
@@ -148,7 +154,7 @@ export function findGuides(doc) {
  * @returns {Object|null} Arc parameters or null if not an arc
  */
 export function getArcParameters(element) {
-  if (!element) return null;
+  if (!element || typeof element.getAttribute !== 'function') return null;
 
   const type = element.getAttribute('sodipodi:type');
   if (type !== 'arc') return null;
@@ -183,7 +189,7 @@ export function getNodeTypes(element) {
  * @returns {Object|null} Export settings or null if not set
  */
 export function getExportSettings(element) {
-  if (!element) return null;
+  if (!element || typeof element.getAttribute !== 'function') return null;
 
   const filename = element.getAttribute('inkscape:export-filename');
   const xdpi = element.getAttribute('inkscape:export-xdpi');
@@ -191,10 +197,14 @@ export function getExportSettings(element) {
 
   if (!filename && !xdpi && !ydpi) return null;
 
+  // Parse DPI values and handle NaN by returning null
+  const parsedXdpi = xdpi ? parseFloat(xdpi) : null;
+  const parsedYdpi = ydpi ? parseFloat(ydpi) : null;
+
   return {
     filename,
-    xdpi: xdpi ? parseFloat(xdpi) : null,
-    ydpi: ydpi ? parseFloat(ydpi) : null
+    xdpi: (parsedXdpi !== null && !isNaN(parsedXdpi)) ? parsedXdpi : null,
+    ydpi: (parsedYdpi !== null && !isNaN(parsedYdpi)) ? parsedYdpi : null
   };
 }
 
@@ -284,14 +294,14 @@ export function findReferencedIds(element) {
   const hrefAttrs = ['href', 'xlink:href'];
 
   const extractUrlId = (value) => {
-    if (!value) return null;
+    if (!value || typeof value !== 'string') return null;
     // Match url(#id) or url("#id")
     const match = value.match(/url\(["']?#([^"')]+)["']?\)/);
     return match ? match[1] : null;
   };
 
   const extractHrefId = (value) => {
-    if (!value) return null;
+    if (!value || typeof value !== 'string') return null;
     // Match #id references
     if (value.startsWith('#')) {
       return value.slice(1);
@@ -387,6 +397,14 @@ export function buildDefsMapFromDefs(doc) {
  * @returns {Set<string>} Complete set of IDs including all nested dependencies
  */
 export function resolveDefsDependencies(initialIds, defsMap) {
+  // Validate parameters
+  if (!initialIds || !(initialIds instanceof Set)) {
+    throw new Error('initialIds must be a Set');
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error('defsMap must be a Map');
+  }
+
   const resolved = new Set();
   const toProcess = [...initialIds];
 
@@ -464,6 +482,11 @@ export function cloneElement(element) {
  * @returns {{svg: SVGElement, layerInfo: {id: string, label: string}}} Extracted SVG and layer info
  */
 export function extractLayer(doc, layerOrId, options = {}) {
+  // Validate doc parameter
+  if (!doc) {
+    throw new Error('doc parameter is required');
+  }
+
   const { preserveTransform = true } = options;
 
   // Find the layer element
@@ -471,11 +494,17 @@ export function extractLayer(doc, layerOrId, options = {}) {
   if (typeof layerOrId === 'string') {
     const layers = findLayers(doc);
     const found = layers.find(l => l.id === layerOrId || l.label === layerOrId);
-    if (!found || !found.element) {
-      throw new Error(`Layer not found or invalid: ${layerOrId}`);
+    if (!found) {
+      throw new Error(`Layer not found: ${layerOrId}`);
+    }
+    if (!found.element) {
+      throw new Error(`Layer element is invalid for: ${layerOrId}`);
     }
     layer = found.element;
   } else {
+    if (!layerOrId) {
+      throw new Error('layerOrId parameter is required');
+    }
     layer = layerOrId;
   }
 
@@ -538,7 +567,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
 
   // Get layer info
   const layerInfo = {
-    id: layer.getAttribute('id'),
+    id: (typeof layer.getAttribute === 'function' ? layer.getAttribute('id') : null),
     label: getLayerLabel(layer)
   };
 
@@ -555,6 +584,11 @@ export function extractLayer(doc, layerOrId, options = {}) {
  * @returns {Array<{svg: Object, layerInfo: {id: string, label: string}}>} Array of extracted SVGs
  */
 export function extractAllLayers(doc, options = {}) {
+  // Validate doc parameter
+  if (!doc) {
+    throw new Error('doc parameter is required');
+  }
+
   const { includeHidden = false } = options;
   const layers = findLayers(doc);
   const results = [];
@@ -596,6 +630,11 @@ export function extractAllLayers(doc, options = {}) {
  * @returns {Object} Summary of shared resources
  */
 export function analyzeLayerDependencies(doc) {
+  // Validate doc parameter
+  if (!doc) {
+    throw new Error('doc parameter is required');
+  }
+
   const layers = findLayers(doc);
   const defsMap = buildDefsMapFromDefs(doc);
   const layerRefs = new Map(); // layer ID -> Set of referenced def IDs

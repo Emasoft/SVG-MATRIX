@@ -63,8 +63,15 @@ export function identityMatrix() {
  * @param {number|string|Decimal} tx - X translation
  * @param {number|string|Decimal} ty - Y translation
  * @returns {Matrix} 3x3 translation matrix
+ * @throws {Error} If tx or ty is null or undefined
  */
 export function translationMatrix(tx, ty) {
+  if (tx === null || tx === undefined) {
+    throw new Error("translationMatrix: tx parameter is required");
+  }
+  if (ty === null || ty === undefined) {
+    throw new Error("translationMatrix: ty parameter is required");
+  }
   return Matrix.from([
     [1, 0, D(tx)],
     [0, 1, D(ty)],
@@ -76,8 +83,12 @@ export function translationMatrix(tx, ty) {
  * Create a 2D rotation matrix.
  * @param {number|string|Decimal} angle - Rotation angle in radians
  * @returns {Matrix} 3x3 rotation matrix
+ * @throws {Error} If angle is null or undefined
  */
 export function rotationMatrix(angle) {
+  if (angle === null || angle === undefined) {
+    throw new Error("rotationMatrix: angle parameter is required");
+  }
   const theta = D(angle);
   const cos = Decimal.cos(theta);
   const sin = Decimal.sin(theta);
@@ -94,8 +105,18 @@ export function rotationMatrix(angle) {
  * @param {number|string|Decimal} cx - X coordinate of rotation center
  * @param {number|string|Decimal} cy - Y coordinate of rotation center
  * @returns {Matrix} 3x3 rotation matrix around point (cx, cy)
+ * @throws {Error} If angle, cx, or cy is null or undefined
  */
 export function rotationMatrixAroundPoint(angle, cx, cy) {
+  if (angle === null || angle === undefined) {
+    throw new Error("rotationMatrixAroundPoint: angle parameter is required");
+  }
+  if (cx === null || cx === undefined) {
+    throw new Error("rotationMatrixAroundPoint: cx parameter is required");
+  }
+  if (cy === null || cy === undefined) {
+    throw new Error("rotationMatrixAroundPoint: cy parameter is required");
+  }
   const cxD = D(cx);
   const cyD = D(cy);
   const T1 = translationMatrix(cxD.neg(), cyD.neg());
@@ -109,8 +130,15 @@ export function rotationMatrixAroundPoint(angle, cx, cy) {
  * @param {number|string|Decimal} sx - X scale factor
  * @param {number|string|Decimal} sy - Y scale factor
  * @returns {Matrix} 3x3 scale matrix
+ * @throws {Error} If sx or sy is null or undefined
  */
 export function scaleMatrix(sx, sy) {
+  if (sx === null || sx === undefined) {
+    throw new Error("scaleMatrix: sx parameter is required");
+  }
+  if (sy === null || sy === undefined) {
+    throw new Error("scaleMatrix: sy parameter is required");
+  }
   return Matrix.from([
     [D(sx), 0, 0],
     [0, D(sy), 0],
@@ -123,8 +151,22 @@ export function scaleMatrix(sx, sy) {
  * @param {Matrix} m1 - First matrix
  * @param {Matrix} m2 - Second matrix
  * @returns {Decimal} Maximum absolute difference
+ * @throws {Error} If m1 or m2 is null, undefined, or dimensions don't match
  */
 export function matrixMaxDifference(m1, m2) {
+  if (!m1 || !m2) {
+    throw new Error("matrixMaxDifference: both m1 and m2 parameters are required");
+  }
+  if (!m1.rows || !m1.cols || !m1.data) {
+    throw new Error("matrixMaxDifference: m1 must be a valid Matrix object");
+  }
+  if (!m2.rows || !m2.cols || !m2.data) {
+    throw new Error("matrixMaxDifference: m2 must be a valid Matrix object");
+  }
+  if (m1.rows !== m2.rows || m1.cols !== m2.cols) {
+    throw new Error(`matrixMaxDifference: matrix dimensions must match (m1: ${m1.rows}x${m1.cols}, m2: ${m2.rows}x${m2.cols})`);
+  }
+
   let maxDiff = D(0);
 
   for (let i = 0; i < m1.rows; i++) {
@@ -170,6 +212,7 @@ export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Merged translation with verification result
+ * @throws {Error} If t1 or t2 is null/undefined or missing required properties
  *
  * @example
  * // Merge translate(5, 10) and translate(3, -2)
@@ -177,6 +220,16 @@ export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
  * // Result: {tx: 8, ty: 8, verified: true}
  */
 export function mergeTranslations(t1, t2) {
+  if (!t1 || !t2) {
+    throw new Error("mergeTranslations: both t1 and t2 parameters are required");
+  }
+  if (t1.tx === null || t1.tx === undefined || t1.ty === null || t1.ty === undefined) {
+    throw new Error("mergeTranslations: t1 must have tx and ty properties");
+  }
+  if (t2.tx === null || t2.tx === undefined || t2.ty === null || t2.ty === undefined) {
+    throw new Error("mergeTranslations: t2 must have tx and ty properties");
+  }
+
   // Calculate merged translation: sum of components
   const tx = D(t1.tx).plus(D(t2.tx));
   const ty = D(t1.ty).plus(D(t2.ty));
@@ -216,6 +269,7 @@ export function mergeTranslations(t1, t2) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Merged rotation with verification result
+ * @throws {Error} If r1 or r2 is null/undefined or missing angle property
  *
  * @example
  * // Merge rotate(π/4) and rotate(π/4)
@@ -223,6 +277,16 @@ export function mergeTranslations(t1, t2) {
  * // Result: {angle: π/2, verified: true}
  */
 export function mergeRotations(r1, r2) {
+  if (!r1 || !r2) {
+    throw new Error("mergeRotations: both r1 and r2 parameters are required");
+  }
+  if (r1.angle === null || r1.angle === undefined) {
+    throw new Error("mergeRotations: r1 must have angle property");
+  }
+  if (r2.angle === null || r2.angle === undefined) {
+    throw new Error("mergeRotations: r2 must have angle property");
+  }
+
   // Calculate merged rotation: sum of angles
   const angle = D(r1.angle).plus(D(r2.angle));
 
@@ -268,6 +332,7 @@ export function mergeRotations(r1, r2) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Merged scale with verification result
+ * @throws {Error} If s1 or s2 is null/undefined or missing required properties
  *
  * @example
  * // Merge scale(2, 3) and scale(1.5, 0.5)
@@ -275,6 +340,16 @@ export function mergeRotations(r1, r2) {
  * // Result: {sx: 3, sy: 1.5, verified: true}
  */
 export function mergeScales(s1, s2) {
+  if (!s1 || !s2) {
+    throw new Error("mergeScales: both s1 and s2 parameters are required");
+  }
+  if (s1.sx === null || s1.sx === undefined || s1.sy === null || s1.sy === undefined) {
+    throw new Error("mergeScales: s1 must have sx and sy properties");
+  }
+  if (s2.sx === null || s2.sx === undefined || s2.sy === null || s2.sy === undefined) {
+    throw new Error("mergeScales: s2 must have sx and sy properties");
+  }
+
   // Calculate merged scale: product of components
   const sx = D(s1.sx).mul(D(s2.sx));
   const sy = D(s1.sy).mul(D(s2.sy));
@@ -318,6 +393,7 @@ export function mergeScales(s1, s2) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Translation parameters if matrix is pure translation
+ * @throws {Error} If matrix is null, undefined, or not 3x3
  *
  * @example
  * // Check if a matrix is a pure translation
@@ -326,6 +402,16 @@ export function mergeScales(s1, s2) {
  * // Result: {isTranslation: true, tx: 5, ty: 10, verified: true}
  */
 export function matrixToTranslate(matrix) {
+  if (!matrix) {
+    throw new Error("matrixToTranslate: matrix parameter is required");
+  }
+  if (!matrix.data || !matrix.rows || !matrix.cols) {
+    throw new Error("matrixToTranslate: matrix must be a valid Matrix object");
+  }
+  if (matrix.rows !== 3 || matrix.cols !== 3) {
+    throw new Error(`matrixToTranslate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+  }
+
   const data = matrix.data;
 
   // Check if linear part is identity
@@ -386,6 +472,7 @@ export function matrixToTranslate(matrix) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Rotation angle if matrix is pure rotation
+ * @throws {Error} If matrix is null, undefined, or not 3x3
  *
  * @example
  * // Check if a matrix is a pure rotation
@@ -394,6 +481,16 @@ export function matrixToTranslate(matrix) {
  * // Result: {isRotation: true, angle: π/4, verified: true}
  */
 export function matrixToRotate(matrix) {
+  if (!matrix) {
+    throw new Error("matrixToRotate: matrix parameter is required");
+  }
+  if (!matrix.data || !matrix.rows || !matrix.cols) {
+    throw new Error("matrixToRotate: matrix must be a valid Matrix object");
+  }
+  if (matrix.rows !== 3 || matrix.cols !== 3) {
+    throw new Error(`matrixToRotate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+  }
+
   const data = matrix.data;
 
   // Extract components
@@ -476,6 +573,7 @@ export function matrixToRotate(matrix) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Scale factors if matrix is pure scale
+ * @throws {Error} If matrix is null, undefined, or not 3x3
  *
  * @example
  * // Check if a matrix is a pure scale
@@ -484,6 +582,16 @@ export function matrixToRotate(matrix) {
  * // Result: {isScale: true, sx: 2, sy: 2, isUniform: true, verified: true}
  */
 export function matrixToScale(matrix) {
+  if (!matrix) {
+    throw new Error("matrixToScale: matrix parameter is required");
+  }
+  if (!matrix.data || !matrix.rows || !matrix.cols) {
+    throw new Error("matrixToScale: matrix must be a valid Matrix object");
+  }
+  if (matrix.rows !== 3 || matrix.cols !== 3) {
+    throw new Error(`matrixToScale: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+  }
+
   const data = matrix.data;
 
   // Extract components
@@ -559,6 +667,7 @@ export function matrixToScale(matrix) {
  *   transforms: Array<{type: string, params: Object}>,
  *   removedCount: number
  * }} Filtered transform list
+ * @throws {Error} If transforms is null, undefined, or not an array
  *
  * @example
  * // Remove identity transforms
@@ -572,6 +681,13 @@ export function matrixToScale(matrix) {
  * // Result: {transforms: [{type: 'translate', params: {tx: 5, ty: 10}}], removedCount: 3}
  */
 export function removeIdentityTransforms(transforms) {
+  if (!transforms) {
+    throw new Error("removeIdentityTransforms: transforms parameter is required");
+  }
+  if (!Array.isArray(transforms)) {
+    throw new Error("removeIdentityTransforms: transforms must be an array");
+  }
+
   const PI = Decimal.acos(-1);
   const TWO_PI = PI.mul(2);
 
@@ -643,6 +759,7 @@ export function removeIdentityTransforms(transforms) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Shorthand rotation parameters with verification
+ * @throws {Error} If any parameter is null or undefined
  *
  * @example
  * // Convert translate-rotate-translate to rotate around point
@@ -650,6 +767,22 @@ export function removeIdentityTransforms(transforms) {
  * // Result: {angle: π/4, cx: 100, cy: 50, verified: true}
  */
 export function shortRotate(translateX, translateY, angle, centerX, centerY) {
+  if (translateX === null || translateX === undefined) {
+    throw new Error("shortRotate: translateX parameter is required");
+  }
+  if (translateY === null || translateY === undefined) {
+    throw new Error("shortRotate: translateY parameter is required");
+  }
+  if (angle === null || angle === undefined) {
+    throw new Error("shortRotate: angle parameter is required");
+  }
+  if (centerX === null || centerX === undefined) {
+    throw new Error("shortRotate: centerX parameter is required");
+  }
+  if (centerY === null || centerY === undefined) {
+    throw new Error("shortRotate: centerY parameter is required");
+  }
+
   const txD = D(translateX);
   const tyD = D(translateY);
   const angleD = D(angle);
@@ -697,6 +830,7 @@ export function shortRotate(translateX, translateY, angle, centerX, centerY) {
  *   verified: boolean,
  *   maxError: Decimal
  * }} Optimized transform list with verification
+ * @throws {Error} If transforms is null, undefined, or not an array
  *
  * @example
  * // Optimize a transform list
@@ -711,10 +845,17 @@ export function shortRotate(translateX, translateY, angle, centerX, centerY) {
  * // Result: optimized list with merged translations and scales, identity rotation removed
  */
 export function optimizeTransformList(transforms) {
+  if (!transforms) {
+    throw new Error("optimizeTransformList: transforms parameter is required");
+  }
+  if (!Array.isArray(transforms)) {
+    throw new Error("optimizeTransformList: transforms must be an array");
+  }
+
   // Calculate original combined matrix for verification
   let originalMatrix = identityMatrix();
   for (const t of transforms) {
-    let m;
+    let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
         m = translationMatrix(t.params.tx, t.params.ty);
@@ -737,9 +878,13 @@ export function optimizeTransformList(transforms) {
         m = t.params.matrix;
         break;
       default:
+        // Skip unknown transform types, but don't try to multiply null matrix
         continue;
     }
-    originalMatrix = originalMatrix.mul(m);
+    // Only multiply if m was successfully assigned (prevents undefined matrix multiplication)
+    if (m !== null) {
+      originalMatrix = originalMatrix.mul(m);
+    }
   }
 
   // Step 1: Remove identity transforms
@@ -880,7 +1025,7 @@ export function optimizeTransformList(transforms) {
   // Calculate optimized combined matrix for verification
   let optimizedMatrix = identityMatrix();
   for (const t of final) {
-    let m;
+    let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
         m = translationMatrix(t.params.tx, t.params.ty);
@@ -903,9 +1048,13 @@ export function optimizeTransformList(transforms) {
         m = t.params.matrix;
         break;
       default:
+        // Skip unknown transform types, but don't try to multiply null matrix
         continue;
     }
-    optimizedMatrix = optimizedMatrix.mul(m);
+    // Only multiply if m was successfully assigned (prevents undefined matrix multiplication)
+    if (m !== null) {
+      optimizedMatrix = optimizedMatrix.mul(m);
+    }
   }
 
   // VERIFICATION: Combined matrices must be equal

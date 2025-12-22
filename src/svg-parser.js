@@ -18,6 +18,13 @@ Decimal.set({ precision: 80 });
  * @returns {void}
  */
 function setOwnerDocument(el, doc) {
+  // Validation: Check for null/undefined parameters
+  if (!el || !doc) {
+    throw new Error("setOwnerDocument: element and document are required");
+  }
+  if (!el.children || !Array.isArray(el.children)) {
+    throw new Error("setOwnerDocument: element must have a children array");
+  }
   el.ownerDocument = doc;
   for (const child of el.children) {
     // eslint-disable-next-line no-use-before-define -- Class hoisting is intentional
@@ -33,11 +40,11 @@ function setOwnerDocument(el, doc) {
  * @returns {SVGElement} Root element with DOM-like interface
  */
 export function parseSVG(svgString) {
-  if (typeof svgString !== 'string') {
-    throw new Error('parseSVG: input must be a string');
+  if (typeof svgString !== "string") {
+    throw new Error("parseSVG: input must be a string");
   }
   if (svgString.trim().length === 0) {
-    throw new Error('parseSVG: input cannot be empty');
+    throw new Error("parseSVG: input cannot be empty");
   }
 
   // Normalize whitespace but preserve content
@@ -79,6 +86,10 @@ class SVGDocument {
    * @returns {SVGElement}
    */
   createElement(tagName) {
+    // Validation: Ensure tagName is a valid string
+    if (!tagName || typeof tagName !== "string") {
+      throw new Error("createElement: tagName must be a non-empty string");
+    }
     // eslint-disable-next-line no-use-before-define -- Class hoisting is intentional
     const el = new SVGElement(tagName);
     el.ownerDocument = this;
@@ -118,6 +129,22 @@ export class SVGElement {
    * @param {string} textContent - Text content of the element
    */
   constructor(tagName, attributes = {}, children = [], textContent = "") {
+    // Validation: Ensure tagName is a non-empty string
+    if (!tagName || typeof tagName !== "string") {
+      throw new Error("SVGElement: tagName must be a non-empty string");
+    }
+    // Validation: Ensure attributes is an object
+    if (attributes !== null && typeof attributes !== "object") {
+      throw new Error("SVGElement: attributes must be an object");
+    }
+    // Validation: Ensure children is an array
+    if (!Array.isArray(children)) {
+      throw new Error("SVGElement: children must be an array");
+    }
+    // Validation: Ensure textContent is a string
+    if (typeof textContent !== "string") {
+      throw new Error("SVGElement: textContent must be a string");
+    }
     // Preserve original case for W3C SVG compliance (linearGradient, clipPath, etc.)
     this.tagName = tagName;
     this.nodeName = tagName.toUpperCase();
@@ -142,6 +169,10 @@ export class SVGElement {
    * @returns {string|null} Attribute value or null
    */
   getAttribute(name) {
+    // Validation: Ensure name is a string
+    if (typeof name !== "string") {
+      throw new Error("getAttribute: name must be a string");
+    }
     return this._attributes[name] ?? null;
   }
 
@@ -151,7 +182,16 @@ export class SVGElement {
    * @param {string} value - Attribute value
    */
   setAttribute(name, value) {
-    this._attributes[name] = value;
+    // Validation: Ensure name is a string
+    if (typeof name !== "string") {
+      throw new Error("setAttribute: name must be a string");
+    }
+    // Validation: Convert value to string if not already
+    if (value !== null && value !== undefined) {
+      this._attributes[name] = String(value);
+    } else {
+      this._attributes[name] = "";
+    }
   }
 
   /**
@@ -160,6 +200,10 @@ export class SVGElement {
    * @returns {boolean}
    */
   hasAttribute(name) {
+    // Validation: Ensure name is a string
+    if (typeof name !== "string") {
+      throw new Error("hasAttribute: name must be a string");
+    }
     return name in this._attributes;
   }
 
@@ -168,6 +212,10 @@ export class SVGElement {
    * @param {string} name - Attribute name
    */
   removeAttribute(name) {
+    // Validation: Ensure name is a string
+    if (typeof name !== "string") {
+      throw new Error("removeAttribute: name must be a string");
+    }
     delete this._attributes[name];
   }
 
@@ -185,6 +233,10 @@ export class SVGElement {
    * @returns {SVGElement[]}
    */
   getElementsByTagName(tagName) {
+    // Validation: Ensure tagName is a string
+    if (typeof tagName !== "string") {
+      throw new Error("getElementsByTagName: tagName must be a string");
+    }
     const tag = tagName.toLowerCase();
     const results = [];
 
@@ -210,6 +262,10 @@ export class SVGElement {
    * @returns {SVGElement|null}
    */
   getElementById(id) {
+    // Validation: Ensure id is a string
+    if (typeof id !== "string") {
+      throw new Error("getElementById: id must be a string");
+    }
     const search = (el) => {
       if (el.getAttribute("id") === id) {
         return el;
@@ -233,6 +289,10 @@ export class SVGElement {
    * @returns {SVGElement|null}
    */
   querySelector(selector) {
+    // Validation: Ensure selector is a string
+    if (typeof selector !== "string") {
+      throw new Error("querySelector: selector must be a string");
+    }
     const results = this.querySelectorAll(selector);
     return results[0] || null;
   }
@@ -243,6 +303,10 @@ export class SVGElement {
    * @returns {SVGElement[]}
    */
   querySelectorAll(selector) {
+    // Validation: Ensure selector is a string
+    if (typeof selector !== "string") {
+      throw new Error("querySelectorAll: selector must be a string");
+    }
     const results = [];
     const matchers = parseSelector(selector);
 
@@ -267,6 +331,10 @@ export class SVGElement {
    * @returns {boolean}
    */
   matches(selector) {
+    // Validation: Ensure selector is a string
+    if (typeof selector !== "string") {
+      throw new Error("matches: selector must be a string");
+    }
     const matchers = parseSelector(selector);
     return matchesAllSelectors(this, matchers);
   }
@@ -310,6 +378,10 @@ export class SVGElement {
    * @returns {SVGElement} The appended child
    */
   appendChild(child) {
+    // Validation: Ensure child is not null/undefined
+    if (child === null || child === undefined) {
+      throw new Error("appendChild: child cannot be null or undefined");
+    }
     // DOM spec: Remove child from its current parent before appending
     if (child instanceof SVGElement && child.parentNode) {
       child.parentNode.removeChild(child);
@@ -328,6 +400,10 @@ export class SVGElement {
    * @returns {SVGElement} The removed child
    */
   removeChild(child) {
+    // Validation: Ensure child is not null/undefined
+    if (child === null || child === undefined) {
+      throw new Error("removeChild: child cannot be null or undefined");
+    }
     const idx = this.children.indexOf(child);
     if (idx >= 0) {
       this.children.splice(idx, 1);
@@ -347,6 +423,14 @@ export class SVGElement {
    * @returns {SVGElement} The inserted child
    */
   insertBefore(newChild, refChild) {
+    // Validation: Ensure newChild is not null/undefined
+    if (newChild === null || newChild === undefined) {
+      throw new Error("insertBefore: newChild cannot be null or undefined");
+    }
+    // Validation: Ensure refChild is not null/undefined
+    if (refChild === null || refChild === undefined) {
+      throw new Error("insertBefore: refChild cannot be null or undefined");
+    }
     // DOM spec: Remove newChild from its current parent first
     if (newChild instanceof SVGElement && newChild.parentNode) {
       newChild.parentNode.removeChild(newChild);
@@ -372,6 +456,14 @@ export class SVGElement {
    * @returns {SVGElement} The replaced (old) child
    */
   replaceChild(newChild, oldChild) {
+    // Validation: Ensure newChild is not null/undefined
+    if (newChild === null || newChild === undefined) {
+      throw new Error("replaceChild: newChild cannot be null or undefined");
+    }
+    // Validation: Ensure oldChild is not null/undefined
+    if (oldChild === null || oldChild === undefined) {
+      throw new Error("replaceChild: oldChild cannot be null or undefined");
+    }
     // DOM spec: Remove newChild from its current parent first
     if (newChild instanceof SVGElement && newChild.parentNode) {
       newChild.parentNode.removeChild(newChild);
@@ -398,9 +490,14 @@ export class SVGElement {
     const styleAttr = this.getAttribute("style") || "";
     const styles = {};
     styleAttr.split(";").forEach((pair) => {
-      const [key, val] = pair.split(":").map((s) => s.trim());
-      if (key && val) {
-        styles[key] = val;
+      // Edge case: Handle malformed styles, multiple colons, and empty pairs
+      const colonIdx = pair.indexOf(":");
+      if (colonIdx > 0) {
+        const key = pair.slice(0, colonIdx).trim();
+        const val = pair.slice(colonIdx + 1).trim();
+        if (key && val) {
+          styles[key] = val;
+        }
       }
     });
     return styles;
@@ -451,6 +548,14 @@ export class SVGElement {
    * @returns {string}
    */
   serialize(indent = 0, minify = false) {
+    // Validation: Ensure indent is a valid number
+    if (typeof indent !== "number" || !Number.isFinite(indent) || indent < 0) {
+      throw new Error("serialize: indent must be a non-negative finite number");
+    }
+    // Validation: Ensure minify is a boolean
+    if (typeof minify !== "boolean") {
+      throw new Error("serialize: minify must be a boolean");
+    }
     const pad = minify ? "" : "  ".repeat(indent);
 
     // Check for CDATA pending marker (used by embedExternalDependencies for scripts)
@@ -545,6 +650,12 @@ export class SVGElement {
  * @returns {boolean} True if whitespace should be preserved, false otherwise
  */
 function _shouldPreserveWhitespace(element) {
+  // Validation: Ensure element is not null/undefined
+  if (!element) {
+    throw new Error(
+      "_shouldPreserveWhitespace: element cannot be null or undefined",
+    );
+  }
   let current = element;
   while (current) {
     const xmlSpace = current.getAttribute("xml:space");
@@ -564,6 +675,22 @@ function _shouldPreserveWhitespace(element) {
  * @returns {{element: SVGElement|null, endPos: number}} Parsed element and final position
  */
 function parseElement(str, pos, inheritPreserveSpace = false) {
+  // Validation: Ensure str is a string
+  if (typeof str !== "string") {
+    throw new Error("parseElement: str must be a string");
+  }
+  // Validation: Ensure pos is a valid number
+  if (typeof pos !== "number" || !Number.isFinite(pos) || pos < 0) {
+    throw new Error("parseElement: pos must be a non-negative finite number");
+  }
+  // Validation: Ensure str is not empty
+  if (str.length === 0) {
+    return { element: null, endPos: 0 };
+  }
+  // Bounds check: Ensure pos is within string bounds
+  if (pos >= str.length) {
+    return { element: null, endPos: pos };
+  }
   // Use local variable to avoid reassigning parameter (ESLint no-param-reassign)
   let position = pos;
 
@@ -787,6 +914,10 @@ function parseElement(str, pos, inheritPreserveSpace = false) {
  * @returns {Array<{tag: string|null, id: string|null, classes: Array<string>, attrs: Array<{name: string, value: string|undefined}>}>} Array of matcher objects
  */
 function parseSelector(selector) {
+  // Validation: Ensure selector is a string
+  if (typeof selector !== "string") {
+    throw new Error("parseSelector: selector must be a string");
+  }
   const matchers = [];
   const parts = selector.trim().split(/\s*,\s*/);
 
@@ -838,6 +969,14 @@ function parseSelector(selector) {
  * @returns {boolean} True if element matches any matcher
  */
 function matchesAllSelectors(el, matchers) {
+  // Validation: Ensure el is a valid SVGElement
+  if (!(el instanceof SVGElement)) {
+    throw new Error("matchesAllSelectors: el must be an SVGElement");
+  }
+  // Validation: Ensure matchers is an array
+  if (!Array.isArray(matchers)) {
+    throw new Error("matchesAllSelectors: matchers must be an array");
+  }
   return matchers.some((matcher) => {
     // Case-insensitive tag matching (tagName preserves original case)
     if (matcher.tag && el.tagName.toLowerCase() !== matcher.tag) return false;
@@ -878,6 +1017,8 @@ function escapeText(str) {
  * @returns {string} Escaped attribute value
  */
 function escapeAttr(str) {
+  // Edge case: Handle null/undefined by converting to empty string
+  if (str === null || str === undefined) return "";
   if (typeof str !== "string") return String(str);
   return str
     .replace(/&/g, "&amp;")
@@ -1027,6 +1168,14 @@ function unescapeText(str) {
  * @returns {Map<string, SVGElement>}
  */
 export function buildDefsMap(svgRoot) {
+  // Validation: Ensure svgRoot is not null/undefined
+  if (!svgRoot) {
+    throw new Error("buildDefsMap: svgRoot cannot be null or undefined");
+  }
+  // Validation: Ensure svgRoot is an SVGElement with children
+  if (!(svgRoot instanceof SVGElement)) {
+    throw new Error("buildDefsMap: svgRoot must be an SVGElement");
+  }
   const defsMap = new Map();
 
   // Find all elements with IDs
@@ -1053,6 +1202,20 @@ export function buildDefsMap(svgRoot) {
  * @returns {SVGElement[]}
  */
 export function findElementsWithAttribute(root, attrName) {
+  // Validation: Ensure root is not null/undefined
+  if (!root) {
+    throw new Error(
+      "findElementsWithAttribute: root cannot be null or undefined",
+    );
+  }
+  // Validation: Ensure root is an SVGElement
+  if (!(root instanceof SVGElement)) {
+    throw new Error("findElementsWithAttribute: root must be an SVGElement");
+  }
+  // Validation: Ensure attrName is a string
+  if (typeof attrName !== "string") {
+    throw new Error("findElementsWithAttribute: attrName must be a string");
+  }
   const results = [];
 
   const search = (el) => {
@@ -1090,7 +1253,7 @@ export function parseUrlReference(urlValue) {
  */
 export function serializeSVG(root, options = {}) {
   if (!root) {
-    throw new Error('serializeSVG: document is required');
+    throw new Error("serializeSVG: document is required");
   }
   // Validate that root is a proper SVGElement with serialize method
   if (typeof root.serialize !== "function") {

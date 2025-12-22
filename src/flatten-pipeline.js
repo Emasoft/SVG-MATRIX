@@ -84,6 +84,19 @@ const DEFAULT_OPTIONS = {
  * @returns {{svg: string, stats: Object}} Flattened SVG and statistics
  */
 export function flattenSVG(svgString, options = {}) {
+  // Validate required parameters
+  if (svgString === null || svgString === undefined) {
+    throw new Error("flattenSVG: svgString parameter is required");
+  }
+  if (typeof svgString !== "string") {
+    throw new Error(
+      `flattenSVG: svgString must be a string, got ${typeof svgString}`,
+    );
+  }
+  if (svgString.trim().length === 0) {
+    throw new Error("flattenSVG: svgString cannot be empty");
+  }
+
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const stats = {
     useResolved: 0,
@@ -260,6 +273,17 @@ function containsPreserveElements(el) {
 }
 
 function resolveAllUseElements(root, defsMap, opts) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("resolveAllUseElements: invalid root element");
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error("resolveAllUseElements: defsMap must be a Map");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("resolveAllUseElements: opts must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -436,6 +460,17 @@ function resolveAllUseElements(root, defsMap, opts) {
  * @private
  */
 function resolveAllMarkers(root, defsMap, opts) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("resolveAllMarkers: invalid root element");
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error("resolveAllMarkers: defsMap must be a Map");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("resolveAllMarkers: opts must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -517,6 +552,17 @@ function resolveAllMarkers(root, defsMap, opts) {
  * @private
  */
 function resolveAllPatterns(root, defsMap, opts) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("resolveAllPatterns: invalid root element");
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error("resolveAllPatterns: defsMap must be a Map");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("resolveAllPatterns: opts must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -617,6 +663,17 @@ function resolveAllPatterns(root, defsMap, opts) {
  * @private
  */
 function resolveAllMasks(root, defsMap, opts) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("resolveAllMasks: invalid root element");
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error("resolveAllMasks: defsMap must be a Map");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("resolveAllMasks: opts must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -718,6 +775,20 @@ function resolveAllMasks(root, defsMap, opts) {
  * @private
  */
 function applyAllClipPaths(root, defsMap, opts, stats) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("applyAllClipPaths: invalid root element");
+  }
+  if (!defsMap || !(defsMap instanceof Map)) {
+    throw new Error("applyAllClipPaths: defsMap must be a Map");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("applyAllClipPaths: opts must be an object");
+  }
+  if (!stats || typeof stats !== "object") {
+    throw new Error("applyAllClipPaths: stats must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -768,12 +839,14 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
 
       // Get clip path data from clipPath element's children
       let clipPathData = "";
-      for (const child of clipPathEl.children) {
-        // Use tagName check instead of instanceof
-        if (child && child.tagName) {
-          const childPath = getElementPathData(child, opts.precision);
-          if (childPath) {
-            clipPathData += (clipPathData ? " " : "") + childPath;
+      if (clipPathEl.children && clipPathEl.children.length > 0) {
+        for (const child of clipPathEl.children) {
+          // Use tagName check instead of instanceof
+          if (child && child.tagName) {
+            const childPath = getElementPathData(child, opts.precision);
+            if (childPath) {
+              clipPathData += (clipPathData ? " " : "") + childPath;
+            }
           }
         }
       }
@@ -914,6 +987,17 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
  * @private
  */
 function flattenAllTransforms(root, opts, stats) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("flattenAllTransforms: invalid root element");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("flattenAllTransforms: opts must be an object");
+  }
+  if (!stats || typeof stats !== "object") {
+    throw new Error("flattenAllTransforms: stats must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -1028,6 +1112,20 @@ function flattenAllTransforms(root, opts, stats) {
  * @private
  */
 function propagateTransformToChildren(group, ctm, opts, stats) {
+  // Validate parameters
+  if (!group || !group.children) {
+    throw new Error("propagateTransformToChildren: invalid group element");
+  }
+  if (!ctm || !ctm.data) {
+    throw new Error("propagateTransformToChildren: invalid matrix");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("propagateTransformToChildren: opts must be an object");
+  }
+  if (!stats || typeof stats !== "object") {
+    throw new Error("propagateTransformToChildren: stats must be an object");
+  }
+
   for (const child of [...group.children]) {
     // Use tagName check instead of instanceof
     if (!(child && child.tagName)) continue;
@@ -1107,6 +1205,17 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
  * @private
  */
 function bakeAllGradientTransforms(root, opts, stats) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("bakeAllGradientTransforms: invalid root element");
+  }
+  if (!opts || typeof opts !== "object") {
+    throw new Error("bakeAllGradientTransforms: opts must be an object");
+  }
+  if (!stats || typeof stats !== "object") {
+    throw new Error("bakeAllGradientTransforms: stats must be an object");
+  }
+
   const errors = [];
   let count = 0;
 
@@ -1182,9 +1291,15 @@ function bakeAllGradientTransforms(root, opts, stats) {
       const [tfx, tfy] = Transforms2D.applyTransform(ctm, fx, fy);
 
       // Scale radius by average scale factor
-      const scale = Math.sqrt(
-        Math.abs(ctm.data[0][0].toNumber() * ctm.data[1][1].toNumber()),
-      );
+      const scaleProduct =
+        ctm.data[0][0].toNumber() * ctm.data[1][1].toNumber();
+      if (Math.abs(scaleProduct) < 1e-10) {
+        errors.push(
+          `radialGradient: matrix determinant too close to zero (degenerate transform)`,
+        );
+        continue;
+      }
+      const scale = Math.sqrt(Math.abs(scaleProduct));
       const tr = r * scale;
 
       grad.setAttribute("cx", tcx.toFixed(opts.precision));
@@ -1220,10 +1335,19 @@ function bakeAllGradientTransforms(root, opts, stats) {
  * @private
  */
 function collectAllReferences(root) {
+  // Validate parameter
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("collectAllReferences: invalid root element");
+  }
+
   const usedIds = new Set();
 
   // Collect references from an element and all its children
   const collectReferences = (el) => {
+    // Validate element parameter
+    if (!el || !el.getAttributeNames) {
+      return;
+    }
     // Check for <style> elements and parse their CSS content for url(#id) references
     // This is CRITICAL for SVG 2.0 features like shape-inside: url(#textShape)
     if (el.tagName && el.tagName.toLowerCase() === "style") {
@@ -1289,10 +1413,23 @@ function collectAllReferences(root) {
  * @private
  */
 function removeUnusedDefinitions(root, referencedIds) {
+  // Validate parameters
+  if (!root || !root.getElementsByTagName) {
+    throw new Error("removeUnusedDefinitions: invalid root element");
+  }
+  if (!referencedIds || !(referencedIds instanceof Set)) {
+    throw new Error("removeUnusedDefinitions: referencedIds must be a Set");
+  }
+
   let count = 0;
 
   // Check if an element or any of its descendants has a referenced ID
   function hasReferencedDescendant(el) {
+    // Validate element
+    if (!el || !el.getAttribute) {
+      return false;
+    }
+
     // Check self
     const id = el.getAttribute("id");
     if (id && referencedIds.has(id)) {
@@ -1346,6 +1483,16 @@ function removeUnusedDefinitions(root, referencedIds) {
  * @private
  */
 function getElementPathData(el, precision) {
+  // Validate parameters
+  if (!el || !el.tagName) {
+    return null;
+  }
+  if (typeof precision !== "number" || isNaN(precision) || precision < 0) {
+    throw new Error(
+      `getElementPathData: precision must be a non-negative number, got ${precision}`,
+    );
+  }
+
   const tagName = el.tagName.toLowerCase();
 
   if (tagName === "path") {
@@ -1417,6 +1564,11 @@ function getElementPathData(el, precision) {
  * @private
  */
 function getElementBBox(el) {
+  // Validate parameter
+  if (!el || !el.tagName) {
+    return null;
+  }
+
   const pathData = getElementPathData(el, 6);
   if (!pathData) return null;
 
@@ -1489,6 +1641,11 @@ function getElementBBox(el) {
  * - Visual effects (opacity, paint-order, vector-effect)
  */
 function extractPresentationAttrs(el) {
+  // Validate parameter
+  if (!el || !el.getAttribute) {
+    return {};
+  }
+
   const presentationAttrs = [
     // Stroke properties
     "stroke",
@@ -1580,6 +1737,11 @@ function extractPresentationAttrs(el) {
  * attribute instead.
  */
 function getShapeSpecificAttrs(tagName) {
+  // Validate parameter
+  if (!tagName || typeof tagName !== "string") {
+    return [];
+  }
+
   const attrs = {
     rect: ["x", "y", "width", "height", "rx", "ry"],
     circle: ["cx", "cy", "r"],
@@ -1610,12 +1772,42 @@ function getShapeSpecificAttrs(tagName) {
  * @private
  */
 function matrixToTransform(matrix) {
+  // Validate parameter
+  if (!matrix || !matrix.data || !Array.isArray(matrix.data)) {
+    throw new Error("matrixToTransform: invalid matrix");
+  }
+  if (
+    !matrix.data[0] ||
+    !matrix.data[1] ||
+    !matrix.data[0][0] ||
+    !matrix.data[0][1] ||
+    !matrix.data[0][2] ||
+    !matrix.data[1][0] ||
+    !matrix.data[1][1] ||
+    !matrix.data[1][2]
+  ) {
+    throw new Error("matrixToTransform: matrix is missing required elements");
+  }
+
   const a = matrix.data[0][0].toNumber();
   const b = matrix.data[1][0].toNumber();
   const c = matrix.data[0][1].toNumber();
   const d = matrix.data[1][1].toNumber();
   const e = matrix.data[0][2].toNumber();
   const f = matrix.data[1][2].toNumber();
+
+  // Validate all values are finite numbers
+  if (
+    !isFinite(a) ||
+    !isFinite(b) ||
+    !isFinite(c) ||
+    !isFinite(d) ||
+    !isFinite(e) ||
+    !isFinite(f)
+  ) {
+    throw new Error("matrixToTransform: matrix contains non-finite values");
+  }
+
   return `matrix(${a} ${b} ${c} ${d} ${e} ${f})`;
 }
 
@@ -1690,14 +1882,27 @@ function intersectPolygons(subject, clip) {
  * @private
  */
 function isInsideEdge(point, edgeStart, edgeEnd) {
-  const px = point.x instanceof Decimal ? point.x.toNumber() : point.x;
-  const py = point.y instanceof Decimal ? point.y.toNumber() : point.y;
+  // Validate parameters
+  if (!point || (point.x === undefined && point.y === undefined)) {
+    throw new Error("isInsideEdge: invalid point");
+  }
+  if (!edgeStart || (edgeStart.x === undefined && edgeStart.y === undefined)) {
+    throw new Error("isInsideEdge: invalid edgeStart");
+  }
+  if (!edgeEnd || (edgeEnd.x === undefined && edgeEnd.y === undefined)) {
+    throw new Error("isInsideEdge: invalid edgeEnd");
+  }
+
+  const px = point.x instanceof Decimal ? point.x.toNumber() : point.x || 0;
+  const py = point.y instanceof Decimal ? point.y.toNumber() : point.y || 0;
   const sx =
-    edgeStart.x instanceof Decimal ? edgeStart.x.toNumber() : edgeStart.x;
+    edgeStart.x instanceof Decimal ? edgeStart.x.toNumber() : edgeStart.x || 0;
   const sy =
-    edgeStart.y instanceof Decimal ? edgeStart.y.toNumber() : edgeStart.y;
-  const ex = edgeEnd.x instanceof Decimal ? edgeEnd.x.toNumber() : edgeEnd.x;
-  const ey = edgeEnd.y instanceof Decimal ? edgeEnd.y.toNumber() : edgeEnd.y;
+    edgeStart.y instanceof Decimal ? edgeStart.y.toNumber() : edgeStart.y || 0;
+  const ex =
+    edgeEnd.x instanceof Decimal ? edgeEnd.x.toNumber() : edgeEnd.x || 0;
+  const ey =
+    edgeEnd.y instanceof Decimal ? edgeEnd.y.toNumber() : edgeEnd.y || 0;
 
   return (ex - sx) * (py - sy) - (ey - sy) * (px - sx) >= 0;
 }
@@ -1716,14 +1921,28 @@ function isInsideEdge(point, edgeStart, edgeEnd) {
  * @returns {Object} Intersection point with x, y as Decimal
  */
 function lineIntersect(p1, p2, p3, p4) {
-  const x1 = p1.x instanceof Decimal ? p1.x.toNumber() : p1.x;
-  const y1 = p1.y instanceof Decimal ? p1.y.toNumber() : p1.y;
-  const x2 = p2.x instanceof Decimal ? p2.x.toNumber() : p2.x;
-  const y2 = p2.y instanceof Decimal ? p2.y.toNumber() : p2.y;
-  const x3 = p3.x instanceof Decimal ? p3.x.toNumber() : p3.x;
-  const y3 = p3.y instanceof Decimal ? p3.y.toNumber() : p3.y;
-  const x4 = p4.x instanceof Decimal ? p4.x.toNumber() : p4.x;
-  const y4 = p4.y instanceof Decimal ? p4.y.toNumber() : p4.y;
+  // Validate parameters
+  if (!p1 || (p1.x === undefined && p1.y === undefined)) {
+    throw new Error("lineIntersect: invalid p1");
+  }
+  if (!p2 || (p2.x === undefined && p2.y === undefined)) {
+    throw new Error("lineIntersect: invalid p2");
+  }
+  if (!p3 || (p3.x === undefined && p3.y === undefined)) {
+    throw new Error("lineIntersect: invalid p3");
+  }
+  if (!p4 || (p4.x === undefined && p4.y === undefined)) {
+    throw new Error("lineIntersect: invalid p4");
+  }
+
+  const x1 = p1.x instanceof Decimal ? p1.x.toNumber() : p1.x || 0;
+  const y1 = p1.y instanceof Decimal ? p1.y.toNumber() : p1.y || 0;
+  const x2 = p2.x instanceof Decimal ? p2.x.toNumber() : p2.x || 0;
+  const y2 = p2.y instanceof Decimal ? p2.y.toNumber() : p2.y || 0;
+  const x3 = p3.x instanceof Decimal ? p3.x.toNumber() : p3.x || 0;
+  const y3 = p3.y instanceof Decimal ? p3.y.toNumber() : p3.y || 0;
+  const x4 = p4.x instanceof Decimal ? p4.x.toNumber() : p4.x || 0;
+  const y4 = p4.y instanceof Decimal ? p4.y.toNumber() : p4.y || 0;
 
   const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 

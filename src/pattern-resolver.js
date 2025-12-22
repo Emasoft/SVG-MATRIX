@@ -71,7 +71,15 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * // }
  */
 export function parsePatternElement(patternElement) {
-  if (!patternElement) throw new Error('parsePatternElement: patternElement is required');
+  // Validate patternElement is a DOM element with getAttribute method
+  if (!patternElement)
+    throw new Error("parsePatternElement: patternElement is required");
+  if (typeof patternElement.getAttribute !== "function") {
+    throw new Error(
+      "parsePatternElement: patternElement must be a DOM element with getAttribute method",
+    );
+  }
+
   const data = {
     id: patternElement.getAttribute("id") || "",
     patternUnits:
@@ -93,11 +101,18 @@ export function parsePatternElement(patternElement) {
     children: [],
   };
 
+  // Helper to parse numeric values with NaN validation
+  const parseValidFloat = (val, defaultVal) => {
+    if (val === null || val === undefined) return defaultVal;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? defaultVal : parsed;
+  };
+
   // Parse numeric values
-  data.x = data.x !== null ? parseFloat(data.x) : 0;
-  data.y = data.y !== null ? parseFloat(data.y) : 0;
-  data.width = data.width !== null ? parseFloat(data.width) : 0;
-  data.height = data.height !== null ? parseFloat(data.height) : 0;
+  data.x = parseValidFloat(data.x, 0);
+  data.y = parseValidFloat(data.y, 0);
+  data.width = parseValidFloat(data.width, 0);
+  data.height = parseValidFloat(data.height, 0);
 
   // Parse viewBox if present
   if (data.viewBox) {
@@ -105,7 +120,8 @@ export function parsePatternElement(patternElement) {
       .trim()
       .split(/[\s,]+/)
       .map(Number);
-    if (parts.length === 4) {
+    // Validate all parts are valid numbers
+    if (parts.length === 4 && parts.every((p) => !isNaN(p) && isFinite(p))) {
       data.viewBoxParsed = {
         x: parts[0],
         y: parts[1],
@@ -115,75 +131,94 @@ export function parsePatternElement(patternElement) {
     }
   }
 
-  // Parse child elements
-  for (const child of patternElement.children) {
-    const tagName = child.tagName.toLowerCase();
-    const childData = {
-      type: tagName,
-      fill: child.getAttribute("fill") || "black",
-      stroke: child.getAttribute("stroke") || "none",
-      strokeWidth: parseFloat(child.getAttribute("stroke-width") || "1"),
-      opacity: parseFloat(child.getAttribute("opacity") || "1"),
-      transform: child.getAttribute("transform") || null,
-    };
+  // Parse child elements - validate children exists and is iterable
+  if (
+    patternElement.children &&
+    typeof patternElement.children[Symbol.iterator] === "function"
+  ) {
+    for (const child of patternElement.children) {
+      // Validate child is an Element before accessing properties
+      if (!child || typeof child.getAttribute !== "function") continue;
 
-    // Parse shape-specific attributes
-    switch (tagName) {
-      case "rect":
-        childData.x = parseFloat(child.getAttribute("x") || "0");
-        childData.y = parseFloat(child.getAttribute("y") || "0");
-        childData.width = parseFloat(child.getAttribute("width") || "0");
-        childData.height = parseFloat(child.getAttribute("height") || "0");
-        childData.rx = parseFloat(child.getAttribute("rx") || "0");
-        childData.ry = parseFloat(child.getAttribute("ry") || "0");
-        break;
-      case "circle":
-        childData.cx = parseFloat(child.getAttribute("cx") || "0");
-        childData.cy = parseFloat(child.getAttribute("cy") || "0");
-        childData.r = parseFloat(child.getAttribute("r") || "0");
-        break;
-      case "ellipse":
-        childData.cx = parseFloat(child.getAttribute("cx") || "0");
-        childData.cy = parseFloat(child.getAttribute("cy") || "0");
-        childData.rx = parseFloat(child.getAttribute("rx") || "0");
-        childData.ry = parseFloat(child.getAttribute("ry") || "0");
-        break;
-      case "path":
-        childData.d = child.getAttribute("d") || "";
-        break;
-      case "polygon":
-        childData.points = child.getAttribute("points") || "";
-        break;
-      case "polyline":
-        childData.points = child.getAttribute("points") || "";
-        break;
-      case "line":
-        childData.x1 = parseFloat(child.getAttribute("x1") || "0");
-        childData.y1 = parseFloat(child.getAttribute("y1") || "0");
-        childData.x2 = parseFloat(child.getAttribute("x2") || "0");
-        childData.y2 = parseFloat(child.getAttribute("y2") || "0");
-        break;
-      case "use":
-        childData.href =
-          child.getAttribute("href") || child.getAttribute("xlink:href") || "";
-        childData.x = parseFloat(child.getAttribute("x") || "0");
-        childData.y = parseFloat(child.getAttribute("y") || "0");
-        break;
-      case "g":
-        // Groups can contain nested shapes
-        childData.children = [];
-        for (const gc of child.children) {
-          childData.children.push({
-            type: gc.tagName.toLowerCase(),
-            fill: gc.getAttribute("fill") || "inherit",
-          });
-        }
-        break;
-      default:
-        break;
+      const tagName = child.tagName ? child.tagName.toLowerCase() : "";
+      if (!tagName) continue;
+
+      const childData = {
+        type: tagName,
+        fill: child.getAttribute("fill") || "black",
+        stroke: child.getAttribute("stroke") || "none",
+        strokeWidth: parseValidFloat(child.getAttribute("stroke-width"), 1),
+        opacity: parseValidFloat(child.getAttribute("opacity"), 1),
+        transform: child.getAttribute("transform") || null,
+      };
+
+      // Parse shape-specific attributes
+      switch (tagName) {
+        case "rect":
+          childData.x = parseValidFloat(child.getAttribute("x"), 0);
+          childData.y = parseValidFloat(child.getAttribute("y"), 0);
+          childData.width = parseValidFloat(child.getAttribute("width"), 0);
+          childData.height = parseValidFloat(child.getAttribute("height"), 0);
+          childData.rx = parseValidFloat(child.getAttribute("rx"), 0);
+          childData.ry = parseValidFloat(child.getAttribute("ry"), 0);
+          break;
+        case "circle":
+          childData.cx = parseValidFloat(child.getAttribute("cx"), 0);
+          childData.cy = parseValidFloat(child.getAttribute("cy"), 0);
+          childData.r = parseValidFloat(child.getAttribute("r"), 0);
+          break;
+        case "ellipse":
+          childData.cx = parseValidFloat(child.getAttribute("cx"), 0);
+          childData.cy = parseValidFloat(child.getAttribute("cy"), 0);
+          childData.rx = parseValidFloat(child.getAttribute("rx"), 0);
+          childData.ry = parseValidFloat(child.getAttribute("ry"), 0);
+          break;
+        case "path":
+          childData.d = child.getAttribute("d") || "";
+          break;
+        case "polygon":
+          childData.points = child.getAttribute("points") || "";
+          break;
+        case "polyline":
+          childData.points = child.getAttribute("points") || "";
+          break;
+        case "line":
+          childData.x1 = parseValidFloat(child.getAttribute("x1"), 0);
+          childData.y1 = parseValidFloat(child.getAttribute("y1"), 0);
+          childData.x2 = parseValidFloat(child.getAttribute("x2"), 0);
+          childData.y2 = parseValidFloat(child.getAttribute("y2"), 0);
+          break;
+        case "use":
+          childData.href =
+            child.getAttribute("href") ||
+            child.getAttribute("xlink:href") ||
+            "";
+          childData.x = parseValidFloat(child.getAttribute("x"), 0);
+          childData.y = parseValidFloat(child.getAttribute("y"), 0);
+          break;
+        case "g":
+          // Groups can contain nested shapes - validate children exists
+          childData.children = [];
+          if (
+            child.children &&
+            typeof child.children[Symbol.iterator] === "function"
+          ) {
+            for (const gc of child.children) {
+              if (gc && gc.tagName && typeof gc.getAttribute === "function") {
+                childData.children.push({
+                  type: gc.tagName.toLowerCase(),
+                  fill: gc.getAttribute("fill") || "inherit",
+                });
+              }
+            }
+          }
+          break;
+        default:
+          break;
+      }
+
+      data.children.push(childData);
     }
-
-    data.children.push(childData);
   }
 
   return data;
@@ -236,6 +271,36 @@ export function parsePatternElement(patternElement) {
  * // Tile uses absolute coordinates, bbox is ignored
  */
 export function getPatternTile(patternData, targetBBox) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("getPatternTile: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("getPatternTile: targetBBox is required");
+  }
+  // Validate targetBBox has required numeric properties
+  if (
+    typeof targetBBox.x !== "number" ||
+    typeof targetBBox.y !== "number" ||
+    typeof targetBBox.width !== "number" ||
+    typeof targetBBox.height !== "number"
+  ) {
+    throw new Error(
+      "getPatternTile: targetBBox must have numeric x, y, width, and height properties",
+    );
+  }
+  // Validate patternData has required numeric properties
+  if (
+    typeof patternData.x !== "number" ||
+    typeof patternData.y !== "number" ||
+    typeof patternData.width !== "number" ||
+    typeof patternData.height !== "number"
+  ) {
+    throw new Error(
+      "getPatternTile: patternData must have numeric x, y, width, and height properties",
+    );
+  }
+
   if (patternData.patternUnits === "objectBoundingBox") {
     // Dimensions are fractions of target bbox
     return {
@@ -311,13 +376,60 @@ export function getPatternTile(patternData, targetBBox) {
  * // M translates to bbox origin and scales by bbox dimensions
  */
 export function getPatternContentTransform(patternData, tile, targetBBox) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("getPatternContentTransform: patternData is required");
+  }
+  if (!tile) {
+    throw new Error("getPatternContentTransform: tile is required");
+  }
+  if (!targetBBox) {
+    throw new Error("getPatternContentTransform: targetBBox is required");
+  }
+  // Validate tile has required properties
+  if (!tile.width || !tile.height) {
+    throw new Error(
+      "getPatternContentTransform: tile must have width and height properties",
+    );
+  }
+  // Validate targetBBox has required numeric properties
+  if (
+    typeof targetBBox.x !== "number" ||
+    typeof targetBBox.y !== "number" ||
+    typeof targetBBox.width !== "number" ||
+    typeof targetBBox.height !== "number"
+  ) {
+    throw new Error(
+      "getPatternContentTransform: targetBBox must have numeric x, y, width, and height properties",
+    );
+  }
+
   let M = Matrix.identity(3);
 
   // Apply viewBox transform if present
   if (patternData.viewBoxParsed) {
     const vb = patternData.viewBoxParsed;
+    // Validate viewBox has required numeric properties
+    if (
+      typeof vb.x !== "number" ||
+      typeof vb.y !== "number" ||
+      typeof vb.width !== "number" ||
+      typeof vb.height !== "number"
+    ) {
+      throw new Error(
+        "getPatternContentTransform: viewBoxParsed must have numeric x, y, width, and height properties",
+      );
+    }
+
     const tileWidth = Number(tile.width);
     const tileHeight = Number(tile.height);
+
+    // Check for division by zero in viewBox dimensions
+    if (vb.width === 0 || vb.height === 0) {
+      throw new Error(
+        "getPatternContentTransform: viewBox width and height must be non-zero",
+      );
+    }
 
     // Scale from viewBox to tile
     const scaleX = tileWidth / vb.width;
@@ -325,6 +437,13 @@ export function getPatternContentTransform(patternData, tile, targetBBox) {
 
     // For 'xMidYMid meet', use uniform scale
     const scale = Math.min(scaleX, scaleY);
+
+    // Validate scale is finite
+    if (!isFinite(scale)) {
+      throw new Error(
+        "getPatternContentTransform: computed scale is not finite",
+      );
+    }
 
     // Center the content
     const offsetX = (tileWidth - vb.width * scale) / 2;
@@ -370,6 +489,20 @@ export function getPatternContentTransform(patternData, tile, targetBBox) {
  * // Returns rectangle vertices translated to (100, 50)
  */
 export function patternChildToPolygon(child, transform = null, samples = 20) {
+  // Validate child parameter
+  if (!child) {
+    throw new Error("patternChildToPolygon: child is required");
+  }
+  if (!child.type) {
+    throw new Error("patternChildToPolygon: child must have a type property");
+  }
+  // Validate samples is a positive number
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "patternChildToPolygon: samples must be a positive finite number",
+    );
+  }
+
   // Create element-like object for ClipPathResolver
   const element = {
     type: child.type,
@@ -380,9 +513,20 @@ export function patternChildToPolygon(child, transform = null, samples = 20) {
   // Get polygon using ClipPathResolver
   let polygon = ClipPathResolver.shapeToPolygon(element, null, samples);
 
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    return [];
+  }
+
   // Apply additional transform if provided
   if (transform && polygon.length > 0) {
     polygon = polygon.map((p) => {
+      // Validate point has x and y properties
+      if (!p || typeof p.x !== "number" || typeof p.y !== "number") {
+        throw new Error(
+          "patternChildToPolygon: invalid polygon point - must have numeric x and y properties",
+        );
+      }
       const [x, y] = Transforms2D.applyTransform(transform, p.x, p.y);
       return { x, y };
     });
@@ -426,6 +570,31 @@ export function patternChildToPolygon(child, transform = null, samples = 20) {
  * //  { x: 0, y: 50 }, { x: 50, y: 50 }, { x: 100, y: 50 }, { x: 150, y: 50 }]
  */
 export function getTilePositions(tile, coverBBox) {
+  // Validate parameters
+  if (!tile) {
+    throw new Error("getTilePositions: tile is required");
+  }
+  if (!coverBBox) {
+    throw new Error("getTilePositions: coverBBox is required");
+  }
+  // Validate tile has required properties
+  if (!tile.x || !tile.y || !tile.width || !tile.height) {
+    throw new Error(
+      "getTilePositions: tile must have x, y, width, and height properties",
+    );
+  }
+  // Validate coverBBox has required numeric properties
+  if (
+    typeof coverBBox.x !== "number" ||
+    typeof coverBBox.y !== "number" ||
+    typeof coverBBox.width !== "number" ||
+    typeof coverBBox.height !== "number"
+  ) {
+    throw new Error(
+      "getTilePositions: coverBBox must have numeric x, y, width, and height properties",
+    );
+  }
+
   const positions = [];
 
   const tileX = Number(tile.x);
@@ -433,6 +602,17 @@ export function getTilePositions(tile, coverBBox) {
   const tileW = Number(tile.width);
   const tileH = Number(tile.height);
 
+  // Validate tile dimensions are finite
+  if (
+    !isFinite(tileX) ||
+    !isFinite(tileY) ||
+    !isFinite(tileW) ||
+    !isFinite(tileH)
+  ) {
+    throw new Error("getTilePositions: tile dimensions must be finite numbers");
+  }
+
+  // Return empty array if tile dimensions are not positive
   if (tileW <= 0 || tileH <= 0) return positions;
 
   // Calculate start and end indices
@@ -440,6 +620,16 @@ export function getTilePositions(tile, coverBBox) {
   const endI = Math.ceil((coverBBox.x + coverBBox.width - tileX) / tileW);
   const startJ = Math.floor((coverBBox.y - tileY) / tileH);
   const endJ = Math.ceil((coverBBox.y + coverBBox.height - tileY) / tileH);
+
+  // Validate indices are finite
+  if (
+    !isFinite(startI) ||
+    !isFinite(endI) ||
+    !isFinite(startJ) ||
+    !isFinite(endJ)
+  ) {
+    throw new Error("getTilePositions: computed tile indices are not finite");
+  }
 
   for (let i = startI; i < endI; i++) {
     for (let j = startJ; j < endJ; j++) {
@@ -491,6 +681,18 @@ export function getTilePositions(tile, coverBBox) {
  * // Each polygon can be rendered with its associated fill and stroke
  */
 export function resolvePattern(patternData, targetBBox, options = {}) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("resolvePattern: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("resolvePattern: targetBBox is required");
+  }
+  // Validate patternData has children array
+  if (!Array.isArray(patternData.children)) {
+    throw new Error("resolvePattern: patternData.children must be an array");
+  }
+
   const { samples = 20, maxTiles = 1000 } = options;
   const result = [];
 
@@ -581,6 +783,20 @@ export function applyPattern(
   targetBBox,
   options = {},
 ) {
+  // Validate parameters
+  if (!targetPolygon) {
+    throw new Error("applyPattern: targetPolygon is required");
+  }
+  if (!Array.isArray(targetPolygon)) {
+    throw new Error("applyPattern: targetPolygon must be an array");
+  }
+  if (!patternData) {
+    throw new Error("applyPattern: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("applyPattern: targetBBox is required");
+  }
+
   const patternPolygons = resolvePattern(patternData, targetBBox, options);
   const result = [];
 
@@ -592,13 +808,16 @@ export function applyPattern(
       polygon,
     );
 
-    for (const clippedPoly of intersection) {
-      if (clippedPoly.length >= 3) {
-        result.push({
-          polygon: clippedPoly,
-          fill,
-          opacity,
-        });
+    // Validate intersection is an array
+    if (Array.isArray(intersection)) {
+      for (const clippedPoly of intersection) {
+        if (clippedPoly.length >= 3) {
+          result.push({
+            polygon: clippedPoly,
+            fill,
+            opacity,
+          });
+        }
       }
     }
   }
@@ -632,6 +851,14 @@ export function applyPattern(
  * // Returns single polygon that is the union of all dots in the pattern
  */
 export function patternToClipPath(patternData, targetBBox, options = {}) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("patternToClipPath: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("patternToClipPath: targetBBox is required");
+  }
+
   const patternPolygons = resolvePattern(patternData, targetBBox, options);
 
   // Union all polygons
@@ -643,7 +870,13 @@ export function patternToClipPath(patternData, targetBBox, options = {}) {
         result = polygon;
       } else {
         const unionResult = PolygonClip.polygonUnion(result, polygon);
-        if (unionResult.length > 0 && unionResult[0].length >= 3) {
+        // Validate unionResult is an array
+        if (
+          Array.isArray(unionResult) &&
+          unionResult.length > 0 &&
+          Array.isArray(unionResult[0]) &&
+          unionResult[0].length >= 3
+        ) {
           result = unionResult[0];
         }
       }
@@ -678,13 +911,38 @@ export function patternToClipPath(patternData, targetBBox, options = {}) {
  * // Can be used in: <path d={pathData} />
  */
 export function patternToPathData(patternData, targetBBox, options = {}) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("patternToPathData: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("patternToPathData: targetBBox is required");
+  }
+
   const polygon = patternToClipPath(patternData, targetBBox, options);
+
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    return "";
+  }
 
   if (polygon.length < 3) return "";
 
   let d = "";
   for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i];
+    // Validate point has x and y properties
+    if (!p || typeof p.x !== "number" || typeof p.y !== "number") {
+      throw new Error(
+        "patternToPathData: invalid polygon point - must have numeric x and y properties",
+      );
+    }
+    // Validate x and y are finite
+    if (!isFinite(p.x) || !isFinite(p.y)) {
+      throw new Error(
+        "patternToPathData: polygon point coordinates must be finite numbers",
+      );
+    }
     const x = Number(p.x).toFixed(6);
     const y = Number(p.y).toFixed(6);
     d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
@@ -717,17 +975,45 @@ export function patternToPathData(patternData, targetBBox, options = {}) {
  * // Result: { columns: 4, rows: 4, total: 16 }
  */
 export function getPatternTileCount(patternData, targetBBox) {
+  // Validate parameters
+  if (!patternData) {
+    throw new Error("getPatternTileCount: patternData is required");
+  }
+  if (!targetBBox) {
+    throw new Error("getPatternTileCount: targetBBox is required");
+  }
+  // Validate targetBBox has required numeric properties
+  if (
+    typeof targetBBox.width !== "number" ||
+    typeof targetBBox.height !== "number"
+  ) {
+    throw new Error(
+      "getPatternTileCount: targetBBox must have numeric width and height properties",
+    );
+  }
+
   const tile = getPatternTile(patternData, targetBBox);
 
   const tileW = Number(tile.width);
   const tileH = Number(tile.height);
 
+  // Check for zero or negative dimensions
   if (tileW <= 0 || tileH <= 0) {
+    return { columns: 0, rows: 0, total: 0 };
+  }
+
+  // Check for zero targetBBox dimensions
+  if (targetBBox.width === 0 || targetBBox.height === 0) {
     return { columns: 0, rows: 0, total: 0 };
   }
 
   const columns = Math.ceil(targetBBox.width / tileW);
   const rows = Math.ceil(targetBBox.height / tileH);
+
+  // Validate computed values are finite
+  if (!isFinite(columns) || !isFinite(rows)) {
+    throw new Error("getPatternTileCount: computed tile counts are not finite");
+  }
 
   return {
     columns,
@@ -767,56 +1053,108 @@ export function getPatternTileCount(patternData, targetBBox) {
  * // (from x:10 to x:90, y:20 to y:60)
  */
 export function getPatternContentBBox(patternData) {
+  // Validate parameter
+  if (!patternData) {
+    throw new Error("getPatternContentBBox: patternData is required");
+  }
+  // Validate patternData has children array
+  if (!Array.isArray(patternData.children)) {
+    throw new Error(
+      "getPatternContentBBox: patternData.children must be an array",
+    );
+  }
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
 
   for (const child of patternData.children) {
+    if (!child || !child.type) continue;
+
     let childBBox = null;
 
     switch (child.type) {
       case "rect":
-        childBBox = {
-          x: child.x,
-          y: child.y,
-          width: child.width,
-          height: child.height,
-        };
+        // Validate rect has required numeric properties
+        if (
+          typeof child.x === "number" &&
+          typeof child.y === "number" &&
+          typeof child.width === "number" &&
+          typeof child.height === "number"
+        ) {
+          childBBox = {
+            x: child.x,
+            y: child.y,
+            width: child.width,
+            height: child.height,
+          };
+        }
         break;
       case "circle":
-        childBBox = {
-          x: child.cx - child.r,
-          y: child.cy - child.r,
-          width: child.r * 2,
-          height: child.r * 2,
-        };
+        // Validate circle has required numeric properties
+        if (
+          typeof child.cx === "number" &&
+          typeof child.cy === "number" &&
+          typeof child.r === "number"
+        ) {
+          childBBox = {
+            x: child.cx - child.r,
+            y: child.cy - child.r,
+            width: child.r * 2,
+            height: child.r * 2,
+          };
+        }
         break;
       case "ellipse":
-        childBBox = {
-          x: child.cx - child.rx,
-          y: child.cy - child.ry,
-          width: child.rx * 2,
-          height: child.ry * 2,
-        };
+        // Validate ellipse has required numeric properties
+        if (
+          typeof child.cx === "number" &&
+          typeof child.cy === "number" &&
+          typeof child.rx === "number" &&
+          typeof child.ry === "number"
+        ) {
+          childBBox = {
+            x: child.cx - child.rx,
+            y: child.cy - child.ry,
+            width: child.rx * 2,
+            height: child.ry * 2,
+          };
+        }
         break;
       case "line":
-        childBBox = {
-          x: Math.min(child.x1, child.x2),
-          y: Math.min(child.y1, child.y2),
-          width: Math.abs(child.x2 - child.x1),
-          height: Math.abs(child.y2 - child.y1),
-        };
+        // Validate line has required numeric properties
+        if (
+          typeof child.x1 === "number" &&
+          typeof child.y1 === "number" &&
+          typeof child.x2 === "number" &&
+          typeof child.y2 === "number"
+        ) {
+          childBBox = {
+            x: Math.min(child.x1, child.x2),
+            y: Math.min(child.y1, child.y2),
+            width: Math.abs(child.x2 - child.x1),
+            height: Math.abs(child.y2 - child.y1),
+          };
+        }
         break;
       default:
         break;
     }
 
     if (childBBox) {
-      minX = Math.min(minX, childBBox.x);
-      minY = Math.min(minY, childBBox.y);
-      maxX = Math.max(maxX, childBBox.x + childBBox.width);
-      maxY = Math.max(maxY, childBBox.y + childBBox.height);
+      // Validate bbox values are finite
+      if (
+        isFinite(childBBox.x) &&
+        isFinite(childBBox.y) &&
+        isFinite(childBBox.width) &&
+        isFinite(childBBox.height)
+      ) {
+        minX = Math.min(minX, childBBox.x);
+        minY = Math.min(minY, childBBox.y);
+        maxX = Math.max(maxX, childBBox.x + childBBox.width);
+        maxY = Math.max(maxY, childBBox.y + childBBox.height);
+      }
     }
   }
 

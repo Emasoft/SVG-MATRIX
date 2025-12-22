@@ -237,15 +237,22 @@ process.on("SIGTERM", () => handleGracefulExit("SIGTERM")); // kill command
  * @returns {void}
  */
 function writeToLogFile(message) {
-  if (config.logFile) {
-    try {
-      const timestamp = new Date().toISOString();
-      // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for log stripping
-      const cleanMessage = message.replace(/\x1b\[[0-9;]*m/g, "");
-      appendFileSync(config.logFile, `[${timestamp}] ${cleanMessage}\n`);
-    } catch {
-      /* ignore */
+  // Why: Validate message parameter to prevent crashes
+  if (!message || !config.logFile) return;
+
+  try {
+    // Why: Ensure log directory exists before writing
+    const logDir = dirname(config.logFile);
+    if (!existsSync(logDir)) {
+      mkdirSync(logDir, { recursive: true });
     }
+
+    const timestamp = new Date().toISOString();
+    // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for log stripping
+    const cleanMessage = message.replace(/\x1b\[[0-9;]*m/g, "");
+    appendFileSync(config.logFile, `[${timestamp}] ${cleanMessage}\n`);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -319,6 +326,10 @@ function showProgress(current, total, filename) {
   // Why: Don't show progress in quiet mode or when there's only one file
   if (config.quiet || total <= 1) return;
 
+  // Why: Validate parameters to prevent crashes
+  if (!filename || typeof current !== "number" || typeof total !== "number")
+    return;
+
   // Why: In verbose mode, newline before progress to avoid overwriting debug output
   if (config.verbose && current > 1) {
     process.stdout.write("\n");
@@ -355,6 +366,16 @@ function showProgress(current, total, filename) {
  * @throws {Error} If file is invalid or too large
  */
 function validateSvgFile(filePath) {
+  // Why: Validate parameter to prevent crashes
+  if (!filePath || typeof filePath !== "string") {
+    throw new Error("Invalid file path: must be a non-empty string");
+  }
+
+  // Why: Check file exists before attempting to stat
+  if (!existsSync(filePath)) {
+    throw new Error(`File not found: ${filePath}`);
+  }
+
   const stats = statSync(filePath);
 
   // Why: Prevent memory exhaustion from huge files
@@ -448,6 +469,8 @@ ${JSON.stringify({ ...config, logFile: config.logFile ? "[redacted]" : null }, n
  * @returns {string} Normalized path
  */
 function normalizePath(p) {
+  // Why: Validate parameter to prevent crashes
+  if (!p || typeof p !== "string") return "";
   return p.replace(/\\/g, "/");
 }
 
@@ -457,6 +480,10 @@ function normalizePath(p) {
  * @returns {string} Absolute normalized path
  */
 function resolvePath(p) {
+  // Why: Validate parameter to prevent crashes
+  if (!p || typeof p !== "string") {
+    throw new Error("Invalid path: must be a non-empty string");
+  }
   return isAbsolute(p)
     ? normalizePath(p)
     : normalizePath(resolve(process.cwd(), p));
@@ -494,6 +521,10 @@ function isFile(p) {
  * @returns {void}
  */
 function ensureDir(dir) {
+  // Why: Validate parameter to prevent crashes
+  if (!dir || typeof dir !== "string") {
+    throw new Error("Invalid directory path: must be a non-empty string");
+  }
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
     logDebug(`Created directory: ${dir}`);
@@ -507,6 +538,14 @@ function ensureDir(dir) {
  * @returns {string[]} Array of SVG file paths
  */
 function getSvgFiles(dir, recursive = false) {
+  // Why: Validate parameter to prevent crashes
+  if (!dir || typeof dir !== "string") {
+    throw new Error("Invalid directory path: must be a non-empty string");
+  }
+  if (!existsSync(dir)) {
+    throw new Error(`Directory not found: ${dir}`);
+  }
+
   const files = [];
   function scan(d) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
@@ -530,16 +569,28 @@ function getSvgFiles(dir, recursive = false) {
  * @returns {string[]} Array of resolved file paths
  */
 function parseFileList(listPath) {
+  // Why: Validate parameter to prevent crashes
+  if (!listPath || typeof listPath !== "string") {
+    throw new Error("Invalid list file path: must be a non-empty string");
+  }
+  if (!existsSync(listPath)) {
+    throw new Error(`List file not found: ${listPath}`);
+  }
+
   const content = readFileSync(listPath, "utf8");
   const files = [];
   for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
-    const resolved = resolvePath(trimmed);
-    if (isFile(resolved)) files.push(resolved);
-    else if (isDir(resolved))
-      files.push(...getSvgFiles(resolved, config.recursive));
-    else logWarn(`File not found: ${trimmed}`);
+    try {
+      const resolved = resolvePath(trimmed);
+      if (isFile(resolved)) files.push(resolved);
+      else if (isDir(resolved))
+        files.push(...getSvgFiles(resolved, config.recursive));
+      else logWarn(`File not found: ${trimmed}`);
+    } catch (e) {
+      logWarn(`Invalid path in list: ${trimmed} - ${e.message}`);
+    }
   }
   return files;
 }
@@ -559,6 +610,10 @@ function parseFileList(listPath) {
  * @returns {number} Parsed value or default
  */
 function extractNumericAttr(attrs, attrName, defaultValue = 0) {
+  // Why: Validate parameters to prevent crashes
+  if (!attrs || typeof attrs !== "string") return defaultValue;
+  if (!attrName || typeof attrName !== "string") return defaultValue;
+
   // Why: Use word boundary \b to avoid matching 'rx' when looking for 'x'
   const regex = new RegExp(`\\b${attrName}\\s*=\\s*["']([^"']+)["']`, "i");
   const match = attrs.match(regex);
@@ -573,6 +628,11 @@ function extractNumericAttr(attrs, attrName, defaultValue = 0) {
  * @returns {string|null} Path data or null if extraction failed
  */
 function extractShapeAsPath(shapeType, attrs, precision) {
+  // Why: Validate parameters to prevent crashes
+  if (!shapeType || typeof shapeType !== "string") return null;
+  if (!attrs || typeof attrs !== "string") return null;
+  if (typeof precision !== "number" || precision < 1) return null;
+
   switch (shapeType) {
     case "rect": {
       const x = extractNumericAttr(attrs, "x");
@@ -638,6 +698,9 @@ function extractShapeAsPath(shapeType, attrs, precision) {
  * @returns {string[]} Attribute names to remove
  */
 function getShapeSpecificAttrs(shapeType) {
+  // Why: Validate parameter and return empty array for invalid input
+  if (!shapeType || typeof shapeType !== "string") return [];
+
   const attrMap = {
     rect: ["x", "y", "width", "height", "rx", "ry"],
     circle: ["cx", "cy", "r"],
@@ -656,8 +719,13 @@ function getShapeSpecificAttrs(shapeType) {
  * @returns {string} Cleaned attributes
  */
 function removeShapeAttrs(attrs, attrsToRemove) {
+  // Why: Validate parameters to prevent crashes
+  if (!attrs || typeof attrs !== "string") return "";
+  if (!Array.isArray(attrsToRemove)) return attrs;
+
   let result = attrs;
   for (const attrName of attrsToRemove) {
+    if (!attrName || typeof attrName !== "string") continue;
     result = result.replace(
       new RegExp(`\\b${attrName}\\s*=\\s*["'][^"']*["']`, "gi"),
       "",
@@ -701,6 +769,8 @@ const B = supportsUnicode()
  * @returns {string} String without ANSI codes
  */
 function stripAnsi(s) {
+  // Why: Validate parameter to prevent crashes
+  if (!s || typeof s !== "string") return "";
   // eslint-disable-next-line no-control-regex -- ANSI escape codes are intentional for terminal color stripping
   return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
@@ -712,9 +782,14 @@ function stripAnsi(s) {
  * @returns {string} Formatted line
  */
 function boxLine(content, width = 70) {
-  const visible = stripAnsi(content).length;
+  // Why: Validate content parameter to prevent crashes
+  let safeContent = content;
+  if (safeContent === undefined || safeContent === null) safeContent = "";
+  if (typeof safeContent !== "string") safeContent = String(safeContent);
+
+  const visible = stripAnsi(safeContent).length;
   const padding = Math.max(0, width - visible - 2);
-  return `${colors.cyan}${B.v}${colors.reset} ${content}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+  return `${colors.cyan}${B.v}${colors.reset} ${safeContent}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
 /**
@@ -724,10 +799,15 @@ function boxLine(content, width = 70) {
  * @returns {string} Formatted header
  */
 function boxHeader(title, width = 70) {
+  // Why: Validate title parameter to prevent crashes
+  let safeTitle = title;
+  if (safeTitle === undefined || safeTitle === null) safeTitle = "";
+  if (typeof safeTitle !== "string") safeTitle = String(safeTitle);
+
   const _hr = B.h.repeat(width); // Reserved for future use (horizontal rule)
-  const visible = stripAnsi(title).length;
+  const visible = stripAnsi(safeTitle).length;
   const padding = Math.max(0, width - visible - 2);
-  return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${title}${colors.reset}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
+  return `${colors.cyan}${B.v}${colors.reset} ${colors.bright}${safeTitle}${colors.reset}${" ".repeat(padding)}${colors.cyan}${B.v}${colors.reset}`;
 }
 
 /**
@@ -861,6 +941,12 @@ ${colors.cyan}${B.bl}${hr}${B.br}${colors.reset}
  * @returns {void}
  */
 function showCommandHelp(command) {
+  // Why: Validate command parameter to prevent crashes
+  if (!command || typeof command !== "string") {
+    showHelp();
+    return;
+  }
+
   const W = 72;
   const hr = B.h.repeat(W);
 
@@ -1009,6 +1095,8 @@ function showVersion() {
  * @returns {string|null} Transform value or null
  */
 function extractTransform(attrs) {
+  // Why: Validate parameter to prevent crashes
+  if (!attrs || typeof attrs !== "string") return null;
   const match = attrs.match(/transform\s*=\s*["']([^"']+)["']/i);
   return match ? match[1] : null;
 }
@@ -1019,6 +1107,8 @@ function extractTransform(attrs) {
  * @returns {string} Attributes without transform
  */
 function removeTransform(attrs) {
+  // Why: Validate parameter to prevent crashes
+  if (!attrs || typeof attrs !== "string") return "";
   return attrs.replace(/\s*transform\s*=\s*["'][^"']*["']/gi, "");
 }
 
@@ -1028,6 +1118,8 @@ function removeTransform(attrs) {
  * @returns {string|null} Path data or null
  */
 function extractPathD(attrs) {
+  // Why: Validate parameter to prevent crashes
+  if (!attrs || typeof attrs !== "string") return null;
   const match = attrs.match(/\bd\s*=\s*["']([^"']+)["']/i);
   return match ? match[1] : null;
 }
@@ -1039,7 +1131,12 @@ function extractPathD(attrs) {
  * @returns {string} Updated attributes
  */
 function replacePathD(attrs, newD) {
-  return attrs.replace(/(\bd\s*=\s*["'])[^"']+["']/i, `$1${newD}"`);
+  // Why: Validate parameters to prevent crashes
+  if (!attrs || typeof attrs !== "string") return "";
+  let safeD = newD;
+  if (safeD === undefined || safeD === null) safeD = "";
+  if (typeof safeD !== "string") safeD = String(safeD);
+  return attrs.replace(/(\bd\s*=\s*["'])[^"']+["']/i, `$1${safeD}"`);
 }
 
 /**
@@ -1061,6 +1158,16 @@ function replacePathD(attrs, newD) {
  * @returns {boolean} True if successful
  */
 function processFlatten(inputPath, outputPath) {
+  // Why: Validate parameters to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+  if (!outputPath || typeof outputPath !== "string") {
+    logError("Invalid output path: must be a non-empty string");
+    return false;
+  }
+
   try {
     logDebug(`Processing: ${inputPath}`);
     const svgContent = readFileSync(inputPath, "utf8");
@@ -1207,6 +1314,20 @@ function processFlatten(inputPath, outputPath) {
  * @private
  */
 function processFlattenLegacy(inputPath, outputPath, svgContent) {
+  // Why: Validate parameters to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+  if (!outputPath || typeof outputPath !== "string") {
+    logError("Invalid output path: must be a non-empty string");
+    return false;
+  }
+  if (!svgContent || typeof svgContent !== "string") {
+    logError("Invalid SVG content: must be a non-empty string");
+    return false;
+  }
+
   let result = svgContent;
   let transformCount = 0;
   let pathCount = 0;
@@ -1378,6 +1499,16 @@ function processFlattenLegacy(inputPath, outputPath, svgContent) {
  * @returns {boolean} True if successful
  */
 function processConvert(inputPath, outputPath) {
+  // Why: Validate parameters to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+  if (!outputPath || typeof outputPath !== "string") {
+    logError("Invalid output path: must be a non-empty string");
+    return false;
+  }
+
   try {
     logDebug(`Converting: ${inputPath}`);
     let result = readFileSync(inputPath, "utf8");
@@ -1439,6 +1570,16 @@ function processConvert(inputPath, outputPath) {
  * @returns {boolean} True if successful
  */
 function processNormalize(inputPath, outputPath) {
+  // Why: Validate parameters to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+  if (!outputPath || typeof outputPath !== "string") {
+    logError("Invalid output path: must be a non-empty string");
+    return false;
+  }
+
   try {
     logDebug(`Normalizing: ${inputPath}`);
     let result = readFileSync(inputPath, "utf8");
@@ -1470,6 +1611,12 @@ function processNormalize(inputPath, outputPath) {
  * @returns {boolean} True if successful
  */
 function processInfo(inputPath) {
+  // Why: Validate parameter to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+
   try {
     const svg = readFileSync(inputPath, "utf8");
     const vb = svg.match(/viewBox\s*=\s*["']([^"']+)["']/i)?.[1] || "not set";
@@ -1605,6 +1752,20 @@ async function testToolboxFunction(
   originalSize,
   outputDir,
 ) {
+  // Why: Validate parameters to prevent crashes
+  if (!fnName || typeof fnName !== "string") {
+    return {
+      name: "invalid",
+      status: "error",
+      error: "Invalid function name",
+      outputSize: 0,
+      sizeDiff: 0,
+      sizeDiffPercent: 0,
+      outputFile: null,
+      timeMs: 0,
+    };
+  }
+
   const result = {
     name: fnName,
     status: "unknown",
@@ -1615,6 +1776,23 @@ async function testToolboxFunction(
     outputFile: null,
     timeMs: 0,
   };
+
+  // Why: Validate remaining parameters after result initialization
+  if (!originalContent || typeof originalContent !== "string") {
+    result.status = "error";
+    result.error = "Invalid original content";
+    return result;
+  }
+  if (typeof originalSize !== "number" || originalSize < 0) {
+    result.status = "error";
+    result.error = "Invalid original size";
+    return result;
+  }
+  if (!outputDir || typeof outputDir !== "string") {
+    result.status = "error";
+    result.error = "Invalid output directory";
+    return result;
+  }
 
   try {
     const fn = SVGToolbox[fnName];
@@ -2072,6 +2250,11 @@ function gatherInputFiles() {
  * @returns {string} Output file path
  */
 function getOutputPath(inputPath) {
+  // Why: Validate parameter to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    throw new Error("Invalid input path: must be a non-empty string");
+  }
+
   if (!config.output) {
     const dir = dirname(inputPath);
     const base = basename(inputPath, ".svg");

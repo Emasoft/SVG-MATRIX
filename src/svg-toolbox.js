@@ -2674,6 +2674,11 @@ export const removeViewBox = createOperation((doc, _options = {}) => {
     const w = parseFloat(width);
     const h = parseFloat(height);
 
+    // Validate parsed values are not NaN
+    if (isNaN(w) || isNaN(h) || vb.some((v) => isNaN(v))) {
+      return doc; // Skip if any value is invalid
+    }
+
     // Use epsilon comparison for floating point values to avoid precision issues
     const epsilon = 1e-6;
     if (
@@ -3259,6 +3264,11 @@ export const convertEllipseToCircle = createOperation((doc, _options = {}) => {
   for (const ellipse of [...ellipses]) {
     const rx = parseFloat(ellipse.getAttribute("rx") || "0");
     const ry = parseFloat(ellipse.getAttribute("ry") || "0");
+
+    // Validate parsed values are not NaN
+    if (isNaN(rx) || isNaN(ry)) {
+      continue; // Skip if any value is invalid
+    }
 
     if (Math.abs(rx - ry) < 0.001) {
       const circle = new SVGElement("circle", {});
@@ -4942,7 +4952,9 @@ function getStopOpacity(stop) {
     }
   }
 
-  return opacity ? parseFloat(opacity) : 1.0;
+  // Parse opacity value and validate it's not NaN
+  const parsedOpacity = opacity ? parseFloat(opacity) : 1.0;
+  return isNaN(parsedOpacity) ? 1.0 : parsedOpacity;
 }
 
 /**
@@ -4952,6 +4964,10 @@ function getStopOpacity(stop) {
  * @returns {string} Hex color string (e.g., "#ff8800")
  */
 function normalizeColor(color) {
+  // Validate color parameter is not null/undefined
+  if (!color || typeof color !== "string") {
+    return "#000000"; // Return default black if invalid
+  }
   const colorValue = color.trim().toLowerCase();
 
   // Already hex format
@@ -5035,11 +5051,15 @@ function interpolateColors(color1, color2, t) {
         hexValue[2] +
         hexValue[2];
     }
-    return [
-      parseInt(hexValue.slice(0, 2), 16),
-      parseInt(hexValue.slice(2, 4), 16),
-      parseInt(hexValue.slice(4, 6), 16),
-    ];
+    // Parse RGB components and validate they're not NaN
+    const r = parseInt(hexValue.slice(0, 2), 16);
+    const g = parseInt(hexValue.slice(2, 4), 16);
+    const b = parseInt(hexValue.slice(4, 6), 16);
+    // Return default black [0, 0, 0] if any component is NaN
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return [0, 0, 0];
+    }
+    return [r, g, b];
   };
 
   const [r1, g1, b1] = parseHex(color1);

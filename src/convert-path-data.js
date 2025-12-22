@@ -50,6 +50,13 @@ const COMMAND_PARAMS = {
  * @returns {Array<number>|null} Parsed arc parameters or null if invalid
  */
 function parseArcArgs(argsStr) {
+  // Parameter validation: argsStr must be a string
+  if (typeof argsStr !== "string") {
+    throw new TypeError(
+      `parseArcArgs: argsStr must be a string, got ${typeof argsStr}`,
+    );
+  }
+
   const args = [];
   // Regex to match: number, then optionally flags and more numbers
   // Arc has: rx ry rotation flag flag x y (7 params per arc)
@@ -201,6 +208,21 @@ export function parsePath(d) {
  * @returns {string} Formatted number
  */
 export function formatNumber(num, precision = 3) {
+  // Parameter validation: num must be a number
+  if (typeof num !== "number") {
+    throw new TypeError(`formatNumber: num must be a number, got ${typeof num}`);
+  }
+  // Parameter validation: precision must be a non-negative integer
+  if (
+    typeof precision !== "number" ||
+    !Number.isInteger(precision) ||
+    precision < 0
+  ) {
+    throw new TypeError(
+      `formatNumber: precision must be a non-negative integer, got ${precision}`,
+    );
+  }
+
   // BUG FIX #3: Handle NaN, Infinity, -Infinity
   if (!isFinite(num)) return "0";
   if (num === 0) return "0";
@@ -231,6 +253,26 @@ export function formatNumber(num, precision = 3) {
  * Convert a command to absolute form.
  */
 export function toAbsolute(cmd, cx, cy) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(`toAbsolute: cmd must be an object, got ${typeof cmd}`);
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `toAbsolute: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`toAbsolute: cmd.args must be an array`);
+  }
+  // Parameter validation: cx and cy must be numbers
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new TypeError(`toAbsolute: cx must be a finite number, got ${cx}`);
+  }
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new TypeError(`toAbsolute: cy must be a finite number, got ${cy}`);
+  }
+
   const { command, args } = cmd;
 
   if (command === command.toUpperCase()) return cmd;
@@ -242,16 +284,40 @@ export function toAbsolute(cmd, cx, cy) {
     case "m":
     case "l":
     case "t":
+      // Bounds check: need at least 2 args
+      if (absArgs.length < 2) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 2 args, got ${absArgs.length}`,
+        );
+      }
       absArgs[0] += cx;
       absArgs[1] += cy;
       break;
     case "h":
+      // Bounds check: need at least 1 arg
+      if (absArgs.length < 1) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 1 arg, got ${absArgs.length}`,
+        );
+      }
       absArgs[0] += cx;
       break;
     case "v":
+      // Bounds check: need at least 1 arg
+      if (absArgs.length < 1) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 1 arg, got ${absArgs.length}`,
+        );
+      }
       absArgs[0] += cy;
       break;
     case "c":
+      // Bounds check: need at least 6 args
+      if (absArgs.length < 6) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 6 args, got ${absArgs.length}`,
+        );
+      }
       absArgs[0] += cx;
       absArgs[1] += cy;
       absArgs[2] += cx;
@@ -261,12 +327,24 @@ export function toAbsolute(cmd, cx, cy) {
       break;
     case "s":
     case "q":
+      // Bounds check: need at least 4 args
+      if (absArgs.length < 4) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 4 args, got ${absArgs.length}`,
+        );
+      }
       absArgs[0] += cx;
       absArgs[1] += cy;
       absArgs[2] += cx;
       absArgs[3] += cy;
       break;
     case "a":
+      // Bounds check: need at least 7 args
+      if (absArgs.length < 7) {
+        throw new RangeError(
+          `toAbsolute: command ${command} requires at least 7 args, got ${absArgs.length}`,
+        );
+      }
       absArgs[5] += cx;
       absArgs[6] += cy;
       break;
@@ -281,6 +359,26 @@ export function toAbsolute(cmd, cx, cy) {
  * Convert a command to relative form.
  */
 export function toRelative(cmd, cx, cy) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(`toRelative: cmd must be an object, got ${typeof cmd}`);
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `toRelative: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`toRelative: cmd.args must be an array`);
+  }
+  // Parameter validation: cx and cy must be numbers
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new TypeError(`toRelative: cx must be a finite number, got ${cx}`);
+  }
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new TypeError(`toRelative: cy must be a finite number, got ${cy}`);
+  }
+
   const { command, args } = cmd;
 
   if (command === command.toLowerCase() && command !== "z") return cmd;
@@ -293,16 +391,40 @@ export function toRelative(cmd, cx, cy) {
     case "M":
     case "L":
     case "T":
+      // Bounds check: need at least 2 args
+      if (relArgs.length < 2) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 2 args, got ${relArgs.length}`,
+        );
+      }
       relArgs[0] -= cx;
       relArgs[1] -= cy;
       break;
     case "H":
+      // Bounds check: need at least 1 arg
+      if (relArgs.length < 1) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 1 arg, got ${relArgs.length}`,
+        );
+      }
       relArgs[0] -= cx;
       break;
     case "V":
+      // Bounds check: need at least 1 arg
+      if (relArgs.length < 1) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 1 arg, got ${relArgs.length}`,
+        );
+      }
       relArgs[0] -= cy;
       break;
     case "C":
+      // Bounds check: need at least 6 args
+      if (relArgs.length < 6) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 6 args, got ${relArgs.length}`,
+        );
+      }
       relArgs[0] -= cx;
       relArgs[1] -= cy;
       relArgs[2] -= cx;
@@ -312,12 +434,24 @@ export function toRelative(cmd, cx, cy) {
       break;
     case "S":
     case "Q":
+      // Bounds check: need at least 4 args
+      if (relArgs.length < 4) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 4 args, got ${relArgs.length}`,
+        );
+      }
       relArgs[0] -= cx;
       relArgs[1] -= cy;
       relArgs[2] -= cx;
       relArgs[3] -= cy;
       break;
     case "A":
+      // Bounds check: need at least 7 args
+      if (relArgs.length < 7) {
+        throw new RangeError(
+          `toRelative: command ${command} requires at least 7 args, got ${relArgs.length}`,
+        );
+      }
       relArgs[5] -= cx;
       relArgs[6] -= cy;
       break;
@@ -332,8 +466,40 @@ export function toRelative(cmd, cx, cy) {
  * Convert L command to H or V when applicable.
  */
 export function lineToHV(cmd, cx, cy, tolerance = 1e-6) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(`lineToHV: cmd must be an object, got ${typeof cmd}`);
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `lineToHV: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`lineToHV: cmd.args must be an array`);
+  }
+  // Parameter validation: cx, cy, and tolerance must be numbers
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new TypeError(`lineToHV: cx must be a finite number, got ${cx}`);
+  }
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new TypeError(`lineToHV: cy must be a finite number, got ${cy}`);
+  }
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    throw new TypeError(
+      `lineToHV: tolerance must be a non-negative finite number, got ${tolerance}`,
+    );
+  }
+
   const { command, args } = cmd;
   if (command !== "L" && command !== "l") return null;
+
+  // Bounds check: need at least 2 args
+  if (args.length < 2) {
+    throw new RangeError(
+      `lineToHV: command ${command} requires at least 2 args, got ${args.length}`,
+    );
+  }
 
   const isAbs = command === "L";
   const endX = isAbs ? args[0] : cx + args[0];
@@ -356,8 +522,46 @@ export function lineToHV(cmd, cx, cy, tolerance = 1e-6) {
  * Check if a line command returns to subpath start (can use Z).
  */
 export function lineToZ(cmd, cx, cy, startX, startY, tolerance = 1e-6) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(`lineToZ: cmd must be an object, got ${typeof cmd}`);
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `lineToZ: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`lineToZ: cmd.args must be an array`);
+  }
+  // Parameter validation: cx, cy, startX, startY, and tolerance must be numbers
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new TypeError(`lineToZ: cx must be a finite number, got ${cx}`);
+  }
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new TypeError(`lineToZ: cy must be a finite number, got ${cy}`);
+  }
+  if (typeof startX !== "number" || !isFinite(startX)) {
+    throw new TypeError(`lineToZ: startX must be a finite number, got ${startX}`);
+  }
+  if (typeof startY !== "number" || !isFinite(startY)) {
+    throw new TypeError(`lineToZ: startY must be a finite number, got ${startY}`);
+  }
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    throw new TypeError(
+      `lineToZ: tolerance must be a non-negative finite number, got ${tolerance}`,
+    );
+  }
+
   const { command, args } = cmd;
   if (command !== "L" && command !== "l") return false;
+
+  // Bounds check: need at least 2 args
+  if (args.length < 2) {
+    throw new RangeError(
+      `lineToZ: command ${command} requires at least 2 args, got ${args.length}`,
+    );
+  }
 
   const isAbs = command === "L";
   const endX = isAbs ? args[0] : cx + args[0];
@@ -382,6 +586,21 @@ export function isCurveStraight(
   y3,
   tolerance = 0.5,
 ) {
+  // Parameter validation: all parameters must be finite numbers
+  const params = { x0, y0, cp1x, cp1y, cp2x, cp2y, x3, y3, tolerance };
+  for (const [name, value] of Object.entries(params)) {
+    if (typeof value !== "number" || !isFinite(value)) {
+      throw new TypeError(
+        `isCurveStraight: ${name} must be a finite number, got ${value}`,
+      );
+    }
+  }
+  if (tolerance < 0) {
+    throw new TypeError(
+      `isCurveStraight: tolerance must be non-negative, got ${tolerance}`,
+    );
+  }
+
   const chordLengthSq = (x3 - x0) ** 2 + (y3 - y0) ** 2;
 
   if (chordLengthSq < 1e-10) {
@@ -405,8 +624,46 @@ export function isCurveStraight(
  * Convert a straight cubic bezier to a line command.
  */
 export function straightCurveToLine(cmd, cx, cy, tolerance = 0.5) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(
+      `straightCurveToLine: cmd must be an object, got ${typeof cmd}`,
+    );
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `straightCurveToLine: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`straightCurveToLine: cmd.args must be an array`);
+  }
+  // Parameter validation: cx, cy, and tolerance must be numbers
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new TypeError(
+      `straightCurveToLine: cx must be a finite number, got ${cx}`,
+    );
+  }
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new TypeError(
+      `straightCurveToLine: cy must be a finite number, got ${cy}`,
+    );
+  }
+  if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    throw new TypeError(
+      `straightCurveToLine: tolerance must be a non-negative finite number, got ${tolerance}`,
+    );
+  }
+
   const { command, args } = cmd;
   if (command !== "C" && command !== "c") return null;
+
+  // Bounds check: need at least 6 args
+  if (args.length < 6) {
+    throw new RangeError(
+      `straightCurveToLine: command ${command} requires at least 6 args, got ${args.length}`,
+    );
+  }
 
   const isAbs = command === "C";
   const cp1x = isAbs ? args[0] : cx + args[0];
@@ -438,6 +695,43 @@ export function serializeCommand(
   precision = 3,
   prevLastArgHadDecimal = false,
 ) {
+  // Parameter validation: cmd must be an object with command and args
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError(
+      `serializeCommand: cmd must be an object, got ${typeof cmd}`,
+    );
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError(
+      `serializeCommand: cmd.command must be a string, got ${typeof cmd.command}`,
+    );
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError(`serializeCommand: cmd.args must be an array`);
+  }
+  // Parameter validation: prevCommand must be string or null
+  if (prevCommand !== null && typeof prevCommand !== "string") {
+    throw new TypeError(
+      `serializeCommand: prevCommand must be a string or null, got ${typeof prevCommand}`,
+    );
+  }
+  // Parameter validation: precision must be non-negative integer
+  if (
+    typeof precision !== "number" ||
+    !Number.isInteger(precision) ||
+    precision < 0
+  ) {
+    throw new TypeError(
+      `serializeCommand: precision must be a non-negative integer, got ${precision}`,
+    );
+  }
+  // Parameter validation: prevLastArgHadDecimal must be boolean
+  if (typeof prevLastArgHadDecimal !== "boolean") {
+    throw new TypeError(
+      `serializeCommand: prevLastArgHadDecimal must be a boolean, got ${typeof prevLastArgHadDecimal}`,
+    );
+  }
+
   const { command, args } = cmd;
 
   if (command === "Z" || command === "z") {
@@ -448,6 +742,13 @@ export function serializeCommand(
   // Arc format: rx ry rotation large-arc-flag sweep-flag x y
   // Per SVG spec: flags MUST be exactly 0 or 1, arc commands CANNOT be implicitly repeated
   if (command === "A" || command === "a") {
+    // Bounds check: arc commands need exactly 7 args
+    if (args.length < 7) {
+      throw new RangeError(
+        `serializeCommand: arc command requires 7 args, got ${args.length}`,
+      );
+    }
+
     const arcArgs = [
       formatNumber(args[0], precision), // rx
       formatNumber(args[1], precision), // ry
@@ -463,6 +764,14 @@ export function serializeCommand(
       str: command + arcArgs,
       lastArgHadDecimal: arcArgs.includes("."),
     };
+  }
+
+  // Edge case: handle empty args array (should not happen for valid commands except Z)
+  if (args.length === 0) {
+    // Only Z/z should have empty args, but we already handled that above
+    throw new RangeError(
+      `serializeCommand: command ${command} has empty args array (only Z/z should have no args)`,
+    );
   }
 
   const formattedArgs = args.map((n) => formatNumber(n, precision));
@@ -527,6 +836,23 @@ export function serializeCommand(
  * Serialize a complete path to minimal string.
  */
 export function serializePath(commands, precision = 3) {
+  // Parameter validation: commands must be an array
+  if (!Array.isArray(commands)) {
+    throw new TypeError(
+      `serializePath: commands must be an array, got ${typeof commands}`,
+    );
+  }
+  // Parameter validation: precision must be non-negative integer
+  if (
+    typeof precision !== "number" ||
+    !Number.isInteger(precision) ||
+    precision < 0
+  ) {
+    throw new TypeError(
+      `serializePath: precision must be a non-negative integer, got ${precision}`,
+    );
+  }
+
   if (commands.length === 0) return "";
 
   let result = "";
@@ -555,6 +881,17 @@ export function serializePath(commands, precision = 3) {
  * @returns {{d: string, originalLength: number, optimizedLength: number, savings: number}}
  */
 export function convertPathData(d, options = {}) {
+  // Parameter validation: d must be a string
+  if (typeof d !== "string") {
+    throw new TypeError(`convertPathData: d must be a string, got ${typeof d}`);
+  }
+  // Parameter validation: options must be an object
+  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    throw new TypeError(
+      `convertPathData: options must be an object, got ${typeof options}`,
+    );
+  }
+
   const {
     floatPrecision = 3,
     straightCurves = true,
@@ -563,6 +900,46 @@ export function convertPathData(d, options = {}) {
     utilizeAbsolute = true,
     straightTolerance = 0.5,
   } = options;
+
+  // Validate option types
+  if (
+    typeof floatPrecision !== "number" ||
+    !Number.isInteger(floatPrecision) ||
+    floatPrecision < 0
+  ) {
+    throw new TypeError(
+      `convertPathData: floatPrecision must be a non-negative integer, got ${floatPrecision}`,
+    );
+  }
+  if (typeof straightCurves !== "boolean") {
+    throw new TypeError(
+      `convertPathData: straightCurves must be a boolean, got ${typeof straightCurves}`,
+    );
+  }
+  if (typeof lineShorthands !== "boolean") {
+    throw new TypeError(
+      `convertPathData: lineShorthands must be a boolean, got ${typeof lineShorthands}`,
+    );
+  }
+  if (typeof convertToZ !== "boolean") {
+    throw new TypeError(
+      `convertPathData: convertToZ must be a boolean, got ${typeof convertToZ}`,
+    );
+  }
+  if (typeof utilizeAbsolute !== "boolean") {
+    throw new TypeError(
+      `convertPathData: utilizeAbsolute must be a boolean, got ${typeof utilizeAbsolute}`,
+    );
+  }
+  if (
+    typeof straightTolerance !== "number" ||
+    !isFinite(straightTolerance) ||
+    straightTolerance < 0
+  ) {
+    throw new TypeError(
+      `convertPathData: straightTolerance must be a non-negative finite number, got ${straightTolerance}`,
+    );
+  }
 
   const originalLength = d.length;
   const commands = parsePath(d);
@@ -682,11 +1059,28 @@ export function convertPathData(d, options = {}) {
  * Optimize all path elements in an SVG document.
  */
 export function optimizeDocumentPaths(root, options = {}) {
+  // Parameter validation: root must be an object (DOM element)
+  if (!root || typeof root !== "object") {
+    throw new TypeError(
+      `optimizeDocumentPaths: root must be a DOM element object, got ${typeof root}`,
+    );
+  }
+  // Parameter validation: options must be an object
+  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+    throw new TypeError(
+      `optimizeDocumentPaths: options must be an object, got ${typeof options}`,
+    );
+  }
+
   let pathsOptimized = 0;
   let totalSavings = 0;
   const details = [];
 
   const processElement = (el) => {
+    // Validate element is an object
+    if (!el || typeof el !== "object") {
+      return; // Skip invalid elements silently
+    }
     const tagName = el.tagName?.toLowerCase();
 
     if (tagName === "path") {

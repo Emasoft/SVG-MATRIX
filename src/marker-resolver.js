@@ -68,13 +68,34 @@ Decimal.set({ precision: 80 });
  * // }
  */
 export function parseMarkerElement(markerElement) {
+  // Validate required parameter
   if (!markerElement) throw new Error('parseMarkerElement: markerElement is required');
+  if (typeof markerElement.getAttribute !== 'function') {
+    throw new Error('parseMarkerElement: markerElement must be a DOM element');
+  }
+
+  // Parse numeric attributes with validation - NaN check ensures valid numbers
+  const markerWidth = parseFloat(markerElement.getAttribute("markerWidth") || "3");
+  const markerHeight = parseFloat(markerElement.getAttribute("markerHeight") || "3");
+  const refX = parseFloat(markerElement.getAttribute("refX") || "0");
+  const refY = parseFloat(markerElement.getAttribute("refY") || "0");
+
+  // Validate numeric values to prevent NaN propagation
+  if (isNaN(markerWidth) || markerWidth <= 0) {
+    throw new Error('parseMarkerElement: markerWidth must be a positive number');
+  }
+  if (isNaN(markerHeight) || markerHeight <= 0) {
+    throw new Error('parseMarkerElement: markerHeight must be a positive number');
+  }
+  if (isNaN(refX)) throw new Error('parseMarkerElement: refX must be a valid number');
+  if (isNaN(refY)) throw new Error('parseMarkerElement: refY must be a valid number');
+
   const data = {
     id: markerElement.getAttribute("id") || "",
-    markerWidth: parseFloat(markerElement.getAttribute("markerWidth") || "3"),
-    markerHeight: parseFloat(markerElement.getAttribute("markerHeight") || "3"),
-    refX: parseFloat(markerElement.getAttribute("refX") || "0"),
-    refY: parseFloat(markerElement.getAttribute("refY") || "0"),
+    markerWidth,
+    markerHeight,
+    refX,
+    refY,
     orient: markerElement.getAttribute("orient") || "auto",
     markerUnits: markerElement.getAttribute("markerUnits") || "strokeWidth",
     viewBox: null,
@@ -90,7 +111,8 @@ export function parseMarkerElement(markerElement) {
       .trim()
       .split(/[\s,]+/)
       .map(Number);
-    if (parts.length === 4) {
+    // Validate viewBox has exactly 4 valid finite numbers
+    if (parts.length === 4 && parts.every(n => !isNaN(n) && isFinite(n))) {
       data.viewBox = {
         x: parts[0],
         y: parts[1],
@@ -104,14 +126,25 @@ export function parseMarkerElement(markerElement) {
   if (data.orient !== "auto" && data.orient !== "auto-start-reverse") {
     // Parse as angle in degrees
     const angle = parseFloat(data.orient);
-    if (!isNaN(angle)) {
+    // Validate angle is a finite number
+    if (!isNaN(angle) && isFinite(angle)) {
       data.orient = angle;
+    } else {
+      // Invalid orient value defaults to auto
+      data.orient = "auto";
     }
   }
 
-  // Parse child elements
-  for (const child of markerElement.children) {
-    data.children.push(parseMarkerChild(child));
+  // Parse child elements with error handling
+  if (markerElement.children) {
+    for (const child of markerElement.children) {
+      try {
+        data.children.push(parseMarkerChild(child));
+      } catch (error) {
+        // Skip invalid children but continue processing
+        console.warn(`Failed to parse marker child: ${error.message}`);
+      }
+    }
   }
 
   return data;
@@ -124,7 +157,10 @@ export function parseMarkerElement(markerElement) {
  * @returns {Object} Parsed element data
  */
 export function parseMarkerChild(element) {
+  // Validate required parameter
   if (!element) throw new Error('parseMarkerChild: element is required');
+  if (!element.tagName) throw new Error('parseMarkerChild: element must have a tagName property');
+
   const tagName = element.tagName.toLowerCase();
   const data = {
     type: tagName,
@@ -136,32 +172,45 @@ export function parseMarkerChild(element) {
     opacity: element.getAttribute("opacity") || null,
   };
 
+  // Helper to parse and validate float attributes
+  const parseValidFloat = (value, defaultVal, name) => {
+    const parsed = parseFloat(value || String(defaultVal));
+    if (isNaN(parsed) || !isFinite(parsed)) {
+      throw new Error(`parseMarkerChild: ${name} must be a valid finite number`);
+    }
+    return parsed;
+  };
+
   switch (tagName) {
     case "path":
       data.d = element.getAttribute("d") || "";
       break;
     case "rect":
-      data.x = parseFloat(element.getAttribute("x") || "0");
-      data.y = parseFloat(element.getAttribute("y") || "0");
-      data.width = parseFloat(element.getAttribute("width") || "0");
-      data.height = parseFloat(element.getAttribute("height") || "0");
+      // Validate all rect attributes are valid numbers
+      data.x = parseValidFloat(element.getAttribute("x"), 0, "x");
+      data.y = parseValidFloat(element.getAttribute("y"), 0, "y");
+      data.width = parseValidFloat(element.getAttribute("width"), 0, "width");
+      data.height = parseValidFloat(element.getAttribute("height"), 0, "height");
       break;
     case "circle":
-      data.cx = parseFloat(element.getAttribute("cx") || "0");
-      data.cy = parseFloat(element.getAttribute("cy") || "0");
-      data.r = parseFloat(element.getAttribute("r") || "0");
+      // Validate all circle attributes are valid numbers
+      data.cx = parseValidFloat(element.getAttribute("cx"), 0, "cx");
+      data.cy = parseValidFloat(element.getAttribute("cy"), 0, "cy");
+      data.r = parseValidFloat(element.getAttribute("r"), 0, "r");
       break;
     case "ellipse":
-      data.cx = parseFloat(element.getAttribute("cx") || "0");
-      data.cy = parseFloat(element.getAttribute("cy") || "0");
-      data.rx = parseFloat(element.getAttribute("rx") || "0");
-      data.ry = parseFloat(element.getAttribute("ry") || "0");
+      // Validate all ellipse attributes are valid numbers
+      data.cx = parseValidFloat(element.getAttribute("cx"), 0, "cx");
+      data.cy = parseValidFloat(element.getAttribute("cy"), 0, "cy");
+      data.rx = parseValidFloat(element.getAttribute("rx"), 0, "rx");
+      data.ry = parseValidFloat(element.getAttribute("ry"), 0, "ry");
       break;
     case "line":
-      data.x1 = parseFloat(element.getAttribute("x1") || "0");
-      data.y1 = parseFloat(element.getAttribute("y1") || "0");
-      data.x2 = parseFloat(element.getAttribute("x2") || "0");
-      data.y2 = parseFloat(element.getAttribute("y2") || "0");
+      // Validate all line attributes are valid numbers
+      data.x1 = parseValidFloat(element.getAttribute("x1"), 0, "x1");
+      data.y1 = parseValidFloat(element.getAttribute("y1"), 0, "y1");
+      data.x2 = parseValidFloat(element.getAttribute("x2"), 0, "x2");
+      data.y2 = parseValidFloat(element.getAttribute("y2"), 0, "y2");
       break;
     case "polygon":
     case "polyline":
@@ -170,8 +219,10 @@ export function parseMarkerChild(element) {
     default:
       // Store any additional attributes for unknown elements
       data.attributes = {};
-      for (const attr of element.attributes) {
-        data.attributes[attr.name] = attr.value;
+      if (element.attributes) {
+        for (const attr of element.attributes) {
+          data.attributes[attr.name] = attr.value;
+        }
       }
   }
 
@@ -213,6 +264,19 @@ export function getMarkerTransform(
   strokeWidth = 1,
   isStart = false,
 ) {
+  // Validate required parameters
+  if (!markerDef) throw new Error('getMarkerTransform: markerDef is required');
+  if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
+    throw new Error('getMarkerTransform: position must be an object with x and y numeric properties');
+  }
+  if (typeof tangentAngle !== 'number' || isNaN(tangentAngle) || !isFinite(tangentAngle)) {
+    throw new Error('getMarkerTransform: tangentAngle must be a valid finite number');
+  }
+  if (typeof strokeWidth !== 'number' || isNaN(strokeWidth) || strokeWidth <= 0) {
+    throw new Error('getMarkerTransform: strokeWidth must be a positive number');
+  }
+
+  // Extract markerDef properties with validation
   const {
     markerWidth,
     markerHeight,
@@ -222,6 +286,20 @@ export function getMarkerTransform(
     markerUnits,
     viewBox,
   } = markerDef;
+
+  // Validate markerDef has required numeric properties
+  if (typeof markerWidth !== 'number' || markerWidth <= 0) {
+    throw new Error('getMarkerTransform: markerDef.markerWidth must be a positive number');
+  }
+  if (typeof markerHeight !== 'number' || markerHeight <= 0) {
+    throw new Error('getMarkerTransform: markerDef.markerHeight must be a positive number');
+  }
+  if (typeof refX !== 'number' || !isFinite(refX)) {
+    throw new Error('getMarkerTransform: markerDef.refX must be a finite number');
+  }
+  if (typeof refY !== 'number' || !isFinite(refY)) {
+    throw new Error('getMarkerTransform: markerDef.refY must be a finite number');
+  }
 
   // Start with identity matrix
   let transform = Matrix.identity(3);
@@ -260,20 +338,24 @@ export function getMarkerTransform(
     const vbWidth = viewBox.width;
     const vbHeight = viewBox.height;
 
-    if (vbWidth > 0 && vbHeight > 0) {
+    // Prevent division by zero
+    if (vbWidth > 0 && vbHeight > 0 && isFinite(vbWidth) && isFinite(vbHeight)) {
       // Calculate uniform scale factor based on preserveAspectRatio
       const scaleFactorX = markerWidth / vbWidth;
       const scaleFactorY = markerHeight / vbHeight;
 
-      // For now, use uniform scaling (can be enhanced with full preserveAspectRatio parsing)
-      const scaleFactor = Math.min(scaleFactorX, scaleFactorY);
+      // Validate scale factors are finite
+      if (isFinite(scaleFactorX) && isFinite(scaleFactorY)) {
+        // For now, use uniform scaling (can be enhanced with full preserveAspectRatio parsing)
+        const scaleFactor = Math.min(scaleFactorX, scaleFactorY);
 
-      scaleX *= scaleFactor;
-      scaleY *= scaleFactor;
+        scaleX *= scaleFactor;
+        scaleY *= scaleFactor;
 
-      // Translate to account for viewBox origin
-      const viewBoxTranslate = Transforms2D.translation(-viewBox.x, -viewBox.y);
-      transform = transform.mul(viewBoxTranslate);
+        // Translate to account for viewBox origin
+        const viewBoxTranslate = Transforms2D.translation(-viewBox.x, -viewBox.y);
+        transform = transform.mul(viewBoxTranslate);
+      }
     }
   }
 
@@ -329,6 +411,11 @@ export function getMarkerTransform(
  * // ]
  */
 export function getPathVertices(pathData) {
+  // Validate pathData parameter
+  if (typeof pathData !== 'string') {
+    throw new Error('getPathVertices: pathData must be a string');
+  }
+
   const vertices = [];
   let currentX = 0;
   let currentY = 0;
@@ -509,7 +596,17 @@ export function getPathVertices(pathData) {
  * @returns {Array<Object>} Array of command objects
  */
 export function parsePathCommands(pathData) {
+  // Validate pathData parameter
+  if (typeof pathData !== 'string') {
+    throw new Error('parsePathCommands: pathData must be a string');
+  }
+
   const commands = [];
+
+  // Handle empty path data
+  if (pathData.trim() === '') {
+    return commands;
+  }
 
   // Normalize path data: add spaces around command letters
   const normalized = pathData
@@ -550,14 +647,26 @@ export function parsePathCommands(pathData) {
   let currentX = 0;
   let currentY = 0;
 
+  // Helper to safely parse token with bounds checking
+  const parseToken = (index, name) => {
+    if (index >= tokens.length) {
+      throw new Error(`parsePathCommands: missing ${name} parameter at token ${index}`);
+    }
+    const value = parseFloat(tokens[index]);
+    if (isNaN(value) || !isFinite(value)) {
+      throw new Error(`parsePathCommands: invalid ${name} value "${tokens[index]}" at token ${index}`);
+    }
+    return value;
+  };
+
   while (i < tokens.length) {
     const cmdType = tokens[i];
 
     switch (cmdType.toUpperCase()) {
       case "M": {
-        // moveto
-        const mx = parseFloat(tokens[i + 1]);
-        const my = parseFloat(tokens[i + 2]);
+        // moveto - requires 2 parameters (x, y)
+        const mx = parseToken(i + 1, 'M.x');
+        const my = parseToken(i + 2, 'M.y');
         commands.push({
           type: "M",
           x: cmdType === "M" ? mx : currentX + mx,
@@ -570,9 +679,9 @@ export function parsePathCommands(pathData) {
       }
 
       case "L": {
-        // lineto
-        const lx = parseFloat(tokens[i + 1]);
-        const ly = parseFloat(tokens[i + 2]);
+        // lineto - requires 2 parameters (x, y)
+        const lx = parseToken(i + 1, 'L.x');
+        const ly = parseToken(i + 2, 'L.y');
         commands.push({
           type: "L",
           x: cmdType === "L" ? lx : currentX + lx,
@@ -585,8 +694,8 @@ export function parsePathCommands(pathData) {
       }
 
       case "H": {
-        // horizontal lineto
-        const hx = parseFloat(tokens[i + 1]);
+        // horizontal lineto - requires 1 parameter (x)
+        const hx = parseToken(i + 1, 'H.x');
         commands.push({
           type: "L",
           x: cmdType === "H" ? hx : currentX + hx,
@@ -598,8 +707,8 @@ export function parsePathCommands(pathData) {
       }
 
       case "V": {
-        // vertical lineto
-        const vy = parseFloat(tokens[i + 1]);
+        // vertical lineto - requires 1 parameter (y)
+        const vy = parseToken(i + 1, 'V.y');
         commands.push({
           type: "L",
           x: currentX,
@@ -611,13 +720,13 @@ export function parsePathCommands(pathData) {
       }
 
       case "C": {
-        // cubic bezier
-        const c1x = parseFloat(tokens[i + 1]);
-        const c1y = parseFloat(tokens[i + 2]);
-        const c2x = parseFloat(tokens[i + 3]);
-        const c2y = parseFloat(tokens[i + 4]);
-        const cx = parseFloat(tokens[i + 5]);
-        const cy = parseFloat(tokens[i + 6]);
+        // cubic bezier - requires 6 parameters (x1, y1, x2, y2, x, y)
+        const c1x = parseToken(i + 1, 'C.x1');
+        const c1y = parseToken(i + 2, 'C.y1');
+        const c2x = parseToken(i + 3, 'C.x2');
+        const c2y = parseToken(i + 4, 'C.y2');
+        const cx = parseToken(i + 5, 'C.x');
+        const cy = parseToken(i + 6, 'C.y');
         commands.push({
           type: "C",
           x1: cmdType === "C" ? c1x : currentX + c1x,
@@ -634,11 +743,11 @@ export function parsePathCommands(pathData) {
       }
 
       case "Q": {
-        // quadratic bezier
-        const q1x = parseFloat(tokens[i + 1]);
-        const q1y = parseFloat(tokens[i + 2]);
-        const qx = parseFloat(tokens[i + 3]);
-        const qy = parseFloat(tokens[i + 4]);
+        // quadratic bezier - requires 4 parameters (x1, y1, x, y)
+        const q1x = parseToken(i + 1, 'Q.x1');
+        const q1y = parseToken(i + 2, 'Q.y1');
+        const qx = parseToken(i + 3, 'Q.x');
+        const qy = parseToken(i + 4, 'Q.y');
         commands.push({
           type: "Q",
           x1: cmdType === "Q" ? q1x : currentX + q1x,
@@ -653,14 +762,21 @@ export function parsePathCommands(pathData) {
       }
 
       case "A": {
-        // arc
-        const rx = parseFloat(tokens[i + 1]);
-        const ry = parseFloat(tokens[i + 2]);
-        const xAxisRotation = parseFloat(tokens[i + 3]);
+        // arc - requires 7 parameters (rx, ry, rotation, largeArc, sweep, x, y)
+        const rx = parseToken(i + 1, 'A.rx');
+        const ry = parseToken(i + 2, 'A.ry');
+        const xAxisRotation = parseToken(i + 3, 'A.rotation');
+        // Flags must be 0 or 1
+        if (i + 4 >= tokens.length || i + 5 >= tokens.length) {
+          throw new Error(`parsePathCommands: missing arc flag parameters`);
+        }
         const largeArcFlag = parseInt(tokens[i + 4], 10);
         const sweepFlag = parseInt(tokens[i + 5], 10);
-        const ax = parseFloat(tokens[i + 6]);
-        const ay = parseFloat(tokens[i + 7]);
+        if (isNaN(largeArcFlag) || isNaN(sweepFlag)) {
+          throw new Error(`parsePathCommands: invalid arc flag values`);
+        }
+        const ax = parseToken(i + 6, 'A.x');
+        const ay = parseToken(i + 7, 'A.y');
         commands.push({
           type: "A",
           rx,
@@ -722,6 +838,12 @@ export function parsePathCommands(pathData) {
  * // Returns array of marker instances ready to be rendered
  */
 export function resolveMarkers(pathElement, defsMap) {
+  // Validate required parameters
+  if (!pathElement) throw new Error('resolveMarkers: pathElement is required');
+  if (!defsMap || typeof defsMap !== 'object') {
+    throw new Error('resolveMarkers: defsMap must be an object');
+  }
+
   const instances = [];
 
   // Get marker references
@@ -729,10 +851,13 @@ export function resolveMarkers(pathElement, defsMap) {
   const markerMid = pathElement.getAttribute("marker-mid");
   const markerEnd = pathElement.getAttribute("marker-end");
 
-  // Get stroke width for scaling
-  const strokeWidth = parseFloat(
-    pathElement.getAttribute("stroke-width") || "1",
-  );
+  // Get stroke width for scaling with validation
+  const strokeWidthStr = pathElement.getAttribute("stroke-width") || "1";
+  const strokeWidth = parseFloat(strokeWidthStr);
+  // Validate strokeWidth is a positive number
+  if (isNaN(strokeWidth) || strokeWidth <= 0) {
+    throw new Error('resolveMarkers: stroke-width must be a positive number');
+  }
 
   // Get path data and extract vertices
   const pathData = pathElement.getAttribute("d") || "";
@@ -854,9 +979,28 @@ export function resolveMarkers(pathElement, defsMap) {
  * // Returns: [[{x: 100.123, y: 200.456}, ...], ...]
  */
 export function markerToPolygons(markerInstance, options = {}) {
+  // Validate markerInstance parameter
+  if (!markerInstance) throw new Error('markerToPolygons: markerInstance is required');
+  if (!markerInstance.markerDef) throw new Error('markerToPolygons: markerInstance.markerDef is required');
+  if (!markerInstance.transform) throw new Error('markerToPolygons: markerInstance.transform is required');
+
   const { precision = 2, curveSegments = 10 } = options;
+
+  // Validate options
+  if (typeof precision !== 'number' || precision < 0) {
+    throw new Error('markerToPolygons: precision must be a non-negative number');
+  }
+  if (typeof curveSegments !== 'number' || curveSegments <= 0) {
+    throw new Error('markerToPolygons: curveSegments must be a positive number');
+  }
+
   const polygons = [];
   const { markerDef, transform } = markerInstance;
+
+  // Validate markerDef has children array
+  if (!Array.isArray(markerDef.children)) {
+    throw new Error('markerToPolygons: markerDef.children must be an array');
+  }
 
   // Process each child element
   for (const child of markerDef.children) {
@@ -935,6 +1079,14 @@ export function markerToPolygons(markerInstance, options = {}) {
  * @returns {Array<Object>} Array of {x, y} points
  */
 export function pathToPoints(pathData, segments = 10) {
+  // Validate parameters
+  if (typeof pathData !== 'string') {
+    throw new Error('pathToPoints: pathData must be a string');
+  }
+  if (typeof segments !== 'number' || segments <= 0) {
+    throw new Error('pathToPoints: segments must be a positive number');
+  }
+
   const points = [];
   const commands = parsePathCommands(pathData);
   let currentX = 0;
@@ -1012,6 +1164,20 @@ export function pathToPoints(pathData, segments = 10) {
  * @returns {Array<Object>} Array of {x, y} points
  */
 export function circleToPoints(cx, cy, r, segments = 32) {
+  // Validate parameters
+  if (typeof cx !== 'number' || !isFinite(cx)) {
+    throw new Error('circleToPoints: cx must be a finite number');
+  }
+  if (typeof cy !== 'number' || !isFinite(cy)) {
+    throw new Error('circleToPoints: cy must be a finite number');
+  }
+  if (typeof r !== 'number' || !isFinite(r) || r < 0) {
+    throw new Error('circleToPoints: r must be a non-negative finite number');
+  }
+  if (typeof segments !== 'number' || segments <= 0) {
+    throw new Error('circleToPoints: segments must be a positive number');
+  }
+
   const points = [];
   for (let i = 0; i < segments; i++) {
     const angle = (i / segments) * 2 * Math.PI;
@@ -1034,6 +1200,23 @@ export function circleToPoints(cx, cy, r, segments = 32) {
  * @returns {Array<Object>} Array of {x, y} points
  */
 export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
+  // Validate parameters
+  if (typeof cx !== 'number' || !isFinite(cx)) {
+    throw new Error('ellipseToPoints: cx must be a finite number');
+  }
+  if (typeof cy !== 'number' || !isFinite(cy)) {
+    throw new Error('ellipseToPoints: cy must be a finite number');
+  }
+  if (typeof rx !== 'number' || !isFinite(rx) || rx < 0) {
+    throw new Error('ellipseToPoints: rx must be a non-negative finite number');
+  }
+  if (typeof ry !== 'number' || !isFinite(ry) || ry < 0) {
+    throw new Error('ellipseToPoints: ry must be a non-negative finite number');
+  }
+  if (typeof segments !== 'number' || segments <= 0) {
+    throw new Error('ellipseToPoints: segments must be a positive number');
+  }
+
   const points = [];
   for (let i = 0; i < segments; i++) {
     const angle = (i / segments) * 2 * Math.PI;
@@ -1052,13 +1235,24 @@ export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
  * @returns {Array<Object>} Array of {x, y} points
  */
 export function parsePoints(pointsStr) {
+  // Validate parameter
+  if (typeof pointsStr !== 'string') {
+    throw new Error('parsePoints: pointsStr must be a string');
+  }
+
   const points = [];
   const coords = pointsStr
     .trim()
     .split(/[\s,]+/)
-    .map(Number);
+    .map(Number)
+    .filter(n => !isNaN(n) && isFinite(n)); // Filter out invalid numbers
 
-  for (let i = 0; i < coords.length - 1; i += 2) {
+  // Ensure we have an even number of coordinates
+  if (coords.length % 2 !== 0) {
+    throw new Error('parsePoints: pointsStr must contain an even number of valid coordinates');
+  }
+
+  for (let i = 0; i < coords.length; i += 2) {
     points.push({ x: coords[i], y: coords[i + 1] });
   }
 
@@ -1082,6 +1276,14 @@ export function parsePoints(pointsStr) {
  * // Returns: "M 100.000 200.000 L 105.000 205.000 ... Z M ..."
  */
 export function markersToPathData(markerInstances, precision = 2) {
+  // Validate parameters
+  if (!Array.isArray(markerInstances)) {
+    throw new Error('markersToPathData: markerInstances must be an array');
+  }
+  if (typeof precision !== 'number' || precision < 0) {
+    throw new Error('markersToPathData: precision must be a non-negative number');
+  }
+
   const pathParts = [];
 
   for (const instance of markerInstances) {

@@ -195,6 +195,17 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
  * @returns {Decimal} Speed (magnitude of derivative)
  */
 function speedAtT(points, t) {
+  // INPUT VALIDATION: Ensure points array and t parameter are valid
+  // WHY: bezierDerivative will fail cryptically if points is invalid or t is not a valid number
+  if (!points || !Array.isArray(points) || points.length < 2) {
+    throw new Error(
+      "speedAtT: points must be an array with at least 2 control points",
+    );
+  }
+  if (t === null || t === undefined) {
+    throw new Error("speedAtT: t parameter is required");
+  }
+
   const [dx, dy] = bezierDerivative(points, t, 1);
   const speedSquared = dx.times(dx).plus(dy.times(dy));
 
@@ -223,6 +234,50 @@ function speedAtT(points, t) {
  * @returns {Decimal} Integral approximation
  */
 function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
+  // INPUT VALIDATION: Ensure all parameters are valid
+  // WHY: Invalid parameters would cause cryptic errors deep in recursion
+  if (typeof f !== "function") {
+    throw new Error("adaptiveQuadrature: f must be a function");
+  }
+  if (!a || !(a instanceof Decimal)) {
+    throw new Error("adaptiveQuadrature: a must be a Decimal");
+  }
+  if (!b || !(b instanceof Decimal)) {
+    throw new Error("adaptiveQuadrature: b must be a Decimal");
+  }
+  if (!tol || !(tol instanceof Decimal) || tol.lte(0)) {
+    throw new Error(
+      "adaptiveQuadrature: tol must be a positive Decimal",
+    );
+  }
+  if (
+    typeof maxDepth !== "number" ||
+    maxDepth < 0 ||
+    !Number.isInteger(maxDepth)
+  ) {
+    throw new Error(
+      "adaptiveQuadrature: maxDepth must be a non-negative integer",
+    );
+  }
+  if (
+    typeof minDepth !== "number" ||
+    minDepth < 0 ||
+    !Number.isInteger(minDepth)
+  ) {
+    throw new Error(
+      "adaptiveQuadrature: minDepth must be a non-negative integer",
+    );
+  }
+  if (
+    typeof depth !== "number" ||
+    depth < 0 ||
+    !Number.isInteger(depth)
+  ) {
+    throw new Error(
+      "adaptiveQuadrature: depth must be a non-negative integer",
+    );
+  }
+
   // Compute integral using 5-point and 10-point rules
   const I5 = gaussLegendre(f, a, b, 5);
   const I10 = gaussLegendre(f, a, b, 10);
@@ -273,7 +328,23 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
  * @returns {Decimal} Integral approximation
  */
 function gaussLegendre(f, a, b, order) {
+  // INPUT VALIDATION: Ensure order is valid
+  // WHY: GAUSS_LEGENDRE only has entries for orders 5 and 10. Invalid order would cause undefined access.
+  if (order !== 5 && order !== 10) {
+    throw new Error(
+      "gaussLegendre: order must be 5 or 10 (only supported orders)",
+    );
+  }
+
   const gl = GAUSS_LEGENDRE[order];
+
+  // DIVISION BY ZERO CHECK: Ensure a != b
+  // WHY: If a == b, the integral is zero (no width), and halfWidth would be 0.
+  // While multiplying by 0 gives correct result (0), we should handle explicitly.
+  if (a.eq(b)) {
+    return D(0);
+  }
+
   const halfWidth = b.minus(a).div(2);
   const center = a.plus(b).div(2);
 
@@ -336,6 +407,18 @@ export function inverseArcLength(points, targetLength, options = {}) {
     initialT,
   } = options;
 
+  // INPUT VALIDATION: Ensure maxIterations is a positive integer
+  // WHY: maxIterations controls the loop; negative or zero values would prevent convergence
+  if (
+    typeof maxIterations !== "number" ||
+    maxIterations <= 0 ||
+    !Number.isInteger(maxIterations)
+  ) {
+    throw new Error(
+      "inverseArcLength: maxIterations must be a positive integer",
+    );
+  }
+
   const target = D(targetLength);
   const tol = D(tolerance);
   const lengthOpts = { tolerance: lengthTolerance };
@@ -346,6 +429,15 @@ export function inverseArcLength(points, targetLength, options = {}) {
   // incorrect results or infinite loops in Newton's method.
   if (target.lt(0)) {
     throw new Error("inverseArcLength: targetLength must be non-negative");
+  }
+
+  // EDGE CASE: Check for NaN or Infinity in targetLength
+  // WHY: NaN or Infinity would cause Newton's method to diverge or produce nonsensical results
+  if (target.isNaN()) {
+    throw new Error("inverseArcLength: targetLength cannot be NaN");
+  }
+  if (!target.isFinite()) {
+    throw new Error("inverseArcLength: targetLength must be finite");
   }
 
   // Handle edge case: zero length
@@ -546,9 +638,15 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
       "createArcLengthTable: points must have at least 2 control points",
     );
   }
-  if (samples < 2) {
+  // TYPE CHECK: Ensure samples is a valid number
+  // WHY: samples is used in arithmetic operations and as a loop bound
+  if (
+    typeof samples !== "number" ||
+    !Number.isInteger(samples) ||
+    samples < 2
+  ) {
     throw new Error(
-      "createArcLengthTable: samples must be at least 2 (for binary search to work)",
+      "createArcLengthTable: samples must be an integer >= 2 (for binary search to work)",
     );
   }
 
@@ -610,7 +708,15 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
       const t0 = table[lo].t;
       const t1 = table[hi].t;
 
-      const fraction = sD.minus(s0).div(s1.minus(s0));
+      // DIVISION BY ZERO CHECK: Handle degenerate case where s0 == s1
+      // WHY: If two consecutive table entries have the same arc length (e.g., at a cusp),
+      // division would fail. In this case, we return the midpoint t value.
+      const denominator = s1.minus(s0);
+      if (denominator.isZero()) {
+        return t0.plus(t1).div(2);
+      }
+
+      const fraction = sD.minus(s0).div(denominator);
       return t0.plus(t1.minus(t0).times(fraction));
     },
 
@@ -652,6 +758,19 @@ export function verifyArcLength(points, computedLength = null) {
     );
   }
 
+  // ARRAY ELEMENT VALIDATION: Ensure points array elements are valid [x, y] pairs
+  // WHY: We access points[i][0] and points[i][1] below. Invalid structure would cause errors.
+  if (
+    !Array.isArray(points[0]) ||
+    points[0].length < 2 ||
+    !Array.isArray(points[points.length - 1]) ||
+    points[points.length - 1].length < 2
+  ) {
+    throw new Error(
+      "verifyArcLength: each point must be an array with at least 2 coordinates [x, y]",
+    );
+  }
+
   const errors = [];
 
   // Compute arc length if not provided
@@ -669,6 +788,19 @@ export function verifyArcLength(points, computedLength = null) {
   // Control polygon length
   let polygonLength = D(0);
   for (let i = 0; i < points.length - 1; i++) {
+    // ARRAY ELEMENT VALIDATION: Check each point in the loop
+    // WHY: Ensures all intermediate points are valid before accessing coordinates
+    if (!Array.isArray(points[i]) || points[i].length < 2) {
+      throw new Error(
+        `verifyArcLength: point at index ${i} must be an array with at least 2 coordinates [x, y]`,
+      );
+    }
+    if (!Array.isArray(points[i + 1]) || points[i + 1].length < 2) {
+      throw new Error(
+        `verifyArcLength: point at index ${i + 1} must be an array with at least 2 coordinates [x, y]`,
+      );
+    }
+
     const [x1, y1] = [D(points[i][0]), D(points[i][1])];
     const [x2, y2] = [D(points[i + 1][0]), D(points[i + 1][1])];
     polygonLength = polygonLength.plus(
@@ -684,12 +816,17 @@ export function verifyArcLength(points, computedLength = null) {
     errors.push(`Arc length ${length} > polygon length ${polygonLength}`);
   }
 
+  // DIVISION BY ZERO CHECK: Handle degenerate case where chord length is zero
+  // WHY: If start and end points are identical, chordLength is 0, causing division by zero.
+  // In this case, the ratio is not meaningful, so we return 1 (or could be Infinity).
+  const ratio = chordLength.gt(0) ? length.div(chordLength) : D(1);
+
   return {
     valid: errors.length === 0,
     chordLength,
     polygonLength,
     arcLength: length,
-    ratio: chordLength.gt(0) ? length.div(chordLength) : D(1),
+    ratio,
     errors,
   };
 }
@@ -768,6 +905,18 @@ export function verifyArcLengthBySubdivision(
   if (!points || !Array.isArray(points) || points.length < 2) {
     throw new Error(
       "verifyArcLengthBySubdivision: points must be an array with at least 2 control points",
+    );
+  }
+
+  // INPUT VALIDATION: Ensure subdivisions is a positive integer
+  // WHY: subdivisions is used as a divisor and loop bound. Zero or negative would cause division by zero or invalid loops.
+  if (
+    typeof subdivisions !== "number" ||
+    subdivisions <= 0 ||
+    !Number.isInteger(subdivisions)
+  ) {
+    throw new Error(
+      "verifyArcLengthBySubdivision: subdivisions must be a positive integer",
     );
   }
 
@@ -868,6 +1017,18 @@ export function verifyArcLengthTable(points, samples = 50) {
   if (!points || !Array.isArray(points) || points.length < 2) {
     throw new Error(
       "verifyArcLengthTable: points must be an array with at least 2 control points",
+    );
+  }
+
+  // INPUT VALIDATION: Ensure samples is a positive integer >= 2
+  // WHY: samples is passed to createArcLengthTable which requires it to be >= 2
+  if (
+    typeof samples !== "number" ||
+    !Number.isInteger(samples) ||
+    samples < 2
+  ) {
+    throw new Error(
+      "verifyArcLengthTable: samples must be an integer >= 2",
     );
   }
 

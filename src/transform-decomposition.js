@@ -63,8 +63,14 @@ export function identityMatrix() {
  * @param {number|string|Decimal} tx - X translation
  * @param {number|string|Decimal} ty - Y translation
  * @returns {Matrix} 3x3 translation matrix
+ * @throws {TypeError} If tx or ty is null or undefined
  */
 export function translationMatrix(tx, ty) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (tx == null)
+    throw new TypeError("translationMatrix: tx parameter is required");
+  if (ty == null)
+    throw new TypeError("translationMatrix: ty parameter is required");
   return Matrix.from([
     [1, 0, D(tx)],
     [0, 1, D(ty)],
@@ -76,8 +82,12 @@ export function translationMatrix(tx, ty) {
  * Create a 2D rotation matrix.
  * @param {number|string|Decimal} angle - Rotation angle in radians
  * @returns {Matrix} 3x3 rotation matrix
+ * @throws {TypeError} If angle is null or undefined
  */
 export function rotationMatrix(angle) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (angle == null)
+    throw new TypeError("rotationMatrix: angle parameter is required");
   const theta = D(angle);
   const cos = Decimal.cos(theta);
   const sin = Decimal.sin(theta);
@@ -93,8 +103,12 @@ export function rotationMatrix(angle) {
  * @param {number|string|Decimal} sx - X scale factor
  * @param {number|string|Decimal} sy - Y scale factor
  * @returns {Matrix} 3x3 scale matrix
+ * @throws {TypeError} If sx or sy is null or undefined
  */
 export function scaleMatrix(sx, sy) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (sx == null) throw new TypeError("scaleMatrix: sx parameter is required");
+  if (sy == null) throw new TypeError("scaleMatrix: sy parameter is required");
   return Matrix.from([
     [D(sx), 0, 0],
     [0, D(sy), 0],
@@ -106,8 +120,12 @@ export function scaleMatrix(sx, sy) {
  * Create a 2D skewX matrix.
  * @param {number|string|Decimal} angle - Skew angle in radians
  * @returns {Matrix} 3x3 skewX matrix
+ * @throws {TypeError} If angle is null or undefined
  */
 export function skewXMatrix(angle) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (angle == null)
+    throw new TypeError("skewXMatrix: angle parameter is required");
   const tan = Decimal.tan(D(angle));
   return Matrix.from([
     [1, tan, 0],
@@ -120,8 +138,12 @@ export function skewXMatrix(angle) {
  * Create a 2D skewY matrix.
  * @param {number|string|Decimal} angle - Skew angle in radians
  * @returns {Matrix} 3x3 skewY matrix
+ * @throws {TypeError} If angle is null or undefined
  */
 export function skewYMatrix(angle) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (angle == null)
+    throw new TypeError("skewYMatrix: angle parameter is required");
   const tan = Decimal.tan(D(angle));
   return Matrix.from([
     [1, 0, 0],
@@ -134,8 +156,19 @@ export function skewYMatrix(angle) {
  * Extract the 2x2 linear transformation submatrix from a 3x3 affine matrix.
  * @param {Matrix} matrix - 3x3 affine transformation matrix
  * @returns {{a: Decimal, b: Decimal, c: Decimal, d: Decimal}}
+ * @throws {TypeError} If matrix is null or undefined
+ * @throws {RangeError} If matrix is not at least 2x2
  */
 export function extractLinearPart(matrix) {
+  // Parameter validation: why - accessing matrix.data without validation will crash on null
+  if (!matrix)
+    throw new TypeError("extractLinearPart: matrix parameter is required");
+  if (!matrix.data)
+    throw new TypeError("extractLinearPart: matrix must have data property");
+  // Bounds checking: why - accessing out of bounds indices will return undefined causing errors
+  if (matrix.rows < 2 || matrix.cols < 2) {
+    throw new RangeError("extractLinearPart: matrix must be at least 2x2");
+  }
   const data = matrix.data;
   return {
     a: data[0][0],
@@ -149,8 +182,19 @@ export function extractLinearPart(matrix) {
  * Extract the translation from a 3x3 affine matrix.
  * @param {Matrix} matrix - 3x3 affine transformation matrix
  * @returns {{tx: Decimal, ty: Decimal}}
+ * @throws {TypeError} If matrix is null or undefined
+ * @throws {RangeError} If matrix is not at least 2x3
  */
 export function extractTranslation(matrix) {
+  // Parameter validation: why - accessing matrix.data without validation will crash on null
+  if (!matrix)
+    throw new TypeError("extractTranslation: matrix parameter is required");
+  if (!matrix.data)
+    throw new TypeError("extractTranslation: matrix must have data property");
+  // Bounds checking: why - accessing out of bounds indices will return undefined causing errors
+  if (matrix.rows < 2 || matrix.cols < 3) {
+    throw new RangeError("extractTranslation: matrix must be at least 2x3");
+  }
   const data = matrix.data;
   return {
     tx: data[0][2],
@@ -186,8 +230,13 @@ export function extractTranslation(matrix) {
  *   verificationError?: Decimal,
  *   singular?: boolean
  * }}
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function decomposeMatrix(matrix) {
+  // Parameter validation: why - extractLinearPart/extractTranslation will validate, but we document it here
+  if (!matrix)
+    throw new TypeError("decomposeMatrix: matrix parameter is required");
+
   const { a, b, c, d } = extractLinearPart(matrix);
   const { tx, ty } = extractTranslation(matrix);
 
@@ -197,12 +246,12 @@ export function decomposeMatrix(matrix) {
   // Calculate scale factors using column norms
   let scaleX = a.mul(a).plus(b.mul(b)).sqrt();
 
-  // BUG FIX 1: Check for singular matrix (scaleX = 0) before division
+  // Check for singular matrix (scaleX = 0) before division: why - prevents division by zero
   if (scaleX.abs().lessThan(EPSILON)) {
     // Handle degenerate/singular matrix case (e.g., scale(0, y))
     return {
-      translateX: D(0),
-      translateY: D(0),
+      translateX: tx, // BUG FIX: preserve translation from input matrix, not zero
+      translateY: ty, // BUG FIX: preserve translation from input matrix, not zero
       rotation: D(0),
       scaleX: D(0),
       scaleY: D(0),
@@ -216,21 +265,14 @@ export function decomposeMatrix(matrix) {
 
   const scaleY = det.div(scaleX);
 
-  // Handle reflection (negative determinant)
+  // Handle reflection (negative determinant): why - negative determinant means reflection
   // We put the reflection in scaleX
   if (det.lessThan(0)) {
     scaleX = scaleX.neg();
   }
 
-  // Calculate rotation angle
-  // theta = atan2(b, a) for the first column after normalization
-  let rotation;
-  if (scaleX.abs().lessThan(EPSILON)) {
-    // Degenerate case: first column is zero
-    rotation = Decimal.atan2(d, c);
-  } else {
-    rotation = Decimal.atan2(b, a);
-  }
+  // Calculate rotation angle from first column
+  const rotation = Decimal.atan2(b, a);
 
   // Calculate skew
   // After removing rotation and scale, we get the skew
@@ -248,17 +290,15 @@ export function decomposeMatrix(matrix) {
   const cosTheta = Decimal.cos(rotation);
   const sinTheta = Decimal.sin(rotation);
 
-  // Rotate back to get the scale+skew matrix
+  // Rotate back to get the scale+skew matrix: why - separates rotation from scale+skew
   const aPrime = a.mul(cosTheta).plus(b.mul(sinTheta));
-  const _bPrime = a.neg().mul(sinTheta).plus(b.mul(cosTheta));
   const cPrime = c.mul(cosTheta).plus(d.mul(sinTheta));
-  const _dPrime = c.neg().mul(sinTheta).plus(d.mul(cosTheta));
+  // Note: bPrime and dPrime are not used in this decomposition approach
 
   // Now [aPrime cPrime] should be [scaleX, scaleX*tan(skewX)]
   //     [bPrime dPrime]           [0,      scaleY           ]
 
-  // BUG FIX 2: Calculate skewX from tan(skewX) = cPrime/aPrime
-  // Note: atan2 gives the angle of a vector, but we need atan of the ratio
+  // Calculate skewX from tan(skewX) = cPrime/aPrime
   let skewX;
   if (aPrime.abs().greaterThan(EPSILON)) {
     // skewX = atan(cPrime/aPrime) because tan(skewX) = cPrime/aPrime
@@ -268,20 +308,12 @@ export function decomposeMatrix(matrix) {
     skewX = D(0);
   }
 
-  // BUG FIX 3: Document skewY limitation
   // LIMITATION: This decomposition order (T * R * SkX * S) can only handle skewX.
   // A matrix with both skewX and skewY cannot be uniquely decomposed into this form.
   // To decompose matrices with skewY, a different decomposition order would be needed
   // (e.g., T * R * SkY * SkX * S), but that would change the semantic meaning.
   // For standard 2D affine transforms, skewY is typically 0.
   const skewY = D(0);
-
-  // Recalculate scaleY from dPrime
-  // dPrime should equal scaleY after removing skew
-  const cosSkewX = Decimal.cos(skewX);
-  if (cosSkewX.abs().greaterThan(EPSILON)) {
-    // scaleY = dPrime / cos(skewX) - but we already have it from det/scaleX
-  }
 
   // VERIFICATION: Recompose and compare
   const recomposed = composeTransform({
@@ -326,8 +358,13 @@ export function decomposeMatrix(matrix) {
  *   verified: boolean,
  *   maxError: Decimal
  * }}
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function decomposeMatrixNoSkew(matrix) {
+  // Parameter validation: why - extractLinearPart/extractTranslation will validate, but we document it here
+  if (!matrix)
+    throw new TypeError("decomposeMatrixNoSkew: matrix parameter is required");
+
   const { a, b, c, d } = extractLinearPart(matrix);
   const { tx, ty } = extractTranslation(matrix);
 
@@ -425,8 +462,25 @@ export function decomposeMatrixSVG(matrix) {
  *   skewY?: number|string|Decimal
  * }} components - Transform components
  * @returns {Matrix} 3x3 transformation matrix
+ * @throws {TypeError} If components is null or missing required properties
  */
 export function composeTransform(components) {
+  // Parameter validation: why - accessing properties of null/undefined will crash
+  if (!components)
+    throw new TypeError("composeTransform: components parameter is required");
+  if (components.translateX == null)
+    throw new TypeError("composeTransform: components.translateX is required");
+  if (components.translateY == null)
+    throw new TypeError("composeTransform: components.translateY is required");
+  if (components.rotation == null)
+    throw new TypeError("composeTransform: components.rotation is required");
+  if (components.scaleX == null)
+    throw new TypeError("composeTransform: components.scaleX is required");
+  if (components.scaleY == null)
+    throw new TypeError("composeTransform: components.scaleY is required");
+  if (components.skewX == null)
+    throw new TypeError("composeTransform: components.skewX is required");
+
   const {
     translateX,
     translateY,
@@ -460,8 +514,35 @@ export function composeTransform(components) {
  *   scaleY: number|string|Decimal
  * }} components - Transform components
  * @returns {Matrix} 3x3 transformation matrix
+ * @throws {TypeError} If components is null or missing required properties
  */
 export function composeTransformNoSkew(components) {
+  // Parameter validation: why - accessing properties of null/undefined will crash
+  if (!components)
+    throw new TypeError(
+      "composeTransformNoSkew: components parameter is required",
+    );
+  if (components.translateX == null)
+    throw new TypeError(
+      "composeTransformNoSkew: components.translateX is required",
+    );
+  if (components.translateY == null)
+    throw new TypeError(
+      "composeTransformNoSkew: components.translateY is required",
+    );
+  if (components.rotation == null)
+    throw new TypeError(
+      "composeTransformNoSkew: components.rotation is required",
+    );
+  if (components.scaleX == null)
+    throw new TypeError(
+      "composeTransformNoSkew: components.scaleX is required",
+    );
+  if (components.scaleY == null)
+    throw new TypeError(
+      "composeTransformNoSkew: components.scaleY is required",
+    );
+
   const { translateX, translateY, rotation, scaleX, scaleY } = components;
 
   const T = translationMatrix(translateX, translateY);
@@ -481,8 +562,24 @@ export function composeTransformNoSkew(components) {
  * @param {Matrix} m1 - First matrix
  * @param {Matrix} m2 - Second matrix
  * @returns {Decimal} Maximum absolute difference
+ * @throws {TypeError} If m1 or m2 is null or undefined
+ * @throws {RangeError} If matrices have different dimensions
  */
 export function matrixMaxDifference(m1, m2) {
+  // Parameter validation: why - accessing properties of null/undefined will crash
+  if (!m1) throw new TypeError("matrixMaxDifference: m1 parameter is required");
+  if (!m2) throw new TypeError("matrixMaxDifference: m2 parameter is required");
+  if (!m1.data)
+    throw new TypeError("matrixMaxDifference: m1 must have data property");
+  if (!m2.data)
+    throw new TypeError("matrixMaxDifference: m2 must have data property");
+  // Dimension validation: why - comparing different sized matrices makes no sense
+  if (m1.rows !== m2.rows || m1.cols !== m2.cols) {
+    throw new RangeError(
+      `matrixMaxDifference: matrices must have same dimensions (${m1.rows}x${m1.cols} vs ${m2.rows}x${m2.cols})`,
+    );
+  }
+
   let maxDiff = D(0);
 
   for (let i = 0; i < m1.rows; i++) {
@@ -515,8 +612,17 @@ export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
  * @param {Matrix} original - Original matrix
  * @param {Object} decomposition - Decomposition result from decomposeMatrix
  * @returns {{verified: boolean, maxError: Decimal}}
+ * @throws {TypeError} If original or decomposition is null or undefined
  */
 export function verifyDecomposition(original, decomposition) {
+  // Parameter validation: why - prevents crashes when accessing properties
+  if (!original)
+    throw new TypeError("verifyDecomposition: original parameter is required");
+  if (!decomposition)
+    throw new TypeError(
+      "verifyDecomposition: decomposition parameter is required",
+    );
+
   const recomposed = composeTransform(decomposition);
   const maxError = matrixMaxDifference(original, recomposed);
   return {
@@ -544,8 +650,23 @@ export function verifyDecomposition(original, decomposition) {
  * @param {number|string|Decimal} e - Translate X
  * @param {number|string|Decimal} f - Translate Y
  * @returns {Matrix} 3x3 transformation matrix
+ * @throws {TypeError} If any parameter is null or undefined
  */
 export function matrixFromSVGValues(a, b, c, d, e, f) {
+  // Parameter validation: why - D() cannot convert null/undefined to meaningful values
+  if (a == null)
+    throw new TypeError("matrixFromSVGValues: a parameter is required");
+  if (b == null)
+    throw new TypeError("matrixFromSVGValues: b parameter is required");
+  if (c == null)
+    throw new TypeError("matrixFromSVGValues: c parameter is required");
+  if (d == null)
+    throw new TypeError("matrixFromSVGValues: d parameter is required");
+  if (e == null)
+    throw new TypeError("matrixFromSVGValues: e parameter is required");
+  if (f == null)
+    throw new TypeError("matrixFromSVGValues: f parameter is required");
+
   return Matrix.from([
     [D(a), D(c), D(e)],
     [D(b), D(d), D(f)],
@@ -559,8 +680,26 @@ export function matrixFromSVGValues(a, b, c, d, e, f) {
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @param {number} [precision=6] - Decimal places for output
  * @returns {{a: string, b: string, c: string, d: string, e: string, f: string}}
+ * @throws {TypeError} If matrix is null or undefined
+ * @throws {RangeError} If matrix is not at least 2x3 or precision is negative
  */
 export function matrixToSVGValues(matrix, precision = 6) {
+  // Parameter validation: why - accessing matrix.data without validation will crash on null
+  if (!matrix)
+    throw new TypeError("matrixToSVGValues: matrix parameter is required");
+  if (!matrix.data)
+    throw new TypeError("matrixToSVGValues: matrix must have data property");
+  // Bounds checking: why - accessing out of bounds indices will return undefined causing errors
+  if (matrix.rows < 2 || matrix.cols < 3) {
+    throw new RangeError("matrixToSVGValues: matrix must be at least 2x3");
+  }
+  // Precision validation: why - negative precision makes no sense
+  if (precision < 0 || !Number.isInteger(precision)) {
+    throw new RangeError(
+      "matrixToSVGValues: precision must be a non-negative integer",
+    );
+  }
+
   const data = matrix.data;
   return {
     a: data[0][0].toFixed(precision),
@@ -578,8 +717,42 @@ export function matrixToSVGValues(matrix, precision = 6) {
  * @param {Object} decomposition - Decomposition result
  * @param {number} [precision=6] - Decimal places for output
  * @returns {string} SVG transform string
+ * @throws {TypeError} If decomposition is null or missing required properties
+ * @throws {RangeError} If precision is negative
  */
 export function decompositionToSVGString(decomposition, precision = 6) {
+  // Parameter validation: why - accessing properties of null/undefined will crash
+  if (!decomposition)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition parameter is required",
+    );
+  if (decomposition.translateX == null)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition.translateX is required",
+    );
+  if (decomposition.translateY == null)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition.translateY is required",
+    );
+  if (decomposition.rotation == null)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition.rotation is required",
+    );
+  if (decomposition.scaleX == null)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition.scaleX is required",
+    );
+  if (decomposition.scaleY == null)
+    throw new TypeError(
+      "decompositionToSVGString: decomposition.scaleY is required",
+    );
+  // Precision validation: why - negative precision makes no sense
+  if (precision < 0 || !Number.isInteger(precision)) {
+    throw new RangeError(
+      "decompositionToSVGString: precision must be a non-negative integer",
+    );
+  }
+
   const { translateX, translateY, rotation, scaleX, scaleY, skewX, skewY } =
     decomposition;
 
@@ -639,8 +812,22 @@ export function decompositionToSVGString(decomposition, precision = 6) {
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @param {number} [precision=6] - Decimal places for output
  * @returns {{transform: string, isIdentity: boolean, verified: boolean}}
+ * @throws {TypeError} If matrix is null or undefined
+ * @throws {RangeError} If precision is negative
  */
 export function matrixToMinimalSVGTransform(matrix, precision = 6) {
+  // Parameter validation: why - prevents crashes when accessing properties
+  if (!matrix)
+    throw new TypeError(
+      "matrixToMinimalSVGTransform: matrix parameter is required",
+    );
+  // Precision validation: why - negative precision makes no sense
+  if (precision < 0 || !Number.isInteger(precision)) {
+    throw new RangeError(
+      "matrixToMinimalSVGTransform: precision must be a non-negative integer",
+    );
+  }
+
   // Check if identity
   const identity = Matrix.identity(3);
   if (matricesEqual(matrix, identity, EPSILON)) {
@@ -669,8 +856,13 @@ export function matrixToMinimalSVGTransform(matrix, precision = 6) {
  *
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @returns {{isTranslation: boolean, tx: Decimal, ty: Decimal}}
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function isPureTranslation(matrix) {
+  // Parameter validation: why - extractLinearPart/extractTranslation will validate, but we document it here
+  if (!matrix)
+    throw new TypeError("isPureTranslation: matrix parameter is required");
+
   const { a, b, c, d } = extractLinearPart(matrix);
   const { tx, ty } = extractTranslation(matrix);
 
@@ -692,8 +884,13 @@ export function isPureTranslation(matrix) {
  *
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @returns {{isRotation: boolean, angle: Decimal}}
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function isPureRotation(matrix) {
+  // Parameter validation: why - extractLinearPart/extractTranslation will validate, but we document it here
+  if (!matrix)
+    throw new TypeError("isPureRotation: matrix parameter is required");
+
   const { a, b, c, d } = extractLinearPart(matrix);
   const { tx, ty } = extractTranslation(matrix);
 
@@ -729,8 +926,12 @@ export function isPureRotation(matrix) {
  *
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @returns {{isScale: boolean, scaleX: Decimal, scaleY: Decimal, isUniform: boolean}}
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function isPureScale(matrix) {
+  // Parameter validation: why - extractLinearPart/extractTranslation will validate, but we document it here
+  if (!matrix) throw new TypeError("isPureScale: matrix parameter is required");
+
   const { a, b, c, d } = extractLinearPart(matrix);
   const { tx, ty } = extractTranslation(matrix);
 
@@ -759,8 +960,13 @@ export function isPureScale(matrix) {
  *
  * @param {Matrix} matrix - 3x3 transformation matrix
  * @returns {boolean} True if identity
+ * @throws {TypeError} If matrix is null or undefined
  */
 export function isIdentityMatrix(matrix) {
+  // Parameter validation: why - matricesEqual will validate, but we document it here
+  if (!matrix)
+    throw new TypeError("isIdentityMatrix: matrix parameter is required");
+
   const identity = Matrix.identity(3);
   return matricesEqual(matrix, identity, EPSILON);
 }

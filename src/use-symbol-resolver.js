@@ -35,6 +35,19 @@ Decimal.set({ precision: 80 });
  * @returns {boolean} True if circular reference detected
  */
 function hasCircularReference(startId, getNextId, maxDepth = 100) {
+  // Parameter validation: startId must be a non-empty string
+  if (!startId || typeof startId !== 'string') {
+    throw new Error('hasCircularReference: startId must be a non-empty string');
+  }
+  // Parameter validation: getNextId must be a function
+  if (typeof getNextId !== 'function') {
+    throw new Error('hasCircularReference: getNextId must be a function');
+  }
+  // Parameter validation: maxDepth must be a positive finite number
+  if (typeof maxDepth !== 'number' || maxDepth <= 0 || !isFinite(maxDepth)) {
+    throw new Error('hasCircularReference: maxDepth must be a positive finite number');
+  }
+
   const visited = new Set();
   let currentId = startId;
   let depth = 0;
@@ -86,22 +99,49 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
  * // }
  */
 export function parseUseElement(useElement) {
+  // Parameter validation: useElement must be defined
   if (!useElement) throw new Error('parseUseElement: useElement is required');
+
   const href =
     useElement.getAttribute("href") ||
     useElement.getAttribute("xlink:href") ||
     "";
 
+  const parsedHref = href.startsWith("#") ? href.slice(1) : href;
+
+  // Parse numeric attributes and validate for NaN
+  const x = parseFloat(useElement.getAttribute("x") || "0");
+  const y = parseFloat(useElement.getAttribute("y") || "0");
+
+  // Validate that x and y are not NaN
+  if (isNaN(x) || isNaN(y)) {
+    throw new Error('parseUseElement: x and y attributes must be valid numbers');
+  }
+
+  // Parse width and height if present, validate for NaN
+  let width = null;
+  let height = null;
+
+  if (useElement.getAttribute("width")) {
+    width = parseFloat(useElement.getAttribute("width"));
+    if (isNaN(width)) {
+      throw new Error('parseUseElement: width attribute must be a valid number');
+    }
+  }
+
+  if (useElement.getAttribute("height")) {
+    height = parseFloat(useElement.getAttribute("height"));
+    if (isNaN(height)) {
+      throw new Error('parseUseElement: height attribute must be a valid number');
+    }
+  }
+
   return {
-    href: href.startsWith("#") ? href.slice(1) : href,
-    x: parseFloat(useElement.getAttribute("x") || "0"),
-    y: parseFloat(useElement.getAttribute("y") || "0"),
-    width: useElement.getAttribute("width")
-      ? parseFloat(useElement.getAttribute("width"))
-      : null,
-    height: useElement.getAttribute("height")
-      ? parseFloat(useElement.getAttribute("height"))
-      : null,
+    href: parsedHref,
+    x,
+    y,
+    width,
+    height,
     transform: useElement.getAttribute("transform") || null,
     style: extractStyleAttributes(useElement),
   };
@@ -147,15 +187,25 @@ export function parseUseElement(useElement) {
  * // }
  */
 export function parseSymbolElement(symbolElement) {
+  // Parameter validation: symbolElement must be defined
   if (!symbolElement) throw new Error('parseSymbolElement: symbolElement is required');
+
+  // Parse refX and refY with NaN validation
+  const refX = parseFloat(symbolElement.getAttribute("refX") || "0");
+  const refY = parseFloat(symbolElement.getAttribute("refY") || "0");
+
+  if (isNaN(refX) || isNaN(refY)) {
+    throw new Error('parseSymbolElement: refX and refY must be valid numbers');
+  }
+
   const data = {
     id: symbolElement.getAttribute("id") || "",
     viewBox: symbolElement.getAttribute("viewBox") || null,
     preserveAspectRatio:
       symbolElement.getAttribute("preserveAspectRatio") || "xMidYMid meet",
     children: [],
-    refX: parseFloat(symbolElement.getAttribute("refX") || "0"),
-    refY: parseFloat(symbolElement.getAttribute("refY") || "0"),
+    refX,
+    refY,
   };
 
   // Parse viewBox
@@ -164,7 +214,8 @@ export function parseSymbolElement(symbolElement) {
       .trim()
       .split(/[\s,]+/)
       .map(Number);
-    if (parts.length === 4) {
+    // Validate viewBox has exactly 4 parts and all are valid numbers
+    if (parts.length === 4 && parts.every((p) => !isNaN(p) && isFinite(p))) {
       data.viewBoxParsed = {
         x: parts[0],
         y: parts[1],
@@ -244,6 +295,11 @@ export function parseSymbolElement(symbolElement) {
  * // }
  */
 export function parseChildElement(element) {
+  // Parameter validation: element must be defined and have a tagName
+  if (!element || !element.tagName) {
+    throw new Error('parseChildElement: element with tagName is required');
+  }
+
   const tagName = element.tagName.toLowerCase();
 
   const data = {
@@ -253,25 +309,34 @@ export function parseChildElement(element) {
     style: extractStyleAttributes(element),
   };
 
+  // Helper to safely parse float with NaN check
+  const safeParseFloat = (attrName, defaultValue = "0") => {
+    const value = parseFloat(element.getAttribute(attrName) || defaultValue);
+    if (isNaN(value)) {
+      throw new Error(`parseChildElement: ${attrName} must be a valid number in ${tagName} element`);
+    }
+    return value;
+  };
+
   switch (tagName) {
     case "rect":
-      data.x = parseFloat(element.getAttribute("x") || "0");
-      data.y = parseFloat(element.getAttribute("y") || "0");
-      data.width = parseFloat(element.getAttribute("width") || "0");
-      data.height = parseFloat(element.getAttribute("height") || "0");
-      data.rx = parseFloat(element.getAttribute("rx") || "0");
-      data.ry = parseFloat(element.getAttribute("ry") || "0");
+      data.x = safeParseFloat("x");
+      data.y = safeParseFloat("y");
+      data.width = safeParseFloat("width");
+      data.height = safeParseFloat("height");
+      data.rx = safeParseFloat("rx");
+      data.ry = safeParseFloat("ry");
       break;
     case "circle":
-      data.cx = parseFloat(element.getAttribute("cx") || "0");
-      data.cy = parseFloat(element.getAttribute("cy") || "0");
-      data.r = parseFloat(element.getAttribute("r") || "0");
+      data.cx = safeParseFloat("cx");
+      data.cy = safeParseFloat("cy");
+      data.r = safeParseFloat("r");
       break;
     case "ellipse":
-      data.cx = parseFloat(element.getAttribute("cx") || "0");
-      data.cy = parseFloat(element.getAttribute("cy") || "0");
-      data.rx = parseFloat(element.getAttribute("rx") || "0");
-      data.ry = parseFloat(element.getAttribute("ry") || "0");
+      data.cx = safeParseFloat("cx");
+      data.cy = safeParseFloat("cy");
+      data.rx = safeParseFloat("rx");
+      data.ry = safeParseFloat("ry");
       break;
     case "path":
       data.d = element.getAttribute("d") || "";
@@ -283,10 +348,10 @@ export function parseChildElement(element) {
       data.points = element.getAttribute("points") || "";
       break;
     case "line":
-      data.x1 = parseFloat(element.getAttribute("x1") || "0");
-      data.y1 = parseFloat(element.getAttribute("y1") || "0");
-      data.x2 = parseFloat(element.getAttribute("x2") || "0");
-      data.y2 = parseFloat(element.getAttribute("y2") || "0");
+      data.x1 = safeParseFloat("x1");
+      data.y1 = safeParseFloat("y1");
+      data.x2 = safeParseFloat("x2");
+      data.y2 = safeParseFloat("y2");
       break;
     case "g":
       data.children = [];
@@ -300,13 +365,14 @@ export function parseChildElement(element) {
         element.getAttribute("xlink:href") ||
         ""
       ).replace("#", "");
-      data.x = parseFloat(element.getAttribute("x") || "0");
-      data.y = parseFloat(element.getAttribute("y") || "0");
+      data.x = safeParseFloat("x");
+      data.y = safeParseFloat("y");
+      // Width and height can be null
       data.width = element.getAttribute("width")
-        ? parseFloat(element.getAttribute("width"))
+        ? safeParseFloat("width")
         : null;
       data.height = element.getAttribute("height")
-        ? parseFloat(element.getAttribute("height"))
+        ? safeParseFloat("height")
         : null;
       break;
     default:
@@ -355,6 +421,11 @@ export function parseChildElement(element) {
  * // }
  */
 export function extractStyleAttributes(element) {
+  // Parameter validation: element must be defined
+  if (!element) {
+    throw new Error('extractStyleAttributes: element is required');
+  }
+
   return {
     fill: element.getAttribute("fill"),
     stroke: element.getAttribute("stroke"),
@@ -420,7 +491,13 @@ export function calculateViewBoxTransform(
   targetHeight,
   preserveAspectRatio = "xMidYMid meet",
 ) {
+  // Parameter validation: viewBox must have required properties
   if (!viewBox || !targetWidth || !targetHeight) {
+    return Matrix.identity(3);
+  }
+
+  // Validate targetWidth and targetHeight are finite positive numbers
+  if (!isFinite(targetWidth) || !isFinite(targetHeight) || targetWidth <= 0 || targetHeight <= 0) {
     return Matrix.identity(3);
   }
 
@@ -429,7 +506,8 @@ export function calculateViewBoxTransform(
   const vbX = viewBox.x;
   const vbY = viewBox.y;
 
-  if (vbW <= 0 || vbH <= 0) {
+  // Validate viewBox dimensions are finite and positive
+  if (!isFinite(vbW) || !isFinite(vbH) || !isFinite(vbX) || !isFinite(vbY) || vbW <= 0 || vbH <= 0) {
     return Matrix.identity(3);
   }
 
@@ -553,15 +631,26 @@ export function calculateViewBoxTransform(
  * // Recursively resolves ref1 → shape, composing transforms
  */
 export function resolveUse(useData, defs, options = {}) {
+  // Parameter validation: useData must be defined with href property
+  if (!useData || !useData.href) {
+    throw new Error('resolveUse: useData with href property is required');
+  }
+
+  // Parameter validation: defs must be defined
+  if (!defs) {
+    throw new Error('resolveUse: defs map is required');
+  }
+
   const { maxDepth = 10 } = options;
 
+  // Depth limit check
   if (maxDepth <= 0) {
     return null; // Prevent infinite recursion
   }
 
   const target = defs[useData.href];
   if (!target) {
-    return null;
+    return null; // Target element not found
   }
 
   // CORRECT ORDER per SVG spec:
@@ -681,9 +770,25 @@ export function resolveUse(useData, defs, options = {}) {
 export function flattenResolvedUse(resolved, samples = 20) {
   const results = [];
 
+  // Edge case: resolved is null or undefined
   if (!resolved) return results;
 
+  // Parameter validation: samples must be a positive number
+  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
+    throw new Error('flattenResolvedUse: samples must be a positive finite number');
+  }
+
+  // Validate required properties exist
+  if (!resolved.children || !resolved.transform) {
+    return results;
+  }
+
   for (const child of resolved.children) {
+    // Validate child has required properties
+    if (!child || !child.transform) {
+      continue;
+    }
+
     const childTransform = resolved.transform.mul(child.transform);
     const element = child.element;
 
@@ -751,10 +856,20 @@ export function flattenResolvedUse(resolved, samples = 20) {
  * // [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 30 }, { x: 0, y: 30 }]
  */
 export function elementToPolygon(element, transform, samples = 20) {
+  // Parameter validation: element must be defined
+  if (!element) {
+    throw new Error('elementToPolygon: element is required');
+  }
+
+  // Parameter validation: samples must be a positive finite number
+  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
+    throw new Error('elementToPolygon: samples must be a positive finite number');
+  }
+
   // Use ClipPathResolver's shapeToPolygon
   let polygon = ClipPathResolver.shapeToPolygon(element, null, samples);
 
-  // Apply transform
+  // Apply transform if provided and polygon is not empty
   if (transform && polygon.length > 0) {
     polygon = polygon.map((p) => {
       const [x, y] = Transforms2D.applyTransform(transform, p.x, p.y);
@@ -810,8 +925,14 @@ export function elementToPolygon(element, transform, samples = 20) {
  * // { fill: 'blue' }
  */
 export function mergeStyles(inherited, element) {
+  // Parameter validation: element must be defined (inherited can be null)
+  if (!element || typeof element !== 'object') {
+    throw new Error('mergeStyles: element must be a valid object');
+  }
+
   const result = { ...element };
 
+  // Inherited can be null/undefined, handle gracefully
   for (const [key, value] of Object.entries(inherited || {})) {
     // Inherit if value is not null and element doesn't have a value (null or undefined)
     if (value !== null && (result[key] === null || result[key] === undefined)) {
@@ -866,6 +987,11 @@ export function mergeStyles(inherited, element) {
  * // Axis-aligned bbox enclosing the rotated rectangle (wider than original)
  */
 export function getResolvedBBox(resolved, samples = 20) {
+  // Parameter validation: samples must be a positive finite number
+  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
+    throw new Error('getResolvedBBox: samples must be a positive finite number');
+  }
+
   const polygons = flattenResolvedUse(resolved, samples);
 
   let minX = Infinity;
@@ -877,6 +1003,12 @@ export function getResolvedBBox(resolved, samples = 20) {
     for (const p of polygon) {
       const x = Number(p.x);
       const y = Number(p.y);
+
+      // Skip NaN values to prevent corrupting bounding box
+      if (isNaN(x) || isNaN(y)) {
+        continue;
+      }
+
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
       maxX = Math.max(maxX, x);
@@ -884,6 +1016,7 @@ export function getResolvedBBox(resolved, samples = 20) {
     }
   }
 
+  // Return empty bbox if no valid points found
   if (minX === Infinity) {
     return { x: 0, y: 0, width: 0, height: 0 };
   }
@@ -944,6 +1077,21 @@ export function getResolvedBBox(resolved, samples = 20) {
  * // May produce multiple disjoint polygons if use element spans outside triangle
  */
 export function clipResolvedUse(resolved, clipPolygon, samples = 20) {
+  // Parameter validation: clipPolygon must be defined and be an array
+  if (!clipPolygon || !Array.isArray(clipPolygon)) {
+    throw new Error('clipResolvedUse: clipPolygon must be a valid array');
+  }
+
+  // Validate clipPolygon has at least 3 points
+  if (clipPolygon.length < 3) {
+    throw new Error('clipResolvedUse: clipPolygon must have at least 3 vertices');
+  }
+
+  // Parameter validation: samples must be a positive finite number
+  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
+    throw new Error('clipResolvedUse: samples must be a positive finite number');
+  }
+
   const polygons = flattenResolvedUse(resolved, samples);
   const result = [];
 
@@ -1013,6 +1161,11 @@ export function clipResolvedUse(resolved, clipPolygon, samples = 20) {
  * // Two closed subpaths (rectangle + circle)
  */
 export function resolvedUseToPathData(resolved, samples = 20) {
+  // Parameter validation: samples must be a positive finite number
+  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
+    throw new Error('resolvedUseToPathData: samples must be a positive finite number');
+  }
+
   const polygons = flattenResolvedUse(resolved, samples);
   const paths = [];
 
@@ -1021,9 +1174,15 @@ export function resolvedUseToPathData(resolved, samples = 20) {
       let d = "";
       for (let i = 0; i < polygon.length; i++) {
         const p = polygon[i];
-        const x = Number(p.x).toFixed(6);
-        const y = Number(p.y).toFixed(6);
-        d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+        const x = Number(p.x);
+        const y = Number(p.y);
+
+        // Skip invalid points with NaN coordinates
+        if (isNaN(x) || isNaN(y)) {
+          continue;
+        }
+
+        d += i === 0 ? `M ${x.toFixed(6)} ${y.toFixed(6)}` : ` L ${x.toFixed(6)} ${y.toFixed(6)}`;
       }
       d += " Z";
       paths.push(d);
@@ -1085,6 +1244,11 @@ export function resolvedUseToPathData(resolved, samples = 20) {
  * const resolved = resolveUse(useData, defs);
  */
 export function buildDefsMap(svgRoot) {
+  // Parameter validation: svgRoot must be defined and have querySelectorAll method
+  if (!svgRoot || typeof svgRoot.querySelectorAll !== 'function') {
+    throw new Error('buildDefsMap: svgRoot must be a valid DOM element');
+  }
+
   const defs = {};
 
   // Find all elements with id
@@ -1092,6 +1256,17 @@ export function buildDefsMap(svgRoot) {
 
   for (const element of elementsWithId) {
     const id = element.getAttribute("id");
+
+    // Skip elements without a valid id
+    if (!id) {
+      continue;
+    }
+
+    // Validate element has tagName
+    if (!element.tagName) {
+      continue;
+    }
+
     const tagName = element.tagName.toLowerCase();
 
     if (tagName === "symbol") {
@@ -1170,12 +1345,22 @@ export function buildDefsMap(svgRoot) {
  * }
  */
 export function resolveAllUses(svgRoot, options = {}) {
+  // Parameter validation: svgRoot must be defined and have querySelectorAll method
+  if (!svgRoot || typeof svgRoot.querySelectorAll !== 'function') {
+    throw new Error('resolveAllUses: svgRoot must be a valid DOM element');
+  }
+
   const defs = buildDefsMap(svgRoot);
   const useElements = svgRoot.querySelectorAll("use");
   const resolved = [];
 
   // Helper to get the next use reference from a definition
   const getUseRef = (id) => {
+    // Validate id parameter
+    if (!id || typeof id !== 'string') {
+      return null;
+    }
+
     const target = defs[id];
     if (!target) return null;
 
@@ -1198,6 +1383,11 @@ export function resolveAllUses(svgRoot, options = {}) {
 
   for (const useEl of useElements) {
     const useData = parseUseElement(useEl);
+
+    // Skip use elements without valid href
+    if (!useData.href) {
+      continue;
+    }
 
     // Check for circular reference before attempting to resolve
     if (hasCircularReference(useData.href, getUseRef)) {

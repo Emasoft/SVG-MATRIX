@@ -67,6 +67,24 @@ export function computeTolerance() {
  */
 export function verifyTransformRoundTrip(matrix, x, y) {
   const tolerance = computeTolerance();
+
+  // Parameter validation: check for null/undefined
+  if (!matrix) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Matrix parameter is null or undefined",
+    };
+  }
+  if (x == null || y == null) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Coordinates x or y are null or undefined",
+    };
+  }
   const origX = D(x);
   const origY = D(y);
 
@@ -135,6 +153,23 @@ export function verifyTransformRoundTrip(matrix, x, y) {
 export function verifyTransformGeometry(matrix, points) {
   const tolerance = computeTolerance();
 
+  // Parameter validation: check for null/undefined
+  if (!matrix) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Matrix parameter is null or undefined",
+    };
+  }
+  if (!points || !Array.isArray(points)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Points parameter is null, undefined, or not an array",
+    };
+  }
   if (points.length < 3) {
     return {
       valid: false,
@@ -234,6 +269,16 @@ export function verifyTransformGeometry(matrix, points) {
 export function verifyMatrixInversion(matrix) {
   const tolerance = computeTolerance();
 
+  // Parameter validation: check for null/undefined
+  if (!matrix) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Matrix parameter is null or undefined",
+    };
+  }
+
   try {
     const inverse = matrix.inverse();
     if (!inverse) {
@@ -313,6 +358,16 @@ export function verifyMatrixInversion(matrix) {
 export function verifyMultiplicationAssociativity(A, B, C) {
   const tolerance = computeTolerance();
 
+  // Parameter validation: check for null/undefined
+  if (!A || !B || !C) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "One or more matrix parameters are null or undefined",
+    };
+  }
+
   try {
     // (A * B) * C
     const AB = A.mul(B);
@@ -380,6 +435,23 @@ export function verifyPolygonContainment(
   // Distance tolerance for curve approximation - points can be slightly outside
   const maxDistOutside = distanceTolerance || new Decimal("1e-6");
 
+  // Parameter validation: check for null/undefined and array types
+  if (!inner || !Array.isArray(inner)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Inner polygon parameter is null, undefined, or not an array",
+    };
+  }
+  if (!outer || !Array.isArray(outer)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Outer polygon parameter is null, undefined, or not an array",
+    };
+  }
   if (inner.length < 3 || outer.length < 3) {
     return {
       valid: false,
@@ -449,6 +521,16 @@ export function verifyPolygonContainment(
  * @returns {Decimal} Minimum distance to any polygon edge
  */
 function minDistanceToPolygonEdge(point, polygon) {
+  // Parameter validation: defensive checks for helper function
+  if (!point || point.x == null || point.y == null) {
+    throw new Error("Invalid point parameter: must have x and y properties");
+  }
+  if (!polygon || !Array.isArray(polygon) || polygon.length === 0) {
+    throw new Error(
+      "Invalid polygon parameter: must be non-empty array of points",
+    );
+  }
+
   let minDist = new Decimal(Infinity);
   const px = D(point.x),
     py = D(point.y);
@@ -506,6 +588,32 @@ function minDistanceToPolygonEdge(point, polygon) {
  */
 export function verifyPolygonIntersection(poly1, poly2, intersection) {
   const tolerance = computeTolerance();
+
+  // Parameter validation: check for null/undefined and array types
+  if (!poly1 || !Array.isArray(poly1)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Poly1 parameter must be an array",
+    };
+  }
+  if (!poly2 || !Array.isArray(poly2)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Poly2 parameter must be an array",
+    };
+  }
+  if (!intersection || !Array.isArray(intersection)) {
+    return {
+      valid: false,
+      error: ZERO,
+      tolerance,
+      message: "Intersection parameter must be an array",
+    };
+  }
 
   if (intersection.length < 3) {
     // Empty or degenerate intersection
@@ -579,9 +687,38 @@ export function verifyPolygonIntersection(poly1, poly2, intersection) {
  */
 export function verifyCircleToPath(cx, cy, r, pathData) {
   const tolerance = computeTolerance();
+
+  // Parameter validation: check for null/undefined and types
+  if (cx == null || cy == null || r == null) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Circle parameters (cx, cy, r) cannot be null or undefined",
+    };
+  }
+  if (typeof pathData !== "string") {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "PathData parameter must be a string",
+    };
+  }
+
   const cxD = D(cx),
     cyD = D(cy),
     rD = D(r);
+
+  // Bounds check: radius must be positive
+  if (rD.lessThanOrEqualTo(ZERO)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Radius must be positive",
+    };
+  }
 
   try {
     // Expected key points (cardinal points)
@@ -656,10 +793,39 @@ export function verifyCircleToPath(cx, cy, r, pathData) {
  */
 export function verifyRectToPath(x, y, width, height, pathData) {
   const tolerance = computeTolerance();
+
+  // Parameter validation: check for null/undefined and types
+  if (x == null || y == null || width == null || height == null) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Rectangle parameters (x, y, width, height) cannot be null or undefined",
+    };
+  }
+  if (typeof pathData !== "string") {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "PathData parameter must be a string",
+    };
+  }
+
   const xD = D(x),
     yD = D(y),
     wD = D(width),
     hD = D(height);
+
+  // Bounds check: width and height must be positive
+  if (wD.lessThanOrEqualTo(ZERO) || hD.lessThanOrEqualTo(ZERO)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Width and height must be positive",
+    };
+  }
 
   try {
     // Expected corners
@@ -740,6 +906,32 @@ export function verifyRectToPath(x, y, width, height, pathData) {
 export function verifyLinearGradientTransform(original, baked, matrix) {
   const tolerance = computeTolerance();
 
+  // Parameter validation: check for null/undefined and types
+  if (!original || typeof original !== "object") {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Original gradient parameter must be an object",
+    };
+  }
+  if (!baked || typeof baked !== "object") {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Baked gradient parameter must be an object",
+    };
+  }
+  if (!matrix) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Matrix parameter is null or undefined",
+    };
+  }
+
   try {
     // Transform original points using the provided matrix
     const [expX1, expY1] = Transforms2D.applyTransform(
@@ -802,6 +994,17 @@ export function verifyLinearGradientTransform(original, baked, matrix) {
  * @returns {Decimal} Signed area of the triangle
  */
 function triangleArea(p1, p2, p3) {
+  // Parameter validation: defensive checks for helper function
+  if (!p1 || p1.x == null || p1.y == null) {
+    throw new Error("Invalid p1 parameter: must have x and y properties");
+  }
+  if (!p2 || p2.x == null || p2.y == null) {
+    throw new Error("Invalid p2 parameter: must have x and y properties");
+  }
+  if (!p3 || p3.x == null || p3.y == null) {
+    throw new Error("Invalid p3 parameter: must have x and y properties");
+  }
+
   const x1 = D(p1.x),
     y1 = D(p1.y);
   const x2 = D(p2.x),
@@ -841,6 +1044,10 @@ function areCollinear(p1, p2, p3, tolerance) {
  * @returns {Decimal} Absolute area of the polygon
  */
 function polygonArea(polygon) {
+  // Parameter validation: defensive checks for helper function
+  if (!polygon || !Array.isArray(polygon)) {
+    throw new Error("Invalid polygon parameter: must be an array");
+  }
   if (polygon.length < 3) return ZERO;
 
   let area = ZERO;
@@ -866,6 +1073,16 @@ function polygonArea(polygon) {
  * @returns {boolean} True if point is inside or on polygon boundary
  */
 function isPointInPolygon(point, polygon) {
+  // Parameter validation: defensive checks for helper function
+  if (!point || point.x == null || point.y == null) {
+    throw new Error("Invalid point parameter: must have x and y properties");
+  }
+  if (!polygon || !Array.isArray(polygon) || polygon.length === 0) {
+    throw new Error(
+      "Invalid polygon parameter: must be non-empty array of points",
+    );
+  }
+
   const px = D(point.x),
     py = D(point.y);
   const n = polygon.length;
@@ -901,6 +1118,19 @@ function isPointInPolygon(point, polygon) {
  * @returns {boolean} True if point is on the segment within tolerance
  */
 function isPointOnSegment(point, segStart, segEnd) {
+  // Parameter validation: defensive checks for helper function
+  if (!point || point.x == null || point.y == null) {
+    throw new Error("Invalid point parameter: must have x and y properties");
+  }
+  if (!segStart || segStart.x == null || segStart.y == null) {
+    throw new Error(
+      "Invalid segStart parameter: must have x and y properties",
+    );
+  }
+  if (!segEnd || segEnd.x == null || segEnd.y == null) {
+    throw new Error("Invalid segEnd parameter: must have x and y properties");
+  }
+
   const tolerance = computeTolerance();
   const px = D(point.x),
     py = D(point.y);
@@ -943,6 +1173,14 @@ function isPointOnSegment(point, segStart, segEnd) {
  * @returns {Decimal} Euclidean distance between the points
  */
 function pointDistance(p1, p2) {
+  // Parameter validation: defensive checks for helper function
+  if (!p1 || p1.x == null || p1.y == null) {
+    throw new Error("Invalid p1 parameter: must have x and y properties");
+  }
+  if (!p2 || p2.x == null || p2.y == null) {
+    throw new Error("Invalid p2 parameter: must have x and y properties");
+  }
+
   const dx = D(p2.x).minus(D(p1.x));
   const dy = D(p2.y).minus(D(p1.y));
   return dx.times(dx).plus(dy.times(dy)).sqrt();
@@ -955,6 +1193,11 @@ function pointDistance(p1, p2) {
  * @returns {Array<{x: Decimal, y: Decimal}>} Array of extracted coordinate points
  */
 function extractPathPoints(pathData) {
+  // Parameter validation: defensive checks for helper function
+  if (typeof pathData !== "string") {
+    throw new Error("Invalid pathData parameter: must be a string");
+  }
+
   const points = [];
   // Match all number pairs in path data using matchAll
   const regex =
@@ -976,6 +1219,13 @@ function extractPathPoints(pathData) {
  * @returns {{x: Decimal, y: Decimal}|null} Nearest point or null if array is empty
  */
 function findNearestPoint(target, points) {
+  // Parameter validation: defensive checks for helper function
+  if (!target || target.x == null || target.y == null) {
+    throw new Error("Invalid target parameter: must have x and y properties");
+  }
+  if (!points || !Array.isArray(points)) {
+    throw new Error("Invalid points parameter: must be an array");
+  }
   if (points.length === 0) return null;
 
   let nearest = points[0];
@@ -1090,6 +1340,24 @@ export function verifyClipPathE2E(
   // Ensure outsideFragments is an array
   const fragments = outsideFragments || [];
 
+  // Parameter validation: check for null/undefined and array types
+  if (!original || !Array.isArray(original)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Original polygon parameter must be an array",
+    };
+  }
+  if (!clipped || !Array.isArray(clipped)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Clipped polygon parameter must be an array",
+    };
+  }
+
   try {
     // Compute areas with high precision
     const originalArea = polygonArea(original);
@@ -1158,8 +1426,45 @@ export function verifyClipPathE2E(
  * @returns {VerificationResult} Verification result
  */
 export function verifyPipelineE2E(params) {
-  const { originalPoints, flattenedPoints, expectedTransform } = params;
   const tolerance = computeTolerance();
+
+  // Parameter validation: check params object exists
+  if (!params || typeof params !== "object") {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Params parameter must be an object",
+    };
+  }
+
+  const { originalPoints, flattenedPoints, expectedTransform } = params;
+
+  // Validate required properties
+  if (!originalPoints || !Array.isArray(originalPoints)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "originalPoints must be an array",
+    };
+  }
+  if (!flattenedPoints || !Array.isArray(flattenedPoints)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "flattenedPoints must be an array",
+    };
+  }
+  if (!expectedTransform) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "expectedTransform is required",
+    };
+  }
 
   if (originalPoints.length !== flattenedPoints.length) {
     return {
@@ -1240,6 +1545,24 @@ export function verifyPipelineE2E(params) {
 export function verifyPolygonUnionArea(polygons, expectedArea) {
   const tolerance = computeTolerance();
 
+  // Parameter validation: check for null/undefined and array types
+  if (!polygons || !Array.isArray(polygons)) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "Polygons parameter must be an array",
+    };
+  }
+  if (expectedArea == null) {
+    return {
+      valid: false,
+      error: new Decimal(Infinity),
+      tolerance,
+      message: "ExpectedArea parameter is required",
+    };
+  }
+
   try {
     let totalArea = ZERO;
     for (const poly of polygons) {
@@ -1287,6 +1610,19 @@ export function verifyPolygonUnionArea(polygons, expectedArea) {
  * @returns {boolean} True if point is on the inside side of the edge
  */
 function isInsideEdgeE2E(point, edgeStart, edgeEnd) {
+  // Parameter validation: defensive checks for helper function
+  if (!point || point.x == null || point.y == null) {
+    throw new Error("Invalid point parameter: must have x and y properties");
+  }
+  if (!edgeStart || edgeStart.x == null || edgeStart.y == null) {
+    throw new Error(
+      "Invalid edgeStart parameter: must have x and y properties",
+    );
+  }
+  if (!edgeEnd || edgeEnd.x == null || edgeEnd.y == null) {
+    throw new Error("Invalid edgeEnd parameter: must have x and y properties");
+  }
+
   const px = D(point.x).toNumber();
   const py = D(point.y).toNumber();
   const sx = D(edgeStart.x).toNumber();
@@ -1308,6 +1644,20 @@ function isInsideEdgeE2E(point, edgeStart, edgeEnd) {
  * @returns {{x: Decimal, y: Decimal}} Intersection point
  */
 function lineIntersectE2E(p1, p2, p3, p4) {
+  // Parameter validation: defensive checks for helper function
+  if (!p1 || p1.x == null || p1.y == null) {
+    throw new Error("Invalid p1 parameter: must have x and y properties");
+  }
+  if (!p2 || p2.x == null || p2.y == null) {
+    throw new Error("Invalid p2 parameter: must have x and y properties");
+  }
+  if (!p3 || p3.x == null || p3.y == null) {
+    throw new Error("Invalid p3 parameter: must have x and y properties");
+  }
+  if (!p4 || p4.x == null || p4.y == null) {
+    throw new Error("Invalid p4 parameter: must have x and y properties");
+  }
+
   const x1 = D(p1.x).toNumber(),
     y1 = D(p1.y).toNumber();
   const x2 = D(p2.x).toNumber(),
@@ -1318,6 +1668,7 @@ function lineIntersectE2E(p1, p2, p3, p4) {
     y4 = D(p4.y).toNumber();
 
   const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  // Division by zero check: if lines are parallel, return midpoint
   if (Math.abs(denom) < 1e-10) {
     return { x: D((x1 + x2) / 2), y: D((y1 + y2) / 2) };
   }
@@ -1345,12 +1696,45 @@ function lineIntersectE2E(p1, p2, p3, p4) {
  * @returns {Object} Comprehensive verification report
  */
 export function verifyPathTransformation(params) {
+  // Parameter validation: check params object exists
+  if (!params || typeof params !== "object") {
+    return {
+      allPassed: false,
+      verifications: [
+        {
+          name: "Parameter Validation",
+          valid: false,
+          error: new Decimal(Infinity),
+          tolerance: computeTolerance(),
+          message: "Params parameter must be an object",
+        },
+      ],
+    };
+  }
+
   const {
     matrix,
     originalPath: _originalPath,
     transformedPath: _transformedPath,
     testPoints = [],
   } = params;
+
+  // Validate required properties
+  if (!matrix) {
+    return {
+      allPassed: false,
+      verifications: [
+        {
+          name: "Parameter Validation",
+          valid: false,
+          error: new Decimal(Infinity),
+          tolerance: computeTolerance(),
+          message: "Matrix parameter is required",
+        },
+      ],
+    };
+  }
+
   const results = {
     allPassed: true,
     verifications: [],

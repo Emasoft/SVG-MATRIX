@@ -6,8 +6,13 @@ import { Vector } from "./vector.js";
  * Accepts numbers, strings, or Decimal instances.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
+ * @throws {Error} If x is null or undefined
  */
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => {
+  // Validate that x is not null or undefined
+  if (x == null) throw new Error("Cannot convert null or undefined to Decimal");
+  return x instanceof Decimal ? x : new Decimal(x);
+};
 
 /**
  * Matrix - Decimal-backed matrix class for arbitrary-precision matrix operations.
@@ -34,9 +39,14 @@ export class Matrix {
    * @throws {Error} If data is not a non-empty 2D array with consistent row lengths
    */
   constructor(data) {
+    // Validate data is a non-empty array
     if (!Array.isArray(data) || data.length === 0)
       throw new Error("Matrix requires non-empty 2D array");
+    // Validate first row exists and is non-empty
+    if (!Array.isArray(data[0]) || data[0].length === 0)
+      throw new Error("Matrix rows must be non-empty arrays");
     const cols = data[0].length;
+    // Validate all rows have the same length
     for (const row of data) {
       if (!Array.isArray(row) || row.length !== cols)
         throw new Error("All rows must have same length");
@@ -60,8 +70,14 @@ export class Matrix {
    * @param {number} r - Number of rows
    * @param {number} c - Number of columns
    * @returns {Matrix} New r×c zero matrix
+   * @throws {Error} If r or c are not positive integers
    */
   static zeros(r, c) {
+    // Validate r and c are positive integers
+    if (!Number.isInteger(r) || r <= 0)
+      throw new Error("rows must be a positive integer");
+    if (!Number.isInteger(c) || c <= 0)
+      throw new Error("cols must be a positive integer");
     const out = Array.from({ length: r }, () =>
       Array.from({ length: c }, () => new Decimal(0)),
     );
@@ -72,8 +88,12 @@ export class Matrix {
    * Create an identity matrix.
    * @param {number} n - Size of the square identity matrix
    * @returns {Matrix} New n×n identity matrix
+   * @throws {Error} If n is not a positive integer
    */
   static identity(n) {
+    // Validate n is a positive integer
+    if (!Number.isInteger(n) || n <= 0)
+      throw new Error("size must be a positive integer");
     const out = Array.from({ length: n }, (_, i) =>
       Array.from({ length: n }, (_, j) =>
         (i === j ? new Decimal(1) : new Decimal(0)),
@@ -259,11 +279,15 @@ export class Matrix {
    * @param {Matrix} other - Matrix to compare with
    * @param {number|string|Decimal} [tolerance=0] - Maximum allowed difference per element
    * @returns {boolean} True if matrices are equal within tolerance
+   * @throws {Error} If tolerance is negative
    */
   equals(other, tolerance = 0) {
     if (!(other instanceof Matrix)) return false;
     if (this.rows !== other.rows || this.cols !== other.cols) return false;
     const tol = D(tolerance);
+    // Validate tolerance is non-negative
+    if (tol.isNegative())
+      throw new Error("tolerance must be non-negative");
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         const diff = this.data[i][j].minus(other.data[i][j]).abs();
@@ -472,6 +496,9 @@ export class Matrix {
     // Back substitution
     const x = Array.from({ length: n }, () => new Decimal(0));
     for (let i = n - 1; i >= 0; i--) {
+      // Check for zero diagonal element (should not happen after forward elimination)
+      if (aug[i][i].isZero())
+        throw new Error("Zero diagonal element in back substitution: system is singular");
       let sum = new Decimal(0);
       for (let j = i + 1; j < n; j++) sum = sum.plus(aug[i][j].mul(x[j]));
       x[i] = aug[i][n].minus(sum).div(aug[i][i]);
@@ -546,13 +573,23 @@ export class Matrix {
    * @param {number} [options.maxIter=120] - Maximum Taylor series iterations
    * @param {string} [options.tolerance='1e-40'] - Convergence tolerance
    * @returns {Matrix} The matrix exponential exp(A)
-   * @throws {Error} If matrix is not square
+   * @throws {Error} If matrix is not square or options are invalid
    */
   exp(options = {}) {
     const n = this.rows;
     if (!this.isSquare())
       throw new Error("Matrix exponential requires square matrix");
     const ident = Matrix.identity(n);
+
+    // Validate and set maxIter
+    const maxIter = options.maxIter || 120;
+    if (!Number.isInteger(maxIter) || maxIter <= 0)
+      throw new Error("maxIter must be a positive integer");
+
+    // Validate and set tolerance
+    const tol = new Decimal(options.tolerance || "1e-40");
+    if (tol.isNegative() || tol.isZero())
+      throw new Error("tolerance must be positive");
 
     // Compute infinity norm
     const normInf = (M) => {
@@ -571,14 +608,16 @@ export class Matrix {
     let s = 0;
     if (maxNorm.greaterThan(new Decimal(1))) {
       const ratio = maxNorm.div(new Decimal(1));
-      s = Math.max(0, Math.ceil(Math.log2(ratio.toNumber())));
+      const logVal = ratio.toNumber();
+      // Guard against Infinity or NaN from logarithm
+      if (!isFinite(logVal))
+        throw new Error("Matrix norm too large for exponential computation");
+      s = Math.max(0, Math.ceil(Math.log2(logVal)));
     }
     let A = this;
     if (s > 0) A = this.mul(new Decimal(1).div(new Decimal(2).pow(s)));
 
     // Taylor series
-    const maxIter = options.maxIter || 120;
-    const tol = new Decimal(options.tolerance || "1e-40");
     let term = ident.clone();
     let result = ident.clone();
     for (let k = 1; k < maxIter; k++) {

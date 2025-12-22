@@ -75,6 +75,10 @@ function getTomlParser() {
  * @returns {Object} Parsed object with sections as nested objects
  */
 function parseIni(content) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof content !== "string") {
+    throw new TypeError("parseIni expects a string argument");
+  }
   const result = {};
   let currentSection = result;
 
@@ -135,6 +139,10 @@ function parseIni(content) {
  * @returns {string} JSON content with comments removed
  */
 function stripJsonComments(str) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof str !== "string") {
+    throw new TypeError("stripJsonComments expects a string argument");
+  }
   let result = "";
   let i = 0;
   const len = str.length;
@@ -1062,6 +1070,15 @@ function getNestedValue(obj, keyPath) {
  * @throws {Error} If parsing fails or format is unsupported
  */
 function parseConfigContent(content, filepath) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof content !== "string") {
+    throw new TypeError("parseConfigContent expects content to be a string");
+  }
+  if (typeof filepath !== "string" || filepath.trim() === "") {
+    throw new TypeError(
+      "parseConfigContent expects filepath to be a non-empty string",
+    );
+  }
   const ext = path.extname(filepath).toLowerCase();
   const basename = path.basename(filepath).toLowerCase();
 
@@ -1278,6 +1295,10 @@ function loadConfig(configPath) {
  * @returns {Object} Parsed arguments object
  */
 function parseArgs(argv) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(argv) || argv.length < 2) {
+    throw new TypeError("parseArgs expects argv to be an array with at least 2 elements");
+  }
   const args = {
     files: [],
     fix: false,
@@ -1955,6 +1976,12 @@ ${c("bold", "Usage:")}
  * @returns {void}
  */
 function explainRule(code) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof code !== "string" || code.trim() === "") {
+    console.error(c("red", "Error: Rule code must be a non-empty string"));
+    console.error(`Run 'svglinter --list-rules' to see all available rules.`);
+    process.exit(2);
+  }
   const rule = RULES[code];
 
   if (!rule) {
@@ -2668,6 +2695,10 @@ ${c("dim", "Run svglinter --help for more information.")}
  * @returns {void}
  */
 function showStats(results) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(results)) {
+    throw new TypeError("showStats expects results to be an array");
+  }
   const stats = {};
   const totalFiles = results.length;
   let filesWithIssues = 0;
@@ -2749,6 +2780,10 @@ ${c("bold", "Summary:")}
  * @returns {Promise<string[]>} Array of resolved SVG file paths
  */
 async function expandFiles(patterns) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(patterns)) {
+    throw new TypeError("expandFiles expects patterns to be an array");
+  }
   const files = new Set();
 
   for (const pattern of patterns) {
@@ -3010,7 +3045,13 @@ async function findSvgFilesWithExt(dir, ext, visited = new Set()) {
  * @returns {boolean} True if rule should be ignored
  */
 function shouldIgnoreRule(code, ignoreList) {
-  if (!ignoreList || ignoreList.length === 0) return false;
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof code !== "string") {
+    return false; // Graceful degradation for invalid code
+  }
+  if (!Array.isArray(ignoreList) || ignoreList.length === 0) {
+    return false;
+  }
 
   for (const pattern of ignoreList) {
     // Exact match
@@ -3033,7 +3074,13 @@ function shouldIgnoreRule(code, ignoreList) {
  * @returns {boolean} True if rule is selected
  */
 function isRuleSelected(code, selectList) {
-  if (!selectList || selectList.length === 0) return true;
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof code !== "string") {
+    return false; // Graceful degradation for invalid code
+  }
+  if (!Array.isArray(selectList) || selectList.length === 0) {
+    return true;
+  }
 
   for (const pattern of selectList) {
     if (code === pattern) return true;
@@ -3120,6 +3167,17 @@ function parseInlineDisables(content) {
  * @returns {boolean} True if issue is disabled
  */
 function isDisabledByInline(issue, disabledRanges) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (
+    typeof issue !== "object" ||
+    issue === null ||
+    typeof issue.type !== "string"
+  ) {
+    return false; // Graceful degradation for invalid issue
+  }
+  if (!Array.isArray(disabledRanges)) {
+    return false; // Graceful degradation for invalid ranges
+  }
   const code = TYPE_TO_CODE[issue.type] || "";
   const line = issue.line || 0;
 
@@ -3942,6 +4000,15 @@ function formatResults(
   showIgnored,
   maxLineWidth = 80,
 ) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(results)) {
+    throw new TypeError("formatResults expects results to be an array");
+  }
+  if (typeof outputFormat !== "string" || outputFormat.trim() === "") {
+    throw new TypeError(
+      "formatResults expects outputFormat to be a non-empty string",
+    );
+  }
   switch (outputFormat) {
     case "json":
       return formatJson(results);
@@ -4697,6 +4764,13 @@ if (require.main === module) {
  * @returns {Promise<Array>} Array of results
  */
 async function lint(patterns, options = {}) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(patterns)) {
+    throw new TypeError("lint expects patterns to be an array");
+  }
+  if (typeof options !== "object" || options === null) {
+    throw new TypeError("lint expects options to be an object");
+  }
   // validateSVGAsync is dynamically imported per-file via lintFile
   const files = await expandFiles(patterns);
   const results = [];
@@ -4716,6 +4790,13 @@ async function lint(patterns, options = {}) {
  * @returns {Promise<Object>} Lint result
  */
 async function lintFile(filePath, options = {}) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof filePath !== "string" || filePath.trim() === "") {
+    throw new TypeError("lintFile expects filePath to be a non-empty string");
+  }
+  if (typeof options !== "object" || options === null) {
+    throw new TypeError("lintFile expects options to be an object");
+  }
   const { validateSVGAsync } = await import("../src/svg-toolbox.js");
 
   const content = await readFileWithTimeout(filePath);
@@ -4784,6 +4865,13 @@ async function lintFile(filePath, options = {}) {
  * @returns {Promise<Object>} Lint result
  */
 async function lintString(svgContent, options = {}) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (typeof svgContent !== "string") {
+    throw new TypeError("lintString expects svgContent to be a string");
+  }
+  if (typeof options !== "object" || options === null) {
+    throw new TypeError("lintString expects options to be an object");
+  }
   const { validateSVGAsync } = await import("../src/svg-toolbox.js");
 
   const processedContent = normalizeLineEndings(stripBOM(svgContent));
@@ -4853,6 +4941,16 @@ async function lintString(svgContent, options = {}) {
  * @returns {string} Formatted output
  */
 function format(results, formatType = "stylish", options = {}) {
+  // Why: Parameter validation prevents runtime errors from invalid input
+  if (!Array.isArray(results)) {
+    throw new TypeError("format expects results to be an array");
+  }
+  if (typeof formatType !== "string" || formatType.trim() === "") {
+    throw new TypeError("format expects formatType to be a non-empty string");
+  }
+  if (typeof options !== "object" || options === null) {
+    throw new TypeError("format expects options to be an object");
+  }
   // BUG FIX: Validate maxLineWidth bounds for library users (CLI validates in main())
   let maxLineWidth = options.maxLineWidth || DEFAULT_MAX_LINE_WIDTH;
   if (maxLineWidth < MIN_MAX_LINE_WIDTH) {

@@ -95,6 +95,9 @@ export function pathToPolygon(
   samplesPerCurve = DEFAULT_CURVE_SAMPLES,
 ) {
   if (typeof pathData !== 'string') throw new Error('pathToPolygon: pathData must be a string');
+  if (typeof samplesPerCurve !== 'number' || samplesPerCurve <= 0 || !Number.isFinite(samplesPerCurve)) {
+    throw new Error(`pathToPolygon: samplesPerCurve must be a positive finite number, got ${samplesPerCurve}`);
+  }
   const points = [];
   let currentX = D(0),
     currentY = D(0);
@@ -270,6 +273,9 @@ export function pathToPolygon(
  * // Returns: [{type: 'M', args: [10, 20]}, {type: 'L', args: [30, 40]}]
  */
 function parsePathCommands(pathData) {
+  if (typeof pathData !== 'string') {
+    throw new Error(`parsePathCommands: pathData must be a string, got ${typeof pathData}`);
+  }
   const commands = [];
   const regex = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
   let match;
@@ -313,6 +319,12 @@ function parsePathCommands(pathData) {
  * // points now contains 20 sampled points along the cubic Bezier curve
  */
 function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
+  if (!Array.isArray(points)) {
+    throw new Error('sampleCubicBezier: points must be an array');
+  }
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`sampleCubicBezier: samples must be a positive finite number, got ${samples}`);
+  }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const mt = D(1).minus(t);
@@ -356,6 +368,12 @@ function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
  * // points now contains 20 sampled points along the quadratic Bezier curve
  */
 function sampleQuadraticBezier(points, x0, y0, x1, y1, x2, y2, samples) {
+  if (!Array.isArray(points)) {
+    throw new Error('sampleQuadraticBezier: points must be an array');
+  }
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`sampleQuadraticBezier: samples must be a positive finite number, got ${samples}`);
+  }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const mt = D(1).minus(t);
@@ -404,6 +422,12 @@ function sampleArc(
   y1,
   samples,
 ) {
+  if (!Array.isArray(points)) {
+    throw new Error('sampleArc: points must be an array');
+  }
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`sampleArc: samples must be a positive finite number, got ${samples}`);
+  }
   if (rx.eq(0) || ry.eq(0)) {
     points.push(PolygonClip.point(x1, y1));
     return;
@@ -450,10 +474,20 @@ function sampleArc(
   const vx = x1p.neg().minus(cxp).div(rx),
     vy = y1p.neg().minus(cyp).div(ry);
   const n1 = ux.mul(ux).plus(uy.mul(uy)).sqrt();
+  if (n1.eq(0)) {
+    // Degenerate arc: start and end points are the same after transformation
+    points.push(PolygonClip.point(x1, y1));
+    return;
+  }
   let theta1 = Decimal.acos(ux.div(n1));
   if (uy.lt(0)) theta1 = theta1.neg();
 
   const n2 = n1.mul(vx.mul(vx).plus(vy.mul(vy)).sqrt());
+  if (n2.eq(0)) {
+    // Degenerate arc: endpoints coincide
+    points.push(PolygonClip.point(x1, y1));
+    return;
+  }
   let dtheta = Decimal.acos(ux.mul(vx).plus(uy.mul(vy)).div(n2));
   if (ux.mul(vy).minus(uy.mul(vx)).lt(0)) dtheta = dtheta.neg();
 
@@ -496,6 +530,9 @@ function sampleArc(
  * // Returns: [{x: D(0), y: D(0)}, {x: D(1), y: D(1)}]
  */
 function removeDuplicateConsecutive(points) {
+  if (!Array.isArray(points)) {
+    throw new Error('removeDuplicateConsecutive: points must be an array');
+  }
   if (points.length < 2) return points;
   const result = [points[0]];
   for (let i = 1; i < points.length; i++) {
@@ -548,6 +585,15 @@ export function shapeToPolygon(
   samples = DEFAULT_CURVE_SAMPLES,
   bezierArcs = 4,
 ) {
+  if (!element || typeof element !== 'object') {
+    throw new Error('shapeToPolygon: element must be an object');
+  }
+  if (!element.type || typeof element.type !== 'string') {
+    throw new Error('shapeToPolygon: element.type must be a string');
+  }
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`shapeToPolygon: samples must be a positive finite number, got ${samples}`);
+  }
   let pathData;
   switch (element.type) {
     case "circle":
@@ -690,7 +736,13 @@ export function resolveClipPath(
   ctm = null,
   options = {},
 ) {
+  if (!clipPathDef || typeof clipPathDef !== 'object') {
+    throw new Error('resolveClipPath: clipPathDef must be an object');
+  }
   const { samples = DEFAULT_CURVE_SAMPLES } = options;
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`resolveClipPath: samples must be a positive finite number, got ${samples}`);
+  }
   const clipPathUnits = clipPathDef.clipPathUnits || "userSpaceOnUse";
   let clipTransform = ctm ? ctm.clone() : Matrix.identity(3);
 
@@ -749,6 +801,15 @@ export function resolveClipPath(
  * @returns {Array} Clipped polygon(s), or array of polygon arrays for multi-region results
  */
 function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
+  if (!Array.isArray(elementPolygon)) {
+    throw new Error('clipPolygonWithRule: elementPolygon must be an array');
+  }
+  if (!Array.isArray(clipPolygon)) {
+    throw new Error('clipPolygonWithRule: clipPolygon must be an array');
+  }
+  if (clipRule !== 'nonzero' && clipRule !== 'evenodd') {
+    throw new Error(`clipPolygonWithRule: clipRule must be 'nonzero' or 'evenodd', got ${clipRule}`);
+  }
   // For nonzero rule, standard intersection works correctly
   // because polygonIntersection uses the winding number test internally
   if (clipRule === "nonzero") {
@@ -792,6 +853,12 @@ function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
  * @private
  */
 function computeCentroid(polygon) {
+  if (!Array.isArray(polygon)) {
+    throw new Error('computeCentroid: polygon must be an array');
+  }
+  if (polygon.length === 0) {
+    throw new Error('computeCentroid: polygon must not be empty');
+  }
   let cx = new Decimal(0);
   let cy = new Decimal(0);
   let area = new Decimal(0);
@@ -877,7 +944,16 @@ function computeCentroid(polygon) {
  * const clipped = applyClipPath(ellipse, clipDef, null, { samples: 50 });
  */
 export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
+  if (!element || typeof element !== 'object') {
+    throw new Error('applyClipPath: element must be an object');
+  }
+  if (!clipPathDef || typeof clipPathDef !== 'object') {
+    throw new Error('applyClipPath: clipPathDef must be an object');
+  }
   const { samples = DEFAULT_CURVE_SAMPLES, clipRule = "nonzero" } = options;
+  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
+    throw new Error(`applyClipPath: samples must be a positive finite number, got ${samples}`);
+  }
   const clipPolygon = resolveClipPath(clipPathDef, element, ctm, options);
   if (clipPolygon.length < 3) return [];
 
@@ -913,6 +989,12 @@ export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
  * // Returns: {x: Decimal(25), y: Decimal(25), width: Decimal(50), height: Decimal(50)}
  */
 function getElementBoundingBox(element) {
+  if (!element || typeof element !== 'object') {
+    throw new Error('getElementBoundingBox: element must be an object');
+  }
+  if (!element.type || typeof element.type !== 'string') {
+    throw new Error('getElementBoundingBox: element.type must be a string');
+  }
   switch (element.type) {
     case "rect":
       return {
@@ -991,6 +1073,12 @@ function getElementBoundingBox(element) {
  * // Returns: "M 0.12345679 0.98765432 Z"
  */
 export function polygonToPathData(polygon, precision = 6) {
+  if (!Array.isArray(polygon)) {
+    throw new Error('polygonToPathData: polygon must be an array');
+  }
+  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
+    throw new Error(`polygonToPathData: precision must be a non-negative finite number, got ${precision}`);
+  }
   if (polygon.length < 2) return "";
   const fmt = (n) =>
     (n instanceof Decimal ? n : D(n)).toFixed(precision).replace(/\.?0+$/, "");
@@ -1057,6 +1145,12 @@ export function resolveNestedClipPath(
   visited = new Set(),
   options = {},
 ) {
+  if (!clipPathDef || typeof clipPathDef !== 'object') {
+    throw new Error('resolveNestedClipPath: clipPathDef must be an object');
+  }
+  if (!(defsMap instanceof Map)) {
+    throw new Error('resolveNestedClipPath: defsMap must be a Map');
+  }
   const clipId = clipPathDef.id;
   if (clipId && visited.has(clipId)) {
     Logger.warn(`Circular clipPath reference detected: ${clipId}`);

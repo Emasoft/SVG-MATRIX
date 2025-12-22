@@ -625,6 +625,15 @@ export function bezierCrop(points, t0, t1) {
     throw new Error("bezierCrop: t1 must be in range [0, 1]");
   }
 
+  // DIVISION BY ZERO PROTECTION: Check if t0 is too close to 1
+  // WHY: When t0 approaches 1, the denominator (1 - t0) approaches zero,
+  // causing division by zero in the parameter adjustment calculation
+  if (D(1).minus(t0D).abs().lt(NEAR_ZERO_THRESHOLD)) {
+    throw new Error(
+      "bezierCrop: t0 too close to 1, would cause division by zero in parameter adjustment",
+    );
+  }
+
   // First split at t0, take the right portion
   const { right: afterT0 } = bezierSplit(points, t0);
 
@@ -711,6 +720,14 @@ function findBezierRoots1D(points, component) {
   // INPUT VALIDATION
   if (!points || !Array.isArray(points) || points.length === 0) {
     return []; // No roots possible for empty input
+  }
+
+  // PARAMETER VALIDATION: Ensure component is valid
+  // WHY: Invalid component values would cause incorrect index access
+  if (component !== "x" && component !== "y") {
+    throw new Error(
+      `findBezierRoots1D: component must be 'x' or 'y', got '${component}'`,
+    );
   }
 
   const idx = component === "x" ? 0 : 1;
@@ -821,12 +838,24 @@ function solveQuadratic(a, b, c) {
     // -b is positive, so -b + sqrt(D) is well-conditioned
     root1 = b.neg().plus(sqrtD).div(twoA);
     // Use Vieta's formula: x1 * x2 = c/a
-    root2 = c.div(a).div(root1);
+    // DIVISION BY ZERO PROTECTION: Check if root1 is zero before dividing
+    // WHY: When root1 is zero, Vieta's formula degenerates; use direct formula instead
+    if (root1.abs().lt(NEAR_ZERO_THRESHOLD)) {
+      root2 = b.neg().minus(sqrtD).div(twoA);
+    } else {
+      root2 = c.div(a).div(root1);
+    }
   } else {
     // -b is negative or zero, so -b - sqrt(D) is well-conditioned
     root1 = b.neg().minus(sqrtD).div(twoA);
     // Use Vieta's formula: x1 * x2 = c/a
-    root2 = c.div(a).div(root1);
+    // DIVISION BY ZERO PROTECTION: Check if root1 is zero before dividing
+    // WHY: When root1 is zero, Vieta's formula degenerates; use direct formula instead
+    if (root1.abs().lt(NEAR_ZERO_THRESHOLD)) {
+      root2 = b.neg().plus(sqrtD).div(twoA);
+    } else {
+      root2 = c.div(a).div(root1);
+    }
   }
 
   return [root1, root2];
@@ -842,6 +871,17 @@ function solveQuadratic(a, b, c) {
  * @returns {Decimal[]} Roots in interval
  */
 function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
+  // INPUT VALIDATION: Ensure coeffs is valid and maxDepth is non-negative
+  // WHY: Empty coeffs would cause errors; negative maxDepth could cause infinite recursion
+  if (!coeffs || !Array.isArray(coeffs) || coeffs.length === 0) {
+    return []; // No roots possible for empty input
+  }
+  if (typeof maxDepth !== "number" || maxDepth < 0) {
+    throw new Error(
+      `findRootsBySubdivision: maxDepth must be non-negative number, got ${maxDepth}`,
+    );
+  }
+
   // Check if interval might contain a root (sign change in convex hull)
   const signs = coeffs.map((c) => (c.isNegative() ? -1 : c.isZero() ? 0 : 1));
   const minSign = Math.min(...signs);
@@ -880,6 +920,14 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
  * @returns {{left: Decimal[], right: Decimal[]}} Two 1D Bezier curves representing left and right halves
  */
 function subdivideBezier1D(coeffs) {
+  // INPUT VALIDATION: Ensure coeffs is valid and non-empty
+  // WHY: Empty coeffs would cause errors in de Casteljau iteration
+  if (!coeffs || !Array.isArray(coeffs) || coeffs.length === 0) {
+    throw new Error(
+      "subdivideBezier1D: coeffs must be a non-empty array of control values",
+    );
+  }
+
   const half = D(0.5);
   let pts = coeffs.map((c) => D(c));
 
@@ -1487,6 +1535,14 @@ export function verifyBoundingBox(points, samples = 100, tolerance = "1e-40") {
     );
   }
 
+  // PARAMETER VALIDATION: Ensure samples is a positive integer
+  // WHY: Non-positive or non-integer samples would cause loop errors or division by zero
+  if (typeof samples !== "number" || samples < 1 || !Number.isInteger(samples)) {
+    throw new Error(
+      `verifyBoundingBox: samples must be a positive integer, got ${samples}`,
+    );
+  }
+
   const tol = D(tolerance);
   const errors = [];
 
@@ -1561,6 +1617,14 @@ export function verifyDerivative(points, t, order = 1, tolerance = "1e-8") {
   if (!points || !Array.isArray(points) || points.length < 2) {
     throw new Error(
       "verifyDerivative: points must be an array with at least 2 control points",
+    );
+  }
+
+  // PARAMETER VALIDATION: Ensure order is a positive integer
+  // WHY: Negative or non-integer orders are not meaningful for derivatives
+  if (typeof order !== "number" || order < 0 || !Number.isInteger(order)) {
+    throw new Error(
+      `verifyDerivative: order must be a non-negative integer, got ${order}`,
     );
   }
 

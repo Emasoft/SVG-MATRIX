@@ -198,6 +198,7 @@ export function scale(sx, sy = null, sz = null) {
  * const pitch = rotateX(-0.1); // Slight downward tilt
  */
 export function rotateX(theta) {
+  validateNumeric(theta, 'theta');
   const t = D(theta);
   const c = new Decimal(Math.cos(t.toNumber()));
   const s = new Decimal(Math.sin(t.toNumber()));
@@ -242,6 +243,7 @@ export function rotateX(theta) {
  * const yaw = rotateY(0.5); // Turn right by ~28.6°
  */
 export function rotateY(theta) {
+  validateNumeric(theta, 'theta');
   const t = D(theta);
   const c = new Decimal(Math.cos(t.toNumber()));
   const s = new Decimal(Math.sin(t.toNumber()));
@@ -287,6 +289,7 @@ export function rotateY(theta) {
  * const roll = rotateZ(0.2); // Slight clockwise tilt from viewer perspective
  */
 export function rotateZ(theta) {
+  validateNumeric(theta, 'theta');
   const t = D(theta);
   const c = new Decimal(Math.cos(t.toNumber()));
   const s = new Decimal(Math.sin(t.toNumber()));
@@ -492,13 +495,27 @@ export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
  * const transformed = vertices.map(([x,y,z]) => applyTransform(R, x, y, z));
  */
 export function applyTransform(M, x, y, z) {
+  if (!(M instanceof Matrix)) {
+    throw new Error('M must be a Matrix instance');
+  }
+  if (M.rows !== 4 || M.cols !== 4) {
+    throw new Error(`M must be a 4x4 matrix, got ${M.rows}x${M.cols}`);
+  }
+  validateNumeric(x, 'x');
+  validateNumeric(y, 'y');
+  validateNumeric(z, 'z');
+
   const P = Matrix.from([[D(x)], [D(y)], [D(z)], [new Decimal(1)]]);
   const R = M.mul(P);
   const rx = R.data[0][0],
     ry = R.data[1][0],
     rz = R.data[2][0],
     rw = R.data[3][0];
-  // Perspective division (for affine transforms, rw is always 1)
+
+  if (rw.isZero()) {
+    throw new Error('Perspective division by zero: transformation results in point at infinity');
+  }
+
   return [rx.div(rw), ry.div(rw), rz.div(rw)];
 }
 

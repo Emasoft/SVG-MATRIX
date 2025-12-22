@@ -197,6 +197,13 @@ export function parseJavaScriptIds(js) {
  * @returns {{static: Set<string>, animation: Set<string>, css: Set<string>, js: Set<string>}}
  */
 export function collectElementReferences(el) {
+  // Validate input parameter
+  if (!el || typeof el !== "object" || !(el instanceof SVGElement)) {
+    throw new TypeError(
+      "collectElementReferences: el must be a valid SVGElement",
+    );
+  }
+
   const refs = {
     static: new Set(),
     animation: new Set(),
@@ -281,6 +288,13 @@ export function collectElementReferences(el) {
  * }}
  */
 export function collectAllReferences(root) {
+  // Validate input parameter
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError(
+      "collectAllReferences: root must be a valid SVGElement",
+    );
+  }
+
   const result = {
     all: new Set(),
     static: new Set(),
@@ -358,6 +372,14 @@ export function collectAllReferences(root) {
  * @returns {boolean} True if the ID is referenced
  */
 export function isIdReferenced(root, id) {
+  // Validate input parameters
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError("isIdReferenced: root must be a valid SVGElement");
+  }
+  if (!id || typeof id !== "string") {
+    throw new TypeError("isIdReferenced: id must be a non-empty string");
+  }
+
   const refs = collectAllReferences(root);
   return refs.all.has(id);
 }
@@ -369,6 +391,14 @@ export function isIdReferenced(root, id) {
  * @returns {{referenced: boolean, type: string|null, sources: string[]}}
  */
 export function getIdReferenceInfo(root, id) {
+  // Validate input parameters
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError("getIdReferenceInfo: root must be a valid SVGElement");
+  }
+  if (!id || typeof id !== "string") {
+    throw new TypeError("getIdReferenceInfo: id must be a non-empty string");
+  }
+
   const refs = collectAllReferences(root);
   const details = refs.details.get(id);
 
@@ -387,6 +417,11 @@ export function getIdReferenceInfo(root, id) {
  * @returns {{safeToRemove: string[], referenced: string[], animationReferenced: string[]}}
  */
 export function findUnreferencedDefs(root) {
+  // Validate input parameter
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError("findUnreferencedDefs: root must be a valid SVGElement");
+  }
+
   const refs = collectAllReferences(root);
 
   const safeToRemove = [];
@@ -423,6 +458,13 @@ export function findUnreferencedDefs(root) {
  * @returns {{removed: string[], kept: string[], keptForAnimation: string[]}}
  */
 export function removeUnreferencedDefsSafe(root) {
+  // Validate input parameter
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError(
+      "removeUnreferencedDefsSafe: root must be a valid SVGElement",
+    );
+  }
+
   const { safeToRemove, referenced, animationReferenced } =
     findUnreferencedDefs(root);
 

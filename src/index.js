@@ -93,7 +93,6 @@ import {
   Logger,
   LogLevel,
   setLogLevel,
-  getLogLevel as _getLoggerLevel,
   enableFileLogging,
   disableFileLogging,
 } from "./logger.js";
@@ -135,7 +134,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.0.30';
+export const VERSION = "1.0.30";
 
 /**
  * Default precision for path output (decimal places)
@@ -591,8 +590,18 @@ export function elementToPath(element, precision = DEFAULT_PRECISION) {
  * Create an identity matrix of the given size.
  * @param {number} n - Matrix dimension (creates n x n identity matrix)
  * @returns {Matrix} Identity matrix
+ * @throws {TypeError} If n is not a number
+ * @throws {RangeError} If n is not a positive integer
  */
 export function identity(n) {
+  // Validate n is a number
+  if (typeof n !== "number" || !Number.isFinite(n)) {
+    throw new TypeError(`identity: n must be a finite number, got ${typeof n}`);
+  }
+  // Validate n is a positive integer
+  if (!Number.isInteger(n) || n < 1) {
+    throw new RangeError(`identity: n must be a positive integer, got ${n}`);
+  }
   return Matrix.identity(n);
 }
 
@@ -601,8 +610,30 @@ export function identity(n) {
  * @param {number} rows - Number of rows
  * @param {number} cols - Number of columns
  * @returns {Matrix} Zero matrix
+ * @throws {TypeError} If rows or cols is not a number
+ * @throws {RangeError} If rows or cols is not a positive integer
  */
 export function zeros(rows, cols) {
+  // Validate rows is a number
+  if (typeof rows !== "number" || !Number.isFinite(rows)) {
+    throw new TypeError(
+      `zeros: rows must be a finite number, got ${typeof rows}`,
+    );
+  }
+  // Validate cols is a number
+  if (typeof cols !== "number" || !Number.isFinite(cols)) {
+    throw new TypeError(
+      `zeros: cols must be a finite number, got ${typeof cols}`,
+    );
+  }
+  // Validate rows is a positive integer
+  if (!Number.isInteger(rows) || rows < 1) {
+    throw new RangeError(`zeros: rows must be a positive integer, got ${rows}`);
+  }
+  // Validate cols is a positive integer
+  if (!Number.isInteger(cols) || cols < 1) {
+    throw new RangeError(`zeros: cols must be a positive integer, got ${cols}`);
+  }
   return Matrix.zeros(rows, cols);
 }
 
@@ -627,8 +658,28 @@ export function mat(data) {
 /**
  * Set the global precision for all Decimal operations.
  * @param {number} precision - Number of significant digits (1 to 1e9)
+ * @throws {TypeError} If precision is not a finite number or not an integer
+ * @throws {RangeError} If precision is not between 1 and 1e9
  */
 export function setPrecision(precision) {
+  // Validate precision is a number
+  if (typeof precision !== "number" || !Number.isFinite(precision)) {
+    throw new TypeError(
+      `setPrecision: precision must be a finite number, got ${typeof precision}`,
+    );
+  }
+  // Validate precision is an integer
+  if (!Number.isInteger(precision)) {
+    throw new TypeError(
+      `setPrecision: precision must be an integer, got ${precision}`,
+    );
+  }
+  // Validate precision range (Decimal.js requirement: 1 to 1e9)
+  if (precision < 1 || precision > 1e9) {
+    throw new RangeError(
+      `setPrecision: precision must be between 1 and 1e9, got ${precision}`,
+    );
+  }
   Decimal.set({ precision });
 }
 

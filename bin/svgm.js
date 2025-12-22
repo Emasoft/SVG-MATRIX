@@ -288,6 +288,10 @@ const DEFAULT_PIPELINE = [
  * @returns {string} Normalized path
  */
 function normalizePath(p) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof p !== "string") {
+    throw new TypeError(`normalizePath: expected string, got ${typeof p}`);
+  }
   return p.replace(/\\/g, "/");
 }
 
@@ -297,6 +301,10 @@ function normalizePath(p) {
  * @returns {string} Absolute normalized path
  */
 function resolvePath(p) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof p !== "string") {
+    throw new TypeError(`resolvePath: expected string, got ${typeof p}`);
+  }
   return isAbsolute(p)
     ? normalizePath(p)
     : normalizePath(resolve(process.cwd(), p));
@@ -308,6 +316,8 @@ function resolvePath(p) {
  * @returns {boolean} True if directory exists
  */
 function isDir(p) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof p !== "string") return false;
   try {
     return statSync(p).isDirectory();
   } catch {
@@ -321,6 +331,8 @@ function isDir(p) {
  * @returns {boolean} True if file exists
  */
 function isFile(p) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof p !== "string") return false;
   try {
     return statSync(p).isFile();
   } catch {
@@ -334,6 +346,10 @@ function isFile(p) {
  * @returns {void}
  */
 function ensureDir(dir) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof dir !== "string") {
+    throw new TypeError(`ensureDir: expected string, got ${typeof dir}`);
+  }
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
@@ -347,14 +363,32 @@ function ensureDir(dir) {
  * @returns {string[]} Array of SVG file paths
  */
 function getSvgFiles(dir, recursive = false, exclude = []) {
+  // Why: Validate parameters to prevent runtime errors
+  if (typeof dir !== "string") {
+    throw new TypeError(`getSvgFiles: expected string dir, got ${typeof dir}`);
+  }
+  if (!existsSync(dir)) {
+    throw new Error(`getSvgFiles: directory does not exist: ${dir}`);
+  }
+  if (!Array.isArray(exclude)) {
+    throw new TypeError(`getSvgFiles: expected array exclude, got ${typeof exclude}`);
+  }
+
   const files = [];
   function scan(d) {
     for (const entry of readdirSync(d, { withFileTypes: true })) {
       const fullPath = join(d, entry.name);
       // Check exclusion patterns
       const shouldExclude = exclude.some((pattern) => {
-        const regex = new RegExp(pattern);
-        return regex.test(fullPath) || regex.test(entry.name);
+        try {
+          // Why: Wrap RegExp constructor in try-catch to handle invalid patterns
+          const regex = new RegExp(pattern);
+          return regex.test(fullPath) || regex.test(entry.name);
+        } catch (_e) {
+          // Why: Catch invalid regex patterns (unused error marked with underscore per ESLint)
+          logError(`Invalid exclusion pattern: ${pattern}`);
+          return false;
+        }
       });
       if (shouldExclude) continue;
 
@@ -381,6 +415,13 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
  * @returns {Promise<string>} Optimized SVG content
  */
 async function optimizeSvg(content, options = {}) {
+  // Why: Validate parameters to prevent runtime errors
+  if (typeof content !== "string") {
+    throw new TypeError(`optimizeSvg: expected string content, got ${typeof content}`);
+  }
+  if (content.length === 0) {
+    throw new Error("optimizeSvg: content is empty");
+  }
   const doc = parseSVG(content);
   const pipeline = DEFAULT_PIPELINE;
 
@@ -464,6 +505,10 @@ async function optimizeSvg(content, options = {}) {
  * @returns {string} Minified XML
  */
 function minifyXml(xml) {
+  // Why: Validate parameter to prevent runtime errors
+  if (typeof xml !== "string") {
+    throw new TypeError(`minifyXml: expected string, got ${typeof xml}`);
+  }
   return (
     xml
       // Remove newlines and collapse whitespace between tags
@@ -480,6 +525,13 @@ function minifyXml(xml) {
  * @returns {string} Prettified XML
  */
 function prettifyXml(xml, indent = 2) {
+  // Why: Validate parameters to prevent runtime errors
+  if (typeof xml !== "string") {
+    throw new TypeError(`prettifyXml: expected string xml, got ${typeof xml}`);
+  }
+  if (typeof indent !== "number" || indent < 0 || indent > 16) {
+    throw new RangeError(`prettifyXml: indent must be number 0-16, got ${indent}`);
+  }
   // Simple XML prettifier
   const indentStr = " ".repeat(indent);
   let formatted = "";
@@ -523,6 +575,14 @@ function prettifyXml(xml, indent = 2) {
  * @returns {string} Data URI string
  */
 function toDataUri(content, format) {
+  // Why: Validate parameters to prevent runtime errors
+  if (typeof content !== "string") {
+    throw new TypeError(`toDataUri: expected string content, got ${typeof content}`);
+  }
+  const validFormats = ["base64", "enc", "unenc"];
+  if (!validFormats.includes(format)) {
+    throw new Error(`toDataUri: format must be one of ${validFormats.join(", ")}, got ${format}`);
+  }
   if (format === "base64") {
     return (
       "data:image/svg+xml;base64," + Buffer.from(content).toString("base64")
@@ -545,9 +605,26 @@ function toDataUri(content, format) {
  * @returns {Promise<Object>} Processing result with success status and metrics
  */
 async function processFile(inputPath, outputPath, options) {
+  // Why: Validate parameters to prevent runtime errors
+  if (typeof inputPath !== "string") {
+    return { success: false, error: `Invalid input path: ${typeof inputPath}`, inputPath };
+  }
+  if (typeof outputPath !== "string") {
+    return { success: false, error: `Invalid output path: ${typeof outputPath}`, inputPath };
+  }
+
   try {
     let content = readFileSync(inputPath, "utf8");
     const originalSize = Buffer.byteLength(content);
+
+    // Why: Validate file size to prevent processing extremely large files
+    if (originalSize > CONSTANTS.MAX_FILE_SIZE_BYTES) {
+      return {
+        success: false,
+        error: `File too large: ${originalSize} bytes (max ${CONSTANTS.MAX_FILE_SIZE_BYTES} bytes)`,
+        inputPath
+      };
+    }
 
     // Apply embedding if enabled
     if (options.embed) {
@@ -719,6 +796,11 @@ function showPlugins() {
  * @returns {Object} Parsed configuration
  */
 function loadConfigFile(configPath) {
+  // Why: Validate parameter to prevent runtime errors
+  if (typeof configPath !== "string") {
+    logError(`Invalid config path: expected string, got ${typeof configPath}`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
   try {
     const absolutePath = resolvePath(configPath);
     if (!existsSync(absolutePath)) {
@@ -785,6 +867,22 @@ function loadConfigFile(configPath) {
 // ARGUMENT PARSING
 // ============================================================================
 /**
+ * Helper to safely get next argument with bounds checking.
+ * @param {string[]} args - Arguments array
+ * @param {number} i - Current index
+ * @param {string} flag - Flag name for error message
+ * @returns {string} Next argument value
+ */
+function getNextArg(args, i, flag) {
+  // Why: Validate bounds to prevent accessing undefined arguments
+  if (i + 1 >= args.length) {
+    logError(`${flag} requires a value`);
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+  return args[i + 1];
+}
+
+/**
  * Parse command-line arguments.
  * @param {string[]} args - Command-line arguments
  * @returns {Object} Parsed configuration object
@@ -830,12 +928,16 @@ function parseArgs(args) {
 
       case "-s":
       case "--string":
-        cfg.string = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.string = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "-f":
       case "--folder":
-        cfg.folder = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.folder = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "-o":
@@ -854,12 +956,15 @@ function parseArgs(args) {
 
       case "-p":
       case "--precision":
-        // Why: Always specify radix 10 to avoid octal interpretation
-        cfg.precision = parseInt(args[++i], 10);
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.precision = parseInt(getNextArg(args, i, arg), 10);
+        i++;
         break;
 
       case "--datauri":
-        cfg.datauri = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.datauri = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "--multipass":
@@ -871,12 +976,15 @@ function parseArgs(args) {
         break;
 
       case "--indent":
-        // Why: Always specify radix 10 to avoid octal interpretation
-        cfg.indent = parseInt(args[++i], 10);
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.indent = parseInt(getNextArg(args, i, arg), 10);
+        i++;
         break;
 
       case "--eol":
-        cfg.eol = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.eol = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "--final-newline":
@@ -908,12 +1016,14 @@ function parseArgs(args) {
 
       case "--preserve-ns":
         {
-          const val = argValue || args[++i];
+          // Why: Use helper to safely get next argument with bounds checking
+          const val = argValue || getNextArg(args, i, arg);
+          if (!argValue) i++; // Only increment if we used getNextArg
           if (!val) {
             logError(
               "--preserve-ns requires a comma-separated list of namespaces",
             );
-            process.exit(1);
+            process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.preserveNamespaces = val
             .split(",")
@@ -940,7 +1050,9 @@ function parseArgs(args) {
         break;
 
       case "--config":
-        cfg.configFile = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.configFile = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "--embed":
@@ -967,7 +1079,9 @@ function parseArgs(args) {
         break;
 
       case "--embed-svg-mode":
-        cfg.embedExternalSVGMode = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.embedExternalSVGMode = getNextArg(args, i, arg);
+        i++;
         break;
 
       case "--embed-css":
@@ -1001,17 +1115,21 @@ function parseArgs(args) {
         break;
 
       case "--embed-max-depth":
-        // Why: Always specify radix 10 to avoid octal interpretation
-        cfg.embedMaxRecursionDepth = parseInt(args[++i], 10);
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.embedMaxRecursionDepth = parseInt(getNextArg(args, i, arg), 10);
+        i++;
         break;
 
       case "--embed-timeout":
-        // Why: Always specify radix 10 to avoid octal interpretation
-        cfg.embedTimeout = parseInt(args[++i], 10);
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.embedTimeout = parseInt(getNextArg(args, i, arg), 10);
+        i++;
         break;
 
       case "--embed-on-missing":
-        cfg.embedOnMissingResource = args[++i];
+        // Why: Use helper to safely get next argument with bounds checking
+        cfg.embedOnMissingResource = getNextArg(args, i, arg);
+        i++;
         break;
 
       default:

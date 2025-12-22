@@ -52,8 +52,11 @@ const MAX_ITERATIONS = 100;
  * @param {number|string|Decimal} x - X coordinate
  * @param {number|string|Decimal} y - Y coordinate
  * @returns {{x: Decimal, y: Decimal}} Point object
+ * @throws {TypeError} If x or y is null or undefined
  */
 export function point(x, y) {
+  if (x == null) throw new TypeError('point: x coordinate cannot be null or undefined');
+  if (y == null) throw new TypeError('point: y coordinate cannot be null or undefined');
   return { x: D(x), y: D(y) };
 }
 
@@ -62,8 +65,11 @@ export function point(x, y) {
  * @param {{x: Decimal, y: Decimal}} a - First vector
  * @param {{x: Decimal, y: Decimal}} b - Second vector
  * @returns {{x: Decimal, y: Decimal}} Sum vector
+ * @throws {TypeError} If a or b is invalid or missing x/y properties
  */
 export function vectorAdd(a, b) {
+  if (!a || a.x == null || a.y == null) throw new TypeError('vectorAdd: first vector must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('vectorAdd: second vector must have x and y properties');
   return { x: a.x.plus(b.x), y: a.y.plus(b.y) };
 }
 
@@ -72,8 +78,11 @@ export function vectorAdd(a, b) {
  * @param {{x: Decimal, y: Decimal}} a - First vector
  * @param {{x: Decimal, y: Decimal}} b - Second vector
  * @returns {{x: Decimal, y: Decimal}} Difference vector (a - b)
+ * @throws {TypeError} If a or b is invalid or missing x/y properties
  */
 export function vectorSub(a, b) {
+  if (!a || a.x == null || a.y == null) throw new TypeError('vectorSub: first vector must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('vectorSub: second vector must have x and y properties');
   return { x: a.x.minus(b.x), y: a.y.minus(b.y) };
 }
 
@@ -81,8 +90,10 @@ export function vectorSub(a, b) {
  * Negate a vector.
  * @param {{x: Decimal, y: Decimal}} v - Vector to negate
  * @returns {{x: Decimal, y: Decimal}} Negated vector
+ * @throws {TypeError} If v is invalid or missing x/y properties
  */
 export function vectorNeg(v) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('vectorNeg: vector must have x and y properties');
   return { x: v.x.neg(), y: v.y.neg() };
 }
 
@@ -91,8 +102,11 @@ export function vectorNeg(v) {
  * @param {{x: Decimal, y: Decimal}} v - Vector to scale
  * @param {number|string|Decimal} s - Scale factor
  * @returns {{x: Decimal, y: Decimal}} Scaled vector
+ * @throws {TypeError} If v is invalid, missing x/y properties, or s is null/undefined
  */
 export function vectorScale(v, s) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('vectorScale: vector must have x and y properties');
+  if (s == null) throw new TypeError('vectorScale: scale factor cannot be null or undefined');
   const sd = D(s);
   return { x: v.x.mul(sd), y: v.y.mul(sd) };
 }
@@ -102,8 +116,11 @@ export function vectorScale(v, s) {
  * @param {{x: Decimal, y: Decimal}} a - First vector
  * @param {{x: Decimal, y: Decimal}} b - Second vector
  * @returns {Decimal} Dot product
+ * @throws {TypeError} If a or b is invalid or missing x/y properties
  */
 export function dot(a, b) {
+  if (!a || a.x == null || a.y == null) throw new TypeError('dot: first vector must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('dot: second vector must have x and y properties');
   return a.x.mul(b.x).plus(a.y.mul(b.y));
 }
 
@@ -112,8 +129,11 @@ export function dot(a, b) {
  * @param {{x: Decimal, y: Decimal}} a - First vector
  * @param {{x: Decimal, y: Decimal}} b - Second vector
  * @returns {Decimal} Cross product (a.x * b.y - a.y * b.x)
+ * @throws {TypeError} If a or b is invalid or missing x/y properties
  */
 export function cross(a, b) {
+  if (!a || a.x == null || a.y == null) throw new TypeError('cross: first vector must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('cross: second vector must have x and y properties');
   return a.x.mul(b.y).minus(a.y.mul(b.x));
 }
 
@@ -121,8 +141,10 @@ export function cross(a, b) {
  * Squared magnitude of a vector.
  * @param {{x: Decimal, y: Decimal}} v - Vector
  * @returns {Decimal} Squared magnitude
+ * @throws {TypeError} If v is invalid or missing x/y properties
  */
 export function magnitudeSquared(v) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('magnitudeSquared: vector must have x and y properties');
   return v.x.mul(v.x).plus(v.y.mul(v.y));
 }
 
@@ -130,8 +152,10 @@ export function magnitudeSquared(v) {
  * Magnitude of a vector.
  * @param {{x: Decimal, y: Decimal}} v - Vector
  * @returns {Decimal} Magnitude
+ * @throws {TypeError} If v is invalid or missing x/y properties
  */
 export function magnitude(v) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('magnitude: vector must have x and y properties');
   return magnitudeSquared(v).sqrt();
 }
 
@@ -139,8 +163,10 @@ export function magnitude(v) {
  * Normalize a vector to unit length.
  * @param {{x: Decimal, y: Decimal}} v - Vector to normalize
  * @returns {{x: Decimal, y: Decimal}} Unit vector
+ * @throws {TypeError} If v is invalid or missing x/y properties
  */
 export function normalize(v) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('normalize: vector must have x and y properties');
   const mag = magnitude(v);
   if (mag.lessThan(EPSILON)) {
     return { x: D(0), y: D(0) };
@@ -152,8 +178,10 @@ export function normalize(v) {
  * Get perpendicular vector (90° counter-clockwise rotation).
  * @param {{x: Decimal, y: Decimal}} v - Vector
  * @returns {{x: Decimal, y: Decimal}} Perpendicular vector
+ * @throws {TypeError} If v is invalid or missing x/y properties
  */
 export function perpendicular(v) {
+  if (!v || v.x == null || v.y == null) throw new TypeError('perpendicular: vector must have x and y properties');
   return { x: v.y.neg(), y: v.x };
 }
 
@@ -164,8 +192,12 @@ export function perpendicular(v) {
  * @param {{x: Decimal, y: Decimal}} b - Second vector
  * @param {{x: Decimal, y: Decimal}} c - Third vector
  * @returns {{x: Decimal, y: Decimal}} Triple product result
+ * @throws {TypeError} If any vector is invalid or missing x/y properties
  */
 export function tripleProduct(a, b, c) {
+  if (!a || a.x == null || a.y == null) throw new TypeError('tripleProduct: first vector must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('tripleProduct: second vector must have x and y properties');
+  if (!c || c.x == null || c.y == null) throw new TypeError('tripleProduct: third vector must have x and y properties');
   // In 2D: (A × B) × C = B(A·C) - A(B·C)
   const ac = dot(a, c);
   const bc = dot(b, c);
@@ -185,8 +217,11 @@ export function tripleProduct(a, b, c) {
  * @param {Array<{x: Decimal, y: Decimal}>} polygon - Convex polygon vertices
  * @param {{x: Decimal, y: Decimal}} direction - Direction to search
  * @returns {{x: Decimal, y: Decimal}} Farthest point
+ * @throws {TypeError} If polygon is not an array or direction is invalid
  */
 export function supportPoint(polygon, direction) {
+  if (!Array.isArray(polygon)) throw new TypeError('supportPoint: polygon must be an array');
+  if (!direction || direction.x == null || direction.y == null) throw new TypeError('supportPoint: direction must have x and y properties');
   if (polygon.length === 0) {
     return point(0, 0);
   }
@@ -215,8 +250,12 @@ export function supportPoint(polygon, direction) {
  * @param {Array<{x: Decimal, y: Decimal}>} polygonB - Second convex polygon
  * @param {{x: Decimal, y: Decimal}} direction - Direction to search
  * @returns {{x: Decimal, y: Decimal}} Support point on Minkowski difference
+ * @throws {TypeError} If polygons are not arrays or direction is invalid
  */
 export function minkowskiSupport(polygonA, polygonB, direction) {
+  if (!Array.isArray(polygonA)) throw new TypeError('minkowskiSupport: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('minkowskiSupport: polygonB must be an array');
+  if (!direction || direction.x == null || direction.y == null) throw new TypeError('minkowskiSupport: direction must have x and y properties');
   const pointA = supportPoint(polygonA, direction);
   const pointB = supportPoint(polygonB, vectorNeg(direction));
   return vectorSub(pointA, pointB);
@@ -236,8 +275,12 @@ export function minkowskiSupport(polygonA, polygonB, direction) {
  * @param {Array<{x: Decimal, y: Decimal}>} simplex - Current simplex (modified in place)
  * @param {{x: Decimal, y: Decimal}} direction - Current search direction (modified)
  * @returns {{contains: boolean, newDirection: {x: Decimal, y: Decimal}}}
+ * @throws {TypeError} If simplex is not an array, has wrong length, or direction is invalid
  */
 export function processLineSimplex(simplex, direction) {
+  if (!Array.isArray(simplex)) throw new TypeError('processLineSimplex: simplex must be an array');
+  if (simplex.length !== 2) throw new TypeError('processLineSimplex: simplex must have exactly 2 points');
+  if (!direction || direction.x == null || direction.y == null) throw new TypeError('processLineSimplex: direction must have x and y properties');
   const A = simplex[0]; // Newest point
   const B = simplex[1];
 
@@ -276,8 +319,12 @@ export function processLineSimplex(simplex, direction) {
  * @param {Array<{x: Decimal, y: Decimal}>} simplex - Current simplex (modified in place)
  * @param {{x: Decimal, y: Decimal}} direction - Current search direction
  * @returns {{contains: boolean, newDirection: {x: Decimal, y: Decimal}, newSimplex: Array}}
+ * @throws {TypeError} If simplex is not an array, has wrong length, or direction is invalid
  */
 export function processTriangleSimplex(simplex, direction) {
+  if (!Array.isArray(simplex)) throw new TypeError('processTriangleSimplex: simplex must be an array');
+  if (simplex.length !== 3) throw new TypeError('processTriangleSimplex: simplex must have exactly 3 points');
+  if (!direction || direction.x == null || direction.y == null) throw new TypeError('processTriangleSimplex: direction must have x and y properties');
   const A = simplex[0]; // Newest point
   const B = simplex[1];
   const C = simplex[2];
@@ -336,8 +383,11 @@ export function processTriangleSimplex(simplex, direction) {
  * @param {Array<{x: Decimal, y: Decimal}>} polygonA - First convex polygon
  * @param {Array<{x: Decimal, y: Decimal}>} polygonB - Second convex polygon
  * @returns {{intersects: boolean, iterations: number, simplex: Array, verified: boolean}}
+ * @throws {TypeError} If polygons are not arrays
  */
 export function gjkIntersects(polygonA, polygonB) {
+  if (!Array.isArray(polygonA)) throw new TypeError('gjkIntersects: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('gjkIntersects: polygonB must be an array');
   // Handle empty polygons
   if (polygonA.length === 0 || polygonB.length === 0) {
     return { intersects: false, iterations: 0, simplex: [], verified: true };
@@ -460,8 +510,10 @@ export function gjkIntersects(polygonA, polygonB) {
  * Calculate centroid of a polygon.
  * @param {Array<{x: Decimal, y: Decimal}>} polygon - Polygon vertices
  * @returns {{x: Decimal, y: Decimal}} Centroid point
+ * @throws {TypeError} If polygon is not an array
  */
 export function centroid(polygon) {
+  if (!Array.isArray(polygon)) throw new TypeError('centroid: polygon must be an array');
   if (polygon.length === 0) {
     return point(0, 0);
   }
@@ -487,8 +539,11 @@ export function centroid(polygon) {
  * @param {{x: Decimal, y: Decimal}} pt - Point to test
  * @param {Array<{x: Decimal, y: Decimal}>} polygon - Convex polygon
  * @returns {boolean} True if point is inside (including boundary)
+ * @throws {TypeError} If pt is invalid or polygon is not an array
  */
 export function pointInConvexPolygon(pt, polygon) {
+  if (!pt || pt.x == null || pt.y == null) throw new TypeError('pointInConvexPolygon: point must have x and y properties');
+  if (!Array.isArray(polygon)) throw new TypeError('pointInConvexPolygon: polygon must be an array');
   if (polygon.length < 3) {
     return false;
   }
@@ -530,8 +585,11 @@ export function pointInConvexPolygon(pt, polygon) {
  * @param {Array<{x: Decimal, y: Decimal}>} polygonA - First polygon
  * @param {Array<{x: Decimal, y: Decimal}>} polygonB - Second polygon
  * @returns {boolean} True if intersection is verified
+ * @throws {TypeError} If polygons are not arrays
  */
 export function verifyIntersection(polygonA, polygonB) {
+  if (!Array.isArray(polygonA)) throw new TypeError('verifyIntersection: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('verifyIntersection: polygonB must be an array');
   // Check if any vertex of A is inside B
   for (const p of polygonA) {
     if (pointInConvexPolygon(p, polygonB)) {
@@ -572,8 +630,14 @@ export function verifyIntersection(polygonA, polygonB) {
  * @param {{x: Decimal, y: Decimal}} b1 - Second segment start
  * @param {{x: Decimal, y: Decimal}} b2 - Second segment end
  * @returns {boolean} True if segments intersect
+ * @throws {TypeError} If any point is invalid or missing x/y properties
  */
 export function segmentsIntersect(a1, a2, b1, b2) {
+  if (!a1 || a1.x == null || a1.y == null) throw new TypeError('segmentsIntersect: a1 must have x and y properties');
+  if (!a2 || a2.x == null || a2.y == null) throw new TypeError('segmentsIntersect: a2 must have x and y properties');
+  if (!b1 || b1.x == null || b1.y == null) throw new TypeError('segmentsIntersect: b1 must have x and y properties');
+  if (!b2 || b2.x == null || b2.y == null) throw new TypeError('segmentsIntersect: b2 must have x and y properties');
+
   const d1 = vectorSub(a2, a1);
   const d2 = vectorSub(b2, b1);
 
@@ -585,9 +649,22 @@ export function segmentsIntersect(a1, a2, b1, b2) {
     const d3 = vectorSub(b1, a1);
     if (cross(d1, d3).abs().lessThan(EPSILON)) {
       // Collinear - check overlap
-      const t0 = dot(d3, d1).div(dot(d1, d1));
+      const d1LengthSq = dot(d1, d1);
+      // Handle degenerate first segment (a1 == a2)
+      if (d1LengthSq.lessThan(EPSILON)) {
+        // First segment is a point - check if it lies on second segment
+        const d2LengthSq = dot(d2, d2);
+        if (d2LengthSq.lessThan(EPSILON)) {
+          // Both segments are points - check if same point
+          return magnitude(d3).lessThan(EPSILON);
+        }
+        // Check if point a1 is on segment b1-b2
+        const t = dot(d3, d2).div(d2LengthSq);
+        return t.greaterThanOrEqualTo(0) && t.lessThanOrEqualTo(1);
+      }
+      const t0 = dot(d3, d1).div(d1LengthSq);
       const d4 = vectorSub(b2, a1);
-      const t1 = dot(d4, d1).div(dot(d1, d1));
+      const t1 = dot(d4, d1).div(d1LengthSq);
 
       const tMin = Decimal.min(t0, t1);
       const tMax = Decimal.max(t0, t1);
@@ -620,8 +697,14 @@ export function segmentsIntersect(a1, a2, b1, b2) {
  * @param {Array<{x: Decimal, y: Decimal}>} polygonA - First convex polygon
  * @param {Array<{x: Decimal, y: Decimal}>} polygonB - Second convex polygon
  * @returns {{distance: Decimal, closestA: {x: Decimal, y: Decimal}, closestB: {x: Decimal, y: Decimal}, verified: boolean}}
+ * @throws {TypeError} If polygons are not arrays or are empty
  */
 export function gjkDistance(polygonA, polygonB) {
+  if (!Array.isArray(polygonA)) throw new TypeError('gjkDistance: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('gjkDistance: polygonB must be an array');
+  if (polygonA.length === 0) throw new TypeError('gjkDistance: polygonA cannot be empty');
+  if (polygonB.length === 0) throw new TypeError('gjkDistance: polygonB cannot be empty');
+
   // First check if they intersect
   const intersection = gjkIntersects(polygonA, polygonB);
 
@@ -704,8 +787,13 @@ export function gjkDistance(polygonA, polygonB) {
  * @param {{x: Decimal, y: Decimal}} a - Segment start
  * @param {{x: Decimal, y: Decimal}} b - Segment end
  * @returns {{x: Decimal, y: Decimal}} Closest point on segment
+ * @throws {TypeError} If any point is invalid or missing x/y properties
  */
 export function closestPointOnSegment(pt, a, b) {
+  if (!pt || pt.x == null || pt.y == null) throw new TypeError('closestPointOnSegment: pt must have x and y properties');
+  if (!a || a.x == null || a.y == null) throw new TypeError('closestPointOnSegment: a must have x and y properties');
+  if (!b || b.x == null || b.y == null) throw new TypeError('closestPointOnSegment: b must have x and y properties');
+
   const ab = vectorSub(b, a);
   const ap = vectorSub(pt, a);
 
@@ -735,8 +823,11 @@ export function closestPointOnSegment(pt, a, b) {
  * @param {Array<{x: number|Decimal, y: number|Decimal}>} polygonA - First polygon
  * @param {Array<{x: number|Decimal, y: number|Decimal}>} polygonB - Second polygon
  * @returns {{overlaps: boolean, verified: boolean}}
+ * @throws {TypeError} If polygons are not arrays
  */
 export function polygonsOverlap(polygonA, polygonB) {
+  if (!Array.isArray(polygonA)) throw new TypeError('polygonsOverlap: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('polygonsOverlap: polygonB must be an array');
   // Normalize input to Decimal
   const normA = polygonA.map(p => point(p.x, p.y));
   const normB = polygonB.map(p => point(p.x, p.y));
@@ -755,8 +846,11 @@ export function polygonsOverlap(polygonA, polygonB) {
  * @param {Array<{x: number|Decimal, y: number|Decimal}>} polygonA - First polygon
  * @param {Array<{x: number|Decimal, y: number|Decimal}>} polygonB - Second polygon
  * @returns {{distance: Decimal, verified: boolean}}
+ * @throws {TypeError} If polygons are not arrays
  */
 export function polygonsDistance(polygonA, polygonB) {
+  if (!Array.isArray(polygonA)) throw new TypeError('polygonsDistance: polygonA must be an array');
+  if (!Array.isArray(polygonB)) throw new TypeError('polygonsDistance: polygonB must be an array');
   // Normalize input to Decimal
   const normA = polygonA.map(p => point(p.x, p.y));
   const normB = polygonB.map(p => point(p.x, p.y));
@@ -777,8 +871,11 @@ export function polygonsDistance(polygonA, polygonB) {
  * @param {{x: number|Decimal, y: number|Decimal}} pt - Point to test
  * @param {Array<{x: number|Decimal, y: number|Decimal}>} polygon - Polygon
  * @returns {boolean} True if inside
+ * @throws {TypeError} If pt is invalid or polygon is not an array
  */
 export function isPointInPolygon(pt, polygon) {
+  if (!pt || pt.x == null || pt.y == null) throw new TypeError('isPointInPolygon: pt must have x and y properties');
+  if (!Array.isArray(polygon)) throw new TypeError('isPointInPolygon: polygon must be an array');
   const normPt = point(pt.x, pt.y);
   const normPoly = polygon.map(p => point(p.x, p.y));
 
