@@ -179,6 +179,8 @@ export function parsePatternElement(patternElement) {
           });
         }
         break;
+      default:
+        break;
     }
 
     data.children.push(childData);
@@ -805,6 +807,8 @@ export function getPatternContentBBox(patternData) {
           width: Math.abs(child.x2 - child.x1),
           height: Math.abs(child.y2 - child.y1),
         };
+        break;
+      default:
         break;
     }
 

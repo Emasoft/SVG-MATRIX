@@ -220,6 +220,8 @@ export function parseMaskElement(maskElement) {
           });
         }
         break;
+      default:
+        break;
     }
 
     data.children.push(childData);

@@ -248,6 +248,8 @@ export function extractPolylinePoints(commands) {
         cx = args[5]; cy = args[6]; break;
       case 'a':
         cx += args[5]; cy += args[6]; break;
+      default:
+        break;
     }
   }
 

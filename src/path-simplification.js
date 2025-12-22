@@ -1070,6 +1070,8 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         currentX = startX;
         currentY = startY;
         break;
+      default:
+        break;
     }
 
     if (keep) {

@@ -246,6 +246,8 @@ export function pathToPolygon(
         currentX = startX;
         currentY = startY;
         break;
+      default:
+        break;
     }
   }
 

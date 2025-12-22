@@ -494,6 +494,8 @@ export function getPathVertices(pathData) {
         }
         break;
       }
+      default:
+        break;
     }
   }
 
@@ -903,6 +905,8 @@ export function markerToPolygons(markerInstance, options = {}) {
       case "polyline":
         points = parsePoints(child.points);
         break;
+      default:
+        break;
     }
 
     // Apply transform to all points
@@ -989,6 +993,8 @@ export function pathToPoints(pathData, segments = 10) {
         currentX = cmd.x;
         currentY = cmd.y;
         points.push({ x: currentX, y: currentY });
+        break;
+      default:
         break;
     }
   }
