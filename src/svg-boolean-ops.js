@@ -911,7 +911,7 @@ export class SVGRegion {
     }
 
     // Add stroke region if element has stroke
-    if (style.stroke !== "none" && style.strokeWidth > 0) {
+    if (style.stroke !== "none" && typeof style.strokeWidth === "number" && style.strokeWidth > 0) {
       const sourcePolygon =
         type === "line"
           ? lineToPolygon(props, {
@@ -924,7 +924,7 @@ export class SVGRegion {
         let strokePolygons;
 
         // Apply dash array if present
-        if (style.strokeDasharray && style.strokeDasharray.length > 0) {
+        if (Array.isArray(style.strokeDasharray) && style.strokeDasharray.length > 0) {
           const dashedSegments = applyDashArray(
             sourcePolygon,
             style.strokeDasharray,
@@ -973,7 +973,7 @@ export class SVGRegion {
     if (!pt || typeof pt !== "object") {
       throw new Error("SVGRegion.containsPoint: pt must be an object");
     }
-    if (!pt.x || !pt.y) {
+    if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null) {
       throw new Error("SVGRegion.containsPoint: pt must have x and y properties");
     }
 
@@ -1050,8 +1050,6 @@ export function regionUnion(regionA, regionB) {
   if (!regionB || !(regionB instanceof SVGRegion)) {
     throw new Error("regionUnion: regionB must be an SVGRegion instance");
   }
-
-  const _resultPolygons = [];
 
   const polygonsA = regionA.getAllPolygons();
   const polygonsB = regionB.getAllPolygons();

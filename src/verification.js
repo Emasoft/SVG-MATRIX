@@ -35,6 +35,13 @@ export function computeTolerance() {
   // Tolerance is 10 orders of magnitude less than precision
   // For precision=80, tolerance = 1e-70
   const precision = Decimal.precision;
+  // Ensure minimum precision of 20 to avoid overly loose tolerances
+  // If precision < 20, clamp toleranceExp to avoid 1e-1 or worse
+  if (precision < 20) {
+    throw new Error(
+      `Decimal precision (${precision}) is too low for verification. Minimum required: 20`,
+    );
+  }
   const toleranceExp = Math.max(1, precision - 10);
   return new Decimal(10).pow(-toleranceExp);
 }

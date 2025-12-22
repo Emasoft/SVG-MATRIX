@@ -381,9 +381,11 @@ export function collectAllReferences(root) {
     }
 
     // Recurse to children
-    for (const child of el.children) {
-      if (child instanceof SVGElement) {
-        processElement(child, currentPath);
+    if (el.children && typeof el.children[Symbol.iterator] === "function") {
+      for (const child of el.children) {
+        if (child instanceof SVGElement) {
+          processElement(child, currentPath);
+        }
       }
     }
   };
@@ -457,8 +459,26 @@ export function findUnreferencedDefs(root) {
   const animationReferenced = [];
 
   // Scan all defs
+  if (typeof root.getElementsByTagName !== "function") {
+    throw new TypeError(
+      "findUnreferencedDefs: root must have getElementsByTagName method",
+    );
+  }
+
   const defsElements = root.getElementsByTagName("defs");
+  // Validate defsElements is iterable
+  if (!defsElements || typeof defsElements[Symbol.iterator] !== "function") {
+    throw new TypeError(
+      "findUnreferencedDefs: getElementsByTagName must return an iterable",
+    );
+  }
+
   for (const defs of defsElements) {
+    // Validate defs.children exists and is iterable
+    if (!defs.children || typeof defs.children[Symbol.iterator] !== "function") {
+      continue; // Skip this defs element if children is not iterable
+    }
+
     for (const child of defs.children) {
       if (child instanceof SVGElement) {
         const id = child.getAttribute("id");
@@ -499,14 +519,41 @@ export function removeUnreferencedDefsSafe(root) {
   const removed = [];
 
   // Only remove elements that are truly unreferenced
+  if (typeof root.getElementsByTagName !== "function") {
+    throw new TypeError(
+      "removeUnreferencedDefsSafe: root must have getElementsByTagName method",
+    );
+  }
+
   const defsElements = root.getElementsByTagName("defs");
+  // Validate defsElements is iterable
+  if (!defsElements || typeof defsElements[Symbol.iterator] !== "function") {
+    throw new TypeError(
+      "removeUnreferencedDefsSafe: getElementsByTagName must return an iterable",
+    );
+  }
+
   for (const defs of defsElements) {
+    // Validate defs.children exists and is iterable before spreading
+    if (!defs.children || typeof defs.children[Symbol.iterator] !== "function") {
+      continue; // Skip this defs element if children is not iterable
+    }
+
     for (const child of [...defs.children]) {
       if (child instanceof SVGElement) {
         const id = child.getAttribute("id");
         if (id && safeToRemove.includes(id)) {
-          defs.removeChild(child);
-          removed.push(id);
+          try {
+            defs.removeChild(child);
+            removed.push(id);
+          } catch (error) {
+            // If removeChild fails (child not a direct child of defs), skip it
+            // This prevents the function from crashing on edge cases
+            console.warn(
+              `removeUnreferencedDefsSafe: Failed to remove child with id="${id}":`,
+              error.message,
+            );
+          }
         }
       }
     }

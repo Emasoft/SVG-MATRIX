@@ -475,6 +475,7 @@ export function stringifySelector(components) {
         case SELECTOR_TYPES.UNIVERSAL:
           return "*";
         default:
+          // Unknown types stringify to empty string for graceful degradation
           return "";
       }
     })

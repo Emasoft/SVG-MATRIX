@@ -103,6 +103,37 @@ function validateTolerance(tolerance) {
   }
 }
 
+/**
+ * Validate command object structure - fail fast on invalid commands
+ * @param {object} cmd - Command object to validate
+ * @param {number} minArgs - Minimum required args length (optional)
+ * @throws {TypeError} If command structure is invalid
+ */
+function validateCommand(cmd, minArgs = 0) {
+  if (!cmd || typeof cmd !== "object") {
+    throw new TypeError("Command must be an object");
+  }
+  if (typeof cmd.command !== "string") {
+    throw new TypeError("Command must have a string 'command' property");
+  }
+  if (!Array.isArray(cmd.args)) {
+    throw new TypeError("Command must have an array 'args' property");
+  }
+  if (cmd.args.length < minArgs) {
+    throw new TypeError(
+      `Command ${cmd.command} requires at least ${minArgs} args, got ${cmd.args.length}`,
+    );
+  }
+  // Validate all args are finite numbers
+  for (let i = 0; i < cmd.args.length; i++) {
+    if (typeof cmd.args[i] !== "number" || !Number.isFinite(cmd.args[i])) {
+      throw new TypeError(
+        `Command ${cmd.command} arg[${i}] must be a finite number, got ${cmd.args[i]}`,
+      );
+    }
+  }
+}
+
 // ============================================================================
 // PLUGIN: removeLeadingZero
 // Removes leading zeros from decimal numbers (0.5 -> .5)
@@ -122,6 +153,9 @@ export function removeLeadingZero(d, precision = 3) {
 
   const commands = parsePath(d);
   if (commands.length === 0) return d;
+
+  // Validate all commands have proper structure
+  commands.forEach((cmd) => validateCommand(cmd));
 
   // Format numbers with leading zero removal
   const formatted = commands.map((cmd) => ({
@@ -190,12 +224,16 @@ export function convertToRelative(d, precision = 3) {
   const result = [];
 
   for (const cmd of commands) {
+    validateCommand(cmd);
+
     // Convert to relative
     const rel = toRelative(cmd, cx, cy);
+    validateCommand(rel);
     result.push(rel);
 
     // Update position using absolute form
     const abs = toAbsolute(cmd, cx, cy);
+    validateCommand(abs);
     switch (abs.command) {
       case "M":
         cx = abs.args[0];

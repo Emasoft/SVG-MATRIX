@@ -121,6 +121,10 @@ let config = { ...DEFAULT_CONFIG };
  * @returns {void}
  */
 function log(msg) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof msg !== "string") {
+    throw new TypeError(`log: expected string, got ${typeof msg}`);
+  }
   if (!config.quiet) console.log(msg);
 }
 
@@ -130,6 +134,11 @@ function log(msg) {
  * @returns {void}
  */
 function logError(msg) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof msg !== "string") {
+    console.error(`${colors.red}error:${colors.reset} Invalid error message type: ${typeof msg}`);
+    return;
+  }
   console.error(`${colors.red}error:${colors.reset} ${msg}`);
 }
 
@@ -422,6 +431,9 @@ async function optimizeSvg(content, options = {}) {
   if (content.length === 0) {
     throw new Error("optimizeSvg: content is empty");
   }
+  if (options !== null && typeof options !== "object") {
+    throw new TypeError(`optimizeSvg: expected object options, got ${typeof options}`);
+  }
   const doc = parseSVG(content);
   const pipeline = DEFAULT_PIPELINE;
 
@@ -611,6 +623,9 @@ async function processFile(inputPath, outputPath, options) {
   }
   if (typeof outputPath !== "string") {
     return { success: false, error: `Invalid output path: ${typeof outputPath}`, inputPath };
+  }
+  if (options !== null && typeof options !== "object") {
+    return { success: false, error: `Invalid options: ${typeof options}`, inputPath };
   }
 
   try {

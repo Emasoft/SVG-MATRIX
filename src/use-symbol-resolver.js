@@ -669,11 +669,6 @@ export function resolveUse(useData, defs, options = {}) {
     throw new Error('resolveUse: maxDepth must be a positive finite number');
   }
 
-  // Depth limit check
-  if (maxDepth <= 0) {
-    return null; // Prevent infinite recursion
-  }
-
   const target = defs[useData.href];
   if (!target) {
     return null; // Target element not found
@@ -952,13 +947,20 @@ export function elementToPolygon(element, transform, samples = 20) {
  */
 export function mergeStyles(inherited, element) {
   // Parameter validation: element must be defined (inherited can be null)
-  if (!element || typeof element !== 'object') {
-    throw new Error('mergeStyles: element must be a valid object');
+  if (!element || typeof element !== 'object' || Array.isArray(element)) {
+    throw new Error('mergeStyles: element must be a valid non-array object');
   }
 
   const result = { ...element };
 
   // Inherited can be null/undefined, handle gracefully
+  // Also validate inherited is an object if not null/undefined
+  if (inherited !== null && inherited !== undefined) {
+    if (typeof inherited !== 'object' || Array.isArray(inherited)) {
+      throw new Error('mergeStyles: inherited must be null, undefined, or a valid non-array object');
+    }
+  }
+
   for (const [key, value] of Object.entries(inherited || {})) {
     // Inherit if value is not null and element doesn't have a value (null or undefined)
     if (value !== null && (result[key] === null || result[key] === undefined)) {
@@ -1374,6 +1376,11 @@ export function resolveAllUses(svgRoot, options = {}) {
   // Parameter validation: svgRoot must be defined and have querySelectorAll method
   if (!svgRoot || typeof svgRoot.querySelectorAll !== 'function') {
     throw new Error('resolveAllUses: svgRoot must be a valid DOM element');
+  }
+
+  // Validate options parameter
+  if (options && typeof options !== 'object') {
+    throw new Error('resolveAllUses: options must be an object or undefined');
   }
 
   const defs = buildDefsMap(svgRoot);

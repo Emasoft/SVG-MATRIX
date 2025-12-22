@@ -1300,6 +1300,20 @@ function bakeAllGradientTransforms(root, opts, stats) {
       const fy = parseFloat(grad.getAttribute("fy") || cy.toString());
       const r = parseFloat(grad.getAttribute("r") || "0.5");
 
+      // Validate parseFloat results to prevent NaN propagation
+      if (isNaN(cx) || isNaN(cy) || isNaN(fx) || isNaN(fy) || isNaN(r)) {
+        errors.push(
+          `radialGradient: invalid coordinate/radius values for gradient ${grad.getAttribute("id") || "unknown"}`,
+        );
+        continue;
+      }
+      if (r <= 0) {
+        errors.push(
+          `radialGradient: radius must be positive for gradient ${grad.getAttribute("id") || "unknown"}`,
+        );
+        continue;
+      }
+
       const [tcx, tcy] = Transforms2D.applyTransform(ctm, cx, cy);
       const [tfx, tfy] = Transforms2D.applyTransform(ctm, fx, fy);
 

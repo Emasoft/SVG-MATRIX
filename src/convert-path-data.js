@@ -768,10 +768,17 @@ export function serializeCommand(
   // Arc format: rx ry rotation large-arc-flag sweep-flag x y
   // Per SVG spec: flags MUST be exactly 0 or 1, arc commands CANNOT be implicitly repeated
   if (command === "A" || command === "a") {
-    // Bounds check: arc commands need exactly 7 args
+    // Bounds check: arc commands need at least 7 args
     if (args.length < 7) {
       throw new RangeError(
-        `serializeCommand: arc command requires 7 args, got ${args.length}`,
+        `serializeCommand: arc command requires at least 7 args, got ${args.length}`,
+      );
+    }
+
+    // BUG FIX #11: Warn if args.length > 7 (multiple arcs should be separate commands)
+    if (args.length > 7) {
+      console.warn(
+        `serializeCommand: arc command has ${args.length} args (expected 7) - only first 7 will be used`,
       );
     }
 
@@ -985,16 +992,20 @@ export function convertPathData(d, options = {}) {
 
     // BUG FIX #3: Convert zero arc radii to line per SVG spec Section 8.3.4
     // When rx or ry is 0, the arc degenerates to a straight line
-    if (
-      (cmd.command === "A" || cmd.command === "a") &&
-      (cmd.args[0] === 0 || cmd.args[1] === 0)
-    ) {
-      const isAbs = cmd.command === "A";
-      const endX = cmd.args[5];
-      const endY = cmd.args[6];
-      cmd = isAbs
-        ? { command: "L", args: [endX, endY] }
-        : { command: "l", args: [endX, endY] };
+    // BUG FIX #12: Add bounds check before accessing arc args
+    if (cmd.command === "A" || cmd.command === "a") {
+      if (cmd.args.length < 7) {
+        console.warn(
+          `Arc command has insufficient args (${cmd.args.length} < 7) - skipping optimization`,
+        );
+      } else if (cmd.args[0] === 0 || cmd.args[1] === 0) {
+        const isAbs = cmd.command === "A";
+        const endX = cmd.args[5];
+        const endY = cmd.args[6];
+        cmd = isAbs
+          ? { command: "L", args: [endX, endY] }
+          : { command: "l", args: [endX, endY] };
+      }
     }
 
     // 1. Straight curve to line

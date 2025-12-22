@@ -955,6 +955,34 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
     );
   }
 
+  // PARAMETER VALIDATION: Ensure t0 and t1 are valid
+  // WHY: Invalid interval bounds cause arithmetic errors
+  if (t0 == null || t1 == null) {
+    throw new Error(
+      "findRootsBySubdivision: t0 and t1 must not be null or undefined",
+    );
+  }
+  t0 = t0 instanceof Decimal ? t0 : D(t0);
+  t1 = t1 instanceof Decimal ? t1 : D(t1);
+  if (!t0.isFinite() || !t1.isFinite()) {
+    throw new Error(
+      "findRootsBySubdivision: t0 and t1 must be finite numbers",
+    );
+  }
+  if (t1.lte(t0)) {
+    throw new Error("findRootsBySubdivision: t1 must be greater than t0");
+  }
+
+  // COEFFICIENT VALIDATION: Ensure all coefficients are valid Decimals
+  // WHY: Sign checking requires .isNegative() and .isZero() methods
+  for (let i = 0; i < coeffs.length; i++) {
+    if (!coeffs[i] || !(coeffs[i] instanceof Decimal)) {
+      throw new Error(
+        `findRootsBySubdivision: coeffs[${i}] must be a Decimal instance`,
+      );
+    }
+  }
+
   // Check if interval might contain a root (sign change in convex hull)
   const signs = coeffs.map((c) => (c.isNegative() ? -1 : c.isZero() ? 0 : 1));
   const minSign = Math.min(...signs);

@@ -132,6 +132,20 @@ export function visvalingamWhyatt(points, minArea) {
     throw new RangeError('visvalingamWhyatt: points array cannot be empty');
   }
 
+  // Validate each point has x and y properties with finite numeric values
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p || typeof p !== 'object') {
+      throw new TypeError(`visvalingamWhyatt: point at index ${i} must be an object`);
+    }
+    if (typeof p.x !== 'number' || !Number.isFinite(p.x)) {
+      throw new TypeError(`visvalingamWhyatt: point at index ${i} must have a finite numeric x property`);
+    }
+    if (typeof p.y !== 'number' || !Number.isFinite(p.y)) {
+      throw new TypeError(`visvalingamWhyatt: point at index ${i} must have a finite numeric y property`);
+    }
+  }
+
   // Validate minArea parameter to ensure valid numeric threshold
   if (typeof minArea !== 'number' || !Number.isFinite(minArea)) {
     throw new TypeError('visvalingamWhyatt: minArea must be a finite number');
@@ -289,46 +303,61 @@ export function extractPolylinePoints(commands) {
       }
     };
 
+    // Helper to validate arg is a finite number to prevent NaN/Infinity in calculations
+    const requireFiniteNumber = (index) => {
+      if (typeof args[index] !== 'number' || !Number.isFinite(args[index])) {
+        throw new TypeError(`extractPolylinePoints: command "${command}" argument at index ${index} must be a finite number, got ${args[index]}`);
+      }
+    };
+
     switch (command) {
       case 'M':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx = args[0]; cy = args[1];
         startX = cx; startY = cy;
         points.push({ x: cx, y: cy });
         break;
       case 'm':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx += args[0]; cy += args[1];
         startX = cx; startY = cy;
         points.push({ x: cx, y: cy });
         break;
       case 'L':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx = args[0]; cy = args[1];
         points.push({ x: cx, y: cy });
         break;
       case 'l':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx += args[0]; cy += args[1];
         points.push({ x: cx, y: cy });
         break;
       case 'H':
         requireArgs(1);
+        requireFiniteNumber(0);
         cx = args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'h':
         requireArgs(1);
+        requireFiniteNumber(0);
         cx += args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'V':
         requireArgs(1);
+        requireFiniteNumber(0);
         cy = args[0];
         points.push({ x: cx, y: cy });
         break;
       case 'v':
         requireArgs(1);
+        requireFiniteNumber(0);
         cy += args[0];
         points.push({ x: cx, y: cy });
         break;
@@ -342,27 +371,35 @@ export function extractPolylinePoints(commands) {
       // For curves (C, S, Q, T, A), we just track the endpoint
       case 'C':
         requireArgs(6);
+        requireFiniteNumber(4); requireFiniteNumber(5);
         cx = args[4]; cy = args[5]; break;
       case 'c':
         requireArgs(6);
+        requireFiniteNumber(4); requireFiniteNumber(5);
         cx += args[4]; cy += args[5]; break;
       case 'S': case 'Q':
         requireArgs(4);
+        requireFiniteNumber(2); requireFiniteNumber(3);
         cx = args[2]; cy = args[3]; break;
       case 's': case 'q':
         requireArgs(4);
+        requireFiniteNumber(2); requireFiniteNumber(3);
         cx += args[2]; cy += args[3]; break;
       case 'T':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx = args[0]; cy = args[1]; break;
       case 't':
         requireArgs(2);
+        requireFiniteNumber(0); requireFiniteNumber(1);
         cx += args[0]; cy += args[1]; break;
       case 'A':
         requireArgs(7);
+        requireFiniteNumber(5); requireFiniteNumber(6);
         cx = args[5]; cy = args[6]; break;
       case 'a':
         requireArgs(7);
+        requireFiniteNumber(5); requireFiniteNumber(6);
         cx += args[5]; cy += args[6]; break;
       default:
         break;
@@ -389,6 +426,20 @@ export function rebuildPathFromPoints(points, closed = false) {
   // Validate closed parameter to ensure boolean type
   if (typeof closed !== 'boolean') {
     throw new TypeError('rebuildPathFromPoints: closed must be a boolean');
+  }
+
+  // Validate each point has x and y properties with finite numeric values
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p || typeof p !== 'object') {
+      throw new TypeError(`rebuildPathFromPoints: point at index ${i} must be an object`);
+    }
+    if (typeof p.x !== 'number' || !Number.isFinite(p.x)) {
+      throw new TypeError(`rebuildPathFromPoints: point at index ${i} must have a finite numeric x property`);
+    }
+    if (typeof p.y !== 'number' || !Number.isFinite(p.y)) {
+      throw new TypeError(`rebuildPathFromPoints: point at index ${i} must have a finite numeric y property`);
+    }
   }
 
   const commands = [];

@@ -351,8 +351,15 @@ export { Logger, LogLevel, setLogLevel, enableFileLogging, disableFileLogging };
  * @param {number|string|Decimal} tx - X translation
  * @param {number|string|Decimal} ty - Y translation
  * @returns {Matrix} 3x3 translation matrix
+ * @throws {TypeError} If tx or ty is null or undefined
  */
 export function translate2D(tx, ty) {
+  if (tx == null) {
+    throw new TypeError("translate2D: tx cannot be null or undefined");
+  }
+  if (ty == null) {
+    throw new TypeError("translate2D: ty cannot be null or undefined");
+  }
   return Transforms2D.translation(tx, ty);
 }
 
@@ -361,8 +368,12 @@ export function translate2D(tx, ty) {
  * Convenience wrapper for Transforms2D.rotate().
  * @param {number|string|Decimal} angle - Rotation angle in radians
  * @returns {Matrix} 3x3 rotation matrix
+ * @throws {TypeError} If angle is null or undefined
  */
 export function rotate2D(angle) {
+  if (angle == null) {
+    throw new TypeError("rotate2D: angle cannot be null or undefined");
+  }
   return Transforms2D.rotate(angle);
 }
 
@@ -372,8 +383,12 @@ export function rotate2D(angle) {
  * @param {number|string|Decimal} sx - X scale factor
  * @param {number|string|Decimal} [sy=sx] - Y scale factor (defaults to sx for uniform scaling)
  * @returns {Matrix} 3x3 scale matrix
+ * @throws {TypeError} If sx is null or undefined
  */
 export function scale2D(sx, sy = null) {
+  if (sx == null) {
+    throw new TypeError("scale2D: sx cannot be null or undefined");
+  }
   return Transforms2D.scale(sx, sy);
 }
 
@@ -384,8 +399,18 @@ export function scale2D(sx, sy = null) {
  * @param {number|string|Decimal} x - X coordinate
  * @param {number|string|Decimal} y - Y coordinate
  * @returns {[Decimal, Decimal]} Transformed [x, y] coordinates
+ * @throws {TypeError} If matrix, x, or y is null or undefined
  */
 export function transform2D(matrix, x, y) {
+  if (matrix == null) {
+    throw new TypeError("transform2D: matrix cannot be null or undefined");
+  }
+  if (x == null) {
+    throw new TypeError("transform2D: x cannot be null or undefined");
+  }
+  if (y == null) {
+    throw new TypeError("transform2D: y cannot be null or undefined");
+  }
   return Transforms2D.applyTransform(matrix, x, y);
 }
 
@@ -396,8 +421,18 @@ export function transform2D(matrix, x, y) {
  * @param {number|string|Decimal} ty - Y translation
  * @param {number|string|Decimal} tz - Z translation
  * @returns {Matrix} 4x4 translation matrix
+ * @throws {TypeError} If tx, ty, or tz is null or undefined
  */
 export function translate3D(tx, ty, tz) {
+  if (tx == null) {
+    throw new TypeError("translate3D: tx cannot be null or undefined");
+  }
+  if (ty == null) {
+    throw new TypeError("translate3D: ty cannot be null or undefined");
+  }
+  if (tz == null) {
+    throw new TypeError("translate3D: tz cannot be null or undefined");
+  }
   return Transforms3D.translation(tx, ty, tz);
 }
 

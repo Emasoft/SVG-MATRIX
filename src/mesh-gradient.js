@@ -380,21 +380,25 @@ export function evalCubicBezier(p0, p1, p2, p3, t) {
   if (t === null || t === undefined)
     throw new Error("evalCubicBezier: t parameter is required");
 
-  const mt = D(1).minus(t);
+  const tDecimal = D(t);
+  if (!tDecimal.isFinite())
+    throw new Error(`evalCubicBezier: t must be finite, got ${t}`);
+
+  const mt = D(1).minus(tDecimal);
   const mt2 = mt.mul(mt);
   const mt3 = mt2.mul(mt);
-  const t2 = t.mul(t);
-  const t3 = t2.mul(t);
+  const t2 = tDecimal.mul(tDecimal);
+  const t3 = t2.mul(tDecimal);
 
   return {
     x: mt3
       .mul(p0.x)
-      .plus(D(3).mul(mt2).mul(t).mul(p1.x))
+      .plus(D(3).mul(mt2).mul(tDecimal).mul(p1.x))
       .plus(D(3).mul(mt).mul(t2).mul(p2.x))
       .plus(t3.mul(p3.x)),
     y: mt3
       .mul(p0.y)
-      .plus(D(3).mul(mt2).mul(t).mul(p1.y))
+      .plus(D(3).mul(mt2).mul(tDecimal).mul(p1.y))
       .plus(D(3).mul(mt).mul(t2).mul(p2.y))
       .plus(t3.mul(p3.y)),
   };
@@ -537,6 +541,19 @@ export class CoonsPatch {
       throw new Error("CoonsPatch: bottom must be an array of 4 points");
     if (!Array.isArray(left) || left.length !== 4)
       throw new Error("CoonsPatch: left must be an array of 4 points");
+
+    // Validate all points have x, y properties
+    for (let i = 0; i < 4; i++) {
+      if (!top[i] || !("x" in top[i]) || !("y" in top[i]))
+        throw new Error(`CoonsPatch: top[${i}] must have x, y properties`);
+      if (!right[i] || !("x" in right[i]) || !("y" in right[i]))
+        throw new Error(`CoonsPatch: right[${i}] must have x, y properties`);
+      if (!bottom[i] || !("x" in bottom[i]) || !("y" in bottom[i]))
+        throw new Error(`CoonsPatch: bottom[${i}] must have x, y properties`);
+      if (!left[i] || !("x" in left[i]) || !("y" in left[i]))
+        throw new Error(`CoonsPatch: left[${i}] must have x, y properties`);
+    }
+
     if (
       !Array.isArray(colors) ||
       colors.length !== 2 ||
@@ -546,6 +563,23 @@ export class CoonsPatch {
       colors[1].length !== 2
     ) {
       throw new Error("CoonsPatch: colors must be a 2x2 array");
+    }
+
+    // Validate all colors have r, g, b, a properties
+    for (let i = 0; i < 2; i++) {
+      for (let j = 0; j < 2; j++) {
+        if (
+          !colors[i][j] ||
+          !("r" in colors[i][j]) ||
+          !("g" in colors[i][j]) ||
+          !("b" in colors[i][j]) ||
+          !("a" in colors[i][j])
+        ) {
+          throw new Error(
+            `CoonsPatch: colors[${i}][${j}] must have r, g, b, a properties`,
+          );
+        }
+      }
     }
 
     this.top = top;
@@ -600,6 +634,13 @@ export class CoonsPatch {
       throw new Error("CoonsPatch.evaluate: u parameter is required");
     if (v === null || v === undefined)
       throw new Error("CoonsPatch.evaluate: v parameter is required");
+
+    const uDecimal = D(u);
+    const vDecimal = D(v);
+    if (!uDecimal.isFinite())
+      throw new Error(`CoonsPatch.evaluate: u must be finite, got ${u}`);
+    if (!vDecimal.isFinite())
+      throw new Error(`CoonsPatch.evaluate: v must be finite, got ${v}`);
 
     // Boundary curves
     const Lc = evalCubicBezier(...this.top, u); // L_c(u,0)

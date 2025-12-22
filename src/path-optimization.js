@@ -129,6 +129,8 @@ export function evaluateCubicBezier(p0, p1, p2, p3, t) {
   if (t === null || t === undefined) throw new Error('evaluateCubicBezier: parameter t is required');
 
   const tD = D(t);
+  // Validate t is within valid range [0, 1] for Bezier curves
+  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateCubicBezier: parameter t must be between 0 and 1');
   const oneMinusT = D(1).minus(tD);
 
   // Bernstein basis polynomials
@@ -161,6 +163,8 @@ export function evaluateQuadraticBezier(p0, p1, p2, t) {
   if (t === null || t === undefined) throw new Error('evaluateQuadraticBezier: parameter t is required');
 
   const tD = D(t);
+  // Validate t is within valid range [0, 1] for Bezier curves
+  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateQuadraticBezier: parameter t must be between 0 and 1');
   const oneMinusT = D(1).minus(tD);
 
   // Bernstein basis polynomials

@@ -226,10 +226,18 @@ export function supportPoint(polygon, direction) {
     return point(0, 0);
   }
 
+  // Validate first point
+  if (!polygon[0] || polygon[0].x == null || polygon[0].y == null) {
+    throw new TypeError('supportPoint: polygon[0] must have x and y properties');
+  }
+
   let maxDot = dot(polygon[0], direction);
   let maxPoint = polygon[0];
 
   for (let i = 1; i < polygon.length; i++) {
+    if (!polygon[i] || polygon[i].x == null || polygon[i].y == null) {
+      throw new TypeError(`supportPoint: polygon[${i}] must have x and y properties`);
+    }
     const d = dot(polygon[i], direction);
     if (d.greaterThan(maxDot)) {
       maxDot = d;
@@ -281,6 +289,8 @@ export function processLineSimplex(simplex, direction) {
   if (!Array.isArray(simplex)) throw new TypeError('processLineSimplex: simplex must be an array');
   if (simplex.length !== 2) throw new TypeError('processLineSimplex: simplex must have exactly 2 points');
   if (!direction || direction.x == null || direction.y == null) throw new TypeError('processLineSimplex: direction must have x and y properties');
+  if (!simplex[0] || simplex[0].x == null || simplex[0].y == null) throw new TypeError('processLineSimplex: simplex[0] must have x and y properties');
+  if (!simplex[1] || simplex[1].x == null || simplex[1].y == null) throw new TypeError('processLineSimplex: simplex[1] must have x and y properties');
   const A = simplex[0]; // Newest point
   const B = simplex[1];
 

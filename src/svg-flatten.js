@@ -970,7 +970,17 @@ export function rectToPath(x, y, width, height, rx = 0, ry = null) {
  */
 export function lineToPath(x1, y1, x2, y2) {
   const D = (n) => new Decimal(n);
-  return `M ${D(x1).toFixed(6)} ${D(y1).toFixed(6)} L ${D(x2).toFixed(6)} ${D(y2).toFixed(6)}`;
+  const x1D = D(x1);
+  const y1D = D(y1);
+  const x2D = D(x2);
+  const y2D = D(y2);
+
+  // Validate all parameters are finite
+  if (!x1D.isFinite() || !y1D.isFinite() || !x2D.isFinite() || !y2D.isFinite()) {
+    throw new Error("lineToPath: all parameters must be finite");
+  }
+
+  return `M ${x1D.toFixed(6)} ${y1D.toFixed(6)} L ${x2D.toFixed(6)} ${y2D.toFixed(6)}`;
 }
 
 /**
@@ -1086,10 +1096,12 @@ function parsePointPairs(points) {
   // Validate even number of coordinates
   if (coords.length % 2 !== 0) {
     console.warn("parsePointPairs: odd number of coordinates, ignoring last value");
+    coords = coords.slice(0, -1); // Remove last element to ensure even length
   }
 
   const pairs = [];
-  for (let i = 0; i < coords.length - 1; i += 2) {
+  // Bounds check: i + 1 must be within array
+  for (let i = 0; i + 1 < coords.length; i += 2) {
     pairs.push([coords[i], coords[i + 1]]);
   }
   return pairs;
@@ -1386,24 +1398,28 @@ export function parseTransformFunction(func, args) {
 
   switch (func.toLowerCase()) {
     case "translate": {
-      const tx = args[0] || 0;
-      const ty = args[1] || 0;
+      const tx = args[0] !== undefined ? args[0] : 0;
+      const ty = args[1] !== undefined ? args[1] : 0;
       return Transforms2D.translation(tx, ty);
     }
 
     case "scale": {
-      const sx = args[0] || 1;
+      const sx = args[0] !== undefined ? args[0] : 1;
       const sy = args[1] !== undefined ? args[1] : sx;
       return Transforms2D.scale(sx, sy);
     }
 
     case "rotate": {
       // SVG rotate is in degrees, can have optional cx, cy
-      const angleDeg = args[0] || 0;
+      const angleDeg = args[0] !== undefined ? args[0] : 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
 
       if (args.length >= 3) {
         // rotate(angle, cx, cy) - rotation around point
+        if (args[1] === undefined || args[2] === undefined) {
+          console.warn("parseTransformFunction: rotate(angle, cx, cy) missing cx or cy");
+          return Transforms2D.rotate(angleRad);
+        }
         const cx = args[1];
         const cy = args[2];
         return Transforms2D.rotateAroundPoint(angleRad, cx, cy);
@@ -1412,14 +1428,14 @@ export function parseTransformFunction(func, args) {
     }
 
     case "skewx": {
-      const angleDeg = args[0] || 0;
+      const angleDeg = args[0] !== undefined ? args[0] : 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
       const tanVal = Decimal.tan(angleRad);
       return Transforms2D.skew(tanVal, 0);
     }
 
     case "skewy": {
-      const angleDeg = args[0] || 0;
+      const angleDeg = args[0] !== undefined ? args[0] : 0;
       const angleRad = D(angleDeg).mul(D(Math.PI)).div(180);
       const tanVal = Decimal.tan(angleRad);
       return Transforms2D.skew(0, tanVal);
@@ -1429,7 +1445,11 @@ export function parseTransformFunction(func, args) {
       // matrix(a, b, c, d, e, f) -> | a c e |
       //                             | b d f |
       //                             | 0 0 1 |
-      const [a, b, c, d, e, f] = args.map((x) => D(x || 0));
+      if (args.length < 6) {
+        console.warn(`parseTransformFunction: matrix() requires 6 arguments, got ${args.length}`);
+        return Matrix.identity(3);
+      }
+      const [a, b, c, d, e, f] = args.slice(0, 6).map((x) => D(x !== undefined ? x : 0));
       return Matrix.from([
         [a, c, e],
         [b, d, f],
@@ -1543,6 +1563,12 @@ export function parseTransformAttribute(transformStr) {
  * // Returns: Identity matrix
  */
 export function buildCTM(transformStack) {
+  // Validate input is an array
+  if (!transformStack || !Array.isArray(transformStack)) {
+    console.warn("buildCTM: transformStack must be an array");
+    return Matrix.identity(3);
+  }
+
   let ctm = Matrix.identity(3);
 
   for (const transformStr of transformStack) {
@@ -1592,6 +1618,23 @@ export function buildCTM(transformStack) {
  * // Point transformed through all operations
  */
 export function applyToPoint(ctm, x, y) {
+  // Validate CTM
+  if (!ctm || !ctm.data || !Array.isArray(ctm.data)) {
+    throw new Error("applyToPoint: invalid CTM matrix");
+  }
+
+  // Validate coordinates are valid numbers
+  const D = (val) => new Decimal(val);
+  try {
+    const xD = D(x);
+    const yD = D(y);
+    if (!xD.isFinite() || !yD.isFinite()) {
+      throw new Error("applyToPoint: coordinates must be finite");
+    }
+  } catch (err) {
+    throw new Error(`applyToPoint: invalid coordinates - ${err.message}`);
+  }
+
   const [tx, ty] = Transforms2D.applyTransform(ctm, x, y);
   return { x: tx, y: ty };
 }

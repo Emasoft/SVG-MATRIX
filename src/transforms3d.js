@@ -15,7 +15,7 @@ const D = (x) => {
       throw new Error(`Value must be finite, got ${x}`);
     }
     return result;
-  } catch (err) {
+  } catch (_err) {
     throw new Error(`Invalid numeric value: ${x}`);
   }
 };

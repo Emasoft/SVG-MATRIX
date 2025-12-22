@@ -877,13 +877,26 @@ export function optimizeTransformList(transforms) {
   // Calculate original combined matrix for verification
   let originalMatrix = identityMatrix();
   for (const t of transforms) {
+    // Validate transform object structure
+    if (!t || typeof t !== 'object' || !t.type || !t.params || typeof t.params !== 'object') {
+      continue; // Skip malformed transforms
+    }
+
     let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
+        if (t.params.tx === null || t.params.tx === undefined ||
+            t.params.ty === null || t.params.ty === undefined) {
+          continue; // Skip transforms with missing params
+        }
         m = translationMatrix(t.params.tx, t.params.ty);
         break;
       case "rotate":
-        if (t.params.cx !== undefined && t.params.cy !== undefined) {
+        if (t.params.angle === null || t.params.angle === undefined) {
+          continue; // Skip transforms with missing angle
+        }
+        if (t.params.cx !== undefined && t.params.cx !== null &&
+            t.params.cy !== undefined && t.params.cy !== null) {
           m = rotationMatrixAroundPoint(
             t.params.angle,
             t.params.cx,
@@ -894,9 +907,16 @@ export function optimizeTransformList(transforms) {
         }
         break;
       case "scale":
+        if (t.params.sx === null || t.params.sx === undefined ||
+            t.params.sy === null || t.params.sy === undefined) {
+          continue; // Skip transforms with missing params
+        }
         m = scaleMatrix(t.params.sx, t.params.sy);
         break;
       case "matrix":
+        if (!t.params.matrix) {
+          continue; // Skip transforms with missing matrix
+        }
         m = t.params.matrix;
         break;
       default:
@@ -932,13 +952,13 @@ export function optimizeTransformList(transforms) {
         };
       }
     } else if (current.type === "rotate" && next.type === "rotate") {
-      // Only merge if both are around origin
-      if (
-        !current.params.cx &&
-        !current.params.cy &&
-        !next.params.cx &&
-        !next.params.cy
-      ) {
+      // Only merge if both are around origin (cx and cy must be undefined or null, not 0)
+      const currentHasCenter = (current.params.cx !== undefined && current.params.cx !== null) ||
+                                (current.params.cy !== undefined && current.params.cy !== null);
+      const nextHasCenter = (next.params.cx !== undefined && next.params.cx !== null) ||
+                            (next.params.cy !== undefined && next.params.cy !== null);
+
+      if (!currentHasCenter && !nextHasCenter) {
         const result = mergeRotations(current.params, next.params);
         if (result.verified) {
           merged = {
@@ -1047,13 +1067,26 @@ export function optimizeTransformList(transforms) {
   // Calculate optimized combined matrix for verification
   let optimizedMatrix = identityMatrix();
   for (const t of final) {
+    // Validate transform object structure
+    if (!t || typeof t !== 'object' || !t.type || !t.params || typeof t.params !== 'object') {
+      continue; // Skip malformed transforms
+    }
+
     let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
+        if (t.params.tx === null || t.params.tx === undefined ||
+            t.params.ty === null || t.params.ty === undefined) {
+          continue; // Skip transforms with missing params
+        }
         m = translationMatrix(t.params.tx, t.params.ty);
         break;
       case "rotate":
-        if (t.params.cx !== undefined && t.params.cy !== undefined) {
+        if (t.params.angle === null || t.params.angle === undefined) {
+          continue; // Skip transforms with missing angle
+        }
+        if (t.params.cx !== undefined && t.params.cx !== null &&
+            t.params.cy !== undefined && t.params.cy !== null) {
           m = rotationMatrixAroundPoint(
             t.params.angle,
             t.params.cx,
@@ -1064,9 +1097,16 @@ export function optimizeTransformList(transforms) {
         }
         break;
       case "scale":
+        if (t.params.sx === null || t.params.sx === undefined ||
+            t.params.sy === null || t.params.sy === undefined) {
+          continue; // Skip transforms with missing params
+        }
         m = scaleMatrix(t.params.sx, t.params.sy);
         break;
       case "matrix":
+        if (!t.params.matrix) {
+          continue; // Skip transforms with missing matrix
+        }
         m = t.params.matrix;
         break;
       default:

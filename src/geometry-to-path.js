@@ -414,8 +414,12 @@ export function lineToPathData(x1, y1, x2, y2, precision = 6) {
   if (!Number.isFinite(precision) || precision < 0) {
     throw new Error("lineToPathData: precision must be non-negative");
   }
-  const f = (v) => formatNumber(D(v), precision);
-  return `M${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}`;
+  const x1D = D(x1), y1D = D(y1), x2D = D(x2), y2D = D(y2);
+  if (!x1D.isFinite() || !y1D.isFinite() || !x2D.isFinite() || !y2D.isFinite()) {
+    throw new Error("lineToPathData: all coordinates must be finite");
+  }
+  const f = (v) => formatNumber(v, precision);
+  return `M${f(x1D)} ${f(y1D)}L${f(x2D)} ${f(y2D)}`;
 }
 
 /**
@@ -427,7 +431,13 @@ function parsePoints(points) {
   // Handle null/undefined
   if (points == null) return [];
   // Handle arrays
-  if (Array.isArray(points)) return points.map(([x, y]) => [D(x), D(y)]);
+  if (Array.isArray(points)) {
+    try {
+      return points.map(([x, y]) => [D(x), D(y)]);
+    } catch (e) {
+      return [];
+    }
+  }
   // Handle SVGAnimatedPoints or objects with baseVal
   let pointsValue = points;
   if (typeof pointsValue === "object" && pointsValue.baseVal !== undefined) {
@@ -441,10 +451,16 @@ function parsePoints(points) {
       return [];
     }
   }
-  const nums = pointsValue
-    .split(/[\s,]+/)
-    .filter((s) => s.length > 0)
-    .map((s) => D(s));
+  const nums = [];
+  const parts = pointsValue.split(/[\s,]+/).filter((s) => s.length > 0);
+  for (const s of parts) {
+    try {
+      nums.push(D(s));
+    } catch (e) {
+      // Skip invalid numbers
+      continue;
+    }
+  }
   const pairs = [];
   for (let i = 0; i < nums.length; i += 2) {
     if (i + 1 < nums.length) pairs.push([nums[i], nums[i + 1]]);
@@ -534,10 +550,17 @@ export function parsePathData(pathData) {
     // FIX: Use regex to extract numbers, handles implicit negative separators (e.g., "0.8-2.9" -> ["0.8", "-2.9"])
     // Per W3C SVG spec, negative signs can act as delimiters without spaces
     const numRegex = /-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g;
-    const allArgs =
-      argsStr.length > 0
-        ? Array.from(argsStr.matchAll(numRegex), (m) => D(m[0]))
-        : [];
+    const allArgs = [];
+    if (argsStr.length > 0) {
+      for (const m of argsStr.matchAll(numRegex)) {
+        try {
+          allArgs.push(D(m[0]));
+        } catch (e) {
+          // Skip invalid numbers per SVG error handling
+          continue;
+        }
+      }
+    }
 
     const paramCount = COMMAND_PARAMS[command];
 
@@ -581,7 +604,11 @@ export function pathArrayToString(commands, precision = 6) {
     throw new Error("pathArrayToString: precision must be non-negative");
   }
   return commands
-    .map(({ command, args }) => {
+    .map((cmd) => {
+      if (!cmd || typeof cmd.command !== "string" || !Array.isArray(cmd.args)) {
+        throw new Error("pathArrayToString: each command must have 'command' (string) and 'args' (array) properties");
+      }
+      const { command, args } = cmd;
       const argsStr = args.map((a) => formatNumber(a, precision)).join(" ");
       return argsStr.length > 0 ? `${command} ${argsStr}` : command;
     })

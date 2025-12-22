@@ -103,7 +103,7 @@ const DEFAULT_ARC_LENGTH_TOLERANCE = "1e-30";
  * differ by less than this, we accept the higher-order result.
  * NOTE: Currently unused - kept for potential future enhancement.
  */
-// eslint-disable-next-line no-unused-vars
+ 
 const _SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal("1e-15");
 
 /**
@@ -340,6 +340,14 @@ function gaussLegendre(f, a, b, order) {
 
   const gl = GAUSS_LEGENDRE[order];
 
+  // INTERNAL CONSISTENCY CHECK: Verify Gauss-Legendre table has correct structure
+  // WHY: Ensures the precomputed tables haven't been corrupted or misconfigured
+  if (!gl.nodes || !gl.weights || gl.nodes.length !== order || gl.weights.length !== order) {
+    throw new Error(
+      `gaussLegendre: GAUSS_LEGENDRE[${order}] table is malformed (expected ${order} nodes and weights)`,
+    );
+  }
+
   // DIVISION BY ZERO CHECK: Ensure a != b
   // WHY: If a == b, the integral is zero (no width), and halfWidth would be 0.
   // While multiplying by 0 gives correct result (0), we should handle explicitly.
@@ -361,6 +369,22 @@ function gaussLegendre(f, a, b, order) {
 
     // Evaluate function and add weighted contribution
     const fValue = f(t);
+
+    // VALIDATION: Ensure function returns a valid Decimal
+    // WHY: If f returns null, undefined, NaN, or non-Decimal, arithmetic operations will fail
+    if (fValue === null || fValue === undefined) {
+      throw new Error("gaussLegendre: integrand function f returned null or undefined");
+    }
+    if (!(fValue instanceof Decimal)) {
+      throw new Error("gaussLegendre: integrand function f must return a Decimal instance");
+    }
+    if (fValue.isNaN()) {
+      throw new Error(`gaussLegendre: integrand function f returned NaN at t=${t}`);
+    }
+    if (!fValue.isFinite()) {
+      throw new Error(`gaussLegendre: integrand function f returned non-finite value at t=${t}`);
+    }
+
     sum = sum.plus(weight.times(fValue));
   }
 
@@ -744,6 +768,13 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
      * @returns {Decimal} Refined t
      */
     getTRefined(s, opts = {}) {
+      // INPUT VALIDATION: Ensure s is provided and valid
+      // WHY: This method calls getT internally which will validate, but we validate
+      // here too for consistent error messages at the API boundary.
+      if (s === null || s === undefined) {
+        throw new Error("getTRefined: arc length parameter s is required");
+      }
+
       const approxT = this.getT(s);
       // Use approxT as starting point for Newton
       const { t } = inverseArcLength(points, s, { ...opts, initialT: approxT });

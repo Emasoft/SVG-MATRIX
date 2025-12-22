@@ -578,7 +578,12 @@ export function getTilePositions(tile, coverBBox) {
     throw new Error("getTilePositions: coverBBox is required");
   }
   // Validate tile has required properties
-  if (!tile.x || !tile.y || !tile.width || !tile.height) {
+  if (
+    !("x" in tile) ||
+    !("y" in tile) ||
+    !("width" in tile) ||
+    !("height" in tile)
+  ) {
     throw new Error(
       "getTilePositions: tile must have x, y, width, and height properties",
     );

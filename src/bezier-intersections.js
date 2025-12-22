@@ -1417,8 +1417,12 @@ export function verifyBezierBezierIntersection(
 
   const tol = D(tolerance);
 
-  if (intersection.t1 === undefined) {
-    return { valid: false, reason: "No intersection provided" };
+  // WHY: Validate all required intersection properties before using them
+  if (intersection.t1 === undefined || intersection.t1 === null) {
+    return { valid: false, reason: "intersection.t1 is missing" };
+  }
+  if (intersection.t2 === undefined || intersection.t2 === null) {
+    return { valid: false, reason: "intersection.t2 is missing" };
   }
 
   const t1 = D(intersection.t1);
@@ -1517,8 +1521,12 @@ export function verifySelfIntersection(
   const tol = D(tolerance);
   const minSep = D(minSeparation);
 
-  if (intersection.t1 === undefined) {
-    return { valid: false, reason: "No intersection provided" };
+  // WHY: Validate all required intersection properties before using them
+  if (intersection.t1 === undefined || intersection.t1 === null) {
+    return { valid: false, reason: "intersection.t1 is missing" };
+  }
+  if (intersection.t2 === undefined || intersection.t2 === null) {
+    return { valid: false, reason: "intersection.t2 is missing" };
   }
 
   const t1 = D(intersection.t1);
@@ -1673,6 +1681,11 @@ export function verifyPathPathIntersection(
  * @returns {{allPassed: boolean, results: Object}}
  */
 export function verifyAllIntersectionFunctions(tolerance = "1e-30") {
+  // WHY: Validate tolerance parameter to prevent invalid configuration
+  if (tolerance === undefined || tolerance === null) {
+    throw new Error("verifyAllIntersectionFunctions: tolerance cannot be undefined or null");
+  }
+
   const results = {};
   let allPassed = true;
 

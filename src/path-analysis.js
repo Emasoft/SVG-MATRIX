@@ -447,6 +447,15 @@ export function farthestPointOnPath(segments, point, options = {}) {
   }
 
   const { samples = 50, maxIterations = 30, tolerance = "1e-30" } = options;
+  // WHY: Validate numeric parameters to prevent division by zero and infinite loops
+  if (!Number.isFinite(samples) || samples <= 0) {
+    throw new Error("farthestPointOnPath: samples must be a positive number");
+  }
+  if (!Number.isFinite(maxIterations) || maxIterations < 0) {
+    throw new Error(
+      "farthestPointOnPath: maxIterations must be a non-negative number",
+    );
+  }
 
   const px = D(point[0]);
   const py = D(point[1]);
@@ -569,6 +578,10 @@ export function pointInPath(segments, point, options = {}) {
   }
 
   const { samples = 100 } = options;
+  // WHY: Validate samples to prevent division by zero and infinite loops
+  if (!Number.isFinite(samples) || samples <= 0) {
+    throw new Error("pointInPath: samples must be a positive number");
+  }
 
   const px = D(point[0]);
   const py = D(point[1]);

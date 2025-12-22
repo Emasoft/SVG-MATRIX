@@ -564,6 +564,13 @@ export function applyTransform(M, x, y) {
   validateNumeric(y, 'y');
   const P = Matrix.from([[D(x)], [D(y)], [new Decimal(1)]]);
   const R = M.mul(P);
+  // Validate result matrix structure
+  if (!R || !R.data || !Array.isArray(R.data) || R.data.length !== 3 ||
+      !R.data[0] || !R.data[0][0] ||
+      !R.data[1] || !R.data[1][0] ||
+      !R.data[2] || !R.data[2][0]) {
+    throw new Error('applyTransform: matrix multiplication produced invalid result');
+  }
   const rx = R.data[0][0],
     ry = R.data[1][0],
     rw = R.data[2][0];

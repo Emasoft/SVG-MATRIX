@@ -105,12 +105,19 @@ export function pathToPolygon(
     startY = D(0);
 
   const commands = parsePathCommands(pathData);
+  if (!Array.isArray(commands)) {
+    throw new Error('pathToPolygon: parsePathCommands must return an array');
+  }
 
   for (const cmd of commands) {
     const { type, args } = cmd;
+    if (!Array.isArray(args)) {
+      throw new Error(`pathToPolygon: command args must be an array for command ${type}`);
+    }
 
     switch (type) {
       case "M":
+        if (args.length < 2) throw new Error(`pathToPolygon: M command requires 2 arguments, got ${args.length}`);
         currentX = D(args[0]);
         currentY = D(args[1]);
         startX = currentX;
@@ -325,6 +332,10 @@ function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
   if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
     throw new Error(`sampleCubicBezier: samples must be a positive finite number, got ${samples}`);
   }
+  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(x1 instanceof Decimal) || !(y1 instanceof Decimal) ||
+      !(x2 instanceof Decimal) || !(y2 instanceof Decimal) || !(x3 instanceof Decimal) || !(y3 instanceof Decimal)) {
+    throw new Error('sampleCubicBezier: all coordinate parameters must be Decimal instances');
+  }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
     const mt = D(1).minus(t);
@@ -373,6 +384,10 @@ function sampleQuadraticBezier(points, x0, y0, x1, y1, x2, y2, samples) {
   }
   if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
     throw new Error(`sampleQuadraticBezier: samples must be a positive finite number, got ${samples}`);
+  }
+  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(x1 instanceof Decimal) ||
+      !(y1 instanceof Decimal) || !(x2 instanceof Decimal) || !(y2 instanceof Decimal)) {
+    throw new Error('sampleQuadraticBezier: all coordinate parameters must be Decimal instances');
   }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
@@ -427,6 +442,16 @@ function sampleArc(
   }
   if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
     throw new Error(`sampleArc: samples must be a positive finite number, got ${samples}`);
+  }
+  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(rx instanceof Decimal) || !(ry instanceof Decimal) ||
+      !(xAxisRotation instanceof Decimal) || !(x1 instanceof Decimal) || !(y1 instanceof Decimal)) {
+    throw new Error('sampleArc: all coordinate and angle parameters must be Decimal instances');
+  }
+  if (typeof largeArc !== 'number' || (largeArc !== 0 && largeArc !== 1)) {
+    throw new Error(`sampleArc: largeArc must be 0 or 1, got ${largeArc}`);
+  }
+  if (typeof sweep !== 'number' || (sweep !== 0 && sweep !== 1)) {
+    throw new Error(`sampleArc: sweep must be 0 or 1, got ${sweep}`);
   }
   if (rx.eq(0) || ry.eq(0)) {
     points.push(PolygonClip.point(x1, y1));

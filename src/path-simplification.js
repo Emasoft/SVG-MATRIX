@@ -65,24 +65,29 @@ function decimalAtan2(y, x) {
   if (!xD.isFinite()) throw new Error('decimalAtan2: x must be finite');
   const PI = Decimal.acos(-1);
 
+  // Check x=0 cases first to avoid division by zero
+  if (xD.equals(0)) {
+    if (yD.greaterThan(0)) {
+      // Positive y-axis
+      return PI.div(2);
+    } else if (yD.lessThan(0)) {
+      // Negative y-axis
+      return PI.div(2).neg();
+    } else {
+      // x=0, y=0 - undefined, return 0
+      return D(0);
+    }
+  }
+
   if (xD.greaterThan(0)) {
     // Quadrant I or IV
     return Decimal.atan(yD.div(xD));
   } else if (xD.lessThan(0) && yD.greaterThanOrEqualTo(0)) {
     // Quadrant II
     return Decimal.atan(yD.div(xD)).plus(PI);
-  } else if (xD.lessThan(0) && yD.lessThan(0)) {
-    // Quadrant III
-    return Decimal.atan(yD.div(xD)).minus(PI);
-  } else if (xD.equals(0) && yD.greaterThan(0)) {
-    // Positive y-axis
-    return PI.div(2);
-  } else if (xD.equals(0) && yD.lessThan(0)) {
-    // Negative y-axis
-    return PI.div(2).neg();
   } else {
-    // x=0, y=0 - undefined, return 0
-    return D(0);
+    // Quadrant III (xD.lessThan(0) && yD.lessThan(0))
+    return Decimal.atan(yD.div(xD)).minus(PI);
   }
 }
 
@@ -307,7 +312,14 @@ export function evaluateLine(p0, p1, t) {
  * @returns {{isStraight: boolean, maxDeviation: Decimal, verified: boolean}}
  */
 export function isCubicBezierStraight(p0, p1, p2, p3, tolerance = DEFAULT_TOLERANCE) {
+  if (!p0 || !p1 || !p2 || !p3) throw new Error('isCubicBezierStraight: points cannot be null or undefined');
+  if (!(p0.x instanceof Decimal) || !(p0.y instanceof Decimal)) throw new Error('isCubicBezierStraight: p0 must have Decimal x and y properties');
+  if (!(p1.x instanceof Decimal) || !(p1.y instanceof Decimal)) throw new Error('isCubicBezierStraight: p1 must have Decimal x and y properties');
+  if (!(p2.x instanceof Decimal) || !(p2.y instanceof Decimal)) throw new Error('isCubicBezierStraight: p2 must have Decimal x and y properties');
+  if (!(p3.x instanceof Decimal) || !(p3.y instanceof Decimal)) throw new Error('isCubicBezierStraight: p3 must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('isCubicBezierStraight: tolerance parameter is null or undefined');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('isCubicBezierStraight: tolerance must be a non-negative finite number');
 
   // Check if start and end are the same point (degenerate case)
   const chordLength = distance(p0, p3);
@@ -368,7 +380,13 @@ export function isCubicBezierStraight(p0, p1, p2, p3, tolerance = DEFAULT_TOLERA
  * @returns {{isStraight: boolean, maxDeviation: Decimal, verified: boolean}}
  */
 export function isQuadraticBezierStraight(p0, p1, p2, tolerance = DEFAULT_TOLERANCE) {
+  if (!p0 || !p1 || !p2) throw new Error('isQuadraticBezierStraight: points cannot be null or undefined');
+  if (!(p0.x instanceof Decimal) || !(p0.y instanceof Decimal)) throw new Error('isQuadraticBezierStraight: p0 must have Decimal x and y properties');
+  if (!(p1.x instanceof Decimal) || !(p1.y instanceof Decimal)) throw new Error('isQuadraticBezierStraight: p1 must have Decimal x and y properties');
+  if (!(p2.x instanceof Decimal) || !(p2.y instanceof Decimal)) throw new Error('isQuadraticBezierStraight: p2 must have Decimal x and y properties');
+  if (tolerance === null || tolerance === undefined) throw new Error('isQuadraticBezierStraight: tolerance parameter is null or undefined');
   const tol = D(tolerance);
+  if (!tol.isFinite() || tol.lessThan(0)) throw new Error('isQuadraticBezierStraight: tolerance must be a non-negative finite number');
 
   // Check if start and end are the same point (degenerate case)
   const chordLength = distance(p0, p2);

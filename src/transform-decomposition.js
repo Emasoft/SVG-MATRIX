@@ -356,7 +356,8 @@ export function decomposeMatrix(matrix) {
  *   scaleX: Decimal,
  *   scaleY: Decimal,
  *   verified: boolean,
- *   maxError: Decimal
+ *   maxError: Decimal,
+ *   singular?: boolean
  * }}
  * @throws {TypeError} If matrix is null or undefined
  */
@@ -371,12 +372,27 @@ export function decomposeMatrixNoSkew(matrix) {
   // Calculate determinant
   const det = a.mul(d).minus(b.mul(c));
 
-  // Calculate rotation from the first column
-  const rotation = Decimal.atan2(b, a);
-
   // Calculate scales
   const scaleX = a.mul(a).plus(b.mul(b)).sqrt();
   let scaleY = c.mul(c).plus(d.mul(d)).sqrt();
+
+  // Check for singular matrix (scaleX or scaleY near zero): why - prevents invalid decomposition
+  if (scaleX.abs().lessThan(EPSILON) || scaleY.abs().lessThan(EPSILON)) {
+    // Handle degenerate/singular matrix case
+    return {
+      translateX: tx,
+      translateY: ty,
+      rotation: D(0),
+      scaleX: scaleX.abs().lessThan(EPSILON) ? D(0) : scaleX,
+      scaleY: scaleY.abs().lessThan(EPSILON) ? D(0) : scaleY,
+      verified: false,
+      maxError: D("Infinity"),
+      singular: true, // Flag to indicate singular matrix
+    };
+  }
+
+  // Calculate rotation from the first column
+  const rotation = Decimal.atan2(b, a);
 
   // Adjust scaleY sign based on determinant
   if (det.lessThan(0)) {

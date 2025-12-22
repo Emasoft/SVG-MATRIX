@@ -78,6 +78,9 @@ export function findLayers(doc) {
  * @returns {Object|null} Named view settings or null if not found
  */
 export function getNamedViewSettings(doc) {
+  // Validate doc parameter
+  if (!doc) return null;
+
   // Find namedview element - may be direct child or nested
   let namedview = null;
 
@@ -121,6 +124,9 @@ export function getNamedViewSettings(doc) {
  * @returns {Array<{position: string, orientation: string, id: string|null}>} Array of guide info
  */
 export function findGuides(doc) {
+  // Validate doc parameter
+  if (!doc) return [];
+
   const guides = [];
 
   const walk = (el) => {
@@ -215,7 +221,8 @@ export function getExportSettings(element) {
  * @returns {boolean} True if element is a tiled clone
  */
 export function isTiledClone(element) {
-  return element?.hasAttribute('inkscape:tiled-clone-of') || false;
+  if (!element || typeof element.hasAttribute !== 'function') return false;
+  return element.hasAttribute('inkscape:tiled-clone-of');
 }
 
 /**
@@ -251,6 +258,9 @@ export function hasInkscapeNamespaces(doc) {
  * @returns {Object} The document (modified in place)
  */
 export function ensureInkscapeNamespaces(doc) {
+  // Validate doc parameter
+  if (!doc) return doc;
+
   const svg = doc.documentElement || doc;
 
   // Safety check: ensure getAttribute and setAttribute methods exist
@@ -281,6 +291,9 @@ export function ensureInkscapeNamespaces(doc) {
  * @returns {Set<string>} Set of referenced IDs
  */
 export function findReferencedIds(element) {
+  // Validate element parameter
+  if (!element) return new Set();
+
   const ids = new Set();
 
   // Attributes that can contain url(#id) references
@@ -352,6 +365,9 @@ export function findReferencedIds(element) {
  * @returns {Map<string, Object>} Map of ID to element
  */
 export function buildDefsMapFromDefs(doc) {
+  // Validate doc parameter
+  if (!doc) return new Map();
+
   const defsMap = new Map();
 
   const walk = (el) => {

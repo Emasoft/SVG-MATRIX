@@ -300,6 +300,10 @@ export function getMaskRegion(maskData, targetBBox) {
   if (targetBBox.width <= 0 || targetBBox.height <= 0) {
     throw new Error('getMaskRegion: targetBBox width and height must be positive');
   }
+  if (!maskData.maskUnits) throw new Error('getMaskRegion: maskData.maskUnits is required');
+  if (maskData.x === undefined || maskData.y === undefined || maskData.width === undefined || maskData.height === undefined) {
+    throw new Error('getMaskRegion: maskData must have x, y, width, height properties');
+  }
 
   if (maskData.maskUnits === "objectBoundingBox") {
     // Coordinates are relative to target bounding box
@@ -388,6 +392,11 @@ export function maskChildToPolygon(
 
   // Get polygon using ClipPathResolver
   let polygon = ClipPathResolver.shapeToPolygon(element, null, samples);
+
+  // Validate polygon is an array
+  if (!Array.isArray(polygon)) {
+    return []; // Return empty array if polygon conversion failed
+  }
 
   // Apply objectBoundingBox scaling if needed
   if (contentUnits === "objectBoundingBox" && polygon.length > 0) {

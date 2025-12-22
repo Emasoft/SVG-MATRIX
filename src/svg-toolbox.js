@@ -706,6 +706,7 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
  * @returns {string} SVG string with proper CDATA sections
  */
 function fixCDATASections(svgString) {
+  if (!svgString || typeof svgString !== "string") return svgString || "";
   // Pattern to find script/style elements marked with data-cdata-pending
   // and fix their CDATA wrapping
   return svgString.replace(
@@ -809,6 +810,11 @@ function isElement(obj) {
  * @returns {string} Formatted string without trailing zeros
  */
 export function formatPrecision(value, precision = DEFAULT_PRECISION) {
+  if (value === null || value === undefined) return "0";
+  if (typeof precision !== "number" || isNaN(precision) || precision < 0) {
+    precision = DEFAULT_PRECISION;
+  }
+  if (precision > MAX_PRECISION) precision = MAX_PRECISION;
   const d = D(value);
   // Round to precision, then remove trailing zeros
   const fixed = d.toFixed(precision);
@@ -871,6 +877,9 @@ export const OutputFormat = {
  * @returns {string} Input type from InputType enum
  */
 export function detectInputType(input) {
+  if (input === null || input === undefined) {
+    throw new Error("Input cannot be null or undefined");
+  }
   if (typeof input === "string") {
     const trimmed = input.trim();
     if (trimmed.startsWith("<")) {

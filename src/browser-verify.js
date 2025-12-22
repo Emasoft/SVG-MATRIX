@@ -59,6 +59,9 @@ export class BrowserVerifier {
    * @throws {Error} If Playwright is not installed
    */
   async init(options = {}) {
+    if (options !== null && typeof options !== "object") {
+      throw new Error("options must be an object");
+    }
     await loadPlaywright();
     this.browser = await chromium.launch(options);
     this.page = await this.browser.newPage();
@@ -134,6 +137,9 @@ export class BrowserVerifier {
       const ctm = rect.getCTM();
       document.body.removeChild(svg);
 
+      if (!ctm) {
+        throw new Error("getCTM() returned null");
+      }
       return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
     }, config);
   }
@@ -189,6 +195,9 @@ export class BrowserVerifier {
       const ctm = rect.getScreenCTM();
       document.body.removeChild(svg);
 
+      if (!ctm) {
+        throw new Error("getScreenCTM() returned null");
+      }
       return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
     }, config);
   }
@@ -251,6 +260,9 @@ export class BrowserVerifier {
         document.body.appendChild(svg);
 
         const ctm = rect.getCTM();
+        if (!ctm) {
+          throw new Error("getCTM() returned null");
+        }
         const point = svg.createSVGPoint();
         point.x = px;
         point.y = py;
