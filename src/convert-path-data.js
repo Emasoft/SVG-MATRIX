@@ -175,6 +175,14 @@ export function parsePath(d) {
 
     const paramCount = COMMAND_PARAMS[cmd];
 
+    // BUG FIX #6: Validate command exists in COMMAND_PARAMS
+    if (paramCount === undefined) {
+      console.warn(
+        `Unknown SVG path command '${cmd}' - skipping`,
+      );
+      continue;
+    }
+
     if (paramCount === 0 || nums.length === 0) {
       commands.push({ command: cmd, args: [] });
     } else {
@@ -275,7 +283,13 @@ export function toAbsolute(cmd, cx, cy) {
 
   const { command, args } = cmd;
 
-  if (command === command.toUpperCase()) return cmd;
+  // BUG FIX #7: Validate command is known before early return
+  if (command === command.toUpperCase()) {
+    if (COMMAND_PARAMS[command] === undefined) {
+      throw new TypeError(`toAbsolute: unknown command '${command}'`);
+    }
+    return cmd;
+  }
 
   const absCmd = command.toUpperCase();
   const absArgs = [...args];
@@ -349,7 +363,10 @@ export function toAbsolute(cmd, cx, cy) {
       absArgs[6] += cy;
       break;
     default:
-      break;
+      // BUG FIX #8: Handle unknown commands in default case
+      throw new TypeError(
+        `toAbsolute: unsupported command '${command}' for conversion`,
+      );
   }
 
   return { command: absCmd, args: absArgs };
@@ -381,7 +398,13 @@ export function toRelative(cmd, cx, cy) {
 
   const { command, args } = cmd;
 
-  if (command === command.toLowerCase() && command !== "z") return cmd;
+  // BUG FIX #9: Validate command is known before early return
+  if (command === command.toLowerCase() && command !== "z") {
+    if (COMMAND_PARAMS[command] === undefined) {
+      throw new TypeError(`toRelative: unknown command '${command}'`);
+    }
+    return cmd;
+  }
   if (command === "Z" || command === "z") return { command: "z", args: [] };
 
   const relCmd = command.toLowerCase();
@@ -456,7 +479,10 @@ export function toRelative(cmd, cx, cy) {
       relArgs[6] -= cy;
       break;
     default:
-      break;
+      // BUG FIX #10: Handle unknown commands in default case
+      throw new TypeError(
+        `toRelative: unsupported command '${command}' for conversion`,
+      );
   }
 
   return { command: relCmd, args: relArgs };

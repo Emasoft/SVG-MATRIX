@@ -586,6 +586,12 @@ export function buildFullCTM(hierarchy) {
 export function resolveLength(value, referenceSize, dpi = 96) {
   const D = (x) => new Decimal(x);
 
+  // Validate dpi parameter
+  if (typeof dpi !== "number" || dpi <= 0 || !isFinite(dpi)) {
+    console.warn("resolveLength: invalid dpi (must be positive finite number), using default 96");
+    dpi = 96;
+  }
+
   if (typeof value === "number") {
     return D(value);
   }
@@ -601,6 +607,7 @@ export function resolveLength(value, referenceSize, dpi = 96) {
   // Extract numeric value and unit
   const match = str.match(/^([+-]?[\d.]+(?:e[+-]?\d+)?)(.*)?$/i);
   if (!match) {
+    console.warn(`resolveLength: invalid length value "${value}"`);
     return D(0);
   }
 
@@ -732,20 +739,26 @@ export function objectBoundingBoxTransform(
 ) {
   const D = (x) => new Decimal(x);
 
+  const xD = D(bboxX);
+  const yD = D(bboxY);
   const wD = D(bboxWidth);
   const hD = D(bboxHeight);
+
+  // Validate all parameters are finite
+  if (!xD.isFinite() || !yD.isFinite() || !wD.isFinite() || !hD.isFinite()) {
+    throw new Error("objectBoundingBoxTransform: all parameters must be finite");
+  }
 
   // Validate dimensions are positive (zero is technically valid for degenerate case, but warn)
   if (wD.lte(0) || hD.lte(0)) {
     console.warn("objectBoundingBoxTransform: zero or negative dimensions create degenerate transform");
-  }
-  if (!wD.isFinite() || !hD.isFinite()) {
-    throw new Error("objectBoundingBoxTransform: dimensions must be finite");
+    // Return identity for degenerate case to avoid division by zero
+    return Matrix.identity(3);
   }
 
   // Transform: scale(bboxWidth, bboxHeight) then translate(bboxX, bboxY)
-  const scaleM = Transforms2D.scale(bboxWidth, bboxHeight);
-  const translateM = Transforms2D.translation(bboxX, bboxY);
+  const scaleM = Transforms2D.scale(wD, hD);
+  const translateM = Transforms2D.translation(xD, yD);
   return translateM.mul(scaleM);
 }
 

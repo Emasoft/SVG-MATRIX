@@ -353,6 +353,12 @@ export function rectToPathData(
     yD = D(y),
     wD = D(width),
     hD = D(height);
+  if (!xD.isFinite()) {
+    throw new Error("rectToPathData: x must be finite");
+  }
+  if (!yD.isFinite()) {
+    throw new Error("rectToPathData: y must be finite");
+  }
   if (!wD.isFinite() || wD.isNegative()) {
     throw new Error("rectToPathData: width must be finite and non-negative");
   }

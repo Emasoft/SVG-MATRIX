@@ -28,7 +28,14 @@ Decimal.set({ precision: 80 });
  * @param {number|string|Decimal} x - Value to convert
  * @returns {Decimal}
  */
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => {
+  // INPUT VALIDATION: Ensure input is not null or undefined
+  // WHY: Passing null/undefined to Decimal constructor throws cryptic errors
+  if (x == null) {
+    throw new Error(`D(): cannot convert null or undefined to Decimal`);
+  }
+  return x instanceof Decimal ? x : new Decimal(x);
+};
 
 /**
  * Validate that a value is a finite number (not NaN or Infinity).
@@ -39,6 +46,13 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * @throws {Error} If value is not finite
  */
 function _assertFinite(val, context) {
+  // INPUT VALIDATION: Ensure val is a Decimal instance
+  // WHY: Calling .isFinite() on null/undefined/non-Decimal throws errors
+  if (!val || !(val instanceof Decimal)) {
+    throw new Error(
+      `${context}: expected Decimal instance, got ${typeof val}`,
+    );
+  }
   if (!val.isFinite()) {
     throw new Error(`${context}: encountered non-finite value ${val}`);
   }
@@ -135,6 +149,22 @@ export function bezierPoint(points, t) {
     );
   }
 
+  // POINT VALIDATION: Ensure each point is a valid [x, y] array
+  // WHY: Invalid point structure causes crashes when accessing indices
+  for (let i = 0; i < points.length; i++) {
+    if (
+      !points[i] ||
+      !Array.isArray(points[i]) ||
+      points[i].length < 2 ||
+      points[i][0] == null ||
+      points[i][1] == null
+    ) {
+      throw new Error(
+        `bezierPoint: points[${i}] must be a valid [x, y] array with non-null coordinates`,
+      );
+    }
+  }
+
   const tD = D(t);
   // PARAMETER VALIDATION: Warn if t is outside [0,1] but still compute
   // WHY: Values slightly outside [0,1] may occur in numerical algorithms
@@ -182,6 +212,22 @@ export function bezierPointHorner(points, t) {
     throw new Error(
       "bezierPointHorner: points must be an array with at least 2 control points",
     );
+  }
+
+  // POINT VALIDATION: Ensure each point is a valid [x, y] array
+  // WHY: Invalid point structure causes crashes when accessing indices
+  for (let i = 0; i < points.length; i++) {
+    if (
+      !points[i] ||
+      !Array.isArray(points[i]) ||
+      points[i].length < 2 ||
+      points[i][0] == null ||
+      points[i][1] == null
+    ) {
+      throw new Error(
+        `bezierPointHorner: points[${i}] must be a valid [x, y] array with non-null coordinates`,
+      );
+    }
   }
 
   const tD = D(t);
@@ -265,6 +311,14 @@ export function bezierDerivative(points, t, n = 1) {
   if (!points || !Array.isArray(points) || points.length < 2) {
     throw new Error(
       "bezierDerivative: points must be an array with at least 2 control points",
+    );
+  }
+
+  // PARAMETER VALIDATION: Ensure n is a non-negative integer
+  // WHY: Negative or non-integer derivative orders are not meaningful
+  if (typeof n !== "number" || n < 0 || !Number.isInteger(n)) {
+    throw new Error(
+      `bezierDerivative: n must be a non-negative integer, got ${n}`,
     );
   }
 
@@ -793,6 +847,25 @@ function findBezierRoots1D(points, component) {
  * @returns {Decimal[]} Real roots
  */
 function solveQuadratic(a, b, c) {
+  // INPUT VALIDATION: Ensure all coefficients are valid Decimal instances
+  // WHY: Invalid inputs cause cryptic errors in arithmetic operations
+  if (a == null || b == null || c == null) {
+    throw new Error(
+      "solveQuadratic: coefficients a, b, c must not be null or undefined",
+    );
+  }
+  // Convert to Decimal if needed
+  a = a instanceof Decimal ? a : D(a);
+  b = b instanceof Decimal ? b : D(b);
+  c = c instanceof Decimal ? c : D(c);
+
+  // Check for non-finite values
+  if (!a.isFinite() || !b.isFinite() || !c.isFinite()) {
+    throw new Error(
+      "solveQuadratic: coefficients must be finite numbers, got non-finite values",
+    );
+  }
+
   // NUMERICAL STABILITY: Use threshold relative to coefficient magnitudes
   // to determine if 'a' is effectively zero (degenerate to linear equation)
   // WHY: Absolute thresholds fail when coefficients are scaled; relative threshold adapts

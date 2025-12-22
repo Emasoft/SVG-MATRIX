@@ -330,6 +330,11 @@ function resolveAllUseElements(root, defsMap, opts) {
         // Get use element positioning and transform
         const useX = parseFloat(useEl.getAttribute("x") || "0");
         const useY = parseFloat(useEl.getAttribute("y") || "0");
+        // Validate parseFloat results to prevent NaN propagation
+        if (isNaN(useX) || isNaN(useY)) {
+          errors.push(`use: invalid x/y coordinates for element #${refId}`);
+          continue;
+        }
         const useTransform = useEl.getAttribute("transform") || "";
 
         // Build combined transform: use transform + translation from x/y
@@ -1234,6 +1239,14 @@ function bakeAllGradientTransforms(root, opts, stats) {
       const x2 = parseFloat(grad.getAttribute("x2") || "1");
       const y2 = parseFloat(grad.getAttribute("y2") || "0");
 
+      // Validate parseFloat results to prevent NaN propagation
+      if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+        errors.push(
+          `linearGradient: invalid coordinate values for gradient ${grad.getAttribute("id") || "unknown"}`,
+        );
+        continue;
+      }
+
       const [tx1, ty1] = Transforms2D.applyTransform(ctm, x1, y1);
       const [tx2, ty2] = Transforms2D.applyTransform(ctm, x2, y2);
 
@@ -1502,21 +1515,33 @@ function getElementPathData(el, precision) {
   // Use GeometryToPath for shape conversion
   const getAttr = (name, def = 0) => {
     const val = el.getAttribute(name);
-    return val !== null ? parseFloat(val) : def;
+    if (val === null) return def;
+    const parsed = parseFloat(val);
+    // Validate parseFloat result to prevent NaN propagation
+    if (isNaN(parsed)) {
+      throw new Error(
+        `getElementPathData: invalid numeric value "${val}" for attribute "${name}"`,
+      );
+    }
+    return parsed;
   };
 
   switch (tagName) {
-    case "rect":
+    case "rect": {
+      const ry = el.getAttribute("ry");
+      // ry can be null (not specified), or a numeric value including 0
+      const ryValue = ry !== null ? getAttr("ry") : null;
       return GeometryToPath.rectToPathData(
         getAttr("x"),
         getAttr("y"),
         getAttr("width"),
         getAttr("height"),
         getAttr("rx"),
-        getAttr("ry") || null,
+        ryValue,
         false,
         precision,
       );
+    }
     case "circle":
       return GeometryToPath.circleToPathData(
         getAttr("cx"),

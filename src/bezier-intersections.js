@@ -319,7 +319,6 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
   };
 
   let fLo = evalDist(lo);
-  let _fHi = evalDist(hi);
 
   // WHY: Use named constant instead of magic number for clarity and maintainability
   for (let i = 0; i < MAX_BISECTION_ITERATIONS; i++) {
@@ -338,7 +337,6 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
       fLo = fMid;
     } else {
       hi = mid;
-      _fHi = fMid;
     }
   }
 
@@ -594,11 +592,16 @@ function bboxOverlap(bbox1, bbox2) {
   }
 
   // WHY: Validate bbox objects have required properties with proper types
+  // WHY: Cannot use !bbox1.xmin as it fails for Decimal(0). Must check for undefined/null explicitly.
   if (
-    !bbox1.xmin ||
-    !bbox1.xmax ||
-    !bbox1.ymin ||
-    !bbox1.ymax ||
+    bbox1.xmin === undefined ||
+    bbox1.xmin === null ||
+    bbox1.xmax === undefined ||
+    bbox1.xmax === null ||
+    bbox1.ymin === undefined ||
+    bbox1.ymin === null ||
+    bbox1.ymax === undefined ||
+    bbox1.ymax === null ||
     typeof bbox1.xmin.lt !== "function"
   ) {
     throw new Error(
@@ -606,10 +609,14 @@ function bboxOverlap(bbox1, bbox2) {
     );
   }
   if (
-    !bbox2.xmin ||
-    !bbox2.xmax ||
-    !bbox2.ymin ||
-    !bbox2.ymax ||
+    bbox2.xmin === undefined ||
+    bbox2.xmin === null ||
+    bbox2.xmax === undefined ||
+    bbox2.xmax === null ||
+    bbox2.ymin === undefined ||
+    bbox2.ymin === null ||
+    bbox2.ymax === undefined ||
+    bbox2.ymax === null ||
     typeof bbox2.xmin.lt !== "function"
   ) {
     throw new Error(
@@ -649,12 +656,21 @@ function deduplicateIntersections(intersections, tol) {
         "deduplicateIntersections: intersection must be an object",
       );
     }
-    if (!isect.t1 || typeof isect.t1.minus !== "function") {
+    // WHY: Cannot use !isect.t1 as it fails for Decimal(0). Must check for undefined/null explicitly.
+    if (
+      isect.t1 === undefined ||
+      isect.t1 === null ||
+      typeof isect.t1.minus !== "function"
+    ) {
       throw new Error(
         "deduplicateIntersections: intersection must have t1 Decimal property",
       );
     }
-    if (!isect.t2 || typeof isect.t2.minus !== "function") {
+    if (
+      isect.t2 === undefined ||
+      isect.t2 === null ||
+      typeof isect.t2.minus !== "function"
+    ) {
       throw new Error(
         "deduplicateIntersections: intersection must have t2 Decimal property",
       );
@@ -1101,6 +1117,13 @@ export function verifyIntersection(
   if (!intersection) {
     throw new Error("verifyIntersection: intersection object is required");
   }
+  // WHY: Validate intersection has required t1 and t2 properties before using them
+  if (intersection.t1 === undefined || intersection.t1 === null) {
+    throw new Error("verifyIntersection: intersection.t1 is required");
+  }
+  if (intersection.t2 === undefined || intersection.t2 === null) {
+    throw new Error("verifyIntersection: intersection.t2 is required");
+  }
 
   const tol = D(tolerance);
 
@@ -1155,8 +1178,15 @@ export function verifyLineLineIntersection(
 
   const tol = D(tolerance);
 
-  if (!intersection.t1) {
-    return { valid: false, reason: "No intersection provided" };
+  // WHY: Validate all required intersection properties before using them
+  if (intersection.t1 === undefined || intersection.t1 === null) {
+    return { valid: false, reason: "intersection.t1 is missing" };
+  }
+  if (intersection.t2 === undefined || intersection.t2 === null) {
+    return { valid: false, reason: "intersection.t2 is missing" };
+  }
+  if (!intersection.point || !Array.isArray(intersection.point) || intersection.point.length < 2) {
+    return { valid: false, reason: "intersection.point is missing or invalid" };
   }
 
   const [x1, y1] = [D(line1[0][0]), D(line1[0][1])];
@@ -1278,8 +1308,15 @@ export function verifyBezierLineIntersection(
 
   const tol = D(tolerance);
 
-  if (intersection.t1 === undefined) {
-    return { valid: false, reason: "No intersection provided" };
+  // WHY: Validate all required intersection properties before using them
+  if (intersection.t1 === undefined || intersection.t1 === null) {
+    return { valid: false, reason: "intersection.t1 is missing" };
+  }
+  if (intersection.t2 === undefined || intersection.t2 === null) {
+    return { valid: false, reason: "intersection.t2 is missing" };
+  }
+  if (!intersection.point || !Array.isArray(intersection.point) || intersection.point.length < 2) {
+    return { valid: false, reason: "intersection.point is missing or invalid" };
   }
 
   const t1 = D(intersection.t1);

@@ -221,6 +221,22 @@ export function visvalingamWhyatt(points, minArea) {
  * @returns {Array<{x: number, y: number}>} Simplified points
  */
 export function simplifyPolyline(points, tolerance, algorithm = 'douglas-peucker') {
+  // Validate points parameter to prevent crashes on invalid input
+  if (!Array.isArray(points)) {
+    throw new TypeError('simplifyPolyline: points must be an array');
+  }
+  if (points.length === 0) {
+    throw new RangeError('simplifyPolyline: points array cannot be empty');
+  }
+
+  // Validate tolerance parameter to ensure valid numeric threshold
+  if (typeof tolerance !== 'number' || !Number.isFinite(tolerance)) {
+    throw new TypeError('simplifyPolyline: tolerance must be a finite number');
+  }
+  if (tolerance < 0) {
+    throw new RangeError('simplifyPolyline: tolerance cannot be negative');
+  }
+
   // Validate algorithm parameter to ensure only valid algorithms are used
   if (typeof algorithm !== 'string') {
     throw new TypeError('simplifyPolyline: algorithm must be a string');

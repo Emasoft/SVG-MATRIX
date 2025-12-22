@@ -2,11 +2,28 @@ import Decimal from "decimal.js";
 import { Matrix } from "./matrix.js";
 
 /**
- * Helper to convert any numeric input to Decimal.
+ * Helper to convert any numeric input to Decimal with validation.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
+ * @throws {Error} If the value is invalid or infinite
  */
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => {
+  if (x instanceof Decimal) {
+    if (!x.isFinite()) {
+      throw new Error(`Value must be finite (got ${x.toString()})`);
+    }
+    return x;
+  }
+  try {
+    const result = new Decimal(x);
+    if (!result.isFinite()) {
+      throw new Error(`Value must be finite (got ${x})`);
+    }
+    return result;
+  } catch (error) {
+    throw new Error(`Invalid numeric value: "${x}" (${error.message})`);
+  }
+};
 
 /**
  * Validates that a value can be converted to Decimal.
@@ -24,6 +41,10 @@ function validateNumeric(value, name) {
   // Check for NaN and Infinity in numeric values
   if (typeof value === 'number' && !isFinite(value)) {
     throw new Error(`${name} must be a finite number (got ${value})`);
+  }
+  // Check for Infinity in Decimal instances
+  if (value instanceof Decimal && !value.isFinite()) {
+    throw new Error(`${name} must be a finite Decimal (got ${value.toString()})`);
   }
 }
 

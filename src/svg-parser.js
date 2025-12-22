@@ -103,6 +103,10 @@ class SVGDocument {
    * @returns {SVGElement}
    */
   createElementNS(namespace, tagName) {
+    // Validation: Ensure namespace is a string (though unused, for API compatibility)
+    if (namespace !== null && namespace !== undefined && typeof namespace !== "string") {
+      throw new Error("createElementNS: namespace must be a string");
+    }
     return this.createElement(tagName);
   }
 }
@@ -346,6 +350,10 @@ export class SVGElement {
    * @returns {SVGElement}
    */
   cloneNode(deep = true) {
+    // Validation: Ensure deep is a boolean
+    if (typeof deep !== "boolean") {
+      throw new Error("cloneNode: deep must be a boolean");
+    }
     const clonedChildren = deep
       ? // eslint-disable-next-line no-confusing-arrow -- Prettier multiline format
         this.children.map((c) =>

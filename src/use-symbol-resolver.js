@@ -641,7 +641,33 @@ export function resolveUse(useData, defs, options = {}) {
     throw new Error('resolveUse: defs map is required');
   }
 
+  // Validate useData.x and useData.y are valid numbers
+  if (typeof useData.x !== 'number' || isNaN(useData.x) || !isFinite(useData.x)) {
+    throw new Error('resolveUse: useData.x must be a valid finite number');
+  }
+  if (typeof useData.y !== 'number' || isNaN(useData.y) || !isFinite(useData.y)) {
+    throw new Error('resolveUse: useData.y must be a valid finite number');
+  }
+
+  // Validate useData.width and useData.height are null or valid numbers
+  if (useData.width !== null && (typeof useData.width !== 'number' || isNaN(useData.width) || !isFinite(useData.width) || useData.width <= 0)) {
+    throw new Error('resolveUse: useData.width must be null or a positive finite number');
+  }
+  if (useData.height !== null && (typeof useData.height !== 'number' || isNaN(useData.height) || !isFinite(useData.height) || useData.height <= 0)) {
+    throw new Error('resolveUse: useData.height must be null or a positive finite number');
+  }
+
+  // Validate options parameter
+  if (options && typeof options !== 'object') {
+    throw new Error('resolveUse: options must be an object or undefined');
+  }
+
   const { maxDepth = 10 } = options;
+
+  // Validate maxDepth is a positive finite number
+  if (typeof maxDepth !== 'number' || maxDepth <= 0 || !isFinite(maxDepth)) {
+    throw new Error('resolveUse: maxDepth must be a positive finite number');
+  }
 
   // Depth limit check
   if (maxDepth <= 0) {

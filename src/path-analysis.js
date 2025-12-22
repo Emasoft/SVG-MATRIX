@@ -97,6 +97,10 @@ export function pathArea(segments, options = {}) {
   }
 
   const { samples = 50 } = options;
+  // WHY: Validate samples to prevent division by zero and infinite loops
+  if (!Number.isFinite(samples) || samples <= 0) {
+    throw new Error("pathArea: samples must be a positive number");
+  }
 
   let area = D(0);
 
@@ -314,6 +318,15 @@ export function closestPointOnPath(segments, point, options = {}) {
   }
 
   const { samples = 50, maxIterations = 30, tolerance = "1e-30" } = options;
+  // WHY: Validate numeric parameters to prevent division by zero and infinite loops
+  if (!Number.isFinite(samples) || samples <= 0) {
+    throw new Error("closestPointOnPath: samples must be a positive number");
+  }
+  if (!Number.isFinite(maxIterations) || maxIterations < 0) {
+    throw new Error(
+      "closestPointOnPath: maxIterations must be a non-negative number",
+    );
+  }
 
   const px = D(point[0]);
   const py = D(point[1]);

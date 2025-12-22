@@ -692,14 +692,29 @@ export function removeIdentityTransforms(transforms) {
   const TWO_PI = PI.mul(2);
 
   const filtered = transforms.filter((t) => {
+    // Validate transform object structure
+    if (!t || typeof t !== 'object') {
+      return true; // Keep malformed transforms for debugging
+    }
+    if (!t.type || !t.params || typeof t.params !== 'object') {
+      return true; // Keep malformed transforms for debugging
+    }
+
     switch (t.type) {
       case "translate": {
+        if (t.params.tx === null || t.params.tx === undefined ||
+            t.params.ty === null || t.params.ty === undefined) {
+          return true; // Keep transforms with missing params for debugging
+        }
         const tx = D(t.params.tx);
         const ty = D(t.params.ty);
         return !tx.abs().lessThan(EPSILON) || !ty.abs().lessThan(EPSILON);
       }
 
       case "rotate": {
+        if (t.params.angle === null || t.params.angle === undefined) {
+          return true; // Keep transforms with missing params for debugging
+        }
         const angle = D(t.params.angle);
         // Normalize angle to [0, 2π)
         const normalized = angle.mod(TWO_PI);
@@ -707,6 +722,10 @@ export function removeIdentityTransforms(transforms) {
       }
 
       case "scale": {
+        if (t.params.sx === null || t.params.sx === undefined ||
+            t.params.sy === null || t.params.sy === undefined) {
+          return true; // Keep transforms with missing params for debugging
+        }
         const sx = D(t.params.sx);
         const sy = D(t.params.sy);
         return (
@@ -716,6 +735,9 @@ export function removeIdentityTransforms(transforms) {
       }
 
       case "matrix": {
+        if (!t.params.matrix) {
+          return true; // Keep transforms with missing matrix for debugging
+        }
         // Check if matrix is identity
         const m = t.params.matrix;
         const identity = identityMatrix();

@@ -204,6 +204,13 @@ export function collectElementReferences(el) {
     );
   }
 
+  // Validate element has required methods
+  if (typeof el.getAttributeNames !== "function") {
+    throw new TypeError(
+      "collectElementReferences: el must have getAttributeNames method",
+    );
+  }
+
   const refs = {
     static: new Set(),
     animation: new Set(),
@@ -214,7 +221,14 @@ export function collectElementReferences(el) {
   const tagName = el.tagName?.toLowerCase() || "";
   const isAnimationElement = ANIMATION_ELEMENTS.includes(tagName);
 
-  for (const attrName of el.getAttributeNames()) {
+  const attributeNames = el.getAttributeNames();
+  if (!Array.isArray(attributeNames)) {
+    throw new TypeError(
+      "collectElementReferences: getAttributeNames must return an array",
+    );
+  }
+
+  for (const attrName of attributeNames) {
     const value = el.getAttribute(attrName);
     if (!value) continue;
 
@@ -260,8 +274,22 @@ export function collectElementReferences(el) {
 
   // Check <mpath> element inside <animateMotion>
   if (tagName === "animatemotion") {
+    if (typeof el.getElementsByTagName !== "function") {
+      throw new TypeError(
+        "collectElementReferences: el must have getElementsByTagName method",
+      );
+    }
     const mpaths = el.getElementsByTagName("mpath");
+    // Validate mpaths is iterable
+    if (!mpaths || typeof mpaths[Symbol.iterator] !== "function") {
+      throw new TypeError(
+        "collectElementReferences: getElementsByTagName must return an iterable",
+      );
+    }
     for (const mpath of mpaths) {
+      // Validate mpath has getAttribute method
+      if (!mpath || typeof mpath.getAttribute !== "function") continue;
+
       for (const attr of HREF_ATTRIBUTES) {
         const value = mpath.getAttribute(attr);
         const id = parseHrefId(value);

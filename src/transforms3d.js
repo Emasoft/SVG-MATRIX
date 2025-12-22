@@ -5,8 +5,20 @@ import { Matrix } from "./matrix.js";
  * Helper to convert any numeric input to Decimal.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
+ * @throws {Error} If value cannot be converted to a valid Decimal
  */
-const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
+const D = (x) => {
+  if (x instanceof Decimal) return x;
+  try {
+    const result = new Decimal(x);
+    if (!result.isFinite()) {
+      throw new Error(`Value must be finite, got ${x}`);
+    }
+    return result;
+  } catch (err) {
+    throw new Error(`Invalid numeric value: ${x}`);
+  }
+};
 
 /**
  * Validates that a value is a valid numeric type (number, string, or Decimal).
@@ -200,8 +212,12 @@ export function scale(sx, sy = null, sz = null) {
 export function rotateX(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const c = new Decimal(Math.cos(t.toNumber()));
-  const s = new Decimal(Math.sin(t.toNumber()));
+  const tNum = t.toNumber();
+  if (!Number.isFinite(tNum)) {
+    throw new Error(`theta must produce a finite angle, got ${theta}`);
+  }
+  const c = new Decimal(Math.cos(tNum));
+  const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
     [new Decimal(1), new Decimal(0), new Decimal(0), new Decimal(0)],
     [new Decimal(0), c, s.negated(), new Decimal(0)],
@@ -245,8 +261,12 @@ export function rotateX(theta) {
 export function rotateY(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const c = new Decimal(Math.cos(t.toNumber()));
-  const s = new Decimal(Math.sin(t.toNumber()));
+  const tNum = t.toNumber();
+  if (!Number.isFinite(tNum)) {
+    throw new Error(`theta must produce a finite angle, got ${theta}`);
+  }
+  const c = new Decimal(Math.cos(tNum));
+  const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
     [c, new Decimal(0), s, new Decimal(0)],
     [new Decimal(0), new Decimal(1), new Decimal(0), new Decimal(0)],
@@ -291,8 +311,12 @@ export function rotateY(theta) {
 export function rotateZ(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const c = new Decimal(Math.cos(t.toNumber()));
-  const s = new Decimal(Math.sin(t.toNumber()));
+  const tNum = t.toNumber();
+  if (!Number.isFinite(tNum)) {
+    throw new Error(`theta must produce a finite angle, got ${theta}`);
+  }
+  const c = new Decimal(Math.cos(tNum));
+  const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
     [c, s.negated(), new Decimal(0), new Decimal(0)],
     [s, c, new Decimal(0), new Decimal(0)],
@@ -369,8 +393,12 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
   u[2] = u[2].div(norm);
 
   const t = D(theta);
-  const c = new Decimal(Math.cos(t.toNumber()));
-  const s = new Decimal(Math.sin(t.toNumber()));
+  const tNum = t.toNumber();
+  if (!Number.isFinite(tNum)) {
+    throw new Error(`theta must produce a finite angle, got ${theta}`);
+  }
+  const c = new Decimal(Math.cos(tNum));
+  const s = new Decimal(Math.sin(tNum));
   const one = new Decimal(1);
 
   // Rodrigues' rotation formula components
@@ -438,6 +466,10 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
  * // Complex rotation around axis (1,1,1) passing through (10,20,30)
  */
 export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
+  validateNumeric(ux, 'ux');
+  validateNumeric(uy, 'uy');
+  validateNumeric(uz, 'uz');
+  validateNumeric(theta, 'theta');
   validateNumeric(px, 'px');
   validateNumeric(py, 'py');
   validateNumeric(pz, 'pz');

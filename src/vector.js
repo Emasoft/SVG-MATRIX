@@ -5,8 +5,19 @@ import Decimal from 'decimal.js';
  * Accepts numbers, strings, or Decimal instances.
  * @param {number|string|Decimal} x - The value to convert
  * @returns {Decimal} The Decimal representation
+ * @throws {Error} If x is null, undefined, or cannot be converted to Decimal
  */
-const D = x => (x instanceof Decimal ? x : new Decimal(x));
+const D = x => {
+  if (x === null || x === undefined) {
+    throw new Error(`Cannot convert ${x === null ? 'null' : 'undefined'} to Decimal`);
+  }
+  if (x instanceof Decimal) return x;
+  try {
+    return new Decimal(x);
+  } catch (err) {
+    throw new Error(`Invalid numeric value: ${err.message}`);
+  }
+};
 
 /**
  * Vector - Decimal-backed vector class for arbitrary-precision vector operations.
@@ -130,13 +141,18 @@ export class Vector {
    * Scalar multiplication.
    * @param {number|string|Decimal} scalar - Scalar to multiply by
    * @returns {Vector} New scaled Vector
-   * @throws {Error} If scalar is null or undefined
+   * @throws {Error} If scalar is null, undefined, or invalid
    */
   scale(scalar) {
     if (scalar === null || scalar === undefined) {
       throw new Error(`scale: scalar is ${scalar === null ? 'null' : 'undefined'}`);
     }
-    const s = D(scalar);
+    let s;
+    try {
+      s = D(scalar);
+    } catch (err) {
+      throw new Error(`scale: invalid scalar - ${err.message}`);
+    }
     return new Vector(this.data.map(v => v.mul(s)));
   }
 
@@ -293,8 +309,8 @@ export class Vector {
       throw new Error('orthogonal: cannot find orthogonal vector to zero vector');
     }
     if (this.length === 2) {
-      // 2D perpendicular: rotate 90 degrees counterclockwise
-      return new Vector([this.data[1].negated(), this.data[0]]);
+      // 2D perpendicular: rotate 90 degrees counterclockwise, then normalize
+      return new Vector([this.data[1].negated(), this.data[0]]).normalize();
     }
     // For n > 2: find a standard basis vector not parallel to this,
     // then use Gram-Schmidt orthogonalization

@@ -101,7 +101,9 @@ const DEFAULT_ARC_LENGTH_TOLERANCE = "1e-30";
  * WHY: Used in adaptive quadrature to determine if subdivision has converged
  * by comparing 5-point and 10-point Gauss-Legendre results. When results
  * differ by less than this, we accept the higher-order result.
+ * NOTE: Currently unused - kept for potential future enhancement.
  */
+// eslint-disable-next-line no-unused-vars
 const _SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal("1e-15");
 
 /**
@@ -678,7 +680,22 @@ export function createArcLengthTable(points, samples = 100, options = {}) {
      * @returns {Decimal} Approximate t
      */
     getT(s) {
+      // INPUT VALIDATION: Ensure s is provided and valid
+      // WHY: Without s, we cannot perform the lookup. Catching this early prevents cryptic errors.
+      if (s === null || s === undefined) {
+        throw new Error("getT: arc length parameter s is required");
+      }
+
       const sD = D(s);
+
+      // EDGE CASE: Check for NaN or Infinity
+      // WHY: Invalid arc lengths would cause incorrect lookups
+      if (sD.isNaN()) {
+        throw new Error("getT: arc length s cannot be NaN");
+      }
+      if (!sD.isFinite()) {
+        throw new Error("getT: arc length s must be finite");
+      }
 
       if (sD.lte(0)) return D(0);
       if (sD.gte(this.totalLength)) return D(1);

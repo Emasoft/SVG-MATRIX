@@ -62,7 +62,7 @@ export function pointInPolygonWithRule(
   if (!pt || typeof pt !== "object") {
     throw new Error("pointInPolygonWithRule: pt must be an object with x, y properties");
   }
-  if (!pt.x || !pt.y) {
+  if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null) {
     throw new Error("pointInPolygonWithRule: pt must have x and y properties");
   }
   if (!Array.isArray(polygon)) {
@@ -121,7 +121,9 @@ function pointOnSegment(pt, a, b) {
   if (!pt || !a || !b) {
     throw new Error("pointOnSegment: pt, a, and b must be defined");
   }
-  if (!pt.x || !pt.y || !a.x || !a.y || !b.x || !b.y) {
+  if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null ||
+      a.x === undefined || a.x === null || a.y === undefined || a.y === null ||
+      b.x === undefined || b.x === null || b.y === undefined || b.y === null) {
     throw new Error("pointOnSegment: all points must have x and y properties");
   }
   const crossVal = cross(a, b, pt);

@@ -327,12 +327,15 @@ export function calculateSpecificity(selector) {
 
       case SELECTOR_TYPES.PSEUDO_CLASS:
         // Handle :not() - it doesn't count itself, but its argument does
-        if (component.value.startsWith("not(")) {
+        if (component.value.startsWith("not(") && component.value.endsWith(")")) {
           const notContent = component.value.slice(4, -1); // Extract content inside :not()
-          const notSpec = calculateSpecificity(notContent);
-          a += notSpec[0];
-          b += notSpec[1];
-          c += notSpec[2];
+          if (notContent.trim()) {
+            // Only process non-empty :not() content
+            const notSpec = calculateSpecificity(notContent);
+            a += notSpec[0];
+            b += notSpec[1];
+            c += notSpec[2];
+          }
         } else {
           b++;
         }
@@ -348,7 +351,8 @@ export function calculateSpecificity(selector) {
         break;
 
       default:
-        // Unknown type, ignore
+        // No default case needed - all known SELECTOR_TYPES handled above
+        // Unknown types are silently ignored per CSS spec
         break;
     }
   }
