@@ -513,7 +513,8 @@ function sampleArc(
     vy = y1p.neg().minus(cyp).div(ry);
   const n1 = ux.mul(ux).plus(uy.mul(uy)).sqrt();
   if (n1.eq(0)) {
-    // Degenerate arc: start and end points are the same after transformation
+    // Degenerate arc: center point coincides with start point
+    Logger.warn('sampleArc: degenerate arc - center coincides with start point, treating as line to end');
     points.push(PolygonClip.point(x1, y1));
     return;
   }
@@ -522,7 +523,8 @@ function sampleArc(
 
   const n2 = n1.mul(vx.mul(vx).plus(vy.mul(vy)).sqrt());
   if (n2.eq(0)) {
-    // Degenerate arc: endpoints coincide
+    // Degenerate arc: center coincides with both endpoints (zero-length arc)
+    Logger.warn('sampleArc: degenerate arc - zero length, treating as single point');
     points.push(PolygonClip.point(x1, y1));
     return;
   }
@@ -711,6 +713,9 @@ export function shapeToPolygon(
 
   if (element.transform) {
     const elementTransform = parseTransform(element.transform);
+    if (!(elementTransform instanceof Matrix)) {
+      throw new Error(`shapeToPolygon: parseTransform must return a Matrix, got ${typeof elementTransform}`);
+    }
     pathData = transformPathData(pathData, elementTransform);
   }
   if (ctm) {
@@ -794,30 +799,59 @@ export function resolveClipPath(
     throw new Error(`resolveClipPath: samples must be a positive finite number, got ${samples}`);
   }
   const clipPathUnits = clipPathDef.clipPathUnits || "userSpaceOnUse";
+
+  // Validate clipPathUnits value (SVG spec: case-sensitive)
+  if (clipPathUnits !== "userSpaceOnUse" && clipPathUnits !== "objectBoundingBox") {
+    Logger.warn(`resolveClipPath: invalid clipPathUnits '${clipPathUnits}', defaulting to 'userSpaceOnUse' (valid values: 'userSpaceOnUse', 'objectBoundingBox')`);
+  }
+
   let clipTransform = ctm ? ctm.clone() : Matrix.identity(3);
 
   if (clipPathDef.transform) {
     const clipPathTransformMatrix = parseTransform(clipPathDef.transform);
+    if (!(clipPathTransformMatrix instanceof Matrix)) {
+      throw new Error(`resolveClipPath: parseTransform must return a Matrix, got ${typeof clipPathTransformMatrix}`);
+    }
     clipTransform = clipTransform.mul(clipPathTransformMatrix);
   }
 
-  if (clipPathUnits === "objectBoundingBox" && targetElement) {
-    const bbox = getElementBoundingBox(targetElement);
-    if (bbox) {
-      const bboxTransform = Transforms2D.translation(bbox.x, bbox.y).mul(
-        Transforms2D.scale(bbox.width, bbox.height),
-      );
-      clipTransform = clipTransform.mul(bboxTransform);
+  if (clipPathUnits === "objectBoundingBox") {
+    if (!targetElement) {
+      throw new Error('resolveClipPath: targetElement required for objectBoundingBox clipPathUnits');
     }
+    const bbox = getElementBoundingBox(targetElement);
+    if (!bbox) {
+      Logger.warn('resolveClipPath: failed to compute bounding box for objectBoundingBox clipPath');
+      return [];
+    }
+    // Validate bounding box dimensions - degenerate bbox clips everything
+    if (bbox.width.lte(0) || bbox.height.lte(0)) {
+      Logger.warn(`resolveClipPath: degenerate bounding box (width=${bbox.width}, height=${bbox.height}), clipping entire element`);
+      return [];
+    }
+    const bboxTransform = Transforms2D.translation(bbox.x, bbox.y).mul(
+      Transforms2D.scale(bbox.width, bbox.height),
+    );
+    clipTransform = clipTransform.mul(bboxTransform);
+  }
+
+  // Validate children array before processing
+  const children = clipPathDef.children || [];
+  if (!Array.isArray(children)) {
+    throw new Error(`resolveClipPath: clipPathDef.children must be an array, got ${typeof children}`);
   }
 
   const clipPolygons = [];
-  for (const child of clipPathDef.children || []) {
+  for (const child of children) {
     const polygon = shapeToPolygon(child, clipTransform, samples);
     if (polygon.length >= 3) clipPolygons.push(polygon);
   }
 
-  if (clipPolygons.length === 0) return [];
+  // Empty clipPath returns empty polygon (clips everything)
+  if (clipPolygons.length === 0) {
+    Logger.warn('resolveClipPath: clipPath has no valid child shapes, clipping entire element');
+    return [];
+  }
   if (clipPolygons.length === 1) return clipPolygons[0];
 
   let unified = clipPolygons[0];
@@ -858,7 +892,7 @@ function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
     throw new Error('clipPolygonWithRule: clipPolygon must be an array');
   }
   if (clipRule !== 'nonzero' && clipRule !== 'evenodd') {
-    throw new Error(`clipPolygonWithRule: clipRule must be 'nonzero' or 'evenodd', got ${clipRule}`);
+    throw new Error(`clipPolygonWithRule: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`);
   }
   if (elementPolygon.length < 3 || clipPolygon.length < 3) {
     return [];
@@ -926,8 +960,10 @@ function computeCentroid(polygon) {
   }
 
   area = area.div(2);
-  if (area.abs().lt(1e-10)) {
-    // Degenerate polygon - return average of vertices
+  // Use Decimal comparison for degenerate polygon detection
+  const epsilon = new Decimal('1e-10');
+  if (area.abs().lt(epsilon)) {
+    // Degenerate polygon (zero area) - return average of vertices
     let sumX = new Decimal(0);
     let sumY = new Decimal(0);
     for (const p of polygon) {
@@ -1014,7 +1050,7 @@ export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
     throw new Error(`applyClipPath: samples must be a positive finite number, got ${samples}`);
   }
   if (clipRule !== 'nonzero' && clipRule !== 'evenodd') {
-    throw new Error(`applyClipPath: clipRule must be 'nonzero' or 'evenodd', got ${clipRule}`);
+    throw new Error(`applyClipPath: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`);
   }
   const clipPolygon = resolveClipPath(clipPathDef, element, ctm, options);
   if (clipPolygon.length < 3) return [];
@@ -1058,17 +1094,30 @@ function getElementBoundingBox(element) {
     throw new Error('getElementBoundingBox: element.type must be a string');
   }
   switch (element.type) {
-    case "rect":
+    case "rect": {
+      const width = D(element.width || 0);
+      const height = D(element.height || 0);
+      // Negative width/height are invalid in SVG
+      if (width.lt(0) || height.lt(0)) {
+        Logger.warn(`getElementBoundingBox: rect has negative dimensions (width=${width}, height=${height})`);
+        return null;
+      }
       return {
         x: D(element.x || 0),
         y: D(element.y || 0),
-        width: D(element.width || 0),
-        height: D(element.height || 0),
+        width: width,
+        height: height,
       };
+    }
     case "circle": {
       const cx = D(element.cx || 0),
         cy = D(element.cy || 0),
         r = D(element.r || 0);
+      // Negative radius is invalid in SVG
+      if (r.lt(0)) {
+        Logger.warn(`getElementBoundingBox: circle has negative radius (r=${r})`);
+        return null;
+      }
       return {
         x: cx.minus(r),
         y: cy.minus(r),
@@ -1081,6 +1130,11 @@ function getElementBoundingBox(element) {
         cy = D(element.cy || 0);
       const rx = D(element.rx || 0),
         ry = D(element.ry || 0);
+      // Negative radii are invalid in SVG
+      if (rx.lt(0) || ry.lt(0)) {
+        Logger.warn(`getElementBoundingBox: ellipse has negative radii (rx=${rx}, ry=${ry})`);
+        return null;
+      }
       return {
         x: cx.minus(rx),
         y: cy.minus(ry),
@@ -1092,11 +1146,22 @@ function getElementBoundingBox(element) {
       const polygon = shapeToPolygon(element, null, 10);
       if (polygon.length > 0) {
         const bbox = PolygonClip.boundingBox(polygon);
+        if (!bbox || !bbox.minX || !bbox.minY || !bbox.maxX || !bbox.maxY) {
+          Logger.warn('getElementBoundingBox: failed to compute bounding box from polygon');
+          return null;
+        }
+        const width = bbox.maxX.minus(bbox.minX);
+        const height = bbox.maxY.minus(bbox.minY);
+        // Check for degenerate bounding box
+        if (width.lt(0) || height.lt(0)) {
+          Logger.warn(`getElementBoundingBox: invalid bounding box dimensions (width=${width}, height=${height})`);
+          return null;
+        }
         return {
           x: bbox.minX,
           y: bbox.minY,
-          width: bbox.maxX.minus(bbox.minX),
-          height: bbox.maxY.minus(bbox.minY),
+          width: width,
+          height: height,
         };
       }
       return null;
@@ -1234,7 +1299,10 @@ export function resolveNestedClipPath(
   if (clipPathDef["clip-path"] && clipPolygon.length >= 3) {
     const nestedRef = clipPathDef["clip-path"].replace(/^url\(#?|[)'"]/g, "");
     const nestedClipDef = defsMap.get(nestedRef);
-    if (nestedClipDef) {
+    if (!nestedClipDef) {
+      Logger.warn(`resolveNestedClipPath: referenced clipPath not found: ${nestedRef}`);
+      // Continue with current clipPolygon, ignoring missing reference
+    } else {
       const nestedClip = resolveNestedClipPath(
         nestedClipDef,
         defsMap,
@@ -1249,6 +1317,9 @@ export function resolveNestedClipPath(
           nestedClip,
         );
         clipPolygon = intersection.length > 0 ? intersection[0] : [];
+      } else {
+        Logger.warn(`resolveNestedClipPath: nested clipPath ${nestedRef} resolved to empty polygon`);
+        clipPolygon = [];
       }
     }
   }

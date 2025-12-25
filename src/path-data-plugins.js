@@ -490,17 +490,24 @@ export function convertToZ(d, tolerance = 1e-6, precision = 3) {
     const cmd = commands[i];
     let newCmd = cmd;
 
-    // Check if this L command goes back to start
+    // Check if this L command goes back to start AND is last before M or end of path
     if (cmd.command === "L" || cmd.command === "l") {
       const isAbs = cmd.command === "L";
       const endX = isAbs ? cmd.args[0] : cx + cmd.args[0];
       const endY = isAbs ? cmd.args[1] : cy + cmd.args[1];
 
+      // Check if next command is M or we're at end (last drawing command in subpath)
+      const isLastInSubpath =
+        i === commands.length - 1 ||
+        commands[i + 1].command === "M" ||
+        commands[i + 1].command === "m";
+
       if (
+        isLastInSubpath &&
         Math.abs(endX - startX) < tolerance &&
         Math.abs(endY - startY) < tolerance
       ) {
-        // This line closes the path
+        // This line closes the path and is final command in subpath
         newCmd = { command: "z", args: [] };
       }
     }
@@ -1069,6 +1076,39 @@ export function removeUselessCommands(d, tolerance = 1e-6, precision = 3) {
           Math.abs(abs.args[1] - cy) < tolerance &&
           Math.abs(abs.args[2] - cx) < tolerance &&
           Math.abs(abs.args[3] - cy) < tolerance
+        ) {
+          keep = false;
+        }
+        break;
+      case "S":
+        // Zero-length smooth cubic where endpoint and control point are at current position
+        if (
+          Math.abs(abs.args[2] - cx) < tolerance &&
+          Math.abs(abs.args[3] - cy) < tolerance &&
+          Math.abs(abs.args[0] - cx) < tolerance &&
+          Math.abs(abs.args[1] - cy) < tolerance
+        ) {
+          keep = false;
+        }
+        break;
+      case "Q":
+        // Zero-length quadratic where endpoint and control point are at current position
+        if (
+          Math.abs(abs.args[2] - cx) < tolerance &&
+          Math.abs(abs.args[3] - cy) < tolerance &&
+          Math.abs(abs.args[0] - cx) < tolerance &&
+          Math.abs(abs.args[1] - cy) < tolerance
+        ) {
+          keep = false;
+        }
+        break;
+      case "A":
+        // Zero-length arc where endpoint is at current position or radii are zero
+        if (
+          (Math.abs(abs.args[5] - cx) < tolerance &&
+            Math.abs(abs.args[6] - cy) < tolerance) ||
+          Math.abs(abs.args[0]) < tolerance ||
+          Math.abs(abs.args[1]) < tolerance
         ) {
           keep = false;
         }
@@ -1663,6 +1703,9 @@ export function arcShorthands(d, precision = 3) {
       if (Math.abs(args[0] - args[1]) < 1e-6) {
         args[2] = 0;
       }
+      // Normalize arc flags to exactly 0 or 1 (large-arc-flag and sweep-flag)
+      args[3] = args[3] ? 1 : 0;
+      args[4] = args[4] ? 1 : 0;
       return { command: cmd.command, args };
     }
     return cmd;

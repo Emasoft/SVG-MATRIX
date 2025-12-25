@@ -10,21 +10,18 @@ export const SVG11_ELEMENTS = new Set(["a","altglyph","altglyphdef","altglyphite
 /**
  * Set of all valid SVG 1.1 attribute names (lowercase)
  */
-export const SVG11_ATTRIBUTES = new Set(["accent-height","accumulate","actuate","additive","alignment-baseline","alphabetic","amplitude","arabic-form","arcrole","ascent","attributename","attributetype","azimuth","basefrequency","baseline-shift","baseprofile","bbox","begin","bias","by","calcmode","cap-height","class","clip","clip-path","clip-rule","clippathunits","color","color-interpolation","color-interpolation-filters","color-profile","color-rendering","contentscripttype","contentstyletype","cursor","cx","cy","d","descent","diffuseconstant","direction","display","divisor","dominant-baseline","dur","dx","dy","edgemode","elevation","enable-background","end","exponent","externalresourcesrequired","fill","fill-opacity","fill-rule","filter","filterres","filterunits","flood-color","flood-opacity","font-family","font-size","font-size-adjust","font-stretch","font-style","font-variant","font-weight","format","from","fx","fy","g1","g2","glyph-name","glyph-orientation-horizontal","glyph-orientation-vertical","glyphref","gradienttransform","gradientunits","hanging","height","horiz-adv-x","horiz-origin-x","horiz-origin-y","href","id","ideographic","image-rendering","in","in2","intercept","k","k1","k2","k3","k4","kernelmatrix","kernelunitlength","kerning","keypoints","keysplines","keytimes","lang","lengthadjust","letter-spacing","lighting-color","limitingconeangle","local","marker-end","marker-mid","marker-start","markerheight","markerunits","markerwidth","mask","maskcontentunits","maskunits","mathematical","max","media","method","min","mode","name","numoctaves","offset","onabort","onactivate","onbegin","onclick","onend","onerror","onfocusin","onfocusout","onload","onmousedown","onmousemove","onmouseout","onmouseover","onmouseup","onrepeat","onresize","onscroll","onunload","onzoom","opacity","operator","order","orient","orientation","origin","overflow","overline-position","overline-thickness","panose-1","path","pathlength","patterncontentunits","patterntransform","patternunits","pointer-events","points","pointsatx","pointsaty","pointsatz","preservealpha","preserveaspectratio","primitiveunits","r","radius","refx","refy","rendering-intent","repeatcount","repeatdur","requiredextensions","requiredfeatures","restart","result","role","rotate","rx","ry","scale","seed","shape-rendering","show","slope","spacing","specularconstant","specularexponent","spreadmethod","startoffset","stddeviation","stemh","stemv","stitchtiles","stop-color","stop-opacity","strikethrough-position","strikethrough-thickness","string","stroke","stroke-dasharray","stroke-dashoffset","stroke-linecap","stroke-linejoin","stroke-miterlimit","stroke-opacity","stroke-width","style","surfacescale","systemlanguage","tablevalues","target","targetx","targety","text-anchor","text-decoration","text-rendering","textlength","title","to","transform","type","u1","u2","underline-position","underline-thickness","unicode","unicode-bidi","unicode-range","units-per-em","v-alphabetic","v-hanging","v-ideographic","v-mathematical","values","version","vert-adv-y","vert-origin-x","vert-origin-y","viewbox","viewtarget","visibility","width","widths","word-spacing","writing-mode","x","x-height","x1","x2","xchannelselector","xml:base","xml:lang","xml:space","y","y1","y2","ychannelselector","z","zoomandpan"]);
+export const SVG11_ATTRIBUTES = new Set(["accent-height","accumulate","actuate","additive","alignment-baseline","alphabetic","amplitude","arabic-form","arcrole","ascent","attributename","attributetype","azimuth","basefrequency","baseline-shift","baseprofile","bbox","begin","bias","by","calcmode","cap-height","class","clip","clip-path","clip-rule","clippathunits","color","color-interpolation","color-interpolation-filters","color-profile","color-rendering","contentscripttype","contentstyletype","cursor","cx","cy","d","descent","diffuseconstant","direction","display","divisor","dominant-baseline","dur","dx","dy","edgemode","elevation","enable-background","end","exponent","externalresourcesrequired","fill","fill-opacity","fill-rule","filter","filterres","filterunits","flood-color","flood-opacity","font-family","font-size","font-size-adjust","font-stretch","font-style","font-variant","font-weight","format","from","fx","fy","g1","g2","glyph-name","glyph-orientation-horizontal","glyph-orientation-vertical","glyphref","gradienttransform","gradientunits","hanging","height","horiz-adv-x","horiz-origin-x","horiz-origin-y","href","id","ideographic","image-rendering","in","in2","intercept","k","k1","k2","k3","k4","kernelmatrix","kernelunitlength","kerning","keypoints","keysplines","keytimes","lang","lengthadjust","letter-spacing","lighting-color","limitingconeangle","local","marker-end","marker-mid","marker-start","markerheight","markerunits","markerwidth","mask","maskcontentunits","maskunits","mathematical","max","media","method","min","mode","name","numoctaves","offset","onabort","onactivate","onbegin","onclick","onend","onerror","onfocusin","onfocusout","onload","onmousedown","onmousemove","onmouseout","onmouseover","onmouseup","onrepeat","onresize","onscroll","onunload","onzoom","opacity","operator","order","orient","orientation","origin","overflow","overline-position","overline-thickness","panose-1","path","pathlength","patterncontentunits","patterntransform","patternunits","pointer-events","points","pointsatx","pointsaty","pointsatz","preservealpha","preserveaspectratio","primitiveunits","r","radius","refx","refy","rendering-intent","repeatcount","repeatdur","requiredextensions","requiredfeatures","restart","result","role","rotate","rx","ry","scale","seed","shape-rendering","show","slope","spacing","specularconstant","specularexponent","spreadmethod","startoffset","stddeviation","stemh","stemv","stitchtiles","stop-color","stop-opacity","strikethrough-position","strikethrough-thickness","string","stroke","stroke-dasharray","stroke-dashoffset","stroke-linecap","stroke-linejoin","stroke-miterlimit","stroke-opacity","stroke-width","style","surfacescale","systemlanguage","tablevalues","target","targetx","targety","text-anchor","text-decoration","text-rendering","textlength","title","to","transform","type","u1","u2","underline-position","underline-thickness","unicode","unicode-bidi","unicode-range","units-per-em","v-alphabetic","v-hanging","v-ideographic","v-mathematical","values","version","vert-adv-y","vert-origin-x","vert-origin-y","viewbox","viewtarget","visibility","width","widths","word-spacing","writing-mode","x","x-height","x1","x2","xchannelselector","xlink:actuate","xlink:arcrole","xlink:href","xlink:role","xlink:show","xlink:title","xlink:type","xml:base","xml:lang","xml:space","y","y1","y2","ychannelselector","z","zoomandpan"]);
 
 /**
  * Elements that are truly EMPTY (cannot have any children)
- * From DTD: font-face-format, font-face-name, glyphRef, hkern, vkern
+ * From DTD: font-face-format, font-face-name, glyphref, hkern, vkern
  */
-export const EMPTY_ELEMENTS = new Set(["font-face-format","font-face-name","glyphRef","hkern","vkern"]);
+export const EMPTY_ELEMENTS = new Set(["font-face-format","font-face-name","glyphref","hkern","vkern"]);
 
 /**
  * Required attributes for each element
  */
 export const REQUIRED_ATTRIBUTES = {
-  "a": [
-    "href"
-  ],
   "animate": [
     "attributename"
   ],
@@ -94,9 +91,6 @@ export const REQUIRED_ATTRIBUTES = {
   ],
   "mpath": [
     "href"
-  ],
-  "path": [
-    "d"
   ],
   "polygon": [
     "points"
@@ -433,8 +427,16 @@ export const VALID_CHILDREN = {
   ],
   "font-face": [
     "desc",
+    "font-face-src",
     "metadata",
     "title"
+  ],
+  "font-face-src": [
+    "font-face-name",
+    "font-face-uri"
+  ],
+  "font-face-uri": [
+    "font-face-format"
   ],
   "g": [
     "a",
@@ -933,7 +935,7 @@ export const VALID_CHILDREN = {
 /**
  * Elements with mixed content (can have text)
  */
-export const MIXED_CONTENT_ELEMENTS = new Set(['text', 'tspan', 'tref', 'textpath', 'altglyph', 'a', 'title', 'desc', 'metadata']);
+export const MIXED_CONTENT_ELEMENTS = new Set(['text', 'tspan', 'tref', 'textpath', 'altglyph', 'a', 'title', 'desc', 'metadata', 'script', 'style']);
 
 /**
  * SVG 2.0 elements (warn but don't auto-correct)

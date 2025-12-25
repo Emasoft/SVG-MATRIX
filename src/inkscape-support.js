@@ -37,7 +37,8 @@ export function isInkscapeLayer(element) {
  * @returns {string|null} Layer label or null if not set
  */
 export function getLayerLabel(element) {
-  return element?.getAttribute('inkscape:label') || null;
+  if (!element || typeof element.getAttribute !== 'function') return null;
+  return element.getAttribute('inkscape:label') || null;
 }
 
 /**
@@ -130,18 +131,32 @@ export function findGuides(doc) {
   const guides = [];
 
   const walk = (el) => {
-    if (!el || !el.children) return;
+    if (!el) return;
     if (el.tagName === 'sodipodi:guide') {
+      const position = el.getAttribute?.('position') || null;
+      const orientation = el.getAttribute?.('orientation') || null;
+
+      // Validate guide has required attributes (position and orientation)
+      if (!position || !orientation) {
+        // Skip invalid guides that lack required attributes
+        if (el.children && Array.isArray(el.children)) {
+          for (const child of el.children) {
+            walk(child);
+          }
+        }
+        return;
+      }
+
       guides.push({
-        position: el.getAttribute?.('position') || null,
-        orientation: el.getAttribute?.('orientation') || null,
+        position,
+        orientation,
         id: el.getAttribute?.('id') || null,
         inkscapeColor: el.getAttribute?.('inkscape:color') || null,
         inkscapeLabel: el.getAttribute?.('inkscape:label') || null
       });
     }
     // Safety check: ensure children is an array before iteration
-    if (Array.isArray(el.children)) {
+    if (el.children && Array.isArray(el.children)) {
       for (const child of el.children) {
         walk(child);
       }
@@ -165,12 +180,21 @@ export function getArcParameters(element) {
   const type = element.getAttribute('sodipodi:type');
   if (type !== 'arc') return null;
 
+  // Validate that required arc parameters exist
+  const cx = element.getAttribute('sodipodi:cx');
+  const cy = element.getAttribute('sodipodi:cy');
+  const rx = element.getAttribute('sodipodi:rx');
+  const ry = element.getAttribute('sodipodi:ry');
+
+  // Arc must have center and radii
+  if (!cx || !cy || !rx || !ry) return null;
+
   return {
     type: 'arc',
-    cx: element.getAttribute('sodipodi:cx'),
-    cy: element.getAttribute('sodipodi:cy'),
-    rx: element.getAttribute('sodipodi:rx'),
-    ry: element.getAttribute('sodipodi:ry'),
+    cx,
+    cy,
+    rx,
+    ry,
     start: element.getAttribute('sodipodi:start'),
     end: element.getAttribute('sodipodi:end'),
     open: element.getAttribute('sodipodi:open')
@@ -185,7 +209,15 @@ export function getArcParameters(element) {
  * @returns {string|null} Node types string (c=corner, s=smooth, z=symmetric, a=auto)
  */
 export function getNodeTypes(element) {
-  return element?.getAttribute('sodipodi:nodetypes') || null;
+  if (!element || typeof element.getAttribute !== 'function') return null;
+
+  const nodeTypes = element.getAttribute('sodipodi:nodetypes');
+  if (!nodeTypes) return null;
+
+  // Validate format: should only contain c, s, z, a characters
+  if (!/^[csza]+$/i.test(nodeTypes)) return null;
+
+  return nodeTypes;
 }
 
 /**
@@ -232,7 +264,8 @@ export function isTiledClone(element) {
  * @returns {string|null} Source element ID or null
  */
 export function getTiledCloneSource(element) {
-  return element?.getAttribute('inkscape:tiled-clone-of') || null;
+  if (!element || typeof element.getAttribute !== 'function') return null;
+  return element.getAttribute('inkscape:tiled-clone-of') || null;
 }
 
 /**
@@ -243,10 +276,18 @@ export function getTiledCloneSource(element) {
  */
 export function hasInkscapeNamespaces(doc) {
   if (!doc) return false;
+
+  // Try documentElement first, fall back to doc itself
   const svg = doc.documentElement || doc;
   if (!svg || typeof svg.getAttribute !== 'function') return false;
-  const hasInkscape = svg.getAttribute('xmlns:inkscape') === INKSCAPE_NS;
-  const hasSodipodi = svg.getAttribute('xmlns:sodipodi') === SODIPODI_NS;
+
+  // Check for exact namespace URI matches
+  const inkscapeNs = svg.getAttribute('xmlns:inkscape');
+  const sodipodiNs = svg.getAttribute('xmlns:sodipodi');
+
+  const hasInkscape = inkscapeNs === INKSCAPE_NS;
+  const hasSodipodi = sodipodiNs === SODIPODI_NS;
+
   return hasInkscape || hasSodipodi;
 }
 
@@ -299,8 +340,7 @@ export function findReferencedIds(element) {
   // Attributes that can contain url(#id) references
   const urlRefAttrs = [
     'fill', 'stroke', 'clip-path', 'mask', 'filter',
-    'marker-start', 'marker-mid', 'marker-end',
-    'fill-opacity', 'stroke-opacity' // Sometimes reference paint servers
+    'marker-start', 'marker-mid', 'marker-end'
   ];
 
   // Attributes that can contain #id or url(#id) references
@@ -415,10 +455,10 @@ export function buildDefsMapFromDefs(doc) {
 export function resolveDefsDependencies(initialIds, defsMap) {
   // Validate parameters
   if (!initialIds || !(initialIds instanceof Set)) {
-    throw new Error('initialIds must be a Set');
+    throw new Error('resolveDefsDependencies: initialIds parameter must be a Set');
   }
   if (!defsMap || !(defsMap instanceof Map)) {
-    throw new Error('defsMap must be a Map');
+    throw new Error('resolveDefsDependencies: defsMap parameter must be a Map');
   }
 
   const resolved = new Set();
@@ -621,10 +661,14 @@ export function extractAllLayers(doc, options = {}) {
       const display = layer.getAttribute('display');
       const visibility = layer.getAttribute('visibility');
 
+      // Use regex to avoid partial matches in style attribute
+      const hasDisplayNone = /display\s*:\s*none/i.test(style);
+      const hasVisibilityHidden = /visibility\s*:\s*hidden/i.test(style);
+
       if (display === 'none' ||
           visibility === 'hidden' ||
-          style.includes('display:none') ||
-          style.includes('visibility:hidden')) {
+          hasDisplayNone ||
+          hasVisibilityHidden) {
         continue;
       }
     }

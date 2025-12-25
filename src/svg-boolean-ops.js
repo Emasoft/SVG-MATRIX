@@ -179,7 +179,8 @@ export function rectToPolygon(rect) {
   const ry = D(rect.ry || rx); // ry defaults to rx if not specified
 
   // Simple rectangle (no rounded corners)
-  if (rx.eq(0) && ry.eq(0)) {
+  // Use epsilon comparison to handle numeric precision edge cases
+  if (rx.lte(EPSILON) && ry.lte(EPSILON)) {
     return [
       point(x, y),
       point(x.plus(w), y),
@@ -1002,6 +1003,9 @@ export class SVGRegion {
 /**
  * Compute intersection of two SVG regions.
  *
+ * Handles edge cases: identical shapes (returns copy of shape),
+ * disjoint shapes (returns empty region), overlapping shapes (returns overlap).
+ *
  * @param {SVGRegion} regionA
  * @param {SVGRegion} regionB
  * @returns {SVGRegion} Intersection region
@@ -1019,10 +1023,19 @@ export function regionIntersection(regionA, regionB) {
   const polygonsA = regionA.getAllPolygons();
   const polygonsB = regionB.getAllPolygons();
 
+  // Edge case: if either region is empty, intersection is empty
+  if (polygonsA.length === 0 || polygonsB.length === 0) {
+    return new SVGRegion({
+      fillPolygons: [],
+      fillRule: FillRule.NONZERO,
+    });
+  }
+
   for (const polyA of polygonsA) {
     for (const polyB of polygonsB) {
       const intersection = polygonIntersection(polyA, polyB);
       for (const poly of intersection) {
+        // Filter out degenerate results (< 3 vertices or zero area)
         if (poly.length >= 3) {
           resultPolygons.push(poly);
         }
@@ -1039,6 +1052,9 @@ export function regionIntersection(regionA, regionB) {
 /**
  * Compute union of two SVG regions.
  *
+ * Handles edge cases: identical shapes (returns single shape),
+ * disjoint shapes (returns both), overlapping shapes (returns merged result).
+ *
  * @param {SVGRegion} regionA
  * @param {SVGRegion} regionB
  * @returns {SVGRegion} Union region
@@ -1054,34 +1070,56 @@ export function regionUnion(regionA, regionB) {
   const polygonsA = regionA.getAllPolygons();
   const polygonsB = regionB.getAllPolygons();
 
+  // Handle empty region edge cases
+  if (polygonsA.length === 0) {
+    return new SVGRegion({
+      fillPolygons: [...polygonsB],
+      fillRule: FillRule.NONZERO,
+    });
+  }
+  if (polygonsB.length === 0) {
+    return new SVGRegion({
+      fillPolygons: [...polygonsA],
+      fillRule: FillRule.NONZERO,
+    });
+  }
+
   // Start with all A polygons
   let combined = [...polygonsA];
 
   // Union each B polygon with the combined result
   for (const polyB of polygonsB) {
+    let foundMerge = false;
     const newCombined = [];
-    let merged = false;
 
     for (const polyA of combined) {
+      if (foundMerge) {
+        // Already merged polyB with a previous polygon, keep remaining polyA polygons
+        newCombined.push(polyA);
+        continue;
+      }
+
       const union = polygonUnion(polyA, polyB);
 
+      // polygonUnion returns array of result polygons
+      // - Single polygon means shapes merged
+      // - Multiple polygons means shapes are disjoint or touch at edges
       if (union.length === 1) {
-        // Merged into single polygon
-        if (!merged) {
-          newCombined.push(union[0]);
-          merged = true;
-        }
+        // Shapes merged - use union result and mark as merged
+        newCombined.push(union[0]);
+        foundMerge = true;
+      } else if (union.length > 1) {
+        // Multiple result polygons - add all union results and mark as processed
+        newCombined.push(...union);
+        foundMerge = true;
       } else {
-        // No overlap, keep both
+        // Empty result (degenerate case) - keep original polyA
         newCombined.push(polyA);
-        if (!merged) {
-          newCombined.push(polyB);
-          merged = true;
-        }
       }
     }
 
-    if (!merged && combined.length === 0) {
+    // If polyB didn't merge with any existing polygon, add it separately
+    if (!foundMerge) {
       newCombined.push(polyB);
     }
 
@@ -1097,6 +1135,9 @@ export function regionUnion(regionA, regionB) {
 /**
  * Compute difference of two SVG regions (A - B).
  *
+ * Handles edge cases: identical shapes (returns empty region),
+ * disjoint shapes (returns A unchanged), A contains B (returns A with B-shaped hole).
+ *
  * @param {SVGRegion} regionA
  * @param {SVGRegion} regionB
  * @returns {SVGRegion} Difference region
@@ -1109,9 +1150,25 @@ export function regionDifference(regionA, regionB) {
     throw new Error("regionDifference: regionB must be an SVGRegion instance");
   }
 
+  const polygonsB = regionB.getAllPolygons();
+
+  // Edge case: if B is empty, return A unchanged
+  if (polygonsB.length === 0) {
+    return new SVGRegion({
+      fillPolygons: regionA.getAllPolygons().map((p) => [...p]),
+      fillRule: FillRule.NONZERO,
+    });
+  }
+
   let resultPolygons = regionA.getAllPolygons().map((p) => [...p]);
 
-  const polygonsB = regionB.getAllPolygons();
+  // Edge case: if A is empty, difference is empty
+  if (resultPolygons.length === 0) {
+    return new SVGRegion({
+      fillPolygons: [],
+      fillRule: FillRule.NONZERO,
+    });
+  }
 
   // Subtract each B polygon from result
   for (const polyB of polygonsB) {
@@ -1120,6 +1177,7 @@ export function regionDifference(regionA, regionB) {
     for (const polyA of resultPolygons) {
       const diff = polygonDifference(polyA, polyB);
       for (const poly of diff) {
+        // Filter out degenerate results (< 3 vertices)
         if (poly.length >= 3) {
           newResult.push(poly);
         }
@@ -1138,6 +1196,9 @@ export function regionDifference(regionA, regionB) {
 /**
  * Compute XOR (symmetric difference) of two SVG regions.
  *
+ * Handles edge cases: identical shapes (returns empty region),
+ * disjoint shapes (returns both shapes), overlapping shapes (returns non-overlapping parts).
+ *
  * @param {SVGRegion} regionA
  * @param {SVGRegion} regionB
  * @returns {SVGRegion} XOR region
@@ -1150,6 +1211,7 @@ export function regionXOR(regionA, regionB) {
     throw new Error("regionXOR: regionB must be an SVGRegion instance");
   }
 
+  // XOR = (A - B) ∪ (B - A)
   const diffAB = regionDifference(regionA, regionB);
   const diffBA = regionDifference(regionB, regionA);
 

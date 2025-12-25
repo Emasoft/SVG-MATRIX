@@ -5,7 +5,7 @@
  * - Parse path into structured commands
  * - Convert curves to lines when effectively straight
  * - Convert absolute to relative (or vice versa) - pick shorter
- * - Use command shortcuts (L->H/V, C->S, Q->T, L->Z)
+ * - Use command shortcuts (L->H/V, L->Z)
  * - Remove leading zeros (0.5 -> .5)
  * - Remove redundant delimiters
  *

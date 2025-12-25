@@ -2043,32 +2043,37 @@ function parseArgs(args) {
 
     switch (arg) {
       case "-o":
-      case "--output":
-        if (i + 1 >= args.length) {
-          logError("-o/--output requires a value");
+      case "--output": {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value || !value.trim()) {
+          logError("-o/--output requires a non-empty value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.output = args[++i];
+        cfg.output = value.trim();
         break;
+      }
       case "-l":
-      case "--list":
-        if (i + 1 >= args.length) {
-          logError("-l/--list requires a value");
+      case "--list": {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value || !value.trim()) {
+          logError("-l/--list requires a non-empty value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.listFile = args[++i];
+        cfg.listFile = value.trim();
         break;
+      }
       case "-r":
       case "--recursive":
         cfg.recursive = true;
         break;
       case "-p":
       case "--precision": {
-        if (i + 1 >= args.length) {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value) {
           logError("-p/--precision requires a value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        const precision = parseInt(args[++i], 10);
+        const precision = parseInt(value, 10);
         if (
           isNaN(precision) ||
           precision < CONSTANTS.MIN_PRECISION ||
@@ -2098,13 +2103,15 @@ function parseArgs(args) {
       case "--verbose":
         cfg.verbose = true;
         break;
-      case "--log-file":
-        if (i + 1 >= args.length) {
-          logError("--log-file requires a value");
+      case "--log-file": {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value || !value.trim()) {
+          logError("--log-file requires a non-empty value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.logFile = args[++i];
+        cfg.logFile = value.trim();
         break;
+      }
       case "-h":
       case "--help":
         // If a command is already set (not 'help'), show command-specific help
@@ -2185,11 +2192,12 @@ function parseArgs(args) {
         break;
       // E2E verification precision options
       case "--clip-segments": {
-        if (i + 1 >= args.length) {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value) {
           logError("--clip-segments requires a value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        const segs = parseInt(args[++i], 10);
+        const segs = parseInt(value, 10);
         if (isNaN(segs) || segs < 8 || segs > 512) {
           logError("clip-segments must be between 8 and 512");
           process.exit(CONSTANTS.EXIT_ERROR);
@@ -2198,11 +2206,12 @@ function parseArgs(args) {
         break;
       }
       case "--bezier-arcs": {
-        if (i + 1 >= args.length) {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value) {
           logError("--bezier-arcs requires a value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        const arcs = parseInt(args[++i], 10);
+        const arcs = parseInt(value, 10);
         if (isNaN(arcs) || arcs < 4 || arcs > 128) {
           logError("bezier-arcs must be between 4 and 128");
           process.exit(CONSTANTS.EXIT_ERROR);
@@ -2216,16 +2225,16 @@ function parseArgs(args) {
         break;
       }
       case "--e2e-tolerance": {
-        if (i + 1 >= args.length) {
+        const value = argValue || (i + 1 < args.length ? args[++i] : null);
+        if (!value) {
           logError("--e2e-tolerance requires a value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        const tol = args[++i];
-        if (!/^1e-\d+$/.test(tol)) {
+        if (!/^1e-\d+$/.test(value)) {
           logError("e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        cfg.e2eTolerance = tol;
+        cfg.e2eTolerance = value;
         break;
       }
       // NOTE: --verify removed - verification is ALWAYS enabled
@@ -2254,6 +2263,13 @@ function parseArgs(args) {
     i++;
   }
   cfg.inputs = inputs;
+
+  // Validate conflicting options
+  if (cfg.quiet && cfg.verbose) {
+    logError("Cannot specify both --quiet and --verbose");
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+
   return cfg;
 }
 

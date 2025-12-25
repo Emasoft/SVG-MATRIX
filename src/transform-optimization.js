@@ -290,15 +290,15 @@ export function mergeRotations(r1, r2) {
   // Calculate merged rotation: sum of angles
   const angle = D(r1.angle).plus(D(r2.angle));
 
-  // Normalize angle to [-π, π]
+  // Normalize angle to (-π, π]
+  // Note: angle.mod(TWO_PI) returns [0, 2π), so the second branch is unreachable
   const PI = Decimal.acos(-1);
   const TWO_PI = PI.mul(2);
   let normalizedAngle = angle.mod(TWO_PI);
   if (normalizedAngle.greaterThan(PI)) {
     normalizedAngle = normalizedAngle.minus(TWO_PI);
-  } else if (normalizedAngle.lessThan(PI.neg())) {
-    normalizedAngle = normalizedAngle.plus(TWO_PI);
   }
+  // Second condition removed: after mod [0, 2π), we can never have values < -π
 
   // VERIFICATION: Matrix multiplication must give same result
   const M1 = rotationMatrix(r1.angle);
@@ -716,9 +716,12 @@ export function removeIdentityTransforms(transforms) {
           return true; // Keep transforms with missing params for debugging
         }
         const angle = D(t.params.angle);
-        // Normalize angle to [0, 2π)
+        // Normalize angle to [0, 2π) and check if near 0 or near 2π (both represent identity rotation)
         const normalized = angle.mod(TWO_PI);
-        return !normalized.abs().lessThan(EPSILON);
+        // Identity rotation: angle ≈ 0 or angle ≈ 2π (within EPSILON), regardless of center point
+        const isNearZero = normalized.abs().lessThan(EPSILON);
+        const isNearTwoPi = normalized.minus(TWO_PI).abs().lessThan(EPSILON);
+        return !isNearZero && !isNearTwoPi;
       }
 
       case "scale": {
@@ -959,13 +962,21 @@ export function optimizeTransformList(transforms) {
         };
       }
     } else if (current.type === "rotate" && next.type === "rotate") {
-      // Only merge if both are around origin (cx and cy must be undefined or null, not 0)
-      const currentHasCenter = (current.params.cx !== undefined && current.params.cx !== null) ||
-                                (current.params.cy !== undefined && current.params.cy !== null);
-      const nextHasCenter = (next.params.cx !== undefined && next.params.cx !== null) ||
-                            (next.params.cy !== undefined && next.params.cy !== null);
+      // Only merge if both are around origin: cx and cy are undefined/null OR both are ≈0
+      const currentCx = current.params.cx !== undefined && current.params.cx !== null ? D(current.params.cx) : null;
+      const currentCy = current.params.cy !== undefined && current.params.cy !== null ? D(current.params.cy) : null;
+      const nextCx = next.params.cx !== undefined && next.params.cx !== null ? D(next.params.cx) : null;
+      const nextCy = next.params.cy !== undefined && next.params.cy !== null ? D(next.params.cy) : null;
 
-      if (!currentHasCenter && !nextHasCenter) {
+      // Check if rotation is effectively around origin
+      const currentIsOrigin = (currentCx === null && currentCy === null) ||
+                               (currentCx !== null && currentCy !== null &&
+                                currentCx.abs().lessThan(EPSILON) && currentCy.abs().lessThan(EPSILON));
+      const nextIsOrigin = (nextCx === null && nextCy === null) ||
+                           (nextCx !== null && nextCy !== null &&
+                            nextCx.abs().lessThan(EPSILON) && nextCy.abs().lessThan(EPSILON));
+
+      if (currentIsOrigin && nextIsOrigin) {
         const result = mergeRotations(current.params, next.params);
         if (result.verified) {
           merged = {

@@ -109,30 +109,35 @@ export function parseUseElement(useElement) {
 
   const parsedHref = href.startsWith("#") ? href.slice(1) : href;
 
-  // Parse numeric attributes and validate for NaN
+  // Validate href is not empty after parsing
+  if (!parsedHref) {
+    throw new Error('parseUseElement: href attribute must reference a valid element id (found empty reference)');
+  }
+
+  // Parse numeric attributes and validate for NaN and finiteness
   const x = parseFloat(useElement.getAttribute("x") || "0");
   const y = parseFloat(useElement.getAttribute("y") || "0");
 
-  // Validate that x and y are not NaN
-  if (isNaN(x) || isNaN(y)) {
-    throw new Error('parseUseElement: x and y attributes must be valid numbers');
+  // Validate that x and y are valid finite numbers
+  if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
+    throw new Error('parseUseElement: x and y attributes must be valid finite numbers');
   }
 
-  // Parse width and height if present, validate for NaN
+  // Parse width and height if present, validate for NaN and finiteness and positivity
   let width = null;
   let height = null;
 
   if (useElement.getAttribute("width")) {
     width = parseFloat(useElement.getAttribute("width"));
-    if (isNaN(width)) {
-      throw new Error('parseUseElement: width attribute must be a valid number');
+    if (isNaN(width) || !isFinite(width) || width <= 0) {
+      throw new Error('parseUseElement: width attribute must be a valid positive finite number');
     }
   }
 
   if (useElement.getAttribute("height")) {
     height = parseFloat(useElement.getAttribute("height"));
-    if (isNaN(height)) {
-      throw new Error('parseUseElement: height attribute must be a valid number');
+    if (isNaN(height) || !isFinite(height) || height <= 0) {
+      throw new Error('parseUseElement: height attribute must be a valid positive finite number');
     }
   }
 
@@ -190,12 +195,12 @@ export function parseSymbolElement(symbolElement) {
   // Parameter validation: symbolElement must be defined
   if (!symbolElement) throw new Error('parseSymbolElement: symbolElement is required');
 
-  // Parse refX and refY with NaN validation
+  // Parse refX and refY with NaN and finiteness validation
   const refX = parseFloat(symbolElement.getAttribute("refX") || "0");
   const refY = parseFloat(symbolElement.getAttribute("refY") || "0");
 
-  if (isNaN(refX) || isNaN(refY)) {
-    throw new Error('parseSymbolElement: refX and refY must be valid numbers');
+  if (isNaN(refX) || isNaN(refY) || !isFinite(refX) || !isFinite(refY)) {
+    throw new Error('parseSymbolElement: refX and refY must be valid finite numbers');
   }
 
   const data = {
@@ -309,11 +314,11 @@ export function parseChildElement(element) {
     style: extractStyleAttributes(element),
   };
 
-  // Helper to safely parse float with NaN check
+  // Helper to safely parse float with NaN and finiteness check
   const safeParseFloat = (attrName, defaultValue = "0") => {
     const value = parseFloat(element.getAttribute(attrName) || defaultValue);
-    if (isNaN(value)) {
-      throw new Error(`parseChildElement: ${attrName} must be a valid number in ${tagName} element`);
+    if (isNaN(value) || !isFinite(value)) {
+      throw new Error(`parseChildElement: ${attrName} must be a valid finite number in ${tagName} element`);
     }
     return value;
   };
@@ -582,6 +587,7 @@ export function calculateViewBoxTransform(
  * @param {Object} [options={}] - Resolution options
  * @param {number} [options.maxDepth=10] - Maximum nesting depth for recursive use resolution
  *   Prevents infinite recursion from circular references
+ * @param {Set} [options._visited] - Internal: tracks visited IDs to detect circular references
  * @returns {Object|null} Resolved use data with the following structure:
  *   - element {Object} - The referenced target element (symbol, shape, group, etc.)
  *   - transform {Matrix} - Composed 3x3 transform matrix to apply to all children
@@ -674,17 +680,28 @@ export function resolveUse(useData, defs, options = {}) {
     throw new Error('resolveUse: options must be an object or undefined');
   }
 
-  const { maxDepth = 10 } = options;
+  const { maxDepth = 10, _visited = new Set() } = options;
 
   // Validate maxDepth is a positive finite number
   if (typeof maxDepth !== 'number' || maxDepth <= 0 || !isFinite(maxDepth)) {
     throw new Error('resolveUse: maxDepth must be a positive finite number');
   }
 
+  // Detect circular references by tracking visited IDs
+  if (_visited.has(useData.href)) {
+    console.warn(`resolveUse: circular reference detected for '#${useData.href}', skipping to prevent infinite loop`);
+    return null;
+  }
+
   const target = defs[useData.href];
   if (!target) {
+    console.warn(`resolveUse: target element '#${useData.href}' not found in defs map`);
     return null; // Target element not found
   }
+
+  // Add current href to visited set for circular reference detection
+  // Note: We'll remove it after processing to allow the same element in parallel branches
+  _visited.add(useData.href);
 
   // CORRECT ORDER per SVG spec:
   // 1. Apply use element's transform attribute first
@@ -707,13 +724,19 @@ export function resolveUse(useData, defs, options = {}) {
   // Handle symbol with viewBox (step 3)
   // ViewBox transform applies LAST (after translation and useTransform)
   if (target.type === "symbol" && target.viewBoxParsed) {
-    // Validate viewBoxParsed has required properties
-    if (typeof target.viewBoxParsed.width !== 'number' || typeof target.viewBoxParsed.height !== 'number') {
-      throw new Error('resolveUse: target.viewBoxParsed must have valid width and height properties');
+    // Validate viewBoxParsed has all required properties with finite values (x, y, width, height)
+    // and width/height must be positive
+    if (typeof target.viewBoxParsed.x !== 'number' || typeof target.viewBoxParsed.y !== 'number' ||
+        typeof target.viewBoxParsed.width !== 'number' || typeof target.viewBoxParsed.height !== 'number' ||
+        !isFinite(target.viewBoxParsed.x) || !isFinite(target.viewBoxParsed.y) ||
+        !isFinite(target.viewBoxParsed.width) || !isFinite(target.viewBoxParsed.height) ||
+        target.viewBoxParsed.width <= 0 || target.viewBoxParsed.height <= 0) {
+      throw new Error('resolveUse: target.viewBoxParsed must have finite x, y and positive finite width, height');
     }
 
-    const width = useData.width || target.viewBoxParsed.width;
-    const height = useData.height || target.viewBoxParsed.height;
+    // Use explicit null check to allow width/height of 0 (though unusual)
+    const width = useData.width !== null ? useData.width : target.viewBoxParsed.width;
+    const height = useData.height !== null ? useData.height : target.viewBoxParsed.height;
 
     const viewBoxTransform = calculateViewBoxTransform(
       target.viewBoxParsed,
@@ -728,12 +751,21 @@ export function resolveUse(useData, defs, options = {}) {
 
   // Resolve children
   const resolvedChildren = [];
-  const children = target.children || [target];
+  // For symbols and groups, use children array; for leaf elements, wrap as single child
+  // Check for children property existence and if it's an array, not just truthiness
+  const children = (target.children && Array.isArray(target.children) && target.children.length > 0)
+    ? target.children
+    : [target];
 
   for (const child of children) {
     if (child.type === "use") {
-      // Recursive resolution
-      const resolved = resolveUse(child, defs, { maxDepth: maxDepth - 1 });
+      // Check maxDepth before recursing to prevent infinite recursion
+      if (maxDepth <= 1) {
+        console.warn(`resolveUse: maximum nesting depth reached for use element '#${child.href}', skipping nested resolution`);
+        continue;
+      }
+      // Recursive resolution with passed _visited set to track circular references across the chain
+      const resolved = resolveUse(child, defs, { maxDepth: maxDepth - 1, _visited });
       if (resolved) {
         resolvedChildren.push(resolved);
       }
@@ -744,6 +776,10 @@ export function resolveUse(useData, defs, options = {}) {
       });
     }
   }
+
+  // Remove from visited set after processing to allow the same element in parallel branches
+  // This ensures that if two sibling use elements reference the same target, both will work
+  _visited.delete(useData.href);
 
   return {
     element: target,

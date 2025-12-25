@@ -80,8 +80,8 @@ export function formatSplineValue(value, precision = 3) {
     str = '-' + str.substring(2); // "-0.5" -> "-.5"
   }
 
-  // Handle edge case: ".0" should be "0"
-  if (str === '' || str === '.') str = '0';
+  // Handle edge cases: ".0" should be "0", "-0" should be "0"
+  if (str === '' || str === '.' || str === '-0') str = '0';
 
   return str;
 }
@@ -229,7 +229,7 @@ export function optimizeKeySplines(keySplines, options = {}) {
     return { value: null, allLinear: false, standardEasings: [] };
   }
 
-  // Check for all linear splines (wrap to avoid .every() passing index as tolerance)
+  // Must wrap in arrow function to avoid .every() passing index as tolerance
   const allLinear = splines.every(s => isLinearSpline(s));
 
   // Identify standard easings

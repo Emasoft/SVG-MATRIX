@@ -90,17 +90,20 @@ export function parseViewBox(viewBoxStr) {
     return null;
   }
 
+  // Validate all parsed values are finite numbers (not NaN)
+  for (let i = 0; i < 4; i++) {
+    if (!parts[i].isFinite()) {
+      console.warn(`Invalid viewBox (non-finite value at index ${i}): ${viewBoxStr}`);
+      return null;
+    }
+  }
+
   const width = parts[2];
   const height = parts[3];
 
-  // Validate dimensions are positive and finite
+  // Validate dimensions are positive
   if (width.lte(0) || height.lte(0)) {
     console.warn(`Invalid viewBox (non-positive dimensions): ${viewBoxStr}`);
-    return null;
-  }
-
-  if (!width.isFinite() || !height.isFinite() || !parts[0].isFinite() || !parts[1].isFinite()) {
-    console.warn(`Invalid viewBox (non-finite values): ${viewBoxStr}`);
     return null;
   }
 
@@ -165,15 +168,25 @@ export function parsePreserveAspectRatio(parStr) {
     idx++;
   }
 
-  // Alignment value
+  // Alignment value - validate against SVG spec
   if (parts[idx]) {
-    result.align = parts[idx];
+    const validAlignValues = ["none", "xMinYMin", "xMinYMid", "xMinYMax", "xMidYMin", "xMidYMid", "xMidYMax", "xMaxYMin", "xMaxYMid", "xMaxYMax"];
+    if (validAlignValues.includes(parts[idx])) {
+      result.align = parts[idx];
+    } else {
+      console.warn(`Invalid preserveAspectRatio align value "${parts[idx]}", using default "xMidYMid"`);
+    }
     idx++;
   }
 
-  // meetOrSlice
+  // meetOrSlice - validate against SVG spec
   if (parts[idx]) {
-    result.meetOrSlice = parts[idx].toLowerCase();
+    const meetOrSlice = parts[idx].toLowerCase();
+    if (meetOrSlice === "meet" || meetOrSlice === "slice") {
+      result.meetOrSlice = meetOrSlice;
+    } else {
+      console.warn(`Invalid preserveAspectRatio meetOrSlice value "${parts[idx]}", using default "meet"`);
+    }
   }
 
   return result;
@@ -828,12 +841,20 @@ export function ellipseToPath(cx, cy, rx, ry) {
     rxD = D(rx),
     ryD = D(ry);
 
-  // Validate radii are positive
-  if (rxD.lte(0) || ryD.lte(0)) {
-    throw new Error("Ellipse radii must be positive");
-  }
+  // Validate parameters are finite first
   if (!rxD.isFinite() || !ryD.isFinite() || !cxD.isFinite() || !cyD.isFinite()) {
     throw new Error("Ellipse parameters must be finite");
+  }
+
+  // Handle degenerate case: zero radius creates a point (return empty path)
+  if (rxD.eq(0) || ryD.eq(0)) {
+    console.warn("Degenerate ellipse with zero radius, returning empty path");
+    return "";
+  }
+
+  // Validate radii are positive
+  if (rxD.lt(0) || ryD.lt(0)) {
+    throw new Error("Ellipse radii must be non-negative");
   }
 
   // Kappa for bezier approximation of circle/ellipse: 4 * (sqrt(2) - 1) / 3
@@ -1421,8 +1442,9 @@ export function parseTransformFunction(func, args) {
 
       if (args.length >= 3) {
         // rotate(angle, cx, cy) - rotation around point
-        if (args[1] === undefined || args[2] === undefined) {
-          console.warn("parseTransformFunction: rotate(angle, cx, cy) missing cx or cy");
+        // Validate cx and cy are valid finite numbers
+        if (args[1] === undefined || args[2] === undefined || !isFinite(args[1]) || !isFinite(args[2])) {
+          console.warn("parseTransformFunction: rotate(angle, cx, cy) has invalid cx or cy, using origin rotation");
           return Transforms2D.rotate(angleRad);
         }
         const cx = args[1];
@@ -1525,11 +1547,18 @@ export function parseTransformAttribute(transformStr) {
     const func = match[1];
     const argsStr = match[2];
 
-    // Parse arguments (comma or space separated)
+    // Parse arguments (comma or space separated) and validate
     const args = argsStr
       .split(/[\s,]+/)
       .filter((s) => s.length > 0)
-      .map((s) => parseFloat(s));
+      .map((s) => {
+        const val = parseFloat(s);
+        if (isNaN(val)) {
+          console.warn(`parseTransformAttribute: invalid numeric argument "${s}" in ${func}(), using 0`);
+          return 0;
+        }
+        return val;
+      });
 
     const matrix = parseTransformFunction(func, args);
     // Transforms are applied left-to-right in SVG, so we multiply in order
@@ -1853,9 +1882,11 @@ export function transformPathData(pathData, ctm, options = {}) {
 
   const { toAbsolute = true, precision = 6 } = options;
 
-  // Validate precision
-  if (typeof precision !== "number" || precision < 0 || precision > 20) {
+  // Validate precision and use default if invalid
+  let validPrecision = precision;
+  if (typeof validPrecision !== "number" || validPrecision < 0 || validPrecision > 20 || !isFinite(validPrecision)) {
     console.warn("transformPathData: invalid precision, using default 6");
+    validPrecision = 6;
   }
 
   const D = (x) => new Decimal(x);
@@ -1894,7 +1925,7 @@ export function transformPathData(pathData, ctm, options = {}) {
           }
 
           const pt = applyToPoint(ctm, x, y);
-          transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
+          transformed.push(pt.x.toFixed(validPrecision), pt.y.toFixed(validPrecision));
 
           curX = x;
           curY = y;
@@ -1922,7 +1953,7 @@ export function transformPathData(pathData, ctm, options = {}) {
           }
 
           const pt = applyToPoint(ctm, x, y);
-          transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
+          transformed.push(pt.x.toFixed(validPrecision), pt.y.toFixed(validPrecision));
 
           curX = x;
           curY = y;
@@ -1933,43 +1964,51 @@ export function transformPathData(pathData, ctm, options = {}) {
 
       case "H": {
         // Horizontal line becomes L after transform (may have Y component)
+        // H can take multiple x values
         if (args.length < 1) {
           console.warn("transformPathData: H command requires at least 1 argument");
           break;
         }
-        let x = D(args[0]);
-        if (isRelative) {
-          x = x.plus(curX);
+
+        for (let i = 0; i < args.length; i++) {
+          let x = D(args[i]);
+          if (isRelative) {
+            x = x.plus(curX);
+          }
+          const y = curY;
+
+          const pt = applyToPoint(ctm, x, y);
+          result.push(
+            "L " + pt.x.toFixed(validPrecision) + " " + pt.y.toFixed(validPrecision),
+          );
+
+          curX = x;
         }
-        const y = curY;
-
-        const pt = applyToPoint(ctm, x, y);
-        result.push(
-          "L " + pt.x.toFixed(precision) + " " + pt.y.toFixed(precision),
-        );
-
-        curX = x;
         break;
       }
 
       case "V": {
         // Vertical line becomes L after transform (may have X component)
+        // V can take multiple y values
         if (args.length < 1) {
           console.warn("transformPathData: V command requires at least 1 argument");
           break;
         }
-        const x = curX;
-        let y = D(args[0]);
-        if (isRelative) {
-          y = y.plus(curY);
+
+        for (let i = 0; i < args.length; i++) {
+          const x = curX;
+          let y = D(args[i]);
+          if (isRelative) {
+            y = y.plus(curY);
+          }
+
+          const pt = applyToPoint(ctm, x, y);
+          result.push(
+            "L " + pt.x.toFixed(validPrecision) + " " + pt.y.toFixed(validPrecision),
+          );
+
+          curY = y;
         }
-
-        const pt = applyToPoint(ctm, x, y);
-        result.push(
-          "L " + pt.x.toFixed(precision) + " " + pt.y.toFixed(precision),
-        );
-
-        curY = y;
         break;
       }
 
@@ -2001,12 +2040,12 @@ export function transformPathData(pathData, ctm, options = {}) {
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p1.x.toFixed(precision),
-            p1.y.toFixed(precision),
-            p2.x.toFixed(precision),
-            p2.y.toFixed(precision),
-            p.x.toFixed(precision),
-            p.y.toFixed(precision),
+            p1.x.toFixed(validPrecision),
+            p1.y.toFixed(validPrecision),
+            p2.x.toFixed(validPrecision),
+            p2.y.toFixed(validPrecision),
+            p.x.toFixed(validPrecision),
+            p.y.toFixed(validPrecision),
           );
 
           curX = x;
@@ -2039,10 +2078,10 @@ export function transformPathData(pathData, ctm, options = {}) {
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p2.x.toFixed(precision),
-            p2.y.toFixed(precision),
-            p.x.toFixed(precision),
-            p.y.toFixed(precision),
+            p2.x.toFixed(validPrecision),
+            p2.y.toFixed(validPrecision),
+            p.x.toFixed(validPrecision),
+            p.y.toFixed(validPrecision),
           );
 
           curX = x;
@@ -2075,10 +2114,10 @@ export function transformPathData(pathData, ctm, options = {}) {
           const p = applyToPoint(ctm, x, y);
 
           transformed.push(
-            p1.x.toFixed(precision),
-            p1.y.toFixed(precision),
-            p.x.toFixed(precision),
-            p.y.toFixed(precision),
+            p1.x.toFixed(validPrecision),
+            p1.y.toFixed(validPrecision),
+            p.x.toFixed(validPrecision),
+            p.y.toFixed(validPrecision),
           );
 
           curX = x;
@@ -2103,7 +2142,7 @@ export function transformPathData(pathData, ctm, options = {}) {
           }
 
           const pt = applyToPoint(ctm, x, y);
-          transformed.push(pt.x.toFixed(precision), pt.y.toFixed(precision));
+          transformed.push(pt.x.toFixed(validPrecision), pt.y.toFixed(validPrecision));
 
           curX = x;
           curY = y;
@@ -2145,13 +2184,13 @@ export function transformPathData(pathData, ctm, options = {}) {
           );
 
           transformed.push(
-            arc.rx.toFixed(precision),
-            arc.ry.toFixed(precision),
-            arc.xAxisRotation.toFixed(precision),
+            arc.rx.toFixed(validPrecision),
+            arc.ry.toFixed(validPrecision),
+            arc.xAxisRotation.toFixed(validPrecision),
             arc.largeArcFlag,
             arc.sweepFlag,
-            arc.x.toFixed(precision),
-            arc.y.toFixed(precision),
+            arc.x.toFixed(validPrecision),
+            arc.y.toFixed(validPrecision),
           );
 
           curX = x;

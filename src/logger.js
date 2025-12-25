@@ -117,11 +117,52 @@ export const Logger = {
   _flushTimer: null,
 
   /**
+   * Safely stringify a value, handling Error objects and circular references.
+   * Why: Error objects need stack traces, and circular refs crash JSON.stringify
+   * @param {any} value - Value to stringify
+   * @returns {string} Stringified value
+   * @private
+   */
+  _safeStringify(value) {
+    // Why: Handle null/undefined explicitly to show their actual type
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+
+    // Why: Error objects should include stack traces for debugging
+    if (value instanceof Error) {
+      return value.stack || `${value.name}: ${value.message}`;
+    }
+
+    // Why: For primitives, use String() for simple conversion
+    if (typeof value !== 'object') {
+      return String(value);
+    }
+
+    // Why: For objects/arrays, use JSON.stringify with circular ref detection
+    try {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (key, val) => {
+        // Why: Handle circular references by replacing with placeholder
+        if (typeof val === 'object' && val !== null) {
+          if (seen.has(val)) {
+            return '[Circular]';
+          }
+          seen.add(val);
+        }
+        return val;
+      });
+    } catch {
+      // Why: Fallback for objects that can't be stringified
+      return String(value);
+    }
+  },
+
+  /**
    * Format a log message with optional timestamp.
    * Why centralized formatting: Ensures consistent log format across all
    * log levels. Makes parsing and grep'ing logs easier.
    * @param {string} level - Log level name
-   * @param {string} message - Message to format
+   * @param {any} message - Message to format
    * @returns {string} Formatted message
    * @private
    */
@@ -130,11 +171,8 @@ export const Logger = {
     if (typeof level !== 'string' || !level) {
       throw new Error('Logger._format: level must be a non-empty string');
     }
-    if (message === null || message === undefined) {
-      throw new Error('Logger._format: message cannot be null or undefined');
-    }
-    // Why: Convert message to string to handle non-string inputs gracefully
-    const messageStr = String(message);
+    // Why: Use safe stringify to handle all message types including errors and objects
+    const messageStr = this._safeStringify(message);
 
     if (this.timestamps) {
       const ts = new Date().toISOString();
@@ -148,20 +186,14 @@ export const Logger = {
    * Why buffer + conditional flush: Balances write efficiency with
    * message timeliness. Large bursts are batched, but messages aren't
    * delayed indefinitely.
-   * @param {string} message - Message to buffer
+   * @param {string} message - Message to buffer (already stringified by caller)
    * @private
    */
   _bufferWrite(message) {
     if (!this.logToFile) return;
 
-    // Why: Validate message parameter to prevent buffer corruption
-    if (message === null || message === undefined) {
-      throw new Error('Logger._bufferWrite: message cannot be null or undefined');
-    }
-    // Why: Convert to string to handle non-string inputs gracefully
-    const messageStr = String(message);
-
-    this._buffer.push(messageStr);
+    // Why: Message is already stringified by _format, so just push it
+    this._buffer.push(message);
 
     // Why: Flush when buffer is full to prevent unbounded memory growth
     if (this._buffer.length >= LOG_BUFFER_SIZE) {
@@ -201,72 +233,68 @@ export const Logger = {
    * Log an error message. Always logged unless SILENT.
    * Why always flush errors: Errors may precede crashes. Immediate
    * write ensures the error is captured even if crash follows.
-   * @param {string} message - Error message
+   * @param {any} message - Error message (can be Error object, string, or any value)
    * @param {...any} args - Additional arguments
    */
   error(message, ...args) {
-    // Why: Validate message parameter to prevent crashes
-    if (message === null || message === undefined) {
-      throw new Error('Logger.error: message cannot be null or undefined');
-    }
-    if (this.level >= LogLevel.ERROR) {
-      const formatted = this._format('ERROR', message);
-      console.error(formatted, ...args);
-      this._bufferWrite(formatted + (args.length ? ' ' + args.join(' ') : ''));
-      // Why: Errors are important enough to flush immediately
-      this.flush();
-    }
+    // Why: Check level FIRST - avoid performance cost of validation when logging is disabled
+    if (this.level < LogLevel.ERROR) return;
+
+    const formatted = this._format('ERROR', message);
+    // Why: Safely stringify args to handle objects, errors, and circular refs
+    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    console.error(formatted, ...args);
+    this._bufferWrite(formatted + argsStr);
+    // Why: Errors are important enough to flush immediately
+    this.flush();
   },
 
   /**
    * Log a warning message. Logged at WARN level and above.
-   * @param {string} message - Warning message
+   * @param {any} message - Warning message (can be any value)
    * @param {...any} args - Additional arguments
    */
   warn(message, ...args) {
-    // Why: Validate message parameter to prevent crashes
-    if (message === null || message === undefined) {
-      throw new Error('Logger.warn: message cannot be null or undefined');
-    }
-    if (this.level >= LogLevel.WARN) {
-      const formatted = this._format('WARN', message);
-      console.warn(formatted, ...args);
-      this._bufferWrite(formatted + (args.length ? ' ' + args.join(' ') : ''));
-    }
+    // Why: Check level FIRST - avoid performance cost when logging is disabled
+    if (this.level < LogLevel.WARN) return;
+
+    const formatted = this._format('WARN', message);
+    // Why: Safely stringify args to handle objects, errors, and circular refs
+    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    console.warn(formatted, ...args);
+    this._bufferWrite(formatted + argsStr);
   },
 
   /**
    * Log an info message. Logged at INFO level and above.
-   * @param {string} message - Info message
+   * @param {any} message - Info message (can be any value)
    * @param {...any} args - Additional arguments
    */
   info(message, ...args) {
-    // Why: Validate message parameter to prevent crashes
-    if (message === null || message === undefined) {
-      throw new Error('Logger.info: message cannot be null or undefined');
-    }
-    if (this.level >= LogLevel.INFO) {
-      const formatted = this._format('INFO', message);
-      console.log(formatted, ...args);
-      this._bufferWrite(formatted + (args.length ? ' ' + args.join(' ') : ''));
-    }
+    // Why: Check level FIRST - avoid performance cost when logging is disabled
+    if (this.level < LogLevel.INFO) return;
+
+    const formatted = this._format('INFO', message);
+    // Why: Safely stringify args to handle objects, errors, and circular refs
+    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    console.log(formatted, ...args);
+    this._bufferWrite(formatted + argsStr);
   },
 
   /**
    * Log a debug message. Logged only at DEBUG level.
-   * @param {string} message - Debug message
+   * @param {any} message - Debug message (can be any value)
    * @param {...any} args - Additional arguments
    */
   debug(message, ...args) {
-    // Why: Validate message parameter to prevent crashes
-    if (message === null || message === undefined) {
-      throw new Error('Logger.debug: message cannot be null or undefined');
-    }
-    if (this.level >= LogLevel.DEBUG) {
-      const formatted = this._format('DEBUG', message);
-      console.log(formatted, ...args);
-      this._bufferWrite(formatted + (args.length ? ' ' + args.join(' ') : ''));
-    }
+    // Why: Check level FIRST - avoid performance cost when logging is disabled
+    if (this.level < LogLevel.DEBUG) return;
+
+    const formatted = this._format('DEBUG', message);
+    // Why: Safely stringify args to handle objects, errors, and circular refs
+    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    console.log(formatted, ...args);
+    this._bufferWrite(formatted + argsStr);
   },
 
   /**

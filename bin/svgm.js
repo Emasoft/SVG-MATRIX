@@ -20,6 +20,7 @@ import {
   mkdirSync,
   readdirSync,
   statSync,
+  realpathSync,
 } from "fs";
 import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
 import yaml from "js-yaml";
@@ -383,26 +384,48 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
     throw new TypeError(`getSvgFiles: expected array exclude, got ${typeof exclude}`);
   }
 
+  // Why: Validate and compile regex patterns once before scanning to fail fast
+  const excludeRegexes = [];
+  for (const pattern of exclude) {
+    try {
+      excludeRegexes.push(new RegExp(pattern));
+    } catch (e) {
+      logError(`Invalid exclusion pattern "${pattern}": ${e.message}`);
+      process.exit(CONSTANTS.EXIT_ERROR);
+    }
+  }
+
   const files = [];
+  // Why: Track visited directories to prevent infinite loops from symlinks
+  const visitedDirs = new Set();
+
   function scan(d) {
+    // Why: Resolve real path to detect symlink loops
+    let realPath;
+    try {
+      realPath = normalizePath(realpathSync(d));
+    } catch (e) {
+      // Why: Skip directories that can't be resolved (broken symlinks, permission errors)
+      logError(`Cannot access directory "${d}": ${e.message}`);
+      return;
+    }
+    if (visitedDirs.has(realPath)) {
+      return; // Skip already visited directories (symlink loop detected)
+    }
+    visitedDirs.add(realPath);
+
     for (const entry of readdirSync(d, { withFileTypes: true })) {
       const fullPath = join(d, entry.name);
-      // Check exclusion patterns
-      const shouldExclude = exclude.some((pattern) => {
-        try {
-          // Why: Wrap RegExp constructor in try-catch to handle invalid patterns
-          const regex = new RegExp(pattern);
-          return regex.test(fullPath) || regex.test(entry.name);
-        } catch (_e) {
-          // Why: Catch invalid regex patterns (unused error marked with underscore per ESLint)
-          logError(`Invalid exclusion pattern: ${pattern}`);
-          return false;
-        }
-      });
+
+      // Check exclusion patterns using pre-compiled regexes
+      const shouldExclude = excludeRegexes.some((regex) =>
+        regex.test(fullPath) || regex.test(entry.name)
+      );
       if (shouldExclude) continue;
 
-      if (entry.isDirectory() && recursive) scan(fullPath);
-      else if (
+      if (entry.isDirectory() && recursive) {
+        scan(fullPath);
+      } else if (
         entry.isFile() &&
         CONSTANTS.SVG_EXTENSIONS.includes(extname(entry.name).toLowerCase())
       ) {
@@ -411,7 +434,9 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
     }
   }
   scan(dir);
-  return files;
+
+  // Why: Deduplicate file paths in case same file reached via different routes
+  return [...new Set(files)];
 }
 
 // ============================================================================
@@ -681,7 +706,11 @@ async function processFile(inputPath, outputPath, options) {
     if (outputPath === "-") {
       process.stdout.write(output);
     } else {
-      ensureDir(dirname(outputPath));
+      // Why: Validate output path and ensure parent directory exists
+      const outputDir = dirname(outputPath);
+      if (outputDir && outputDir !== ".") {
+        ensureDir(outputDir);
+      }
       writeFileSync(outputPath, output, "utf8");
     }
 
@@ -932,10 +961,16 @@ function parseArgs(args) {
     let argValue = null;
 
     // Handle --arg=value format
+    // Why: Validate that value after = is not empty to prevent silent failures
     if (arg.includes("=") && arg.startsWith("--")) {
       const eqIdx = arg.indexOf("=");
       argValue = arg.substring(eqIdx + 1);
       arg = arg.substring(0, eqIdx);
+      // Why: Empty value after = is invalid (e.g., --precision=)
+      if (argValue === "") {
+        logError(`${arg} requires a non-empty value`);
+        process.exit(CONSTANTS.EXIT_ERROR);
+      }
     }
 
     switch (arg) {
@@ -953,12 +988,20 @@ function parseArgs(args) {
 
       case "-i":
       case "--input":
-        i++;
-        while (i < args.length && !args[i].startsWith("-")) {
-          inputs.push(args[i]);
+        {
           i++;
+          const startIdx = i;
+          while (i < args.length && !args[i].startsWith("-")) {
+            inputs.push(args[i]);
+            i++;
+          }
+          // Why: Validate at least one input was provided after -i flag
+          if (i === startIdx) {
+            logError(`${arg} requires at least one input file`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          i--; // Back up one since the while loop went past
         }
-        i--; // Back up one since the while loop went past
         break;
 
       case "-s":
@@ -984,6 +1027,11 @@ function parseArgs(args) {
           outputs.push(args[i]);
           i++;
         }
+        // Why: Validate at least one output was provided after -o flag
+        if (outputs.length === 0) {
+          logError(`${arg} requires at least one output path`);
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
         i--;
         cfg.output = outputs.length === 1 ? outputs[0] : outputs;
         break;
@@ -995,9 +1043,9 @@ function parseArgs(args) {
         {
           const precisionArg = getNextArg(args, i, arg);
           const parsed = parseInt(precisionArg, 10);
-          // Why: Validate parseInt result to prevent NaN values
-          if (isNaN(parsed)) {
-            logError(`--precision requires a valid number, got: ${precisionArg}`);
+          // Why: Validate parseInt result to prevent NaN and negative values
+          if (isNaN(parsed) || parsed < 0) {
+            logError(`--precision requires a non-negative number, got: ${precisionArg}`);
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.precision = parsed;
@@ -1024,9 +1072,9 @@ function parseArgs(args) {
         {
           const indentArg = getNextArg(args, i, arg);
           const parsed = parseInt(indentArg, 10);
-          // Why: Validate parseInt result to prevent NaN values
-          if (isNaN(parsed)) {
-            logError(`--indent requires a valid number, got: ${indentArg}`);
+          // Why: Validate parseInt result to prevent NaN and negative values
+          if (isNaN(parsed) || parsed < 0) {
+            logError(`--indent requires a non-negative number, got: ${indentArg}`);
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.indent = parsed;
@@ -1050,12 +1098,20 @@ function parseArgs(args) {
         break;
 
       case "--exclude":
-        i++;
-        while (i < args.length && !args[i].startsWith("-")) {
-          cfg.exclude.push(args[i]);
+        {
           i++;
+          const startIdx = i;
+          while (i < args.length && !args[i].startsWith("-")) {
+            cfg.exclude.push(args[i]);
+            i++;
+          }
+          // Why: Validate at least one exclusion pattern was provided
+          if (i === startIdx) {
+            logError(`${arg} requires at least one exclusion pattern`);
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
+          i--;
         }
-        i--;
         break;
 
       case "-q":
@@ -1070,9 +1126,10 @@ function parseArgs(args) {
       case "--preserve-ns":
         {
           // Why: Use helper to safely get next argument with bounds checking
-          const val = argValue || getNextArg(args, i, arg);
-          if (!argValue) i++; // Only increment if we used getNextArg
-          if (!val) {
+          const val = argValue !== null ? argValue : getNextArg(args, i, arg);
+          if (argValue === null) i++; // Only increment if we used getNextArg
+          // Why: Validate value is not empty (catches --preserve-ns= with no value)
+          if (!val || val.trim() === "") {
             logError(
               "--preserve-ns requires a comma-separated list of namespaces",
             );
@@ -1082,6 +1139,11 @@ function parseArgs(args) {
             .split(",")
             .map((s) => s.trim().toLowerCase())
             .filter((s) => s.length > 0);
+          // Why: Validate that after filtering empty strings, we have at least one namespace
+          if (cfg.preserveNamespaces.length === 0) {
+            logError("--preserve-ns requires at least one valid namespace");
+            process.exit(CONSTANTS.EXIT_ERROR);
+          }
         }
         break;
 
@@ -1172,9 +1234,9 @@ function parseArgs(args) {
         {
           const depthArg = getNextArg(args, i, arg);
           const parsed = parseInt(depthArg, 10);
-          // Why: Validate parseInt result to prevent NaN values
-          if (isNaN(parsed)) {
-            logError(`--embed-max-depth requires a valid number, got: ${depthArg}`);
+          // Why: Validate parseInt result to prevent NaN and negative/zero values
+          if (isNaN(parsed) || parsed < 1) {
+            logError(`--embed-max-depth requires a positive number, got: ${depthArg}`);
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.embedMaxRecursionDepth = parsed;
@@ -1187,9 +1249,9 @@ function parseArgs(args) {
         {
           const timeoutArg = getNextArg(args, i, arg);
           const parsed = parseInt(timeoutArg, 10);
-          // Why: Validate parseInt result to prevent NaN values
-          if (isNaN(parsed)) {
-            logError(`--embed-timeout requires a valid number, got: ${timeoutArg}`);
+          // Why: Validate parseInt result to prevent NaN and negative/zero values
+          if (isNaN(parsed) || parsed < 1000) {
+            logError(`--embed-timeout requires a number >= 1000 (ms), got: ${timeoutArg}`);
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.embedTimeout = parsed;
@@ -1352,6 +1414,16 @@ async function main() {
         ? toDataUri(result, config.datauri)
         : result;
       if (config.output && config.output !== "-") {
+        // Why: Validate output is not an array for string input mode
+        if (Array.isArray(config.output)) {
+          logError("Cannot specify multiple outputs with --string input");
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        // Why: Ensure parent directory exists before writing
+        const outputDir = dirname(config.output);
+        if (outputDir && outputDir !== ".") {
+          ensureDir(outputDir);
+        }
         writeFileSync(config.output, output, "utf8");
         log(`${colors.green}Done!${colors.reset}`);
       } else {
@@ -1411,17 +1483,34 @@ async function main() {
 
     if (config.output) {
       if (config.output === "-") {
-        outputPath = "-";
-      } else if (Array.isArray(config.output)) {
-        // Why: Bounds check when accessing array to prevent undefined values
-        if (config.output.length === 0) {
-          logError("Output array is empty");
+        // Why: Validate stdout output only works with single file
+        if (files.length > 1) {
+          logError("Cannot output multiple files to stdout (use -o <dir> instead)");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        outputPath = config.output[i] || config.output[config.output.length - 1];
+        outputPath = "-";
+      } else if (Array.isArray(config.output)) {
+        // Why: Validate array length matches input file count or error clearly
+        if (config.output.length !== files.length) {
+          logError(
+            `Output count mismatch: ${files.length} input file(s) but ${config.output.length} output path(s). ` +
+            `Provide either one output directory or exactly ${files.length} output file(s).`
+          );
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        outputPath = resolvePath(config.output[i]);
       } else if (files.length > 1 || isDir(resolvePath(config.output))) {
         // Multiple files or output is a directory
-        outputPath = join(resolvePath(config.output), basename(inputPath));
+        const outputDir = resolvePath(config.output);
+        // Why: Validate output is actually a directory when processing multiple files
+        if (files.length > 1 && !isDir(outputDir)) {
+          logError(
+            `Processing ${files.length} files but output "${config.output}" is not a directory. ` +
+            `Create the directory first or provide ${files.length} output paths.`
+          );
+          process.exit(CONSTANTS.EXIT_ERROR);
+        }
+        outputPath = join(outputDir, basename(inputPath));
       } else {
         outputPath = resolvePath(config.output);
       }

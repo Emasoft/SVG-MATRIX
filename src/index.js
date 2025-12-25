@@ -93,6 +93,7 @@ import {
   Logger,
   LogLevel,
   setLogLevel,
+  getLogLevel,
   enableFileLogging,
   disableFileLogging,
 } from "./logger.js";
@@ -209,7 +210,16 @@ export { SVGBooleanOps };
 export { SVGRenderingContext };
 
 // Re-export all svg-toolbox functions for direct access
+// Note: DEFAULT_PRECISION is NOT re-exported from svg-toolbox to avoid conflict
+// with the module-level DEFAULT_PRECISION constant defined above
 export {
+  // Constants
+  MAX_PRECISION,
+  PRECISION_LEVELS,
+  // Utility functions
+  formatPrecision,
+  escapeXml,
+  createOperation,
   // Input/Output types
   InputType,
   OutputFormat,
@@ -287,6 +297,7 @@ export {
   measureDistance,
   validateXML,
   validateSVG,
+  validateSVGAsync,
   fixInvalidSVG,
   ValidationSeverity,
   flattenAll,
@@ -296,6 +307,16 @@ export {
   simplifyPaths,
   decomposeTransform,
   embedExternalDependencies,
+  exportEmbeddedResources,
+  // Compatibility analysis functions
+  analyzeCompatibility,
+  analyzeCompatibilityMatrix,
+  generateFullCompatibilityMatrix,
+  printHierarchicalMatrix,
+  generateCompatibilityMatrixSVG_legacy,
+  generateCompatibilityMatrixSVG,
+  generateFlexibleSVGTable,
+  generateCompatibilityMatrixFlexible,
 } from "./svg-toolbox.js";
 
 // Re-export all svg2-polyfills functions for direct access
@@ -339,7 +360,14 @@ export {
 // LOGGING: Configurable logging control
 // ============================================================================
 
-export { Logger, LogLevel, setLogLevel, enableFileLogging, disableFileLogging };
+export {
+  Logger,
+  LogLevel,
+  setLogLevel,
+  getLogLevel,
+  enableFileLogging,
+  disableFileLogging,
+};
 
 // ============================================================================
 // CONVENIENCE FUNCTIONS: Quick access to common operations
@@ -984,6 +1012,7 @@ export default {
   Logger,
   LogLevel,
   setLogLevel,
+  getLogLevel,
   enableFileLogging,
   disableFileLogging,
 

@@ -1192,6 +1192,12 @@ function loadConfig(configPath) {
       try {
         const files = fs.readdirSync(cwd).filter((f) => f.endsWith(pattern));
         if (files.length === 0) continue;
+        // BUG FIX: Warn if multiple files match the pattern
+        if (files.length > 1) {
+          verbose(
+            `Multiple files match pattern '${file}': ${files.join(", ")} - using first: ${files[0]}`,
+          );
+        }
         filepath = path.join(cwd, files[0]);
       } catch (err) {
         verbose(
@@ -2929,9 +2935,11 @@ async function globPromise(pattern) {
     const filePattern = path.basename(pattern);
     // Escape special regex chars, then convert glob * to [^/\\]* instead of .* to prevent
     // catastrophic backtracking and avoid matching across path separators
+    // BUG FIX: Use path.sep instead of hardcoded separators for cross-platform compatibility
+    const pathSepPattern = path.sep === "\\" ? "\\\\" : "/";
     const escapedPattern = escapeRegexCharsForGlob(filePattern).replace(
       /\*/g,
-      "[^/\\\\]*",
+      `[^${pathSepPattern}]*`,
     );
     const regex = new RegExp("^" + escapedPattern + "$");
 
@@ -3152,7 +3160,7 @@ function parseInlineDisables(content) {
   if (currentDisabled !== null) {
     disabledRanges.push({
       startLine: currentDisabled,
-      endLine: lines.length + 1,
+      endLine: lines.length, // BUG FIX: Use lines.length not lines.length + 1 to avoid off-by-one
       rules: disabledRules,
     });
   }
@@ -3614,6 +3622,17 @@ function truncateLineAroundColumn(line, column, maxWidth, _isErrorLine) {
   // Handle NaN/undefined column values gracefully
   const safeColumn = Number.isFinite(column) && column >= 1 ? column : 1;
   const col = safeColumn - 1; // Convert to 0-based
+
+  // BUG FIX: Handle column beyond line length edge case
+  if (col >= expandedLine.length) {
+    // Column points beyond the line - clamp to end of line
+    const clampedCol = Math.max(0, expandedLine.length - 1);
+    return {
+      text: expandedLine.substring(0, maxWidth),
+      visibleColumn: clampedCol,
+      errorLength: 1,
+    };
+  }
 
   if (expandedLine.length <= maxWidth) {
     // No truncation needed
@@ -4103,13 +4122,16 @@ async function main() {
     verbose(`Color mode: ${useColors ? "enabled" : "disabled"}`);
   }
 
-  // Validate output format
-  if (!VALID_FORMATS.has(args.format)) {
+  // Validate output format (case-insensitive for better UX)
+  // BUG FIX: Normalize format to lowercase for case-insensitive matching
+  const normalizedFormat = args.format.toLowerCase();
+  if (!VALID_FORMATS.has(normalizedFormat)) {
     const validList = Array.from(VALID_FORMATS).join(", ");
     console.error(c("red", `Error: Invalid format '${args.format}'`));
-    console.error(`Valid formats: ${validList}`);
+    console.error(`Valid formats: ${validList} (case-insensitive)`);
     process.exit(2);
   }
+  args.format = normalizedFormat; // Use normalized format
   verbose(`Output format: ${args.format}`);
 
   // Validate maxLineWidth bounds
@@ -4573,13 +4595,20 @@ async function main() {
     // Validate output file path for safety
     const outputPath = path.resolve(args.outputFile);
     const normalizedOutput = path.normalize(outputPath);
-    const dangerousPaths = [
-      "/dev/",
-      "/proc/",
-      "/sys/",
-      "/etc/passwd",
-      "/etc/shadow",
-    ];
+    // BUG FIX: Only apply Unix dangerous paths on Unix systems (not Windows with drive letters)
+    const isWindows = process.platform === "win32";
+    const dangerousPaths = isWindows
+      ? [
+          // Windows-specific dangerous paths (don't block C:\dev\ which is a common dev folder)
+        ]
+      : [
+          // Unix-specific dangerous paths
+          "/dev/",
+          "/proc/",
+          "/sys/",
+          "/etc/passwd",
+          "/etc/shadow",
+        ];
     // BUG FIX: Use normalized paths and proper segment matching to avoid false positives
     // (e.g., /developer/ should NOT match /dev/)
     const isDangerous = dangerousPaths.some((p) => {

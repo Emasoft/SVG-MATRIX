@@ -105,21 +105,37 @@ export function detectSVG2Features(doc) {
     const tagName = el.tagName?.toLowerCase();
     if (tagName === 'meshgradient') {
       const id = el.getAttribute('id');
-      if (id) features.meshGradients.push(id);
+      // WHY: Validate ID is non-empty string and not already in array to prevent duplicates
+      if (id && typeof id === 'string' && id.trim() && !features.meshGradients.includes(id)) {
+        features.meshGradients.push(id);
+      }
     }
 
     // Check for hatch element
     if (tagName === 'hatch') {
       const id = el.getAttribute('id');
-      if (id) features.hatches.push(id);
+      // WHY: Validate ID is non-empty string and not already in array to prevent duplicates
+      if (id && typeof id === 'string' && id.trim() && !features.hatches.includes(id)) {
+        features.hatches.push(id);
+      }
     }
 
-    // Check for context-paint in fill/stroke
+    // Check for context-paint in fill/stroke attributes and style attribute
     const fill = el.getAttribute('fill');
     const stroke = el.getAttribute('stroke');
+    const style = el.getAttribute('style');
+    // WHY: context-paint can appear in style attribute, not just fill/stroke attributes
     if (fill === 'context-fill' || fill === 'context-stroke' ||
-        stroke === 'context-fill' || stroke === 'context-stroke') {
+        stroke === 'context-fill' || stroke === 'context-stroke' ||
+        (style && (style.includes('context-fill') || style.includes('context-stroke')))) {
       features.contextPaint = true;
+    }
+
+    // WHY: Check <style> elements for context-paint in CSS rules
+    if (tagName === 'style' && el.textContent) {
+      if (el.textContent.includes('context-fill') || el.textContent.includes('context-stroke')) {
+        features.contextPaint = true;
+      }
     }
 
     // Check for auto-start-reverse in markers
@@ -173,12 +189,11 @@ export function needsPolyfills(doc) {
 function generateMeshPolyfillCode() {
   // Return minified or full Inkscape mesh.js polyfill based on setting
   const polyfill = useMinifiedPolyfills ? INKSCAPE_MESH_POLYFILL_MIN : INKSCAPE_MESH_POLYFILL_FULL;
-  if (polyfill) {
-    return polyfill;
+  // WHY: Throw error instead of silently returning empty string to prevent broken SVG output
+  if (!polyfill || polyfill.trim() === '') {
+    throw new Error('svg2-polyfills: Inkscape mesh polyfill not available. Ensure vendor/inkscape-mesh-polyfill files are present.');
   }
-  // Fallback: return empty string if polyfill couldn't be loaded
-  console.warn('svg2-polyfills: Inkscape mesh polyfill not available');
-  return '';
+  return polyfill;
 }
 
 /**
@@ -197,12 +212,11 @@ function generateMeshPolyfillCode() {
 function generateHatchPolyfillCode() {
   // Return minified or full Inkscape hatch polyfill based on setting
   const polyfill = useMinifiedPolyfills ? INKSCAPE_HATCH_POLYFILL_MIN : INKSCAPE_HATCH_POLYFILL_FULL;
-  if (polyfill) {
-    return polyfill;
+  // WHY: Throw error instead of silently returning empty string to prevent broken SVG output
+  if (!polyfill || polyfill.trim() === '') {
+    throw new Error('svg2-polyfills: Inkscape hatch polyfill not available. Ensure vendor/inkscape-hatch-polyfill files are present.');
   }
-  // Fallback: return empty string if polyfill couldn't be loaded
-  console.warn('svg2-polyfills: Inkscape hatch polyfill not available');
-  return '';
+  return polyfill;
 }
 
 /**
@@ -221,6 +235,13 @@ export function generatePolyfillScript(features) {
   }
   if (!Array.isArray(features.hatches)) {
     throw new Error('generatePolyfillScript: features.hatches must be an array');
+  }
+  // WHY: Validate array contents are all strings to prevent type errors
+  if (!features.meshGradients.every(id => typeof id === 'string')) {
+    throw new Error('generatePolyfillScript: features.meshGradients must contain only strings');
+  }
+  if (!features.hatches.every(id => typeof id === 'string')) {
+    throw new Error('generatePolyfillScript: features.hatches must contain only strings');
   }
   // WHY: Validate boolean properties to prevent undefined/wrong type usage
   if (typeof features.contextPaint !== 'boolean') {
@@ -277,12 +298,15 @@ export function injectPolyfills(doc, options = {}) {
   // Find or create the SVG root
   const svg = doc.documentElement || doc;
 
+  // WHY: Wrap script in CDATA to prevent XML parsing issues with special characters
+  // CDATA prevents < > & from being interpreted as XML, which breaks JavaScript
+  const wrappedScript = `\n// <![CDATA[\n${script}\n// ]]>\n`;
+
   // Create a proper SVGElement for the script
-  // The script content uses CDATA to avoid XML escaping issues
   const scriptEl = new SVGElement('script', {
     type: 'text/javascript',
     id: 'svg-matrix-polyfill'
-  }, [], script);
+  }, [], wrappedScript);
 
   // Insert script at beginning of SVG (after defs if present, else at start)
   if (!Array.isArray(svg.children)) {
@@ -323,18 +347,23 @@ export function removePolyfills(doc) {
     el.children = el.children.filter(child => {
       // WHY: Optional chaining prevents errors if child is null/undefined
       if (child?.tagName === 'script') {
+        // WHY: Check id attribute first (more reliable), then fallback to content check
+        const id = child.getAttribute?.('id');
+        if (id === 'svg-matrix-polyfill') {
+          return false;
+        }
+        // WHY: Fallback for older polyfills without id attribute
         const content = child.textContent || '';
-        if (content.includes('SVG 2.0 Polyfill') ||
-            content.includes('Generated by svg-matrix')) {
+        if (content.includes('SVG 2.0 Polyfills - Generated by svg-matrix')) {
           return false;
         }
       }
       return true;
     });
 
-    // Recurse
+    // Recurse - filter out null/undefined before recursing
     for (const child of el.children) {
-      walk(child);
+      if (child) walk(child);
     }
   };
 

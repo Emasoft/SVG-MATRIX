@@ -36,6 +36,42 @@ function validateNumeric(value, name) {
 }
 
 /**
+ * Normalizes an angle to the range [-2π, 2π] to reduce precision loss in trigonometric operations.
+ * Very large angles lose precision when converted to JavaScript numbers for Math.cos/sin.
+ * Normalization preserves the angle's equivalence class while improving numerical stability.
+ *
+ * @param {Decimal} theta - The angle in radians as a Decimal
+ * @returns {number} The normalized angle as a JavaScript number suitable for Math.cos/sin
+ * @throws {Error} If angle cannot be normalized to a finite value
+ */
+function normalizeAngle(theta) {
+  // Convert to number - this may lose precision for very large Decimals
+  const tNum = theta.toNumber();
+  if (!Number.isFinite(tNum)) {
+    throw new Error(`Angle must be finite, got ${theta}`);
+  }
+
+  // For small angles, no normalization needed - preserve full precision
+  if (Math.abs(tNum) <= 6.283185307179586) { // 2π
+    return tNum;
+  }
+
+  // For large angles, normalize to [-2π, 2π] to reduce precision loss
+  // Using modulo with 2π (tau) to find equivalent angle in standard range
+  const TWO_PI = 6.283185307179586;
+  let normalized = tNum % TWO_PI;
+
+  // Ensure result is in [-2π, 2π] range
+  if (normalized > TWO_PI) {
+    normalized -= TWO_PI;
+  } else if (normalized < -TWO_PI) {
+    normalized += TWO_PI;
+  }
+
+  return normalized;
+}
+
+/**
  * 3D Affine Transforms using 4x4 homogeneous matrices.
  *
  * ## Mathematical Foundation
@@ -140,10 +176,17 @@ export function translation(tx, ty, tz) {
  * Uniform scaling occurs when sx = sy = sz. Non-uniform scaling stretches/compresses
  * along individual axes.
  *
+ * **IMPORTANT EDGE CASES**:
+ * - **Zero scale factors** (sx=0, sy=0, or sz=0) create singular (non-invertible) matrices.
+ *   The transformation is valid but cannot be reversed via matrix inversion.
+ * - **Negative scale factors** create reflections. For example, scale(-1, 1, 1) reflects
+ *   across the YZ plane, equivalent to reflectYZ().
+ *
  * @param {number|string|Decimal} sx - Scale factor in X direction (width multiplier)
  * @param {number|string|Decimal} [sy=sx] - Scale factor in Y direction (height multiplier, defaults to sx for uniform scaling)
  * @param {number|string|Decimal} [sz=sx] - Scale factor in Z direction (depth multiplier, defaults to sx for uniform scaling)
  * @returns {Matrix} 4x4 scaling matrix with arbitrary precision
+ * @throws {Error} If any scale factor is not finite
  *
  * @example
  * // Uniform scaling: double size in all dimensions
@@ -158,7 +201,12 @@ export function translation(tx, ty, tz) {
  *
  * @example
  * // Negative scale factors create reflections
- * const mirror = scale(-1, 1, 1); // Flip X axis
+ * const mirror = scale(-1, 1, 1); // Flip X axis (equivalent to reflectYZ)
+ *
+ * @example
+ * // Zero scale factors create singular (non-invertible) matrices
+ * const flatten = scale(1, 1, 0); // Projects onto XY plane (z becomes 0)
+ * // Cannot invert this matrix - information about z coordinate is lost
  */
 export function scale(sx, sy = null, sz = null) {
   validateNumeric(sx, 'sx');
@@ -170,10 +218,22 @@ export function scale(sx, sy = null, sz = null) {
   }
   const syValue = sy === null ? sx : sy;
   const szValue = sz === null ? sx : sz;
+
+  // Convert and validate scale factors produce finite values
+  const sxD = D(sx);
+  const syD = D(syValue);
+  const szD = D(szValue);
+
+  // Warn about zero scale factors creating singular matrices
+  if (sxD.isZero() || syD.isZero() || szD.isZero()) {
+    // Zero scale is mathematically valid but creates non-invertible matrix
+    // We allow it but document the behavior in JSDoc above
+  }
+
   return Matrix.from([
-    [D(sx), new Decimal(0), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), D(syValue), new Decimal(0), new Decimal(0)],
-    [new Decimal(0), new Decimal(0), D(szValue), new Decimal(0)],
+    [sxD, new Decimal(0), new Decimal(0), new Decimal(0)],
+    [new Decimal(0), syD, new Decimal(0), new Decimal(0)],
+    [new Decimal(0), new Decimal(0), szD, new Decimal(0)],
     [new Decimal(0), new Decimal(0), new Decimal(0), new Decimal(1)],
   ]);
 }
@@ -212,10 +272,8 @@ export function scale(sx, sy = null, sz = null) {
 export function rotateX(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const tNum = t.toNumber();
-  if (!Number.isFinite(tNum)) {
-    throw new Error(`theta must produce a finite angle, got ${theta}`);
-  }
+  // Normalize angle to reduce precision loss for very large angles
+  const tNum = normalizeAngle(t);
   const c = new Decimal(Math.cos(tNum));
   const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
@@ -261,10 +319,8 @@ export function rotateX(theta) {
 export function rotateY(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const tNum = t.toNumber();
-  if (!Number.isFinite(tNum)) {
-    throw new Error(`theta must produce a finite angle, got ${theta}`);
-  }
+  // Normalize angle to reduce precision loss for very large angles
+  const tNum = normalizeAngle(t);
   const c = new Decimal(Math.cos(tNum));
   const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
@@ -311,10 +367,8 @@ export function rotateY(theta) {
 export function rotateZ(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const tNum = t.toNumber();
-  if (!Number.isFinite(tNum)) {
-    throw new Error(`theta must produce a finite angle, got ${theta}`);
-  }
+  // Normalize angle to reduce precision loss for very large angles
+  const tNum = normalizeAngle(t);
   const c = new Decimal(Math.cos(tNum));
   const s = new Decimal(Math.sin(tNum));
   return Matrix.from([
@@ -386,17 +440,17 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
   validateNumeric(theta, 'theta');
   const u = [D(ux), D(uy), D(uz)];
   const norm = u[0].mul(u[0]).plus(u[1].mul(u[1])).plus(u[2].mul(u[2])).sqrt();
-  if (norm.isZero()) throw new Error("Rotation axis cannot be zero vector");
-  // Normalize axis
+  if (norm.isZero()) {
+    throw new Error("Rotation axis cannot be zero vector (ux=0, uy=0, uz=0)");
+  }
+  // Normalize axis to unit length for Rodrigues' formula
   u[0] = u[0].div(norm);
   u[1] = u[1].div(norm);
   u[2] = u[2].div(norm);
 
   const t = D(theta);
-  const tNum = t.toNumber();
-  if (!Number.isFinite(tNum)) {
-    throw new Error(`theta must produce a finite angle, got ${theta}`);
-  }
+  // Normalize angle to reduce precision loss for very large angles
+  const tNum = normalizeAngle(t);
   const c = new Decimal(Math.cos(tNum));
   const s = new Decimal(Math.sin(tNum));
   const one = new Decimal(1);

@@ -1062,6 +1062,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
   let removeCount = 0;
   let currentX = D(0), currentY = D(0);
   let startX = D(0), startY = D(0);
+  // Track previous control points for S and T commands (reserved for future S/T command handling)
+  let prevCp2X = null, prevCp2Y = null; // For S command (cubic)
+  let prevCpX = null, prevCpY = null; // For T command (quadratic)
 
   for (let idx = 0; idx < pathData.length; idx++) {
     const item = pathData[idx];
@@ -1081,6 +1084,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         // CRITICAL: Update subpath start for EVERY M command (BUG 3 FIX)
         startX = currentX;
         startY = currentY;
+        // Reset previous control points on new subpath
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
 
       case 'L': {
@@ -1095,21 +1101,42 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         // CRITICAL: Always update position, even when removing segment (BUG 2 FIX)
         currentX = endX;
         currentY = endY;
+        // Reset previous control points (not a curve command)
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
       }
 
       case 'T': {
-        // Smooth quadratic Bezier: x y (2 args) - BUG 4 FIX (separated from L)
+        // Smooth quadratic Bezier: x y (2 args)
+        // Control point is reflected from previous Q/T, or current position if none
         if (args.length < 2) throw new Error(`removeZeroLengthSegments: T command at index ${idx} requires 2 args, got ${args.length}`);
         const endX = command === 'T' ? D(args[0]) : currentX.plus(D(args[0]));
         const endY = command === 'T' ? D(args[1]) : currentY.plus(D(args[1]));
-        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol)) {
+        // Calculate implicit control point
+        let cpX, cpY;
+        if (prevCpX !== null && prevCpY !== null) {
+          // Reflect previous control point across current position
+          cpX = currentX.mul(2).minus(prevCpX);
+          cpY = currentY.mul(2).minus(prevCpY);
+        } else {
+          // No previous Q/T, control point is current position
+          cpX = currentX;
+          cpY = currentY;
+        }
+        // Check if ALL points (start, implicit CP, end) are at same location
+        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol) &&
+            isZeroLengthSegment({ x: currentX, y: currentY }, { x: cpX, y: cpY }, tol)) {
           keep = false;
           removeCount++;
         }
-        // CRITICAL: Always update position, even when removing segment (BUG 2 FIX)
+        // Update position and track control point for next T command
         currentX = endX;
         currentY = endY;
+        prevCpX = cpX;
+        prevCpY = cpY;
+        // T doesn't affect cubic control points
+        prevCp2X = null; prevCp2Y = null;
         break;
       }
 
@@ -1122,6 +1149,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         }
         // CRITICAL: Always update position, even when removing segment (consistency with L command)
         currentX = endX;
+        // Reset previous control points (not a curve command)
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
       }
 
@@ -1134,6 +1164,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         }
         // CRITICAL: Always update position, even when removing segment (consistency with L command)
         currentY = endY;
+        // Reset previous control points (not a curve command)
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
       }
 
@@ -1156,9 +1189,13 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
           keep = false;
           removeCount++;
         }
-        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        // Update position and track second control point for next S command
         currentX = endX;
         currentY = endY;
+        prevCp2X = cp2X;
+        prevCp2Y = cp2Y;
+        // C doesn't affect quadratic control points
+        prevCpX = null; prevCpY = null;
         break;
       }
 
@@ -1167,38 +1204,56 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         if (args.length < 4) throw new Error(`removeZeroLengthSegments: Q command at index ${idx} requires 4 args, got ${args.length}`);
         const endX = command === 'Q' ? D(args[2]) : currentX.plus(D(args[2]));
         const endY = command === 'Q' ? D(args[3]) : currentY.plus(D(args[3]));
-        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol)) {
-          // Check control point too
-          const cpX = command === 'Q' ? D(args[0]) : currentX.plus(D(args[0]));
-          const cpY = command === 'Q' ? D(args[1]) : currentY.plus(D(args[1]));
-          if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: cpX, y: cpY }, tol)) {
-            keep = false;
-            removeCount++;
-          }
+        const cpX = command === 'Q' ? D(args[0]) : currentX.plus(D(args[0]));
+        const cpY = command === 'Q' ? D(args[1]) : currentY.plus(D(args[1]));
+        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol) &&
+            isZeroLengthSegment({ x: currentX, y: currentY }, { x: cpX, y: cpY }, tol)) {
+          keep = false;
+          removeCount++;
         }
-        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        // Update position and track control point for next T command
         currentX = endX;
         currentY = endY;
+        prevCpX = cpX;
+        prevCpY = cpY;
+        // Q doesn't affect cubic control points
+        prevCp2X = null; prevCp2Y = null;
         break;
       }
 
       case 'S': {
-        // Smooth cubic Bezier: x2 y2 x y (4 args) - BUG 4 FIX
+        // Smooth cubic Bezier: x2 y2 x y (4 args)
+        // First control point is reflected from previous C/S, or current position if none
         if (args.length < 4) throw new Error(`removeZeroLengthSegments: S command at index ${idx} requires 4 args, got ${args.length}`);
         const endX = command === 'S' ? D(args[2]) : currentX.plus(D(args[2]));
         const endY = command === 'S' ? D(args[3]) : currentY.plus(D(args[3]));
-        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol)) {
-          // Check second control point (first is reflected, not in args)
-          const cp2X = command === 'S' ? D(args[0]) : currentX.plus(D(args[0]));
-          const cp2Y = command === 'S' ? D(args[1]) : currentY.plus(D(args[1]));
-          if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: cp2X, y: cp2Y }, tol)) {
-            keep = false;
-            removeCount++;
-          }
+        const cp2X = command === 'S' ? D(args[0]) : currentX.plus(D(args[0]));
+        const cp2Y = command === 'S' ? D(args[1]) : currentY.plus(D(args[1]));
+        // Calculate implicit first control point
+        let cp1X, cp1Y;
+        if (prevCp2X !== null && prevCp2Y !== null) {
+          // Reflect previous second control point across current position
+          cp1X = currentX.mul(2).minus(prevCp2X);
+          cp1Y = currentY.mul(2).minus(prevCp2Y);
+        } else {
+          // No previous C/S, first control point is current position
+          cp1X = currentX;
+          cp1Y = currentY;
         }
-        // CRITICAL: Always update position, even when removing segment (consistency with L command)
+        // Check if ALL points (start, implicit CP1, CP2, end) are at same location
+        if (isZeroLengthSegment({ x: currentX, y: currentY }, { x: endX, y: endY }, tol) &&
+            isZeroLengthSegment({ x: currentX, y: currentY }, { x: cp1X, y: cp1Y }, tol) &&
+            isZeroLengthSegment({ x: currentX, y: currentY }, { x: cp2X, y: cp2Y }, tol)) {
+          keep = false;
+          removeCount++;
+        }
+        // Update position and track second control point for next S command
         currentX = endX;
         currentY = endY;
+        prevCp2X = cp2X;
+        prevCp2Y = cp2Y;
+        // S doesn't affect quadratic control points
+        prevCpX = null; prevCpY = null;
         break;
       }
 
@@ -1213,6 +1268,9 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         // CRITICAL: Always update position, even when removing segment (consistency with L command)
         currentX = endX;
         currentY = endY;
+        // Reset previous control points (not a curve command)
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
       }
 
@@ -1223,8 +1281,14 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
         }
         currentX = startX;
         currentY = startY;
+        // Reset previous control points (new subpath after closure)
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
       default:
+        // Unknown commands don't affect control point tracking
+        prevCp2X = null; prevCp2Y = null;
+        prevCpX = null; prevCpY = null;
         break;
     }
 

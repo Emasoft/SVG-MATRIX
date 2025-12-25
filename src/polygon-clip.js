@@ -43,6 +43,11 @@
  * - Martinez-Rueda-Feito algorithm
  * - Vatti clipping algorithm
  *
+ * **Important Limitations:**
+ * - Self-intersecting polygons are NOT supported and may produce incorrect results
+ * - All polygons are assumed to be simple (non-self-intersecting)
+ * - Point-in-polygon tests use winding number (unsuitable for self-intersecting polygons)
+ *
  * ## Usage Examples
  *
  * @example
@@ -389,9 +394,11 @@ export function segmentIntersection(a, b, c, d) {
   // Cross product of directions (determinant)
   const denom = dx1.mul(dy2).minus(dy1.mul(dx2));
 
-  // Check if lines are parallel
+  // Check if lines are parallel or collinear
   if (denom.abs().lt(EPSILON)) {
-    return null; // Parallel or collinear
+    // Note: Returns null for both parallel and collinear segments
+    // Collinear overlapping segments are not handled (no single intersection point exists)
+    return null;
   }
 
   // Vector from a to c
@@ -555,6 +562,7 @@ export function pointInPolygon(pt, polygon) {
   }
 
   const n = polygon.length;
+  // Degenerate polygon: point, line segment, or empty cannot contain a point
   if (n < 3) return -1;
 
   // Validate polygon elements have x and y properties
@@ -642,10 +650,12 @@ export function pointOnSegment(pt, a, b) {
     throw new Error("pointOnSegment: segment point b must have x and y properties");
   }
 
-  // Check collinearity
+  // Check collinearity using cross product
+  // Note: Using EPSILON tolerance handles numerical precision issues
+  // where a point should be on a segment but floating-point errors prevent exact zero
   const crossVal = cross(a, b, pt);
   if (crossVal.abs().gt(EPSILON)) {
-    return false;
+    return false; // Not collinear
   }
 
   // Check if pt is between a and b
@@ -688,12 +698,12 @@ export function pointOnSegment(pt, a, b) {
  * for counter-clockwise oriented polygons.
  *
  * Limitations:
- * - Clipping polygon MUST be convex
- * - Clipping polygon vertices MUST be in counter-clockwise order
+ * - Clipping polygon MUST be convex (automatically enforced to be CCW)
  * - Does not handle holes or self-intersecting polygons
+ * - Self-intersecting subject or clip polygons will produce incorrect results
  *
  * @param {Array} subject - Subject polygon vertices [{x, y}, ...] (can be convex or concave)
- * @param {Array} clip - Clipping polygon vertices (MUST be convex, CCW order)
+ * @param {Array} clip - Clipping polygon vertices (MUST be convex, will be converted to CCW)
  * @returns {Array} Clipped polygon vertices in CCW order, or empty array if no intersection
  *
  * @example
@@ -738,7 +748,10 @@ export function clipPolygonSH(subject, clip) {
 
   // Convert all points to Decimal
   let output = subject.map((p) => point(p.x, p.y));
-  const clipPoly = clip.map((p) => point(p.x, p.y));
+  let clipPoly = clip.map((p) => point(p.x, p.y));
+
+  // Ensure clip polygon is in counter-clockwise order (required for Sutherland-Hodgman)
+  clipPoly = ensureCCW(clipPoly);
 
   // Clip against each edge of the clipping polygon
   for (let i = 0; i < clipPoly.length; i++) {
@@ -797,11 +810,15 @@ export function clipPolygonSH(subject, clip) {
  * Used by Sutherland-Hodgman algorithm. For counter-clockwise oriented
  * polygons, "inside" means on the left side of the directed edge.
  *
+ * Vertex-on-edge handling: Points exactly on the edge (cross product = 0)
+ * are considered inside (>= 0). This ensures consistent behavior when
+ * clipping polygons share vertices or edges.
+ *
  * @private
  * @param {Object} pt - Point to test
  * @param {Object} edgeStart - Edge start point
  * @param {Object} edgeEnd - Edge end point
- * @returns {boolean} True if point is on left side or on the edge
+ * @returns {boolean} True if point is on left side or exactly on the edge
  */
 function isInsideEdge(pt, edgeStart, edgeEnd) {
   // Validate inputs (defensive check for internal function) - check for null/undefined explicitly
@@ -816,6 +833,7 @@ function isInsideEdge(pt, edgeStart, edgeEnd) {
   }
 
   // Point is "inside" if it's on the left side of the edge (CCW polygon)
+  // Note: >= 0 treats points ON the edge as inside (important for vertex-on-edge cases)
   return cross(edgeStart, edgeEnd, pt).gte(0);
 }
 
@@ -1101,12 +1119,17 @@ export function convexHull(points) {
   const sorted = pts.slice(1).sort((a, b) => {
     const crossVal = cross(pivot, a, b);
     if (crossVal.abs().lt(EPSILON)) {
-      // Collinear: sort by distance
+      // Collinear: sort by distance (using Decimal comparison to preserve precision)
       const distA = a.x.minus(pivot.x).pow(2).plus(a.y.minus(pivot.y).pow(2));
       const distB = b.x.minus(pivot.x).pow(2).plus(b.y.minus(pivot.y).pow(2));
-      return distA.minus(distB).toNumber();
+      const diff = distA.minus(distB);
+      // Return -1, 0, or 1 to avoid precision loss from toNumber()
+      if (diff.abs().lt(EPSILON)) return 0;
+      return diff.lt(0) ? -1 : 1;
     }
-    return -crossVal.toNumber(); // CCW order
+    // Use sign comparison instead of toNumber() to preserve precision
+    const crossSign = sign(crossVal);
+    return -crossSign; // CCW order (negate because we want CCW)
   });
 
   // Build hull
@@ -1688,7 +1711,8 @@ function traceBoundaryUnion(poly1, poly2) {
   let onPoly1 = startPoly === 1;
   let currentIdx = startIdx;
   const usedIntersections = new Set();
-  const maxIterations = aug1.length + aug2.length + 10;
+  // Increased iteration limit for complex polygons with many intersections
+  const maxIterations = (aug1.length + aug2.length) * 3;
   let iterations = 0;
   const startKey = `${startPoly}-${startIdx}`;
 
@@ -2010,7 +2034,8 @@ function traceBoundaryDifference(poly1, poly2) {
   let onPoly1 = true; // We start on poly1
   let currentIdx = startIdx;
   const visited = new Set();
-  const maxIterations = aug1.length + aug2.length + 10;
+  // Increased iteration limit for complex polygons with many intersections
+  const maxIterations = (aug1.length + aug2.length) * 3;
   let iterations = 0;
 
   while (iterations < maxIterations) {

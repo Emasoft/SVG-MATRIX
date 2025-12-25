@@ -679,20 +679,25 @@ export function bezierCrop(points, t0, t1) {
     throw new Error("bezierCrop: t1 must be in range [0, 1]");
   }
 
-  // DIVISION BY ZERO PROTECTION: Check if t0 is too close to 1
-  // WHY: When t0 approaches 1, the denominator (1 - t0) approaches zero,
-  // causing division by zero in the parameter adjustment calculation
-  if (D(1).minus(t0D).abs().lt(NEAR_ZERO_THRESHOLD)) {
-    throw new Error(
-      "bezierCrop: t0 too close to 1, would cause division by zero in parameter adjustment",
-    );
+  // EDGE CASE HANDLING: When t0 is very close to 1, the crop interval is tiny
+  // WHY: When t0 approaches 1, the denominator (1 - t0) approaches zero.
+  // In this case, the cropped curve degenerates to a near-point segment.
+  // We handle this specially to avoid division by zero while still returning
+  // a valid (though degenerate) curve segment.
+  const oneMinusT0 = D(1).minus(t0D);
+  if (oneMinusT0.abs().lt(NEAR_ZERO_THRESHOLD)) {
+    // t0 very close to 1: return degenerate curve at endpoint
+    // WHY: The interval [t0, t1] is so small that the curve is effectively a point
+    const endPoint = bezierPoint(points, t1D);
+    // Return a degenerate curve with all control points at the same location
+    return points.map(() => [endPoint[0], endPoint[1]]);
   }
 
   // First split at t0, take the right portion
   const { right: afterT0 } = bezierSplit(points, t0);
 
   // Adjust t1 to the new parameter space: (t1 - t0) / (1 - t0)
-  const adjustedT1 = t1D.minus(t0D).div(D(1).minus(t0D));
+  const adjustedT1 = t1D.minus(t0D).div(oneMinusT0);
 
   // Split at adjusted t1, take the left portion
   const { left: cropped } = bezierSplit(afterT0, adjustedT1);
@@ -797,7 +802,19 @@ function findBezierRoots1D(points, component) {
     const b = coeffs[1];
     const denom = b.minus(a);
 
-    if (!denom.isZero()) {
+    if (denom.isZero()) {
+      // EDGE CASE: Constant function (b = a)
+      // WHY: When derivative is constant, either every t is a root (if constant is zero)
+      // or no t is a root (if constant is non-zero). For bounding box computation,
+      // a constant zero derivative means no critical points in the interior.
+      if (a.isZero()) {
+        // Constant zero function: technically every t in (0,1) is a root,
+        // but this indicates a degenerate case (line segment or repeated control points).
+        // For bounding box purposes, we return no interior critical points.
+        // The endpoints will be checked separately.
+      }
+      // If a != 0, constant non-zero function has no roots
+    } else {
       const t = a.neg().div(denom);
       if (t.gt(0) && t.lt(1)) {
         roots.push(t);

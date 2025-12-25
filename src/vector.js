@@ -300,7 +300,7 @@ export class Vector {
    * Compute a vector orthogonal to this one.
    * For 2D: returns the perpendicular [-y, x].
    * For nD: uses Gram-Schmidt with standard basis vectors.
-   * @returns {Vector} A normalized vector orthogonal to this
+   * @returns {Vector} A vector orthogonal to this (normalized for nD, unnormalized for 2D)
    * @throws {Error} If unable to find orthogonal vector (e.g., zero vector)
    */
   orthogonal() {

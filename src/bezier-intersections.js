@@ -104,6 +104,17 @@ export function lineLineIntersection(line1, line2) {
   const dx2 = x4.minus(x3);
   const dy2 = y4.minus(y3);
 
+  // WHY: Check for degenerate (zero-length) lines before computing intersection
+  // Zero-length lines have no well-defined direction and cannot intersect meaningfully
+  const tol = new Decimal(PARALLEL_THRESHOLD);
+  const line1Length = dx1.pow(2).plus(dy1.pow(2)).sqrt();
+  const line2Length = dx2.pow(2).plus(dy2.pow(2)).sqrt();
+
+  if (line1Length.lt(tol) || line2Length.lt(tol)) {
+    // Degenerate line (zero or near-zero length)
+    return [];
+  }
+
   // Determinant (cross product of direction vectors)
   const denom = dx1.times(dy2).minus(dy1.times(dx2));
 
@@ -232,8 +243,18 @@ export function bezierLineIntersection(bezier, line, options = {}) {
     const sign = dist.isNegative() ? -1 : dist.isZero() ? 0 : 1;
 
     if (sign === 0) {
-      // Exactly on line
-      candidates.push(t);
+      // WHY: Even when sample point is exactly on line, refine to ensure we find the
+      // true intersection parameter, not just a lucky sample point. If prevT exists
+      // and has opposite sign, bracket and refine. Otherwise, use local refinement.
+      if (prevSign !== null && prevSign !== 0) {
+        const root = refineBezierLineRoot(bezier, line, prevT, t, tol);
+        if (root !== null) {
+          candidates.push(root);
+        }
+      } else {
+        // No bracket available - add sample point as-is (rare edge case)
+        candidates.push(t);
+      }
     } else if (prevSign !== null && prevSign !== sign && prevSign !== 0) {
       // Sign change - refine with bisection
       const root = refineBezierLineRoot(bezier, line, prevT, t, tol);
@@ -325,7 +346,10 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
     const mid = lo.plus(hi).div(2);
     const fMid = evalDist(mid);
 
-    if (fMid.abs().lt(tol) || hi.minus(lo).lt(tol)) {
+    // WHY: Use AND instead of OR for convergence - we need BOTH function value small AND bracket narrow.
+    // Using OR could return prematurely when bracket is small but function value is still large,
+    // or when function value is small by chance but we haven't converged the parameter yet.
+    if (fMid.abs().lt(tol) && hi.minus(lo).lt(tol)) {
       return mid;
     }
 
@@ -440,10 +464,15 @@ export function bezierBezierIntersection(bezier1, bezier2, options = {}) {
 
     // Check recursion depth
     if (depth >= maxDepth) {
+      // WHY: At max depth, attempt Newton refinement instead of blindly returning midpoint.
+      // This ensures we don't return inaccurate intersections when subdivision can't converge.
       const t1mid = t1min.plus(t1max).div(2);
       const t2mid = t2min.plus(t2max).div(2);
-      const [x, y] = bezierPoint(bezier1, t1mid);
-      results.push({ t1: t1mid, t2: t2mid, point: [x, y] });
+      const refined = refineIntersection(bezier1, bezier2, t1mid, t2mid, tol);
+      if (refined) {
+        results.push(refined);
+      }
+      // If refinement fails, don't add anything (better than adding an inaccurate result)
       return;
     }
 
@@ -770,8 +799,19 @@ export function bezierSelfIntersection(bezier, options = {}) {
   function findSelfIntersections(tmin, tmax, depth) {
     const range = tmax.minus(tmin);
 
-    // Stop if range is too small or max depth reached
-    if (range.lt(minSep) || depth > maxDepth) {
+    // WHY: Stop ONLY when range is too small. Don't stop just because of depth -
+    // we must continue subdividing until we reach minSep or find intersections.
+    // Max depth check is only for safety to prevent infinite recursion.
+    if (range.lt(minSep)) {
+      return;
+    }
+
+    // WHY: Safety check for infinite recursion. If we hit max depth but range is still large,
+    // something is wrong - subdivisions aren't reducing the range as expected.
+    if (depth > maxDepth) {
+      console.warn(
+        `bezierSelfIntersection: max depth ${maxDepth} reached with range ${range.toString()} > minSep ${minSep.toString()}`,
+      );
       return;
     }
 
@@ -927,13 +967,44 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
     const det = dx2.times(dy1).minus(dx1.times(dy2));
 
     if (det.abs().lt(new Decimal(SINGULARITY_THRESHOLD))) {
-      // Singular Jacobian - curves are nearly parallel at these points
-      // Try bisection step instead
-      if (fx.isNegative()) {
-        t1 = t1.plus(D("0.0001"));
-      } else {
-        t2 = t2.minus(D("0.0001"));
+      // WHY: Singular Jacobian means curves are tangent at intersection (parallel derivatives).
+      // Newton-Raphson can't make progress. Try gradient descent on distance function instead.
+      // Move both parameters in the direction that reduces distance between curve points.
+      const stepSize = D("0.001");
+
+      // Try small perturbations and pick the one that reduces error
+      const perturbations = [
+        [stepSize, D(0)],
+        [stepSize.neg(), D(0)],
+        [D(0), stepSize],
+        [D(0), stepSize.neg()],
+      ];
+
+      let bestError = error;
+      let bestT1 = t1;
+      let bestT2 = t2;
+
+      for (const [dt1, dt2] of perturbations) {
+        const tryT1 = Decimal.max(D(0), Decimal.min(D(1), t1.plus(dt1)));
+        const tryT2 = Decimal.max(D(0), Decimal.min(D(1), t2.plus(dt2)));
+        const [tx1, ty1] = bezierPoint(bezier, tryT1);
+        const [tx2, ty2] = bezierPoint(bezier, tryT2);
+        const tryError = tx1.minus(tx2).pow(2).plus(ty1.minus(ty2).pow(2)).sqrt();
+
+        if (tryError.lt(bestError)) {
+          bestError = tryError;
+          bestT1 = tryT1;
+          bestT2 = tryT2;
+        }
       }
+
+      // If no improvement possible, we're stuck
+      if (bestError.gte(error)) {
+        break;
+      }
+
+      t1 = bestT1;
+      t2 = bestT2;
       continue;
     }
 

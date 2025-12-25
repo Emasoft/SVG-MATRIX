@@ -223,7 +223,7 @@ export function supportPoint(polygon, direction) {
   if (!Array.isArray(polygon)) throw new TypeError('supportPoint: polygon must be an array');
   if (!direction || direction.x == null || direction.y == null) throw new TypeError('supportPoint: direction must have x and y properties');
   if (polygon.length === 0) {
-    return point(0, 0);
+    throw new TypeError('supportPoint: polygon cannot be empty');
   }
 
   // Validate first point
@@ -297,6 +297,18 @@ export function processLineSimplex(simplex, direction) {
   const AB = vectorSub(B, A);
   const AO = vectorNeg(A); // Vector from A to origin
 
+  // Handle degenerate segment (A == B)
+  const ABmagSq = magnitudeSquared(AB);
+  if (ABmagSq.lessThan(EPSILON)) {
+    // Segment is degenerate - both points are the same
+    // Check if this point is at origin
+    if (magnitudeSquared(A).lessThan(EPSILON)) {
+      return { contains: true, newDirection: direction };
+    }
+    // Point is not at origin - no intersection possible
+    return { contains: false, newDirection: AO };
+  }
+
   // Check if origin is in the region of the line segment
   const ABperp = tripleProduct(AB, AO, AB);
 
@@ -304,16 +316,15 @@ export function processLineSimplex(simplex, direction) {
   if (magnitudeSquared(ABperp).lessThan(EPSILON)) {
     // Origin is on the line - check if between A and B
     const dotAB_AO = dot(AB, AO);
-    const dotAB_AB = dot(AB, AB);
 
-    if (dotAB_AO.greaterThanOrEqualTo(0) && dotAB_AO.lessThanOrEqualTo(dotAB_AB)) {
-      // Origin is on the segment - we have intersection!
+    if (dotAB_AO.greaterThanOrEqualTo(0) && dotAB_AO.lessThanOrEqualTo(ABmagSq)) {
+      // Origin is on the segment - we have intersection
       return { contains: true, newDirection: direction };
     }
 
     // Origin is on the line but outside segment
-    // Keep searching in direction perpendicular to the line
-    return { contains: false, newDirection: perpendicular(AB) };
+    // Reduce to single point A and search toward origin
+    return { contains: false, newDirection: AO };
   }
 
   return { contains: false, newDirection: ABperp };
@@ -346,9 +357,58 @@ export function processTriangleSimplex(simplex, direction) {
   const AC = vectorSub(C, A);
   const AO = vectorNeg(A); // Vector from A to origin
 
+  // Check for degenerate edges
+  const ABmagSq = magnitudeSquared(AB);
+  const ACmagSq = magnitudeSquared(AC);
+
+  // If AB is degenerate, reduce to AC edge
+  if (ABmagSq.lessThan(EPSILON)) {
+    return {
+      contains: false,
+      newDirection: tripleProduct(AC, AO, AC),
+      newSimplex: [A, C]
+    };
+  }
+
+  // If AC is degenerate, reduce to AB edge
+  if (ACmagSq.lessThan(EPSILON)) {
+    return {
+      contains: false,
+      newDirection: tripleProduct(AB, AO, AB),
+      newSimplex: [A, B]
+    };
+  }
+
   // Get perpendiculars to edges, pointing outward from triangle
   const ABperp = tripleProduct(AC, AB, AB);
   const ACperp = tripleProduct(AB, AC, AC);
+
+  // Check if perpendiculars are degenerate (collinear points)
+  if (magnitudeSquared(ABperp).lessThan(EPSILON) && magnitudeSquared(ACperp).lessThan(EPSILON)) {
+    // All three points are collinear - reduce to line segment
+    // Choose the two points farthest apart
+    const BC = vectorSub(C, B);
+    const BCmagSq = magnitudeSquared(BC);
+    if (BCmagSq.greaterThan(ABmagSq) && BCmagSq.greaterThan(ACmagSq)) {
+      return {
+        contains: false,
+        newDirection: tripleProduct(BC, vectorNeg(B), BC),
+        newSimplex: [B, C]
+      };
+    } else if (ABmagSq.greaterThan(ACmagSq)) {
+      return {
+        contains: false,
+        newDirection: tripleProduct(AB, AO, AB),
+        newSimplex: [A, B]
+      };
+    } else {
+      return {
+        contains: false,
+        newDirection: tripleProduct(AC, AO, AC),
+        newSimplex: [A, C]
+      };
+    }
+  }
 
   // Check if origin is outside AB edge
   if (dot(ABperp, AO).greaterThan(EPSILON)) {
@@ -372,7 +432,7 @@ export function processTriangleSimplex(simplex, direction) {
     };
   }
 
-  // Origin is inside the triangle!
+  // Origin is inside the triangle
   return {
     contains: true,
     newDirection: direction,
@@ -455,9 +515,10 @@ export function gjkIntersects(polygonA, polygonB) {
     const newPoint = minkowskiSupport(polygonA, polygonB, direction);
 
     // Check if we passed the origin
-    // If the new point isn't past the origin in the search direction,
+    // If the new point doesn't reach past the origin in the search direction,
     // then the origin is not in the Minkowski difference
-    if (dot(newPoint, direction).lessThanOrEqualTo(EPSILON)) {
+    // We use strict inequality because even a tiny positive projection means progress
+    if (dot(newPoint, direction).lessThanOrEqualTo(D(0))) {
       return {
         intersects: false,
         iterations: iteration + 1,
@@ -497,12 +558,10 @@ export function gjkIntersects(polygonA, polygonB) {
       direction = result.newDirection;
     }
 
-    // Normalize direction to prevent numerical issues
-    direction = normalize(direction);
-
-    // Check for zero direction (numerical issues)
+    // Check for zero direction before normalizing (numerical issues)
     if (magnitudeSquared(direction).lessThan(EPSILON)) {
-      // Can't determine - assume no intersection to be safe
+      // Direction collapsed to zero - this indicates numerical issues
+      // The shapes are likely not intersecting
       return {
         intersects: false,
         iterations: iteration + 1,
@@ -510,6 +569,9 @@ export function gjkIntersects(polygonA, polygonB) {
         verified: false
       };
     }
+
+    // Normalize direction to prevent numerical drift
+    direction = normalize(direction);
   }
 
   // Max iterations reached - assume no intersection
@@ -534,7 +596,7 @@ export function gjkIntersects(polygonA, polygonB) {
 export function centroid(polygon) {
   if (!Array.isArray(polygon)) throw new TypeError('centroid: polygon must be an array');
   if (polygon.length === 0) {
-    return point(0, 0);
+    throw new TypeError('centroid: polygon cannot be empty');
   }
 
   let sumX = D(0);
@@ -734,14 +796,14 @@ export function segmentsIntersect(a1, a2, b1, b2) {
 }
 
 // ============================================================================
-// Distance Calculation (EPA - Expanding Polytope Algorithm)
+// Distance Calculation
 // ============================================================================
 
 /**
- * Calculate the minimum distance between two non-intersecting convex polygons.
+ * Calculate the minimum distance between two convex polygons.
  *
- * Uses a modified GJK algorithm that returns the closest points
- * when shapes don't intersect.
+ * Uses brute-force comparison of all vertex-vertex and vertex-edge pairs
+ * to find the closest points. Returns zero distance if shapes intersect.
  *
  * @param {Array<{x: Decimal, y: Decimal}>} polygonA - First convex polygon
  * @param {Array<{x: Decimal, y: Decimal}>} polygonB - Second convex polygon

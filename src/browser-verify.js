@@ -2,10 +2,10 @@
  * Browser Verification Module
  *
  * Provides functions to verify SVG coordinate transformations against
- * Chrome's native implementation using Playwright.
+ * Chromium's native implementation using Playwright.
  *
- * This is the authoritative way to verify correctness since browsers
- * implement the W3C SVG2 specification.
+ * This verifies correctness against Chromium's W3C SVG2 implementation.
+ * Note: Currently only tests Chromium, not all browsers.
  *
  * IMPORTANT: This module requires Playwright as an optional peer dependency.
  * Install with: npm install playwright && npx playwright install chromium
@@ -23,13 +23,18 @@ let chromium = null;
 /**
  * Load Playwright dynamically. Throws helpful error if not installed.
  * @returns {Promise<void>}
+ * @throws {Error} If Playwright is not installed or chromium API is unavailable
  */
 async function loadPlaywright() {
   if (chromium) return;
   try {
     const playwright = await import("playwright");
     chromium = playwright.chromium;
-  } catch (_e) {
+    if (!chromium || typeof chromium.launch !== "function") {
+      throw new Error("Playwright chromium API is not available");
+    }
+  } catch (e) {
+    if (e.message.includes("chromium API")) throw e;
     throw new Error(
       "Playwright is required for browser verification but not installed.\n" +
         "Install with: npm install playwright && npx playwright install chromium",
@@ -55,16 +60,19 @@ export class BrowserVerifier {
    * Must be called before using verification methods.
    *
    * @param {Object} options - Playwright launch options
+   * @param {number} [options.timeout=30000] - Browser launch timeout in ms
    * @returns {Promise<void>}
-   * @throws {Error} If Playwright is not installed
+   * @throws {Error} If Playwright is not installed or browser fails to launch
    */
   async init(options = {}) {
     if (options !== null && typeof options !== "object") {
       throw new Error("options must be an object");
     }
     await loadPlaywright();
-    this.browser = await chromium.launch(options);
+    const launchOptions = { timeout: 30000, ...options };
+    this.browser = await chromium.launch(launchOptions);
     this.page = await this.browser.newPage();
+    this.page.setDefaultTimeout(30000);
   }
 
   /**
@@ -75,9 +83,15 @@ export class BrowserVerifier {
    */
   async close() {
     if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.page = null;
+      try {
+        await this.browser.close();
+      } catch (e) {
+        // Ensure cleanup happens even if close() fails
+        console.warn("Warning: Browser close failed:", e.message);
+      } finally {
+        this.browser = null;
+        this.page = null;
+      }
     }
   }
 
@@ -115,6 +129,12 @@ export class BrowserVerifier {
     }
 
     return await this.page.evaluate((cfg) => {
+      if (
+        !document.createElementNS ||
+        typeof document.createElementNS !== "function"
+      ) {
+        throw new Error("Browser does not support createElementNS API");
+      }
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("width", cfg.width);
       svg.setAttribute("height", cfg.height);
@@ -134,13 +154,18 @@ export class BrowserVerifier {
       svg.appendChild(rect);
 
       document.body.appendChild(svg);
-      const ctm = rect.getCTM();
-      document.body.removeChild(svg);
-
-      if (!ctm) {
-        throw new Error("getCTM() returned null");
+      try {
+        if (!rect.getCTM || typeof rect.getCTM !== "function") {
+          throw new Error("Browser does not support getCTM API");
+        }
+        const ctm = rect.getCTM();
+        if (!ctm) {
+          throw new Error("getCTM() returned null - element may not be rendered");
+        }
+        return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
+      } finally {
+        document.body.removeChild(svg);
       }
-      return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
     }, config);
   }
 
@@ -173,6 +198,12 @@ export class BrowserVerifier {
     }
 
     return await this.page.evaluate((cfg) => {
+      if (
+        !document.createElementNS ||
+        typeof document.createElementNS !== "function"
+      ) {
+        throw new Error("Browser does not support createElementNS API");
+      }
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svg.setAttribute("width", cfg.width);
       svg.setAttribute("height", cfg.height);
@@ -192,13 +223,20 @@ export class BrowserVerifier {
       svg.appendChild(rect);
 
       document.body.appendChild(svg);
-      const ctm = rect.getScreenCTM();
-      document.body.removeChild(svg);
-
-      if (!ctm) {
-        throw new Error("getScreenCTM() returned null");
+      try {
+        if (!rect.getScreenCTM || typeof rect.getScreenCTM !== "function") {
+          throw new Error("Browser does not support getScreenCTM API");
+        }
+        const ctm = rect.getScreenCTM();
+        if (!ctm) {
+          throw new Error(
+            "getScreenCTM() returned null - element may not be rendered",
+          );
+        }
+        return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
+      } finally {
+        document.body.removeChild(svg);
       }
-      return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
     }, config);
   }
 
@@ -240,6 +278,12 @@ export class BrowserVerifier {
 
     return await this.page.evaluate(
       ({ cfg, px, py }) => {
+        if (
+          !document.createElementNS ||
+          typeof document.createElementNS !== "function"
+        ) {
+          throw new Error("Browser does not support createElementNS API");
+        }
         const svg = document.createElementNS(
           "http://www.w3.org/2000/svg",
           "svg",
@@ -259,18 +303,28 @@ export class BrowserVerifier {
 
         document.body.appendChild(svg);
 
-        const ctm = rect.getCTM();
-        if (!ctm) {
-          throw new Error("getCTM() returned null");
+        try {
+          if (!rect.getCTM || typeof rect.getCTM !== "function") {
+            throw new Error("Browser does not support getCTM API");
+          }
+          const ctm = rect.getCTM();
+          if (!ctm) {
+            throw new Error("getCTM() returned null - element may not be rendered");
+          }
+          if (!svg.createSVGPoint || typeof svg.createSVGPoint !== "function") {
+            throw new Error("Browser does not support createSVGPoint API");
+          }
+          const point = svg.createSVGPoint();
+          point.x = px;
+          point.y = py;
+          if (!point.matrixTransform || typeof point.matrixTransform !== "function") {
+            throw new Error("Browser does not support matrixTransform API");
+          }
+          const transformed = point.matrixTransform(ctm);
+          return { x: transformed.x, y: transformed.y };
+        } finally {
+          document.body.removeChild(svg);
         }
-        const point = svg.createSVGPoint();
-        point.x = px;
-        point.y = py;
-        const transformed = point.matrixTransform(ctm);
-
-        document.body.removeChild(svg);
-
-        return { x: transformed.x, y: transformed.y };
       },
       { cfg: config, px: x, py: y },
     );
@@ -339,7 +393,9 @@ export class BrowserVerifier {
       f: Math.abs(browserCTM.f - libraryCTM.f),
     };
 
-    const matches = Object.values(differences).every((d) => d < tolerance);
+    const matches = Object.values(differences).every(
+      (d) => isFinite(d) && d < tolerance,
+    );
 
     return { matches, browserCTM, libraryCTM, differences };
   }

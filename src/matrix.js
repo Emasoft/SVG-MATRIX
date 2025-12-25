@@ -279,15 +279,15 @@ export class Matrix {
    * @param {Matrix} other - Matrix to compare with
    * @param {number|string|Decimal} [tolerance=0] - Maximum allowed difference per element
    * @returns {boolean} True if matrices are equal within tolerance
-   * @throws {Error} If tolerance is negative
+   * @throws {Error} If tolerance is negative or not finite
    */
   equals(other, tolerance = 0) {
     if (!(other instanceof Matrix)) return false;
     if (this.rows !== other.rows || this.cols !== other.cols) return false;
     const tol = D(tolerance);
-    // Validate tolerance is non-negative
-    if (tol.isNegative())
-      throw new Error("tolerance must be non-negative");
+    // Validate tolerance is non-negative and finite to prevent Infinity tolerance
+    if (tol.isNegative() || !tol.isFinite())
+      throw new Error("tolerance must be non-negative and finite");
     for (let i = 0; i < this.rows; i++) {
       for (let j = 0; j < this.cols; j++) {
         const diff = this.data[i][j].minus(other.data[i][j]).abs();
@@ -588,8 +588,8 @@ export class Matrix {
 
     // Validate and set tolerance
     const tol = new Decimal(options.tolerance || "1e-40");
-    if (tol.isNegative() || tol.isZero())
-      throw new Error("tolerance must be positive");
+    if (tol.isNegative() || tol.isZero() || !tol.isFinite())
+      throw new Error("tolerance must be positive and finite");
 
     // Compute infinity norm
     const normInf = (M) => {
@@ -607,12 +607,14 @@ export class Matrix {
     const maxNorm = normInf(this);
     let s = 0;
     if (maxNorm.greaterThan(new Decimal(1))) {
-      const ratio = maxNorm.div(new Decimal(1));
-      const logVal = ratio.toNumber();
+      const logVal = maxNorm.toNumber();
       // Guard against Infinity or NaN from logarithm
       if (!isFinite(logVal))
         throw new Error("Matrix norm too large for exponential computation");
       s = Math.max(0, Math.ceil(Math.log2(logVal)));
+      // Cap scaling factor to prevent DoS - 50 iterations provides 2^50 scaling which is sufficient
+      if (s > 50)
+        throw new Error(`Matrix norm too large: requires ${s} scaling steps (max 50 allowed)`);
     }
     let A = this;
     if (s > 0) A = this.mul(new Decimal(1).div(new Decimal(2).pow(s)));

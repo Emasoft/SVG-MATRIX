@@ -298,11 +298,14 @@ export function getMaskRegion(maskData, targetBBox) {
       typeof targetBBox.width !== 'number' || typeof targetBBox.height !== 'number') {
     throw new Error('getMaskRegion: targetBBox must have numeric x, y, width, height properties');
   }
-  if (targetBBox.width <= 0 || targetBBox.height <= 0) {
-    throw new Error('getMaskRegion: targetBBox width and height must be positive');
+  if (targetBBox.width < 0 || targetBBox.height < 0) {
+    throw new Error('getMaskRegion: targetBBox width and height cannot be negative');
+  }
+  if (targetBBox.width === 0 || targetBBox.height === 0) {
+    throw new Error('getMaskRegion: targetBBox width and height must be greater than zero');
   }
   if (!maskData.maskUnits) throw new Error('getMaskRegion: maskData.maskUnits is required');
-  if (maskData.x === undefined || maskData.y === undefined || maskData.width === undefined || maskData.height === undefined) {
+  if (maskData.x == null || maskData.y == null || maskData.width == null || maskData.height == null) {
     throw new Error('getMaskRegion: maskData must have x, y, width, height properties');
   }
 
@@ -382,6 +385,9 @@ export function maskChildToPolygon(
   if (typeof targetBBox.x !== 'number' || typeof targetBBox.y !== 'number' ||
       typeof targetBBox.width !== 'number' || typeof targetBBox.height !== 'number') {
     throw new Error('maskChildToPolygon: targetBBox must have numeric x, y, width, height properties');
+  }
+  if (targetBBox.width < 0 || targetBBox.height < 0) {
+    throw new Error('maskChildToPolygon: targetBBox width and height cannot be negative');
   }
 
   // Create element-like object for ClipPathResolver
@@ -465,22 +471,22 @@ export function colorToLuminance(colorStr) {
   }
 
   if (typeof colorStr !== 'string') {
-    return 1; // Default to opaque if not a string
+    return 0; // Invalid input: treat as black (luminance = 0)
   }
 
-  // Parse RGB values
-  const rgbMatch = colorStr.match(/rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  // Parse RGB values (note: alpha channel in rgba() is intentionally ignored for luminance calculation)
+  const rgbMatch = colorStr.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
   if (rgbMatch) {
     const r = parseInt(rgbMatch[1], 10);
     const g = parseInt(rgbMatch[2], 10);
     const b = parseInt(rgbMatch[3], 10);
     // Validate parsed values and clamp to 0-255 range
-    if (isNaN(r) || isNaN(g) || isNaN(b)) return 1;
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return 0; // Invalid RGB: treat as black
     const rClamped = Math.max(0, Math.min(255, r)) / 255;
     const gClamped = Math.max(0, Math.min(255, g)) / 255;
     const bClamped = Math.max(0, Math.min(255, b)) / 255;
     const luminance = 0.2126 * rClamped + 0.7152 * gClamped + 0.0722 * bClamped;
-    return isNaN(luminance) ? 1 : luminance;
+    return isNaN(luminance) ? 0 : luminance; // NaN: treat as black
   }
 
   // Parse hex colors
@@ -494,9 +500,9 @@ export function colorToLuminance(colorStr) {
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
     // Validate parsed values
-    if (isNaN(r) || isNaN(g) || isNaN(b)) return 1;
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return 0; // Invalid hex: treat as black
     const luminance = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
-    return isNaN(luminance) ? 1 : luminance;
+    return isNaN(luminance) ? 0 : luminance; // NaN: treat as black
   }
 
   // Named colors (common ones)
@@ -518,8 +524,8 @@ export function colorToLuminance(colorStr) {
     return namedColors[lower];
   }
 
-  // Default to 1 (white/opaque) if unknown
-  return 1;
+  // Unknown color: treat as black (SVG spec: invalid color falls back to black)
+  return 0;
 }
 
 /**
@@ -870,6 +876,7 @@ export function maskToPathData(maskData, targetBBox, options = {}) {
   if (polygon.length < 3) return "";
 
   let d = "";
+  let validPointCount = 0;
   for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i];
     if (!p || p.x === undefined || p.y === undefined) continue; // Skip invalid points
@@ -878,9 +885,16 @@ export function maskToPathData(maskData, targetBBox, options = {}) {
     if (isNaN(xNum) || isNaN(yNum) || !isFinite(xNum) || !isFinite(yNum)) continue; // Skip NaN/Infinity
     const x = xNum.toFixed(6);
     const y = yNum.toFixed(6);
-    d += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+    d += validPointCount === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
+    validPointCount++;
   }
-  d += " Z";
+
+  // Only add Z if we have at least 3 valid points
+  if (validPointCount >= 3) {
+    d += " Z";
+  } else {
+    return ""; // Return empty string if insufficient valid points
+  }
 
   return d;
 }
@@ -1292,11 +1306,11 @@ export function resolveMaskWithGradients(
 
           for (const clippedPoly of clipped) {
             if (clippedPoly && clippedPoly.length >= 3) {
-              // Combine mesh opacity with child opacity
-              const childOpacity = typeof child.opacity === 'number' ? child.opacity : 1;
-              const childFillOpacity = typeof child.fillOpacity === 'number' ? child.fillOpacity : 1;
+              // Combine mesh opacity with child opacity - validate all values
+              const childOpacity = typeof child.opacity === 'number' && !isNaN(child.opacity) ? child.opacity : 1;
+              const childFillOpacity = typeof child.fillOpacity === 'number' && !isNaN(child.fillOpacity) ? child.fillOpacity : 1;
               const combinedOpacity = meshOpacity * childOpacity * childFillOpacity;
-              if (combinedOpacity > 0 && !isNaN(combinedOpacity)) {
+              if (combinedOpacity > 0 && !isNaN(combinedOpacity) && isFinite(combinedOpacity)) {
                 result.push({ polygon: clippedPoly, opacity: combinedOpacity });
               }
             }

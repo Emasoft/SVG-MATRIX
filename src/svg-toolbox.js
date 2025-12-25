@@ -552,7 +552,10 @@ const SVG2_ATTRIBUTES = new Set([
  * @param {string} tagName - Element tag name (lowercase)
  * @returns {boolean} True if SVG 2.0 element
  */
-const isSvg2Element = (tagName) => SVG2_ELEMENTS.has(tagName.toLowerCase());
+const isSvg2Element = (tagName) => {
+  if (!tagName || typeof tagName !== "string") return false;
+  return SVG2_ELEMENTS.has(tagName.toLowerCase());
+};
 
 /**
  * Check if attribute is an SVG 2.0 attribute
@@ -560,6 +563,7 @@ const isSvg2Element = (tagName) => SVG2_ELEMENTS.has(tagName.toLowerCase());
  * @returns {boolean} True if SVG 2.0 attribute or valid extension (aria-*, data-*)
  */
 const isSvg2Attribute = (attrName) => {
+  if (!attrName || typeof attrName !== "string") return false;
   const lower = attrName.toLowerCase();
   return (
     SVG2_ATTRIBUTES.has(lower) ||
@@ -3107,7 +3111,7 @@ export const convertColors = createOperation((doc, _options = {}) => {
   ];
 
   const shortenColor = (color) => {
-    if (!color) return color;
+    if (!color || typeof color !== "string") return color;
 
     // Named colors to hex
     const namedColors = {

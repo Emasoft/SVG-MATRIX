@@ -241,6 +241,10 @@ export class SVGElement {
     if (typeof tagName !== "string") {
       throw new Error("getElementsByTagName: tagName must be a string");
     }
+    // Edge case: Empty tagName returns empty array (except "*" which returns all)
+    if (tagName.length === 0) {
+      return [];
+    }
     const tag = tagName.toLowerCase();
     const results = [];
 
@@ -269,6 +273,10 @@ export class SVGElement {
     // Validation: Ensure id is a string
     if (typeof id !== "string") {
       throw new Error("getElementById: id must be a string");
+    }
+    // Edge case: Empty ID returns null (IDs cannot be empty)
+    if (id.length === 0) {
+      return null;
     }
     const search = (el) => {
       if (el.getAttribute("id") === id) {
@@ -497,6 +505,10 @@ export class SVGElement {
   get style() {
     const styleAttr = this.getAttribute("style") || "";
     const styles = {};
+    // Edge case: Empty style attribute returns empty object
+    if (styleAttr.length === 0) {
+      return styles;
+    }
     styleAttr.split(";").forEach((pair) => {
       // Edge case: Handle malformed styles, multiple colons, and empty pairs
       const colonIdx = pair.indexOf(":");
@@ -926,8 +938,13 @@ function parseSelector(selector) {
   if (typeof selector !== "string") {
     throw new Error("parseSelector: selector must be a string");
   }
+  // Edge case: Empty selector after trim
+  const trimmed = selector.trim();
+  if (trimmed.length === 0) {
+    throw new Error("parseSelector: selector cannot be empty");
+  }
   const matchers = [];
-  const parts = selector.trim().split(/\s*,\s*/);
+  const parts = trimmed.split(/\s*,\s*/);
 
   for (const part of parts) {
     const matcher = { tag: null, id: null, classes: [], attrs: [] };
@@ -990,7 +1007,10 @@ function matchesAllSelectors(el, matchers) {
     if (matcher.tag && el.tagName.toLowerCase() !== matcher.tag) return false;
     if (matcher.id && el.getAttribute("id") !== matcher.id) return false;
 
-    const elClasses = (el.getAttribute("class") || "").split(/\s+/);
+    // Edge case: Filter empty strings from class split (handles empty class attribute)
+    const elClasses = (el.getAttribute("class") || "")
+      .split(/\s+/)
+      .filter((c) => c.length > 0);
     for (const cls of matcher.classes) {
       if (!elClasses.includes(cls)) return false;
     }
@@ -1051,6 +1071,10 @@ function unescapeAttr(str) {
       // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
       .replace(/&#[xX]([0-9A-Fa-f]+);/g, (match, hex) => {
         const codePoint = parseInt(hex, 16);
+        // Edge case: Check for NaN or Infinity from malformed entities
+        if (!Number.isFinite(codePoint)) {
+          return "\uFFFD"; // Replacement character for malformed entities
+        }
         // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
         const isXMLInvalid =
           codePoint === 0 ||
@@ -1073,6 +1097,10 @@ function unescapeAttr(str) {
       // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
       .replace(/&#(\d+);/g, (match, dec) => {
         const codePoint = parseInt(dec, 10);
+        // Edge case: Check for NaN or Infinity from malformed entities
+        if (!Number.isFinite(codePoint)) {
+          return "\uFFFD"; // Replacement character for malformed entities
+        }
         // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
         const isXMLInvalid =
           codePoint === 0 ||
@@ -1117,6 +1145,10 @@ function unescapeText(str) {
       // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
       .replace(/&#[xX]([0-9A-Fa-f]+);/g, (match, hex) => {
         const codePoint = parseInt(hex, 16);
+        // Edge case: Check for NaN or Infinity from malformed entities
+        if (!Number.isFinite(codePoint)) {
+          return "\uFFFD"; // Replacement character for malformed entities
+        }
         // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
         const isXMLInvalid =
           codePoint === 0 ||
@@ -1139,6 +1171,10 @@ function unescapeText(str) {
       // BUG FIX 1 & 4: Use fromCodePoint for surrogate pairs, validate code point range
       .replace(/&#(\d+);/g, (match, dec) => {
         const codePoint = parseInt(dec, 10);
+        // Edge case: Check for NaN or Infinity from malformed entities
+        if (!Number.isFinite(codePoint)) {
+          return "\uFFFD"; // Replacement character for malformed entities
+        }
         // BUG FIX 2: Validate XML-invalid characters (NULL and control characters)
         const isXMLInvalid =
           codePoint === 0 ||
@@ -1247,8 +1283,12 @@ export function findElementsWithAttribute(root, attrName) {
  * @returns {string|null} The reference ID or null
  */
 export function parseUrlReference(urlValue) {
-  if (!urlValue) return null;
-  const match = urlValue.match(/url\(\s*["']?#?([^"')]+)["']?\s*\)/i);
+  // Edge case: Empty or non-string values return null
+  if (!urlValue || typeof urlValue !== "string") return null;
+  // Edge case: Trim whitespace before matching
+  const trimmed = urlValue.trim();
+  if (trimmed.length === 0) return null;
+  const match = trimmed.match(/url\(\s*["']?#?([^"')]+)["']?\s*\)/i);
   return match ? match[1] : null;
 }
 

@@ -312,8 +312,9 @@ export function getMarkerTransform(
   let rotationAngle = 0;
   if (orient === "auto") {
     rotationAngle = tangentAngle;
-  } else if (orient === "auto-start-reverse" && isStart) {
-    rotationAngle = tangentAngle + Math.PI; // Add 180 degrees
+  } else if (orient === "auto-start-reverse") {
+    // auto-start-reverse: reverse at start, auto elsewhere
+    rotationAngle = isStart ? tangentAngle + Math.PI : tangentAngle;
   } else if (typeof orient === "number") {
     rotationAngle = orient * (Math.PI / 180); // Convert degrees to radians
   }
@@ -459,8 +460,12 @@ export function getPathVertices(pathData) {
         currentX = cmd.x;
         currentY = cmd.y;
 
-        // Calculate tangent angle
-        const lineAngle = Math.atan2(currentY - prevY, currentX - prevX);
+        // Calculate tangent angle (handle zero-length segments)
+        const dx = currentX - prevX;
+        const dy = currentY - prevY;
+        const lineAngle = (dx === 0 && dy === 0)
+          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
+          : Math.atan2(dy, dx);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -484,10 +489,20 @@ export function getPathVertices(pathData) {
         currentY = cmd.y;
 
         // Calculate tangent at start (direction to first control point)
-        const startTangent = Math.atan2(cmd.y1 - prevY, cmd.x1 - prevX);
+        // Handle degenerate case: if first control point coincides with start
+        const dx1 = cmd.x1 - prevX;
+        const dy1 = cmd.y1 - prevY;
+        const startTangent = (dx1 === 0 && dy1 === 0)
+          ? Math.atan2(cmd.y2 - prevY, cmd.x2 - prevX) // Use second control point
+          : Math.atan2(dy1, dx1);
 
         // Calculate tangent at end (direction from last control point)
-        const endTangent = Math.atan2(currentY - cmd.y2, currentX - cmd.x2);
+        // Handle degenerate case: if last control point coincides with end
+        const dx2 = currentX - cmd.x2;
+        const dy2 = currentY - cmd.y2;
+        const endTangent = (dx2 === 0 && dy2 === 0)
+          ? Math.atan2(currentY - cmd.y1, currentX - cmd.x1) // Use first control point
+          : Math.atan2(dy2, dx2);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -510,11 +525,19 @@ export function getPathVertices(pathData) {
         currentX = cmd.x;
         currentY = cmd.y;
 
-        // Calculate tangent at start
-        const qStartTangent = Math.atan2(cmd.y1 - prevY, cmd.x1 - prevX);
+        // Calculate tangent at start (handle degenerate case)
+        const dxq1 = cmd.x1 - prevX;
+        const dyq1 = cmd.y1 - prevY;
+        const qStartTangent = (dxq1 === 0 && dyq1 === 0)
+          ? Math.atan2(currentY - prevY, currentX - prevX) // Use endpoint
+          : Math.atan2(dyq1, dxq1);
 
-        // Calculate tangent at end
-        const qEndTangent = Math.atan2(currentY - cmd.y1, currentX - cmd.x1);
+        // Calculate tangent at end (handle degenerate case)
+        const dxq2 = currentX - cmd.x1;
+        const dyq2 = currentY - cmd.y1;
+        const qEndTangent = (dxq2 === 0 && dyq2 === 0)
+          ? Math.atan2(currentY - prevY, currentX - prevX) // Use startpoint
+          : Math.atan2(dyq2, dxq2);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -537,8 +560,12 @@ export function getPathVertices(pathData) {
         currentX = cmd.x;
         currentY = cmd.y;
 
-        // Simplified tangent calculation (could be improved with arc geometry)
-        const arcAngle = Math.atan2(currentY - prevY, currentX - prevX);
+        // Simplified tangent calculation (handle zero-length arc)
+        const dxa = currentX - prevX;
+        const dya = currentY - prevY;
+        const arcAngle = (dxa === 0 && dya === 0)
+          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
+          : Math.atan2(dya, dxa);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -561,8 +588,12 @@ export function getPathVertices(pathData) {
         currentX = startX;
         currentY = startY;
 
-        // Calculate tangent from last point to start
-        const closeAngle = Math.atan2(currentY - prevY, currentX - prevX);
+        // Calculate tangent from last point to start (handle zero-length close)
+        const dxz = currentX - prevX;
+        const dyz = currentY - prevY;
+        const closeAngle = (dxz === 0 && dyz === 0)
+          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
+          : Math.atan2(dyz, dxz);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -903,7 +934,14 @@ export function resolveMarkers(pathElement, defsMap) {
       for (let i = 1; i < vertices.length - 1; i++) {
         const vertex = vertices[i];
         // Use average of incoming and outgoing tangents for mid markers
-        const tangent = (vertex.tangentIn + vertex.tangentOut) / 2;
+        // Handle angle wrapping: normalize to [-π, π] range before averaging
+        const tangentIn = vertex.tangentIn;
+        const tangentOut = vertex.tangentOut;
+        let angleDiff = tangentOut - tangentIn;
+        // Normalize angle difference to [-π, π]
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        const tangent = tangentIn + angleDiff / 2;
 
         instances.push({
           markerDef,

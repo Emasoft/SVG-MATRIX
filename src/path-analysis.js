@@ -809,10 +809,10 @@ export function isPathSmooth(
     const cross = tx1.times(ty2).minus(ty1.times(tx2));
 
     // WHY: Compute actual angle between tangents using atan2 for accuracy
-    // The old comment said "Simplified for small angles" but used cross.abs() which is only
-    // accurate for very small angles (< 0.1 radians). For larger angles, this approximation
-    // breaks down. Using atan2 gives the true angle for any angle magnitude.
-    const angleDiff = Decimal.atan2(cross.abs(), dot.abs());
+    // Use atan2(|cross|, dot) to get unsigned angle in [0, π] between vectors.
+    // Taking abs(dot) would be WRONG - it would map angles > 90° to their supplement.
+    // For example, 120° would incorrectly become atan2(sin(120°), |cos(120°)|) = 60°.
+    const angleDiff = Decimal.atan2(cross.abs(), dot);
 
     // Also check if tangents are parallel but opposite (180-degree turn)
     const antiParallel = dot.lt(ANTI_PARALLEL_THRESHOLD);

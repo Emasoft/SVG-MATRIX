@@ -28,7 +28,8 @@ const D = (x) => (x instanceof Decimal ? x : new Decimal(x));
  * Parse pattern element to structured data
  *
  * Extracts all relevant attributes from an SVG `<pattern>` element and its children,
- * preparing them for pattern resolution. Handles nested patterns via href references.
+ * preparing them for pattern resolution. Stores href references for nested patterns
+ * (actual resolution must be handled by caller).
  *
  * SVG Pattern Concepts:
  * - **patternUnits**: Defines coordinate system for x, y, width, height
@@ -303,6 +304,7 @@ export function getPatternTile(patternData, targetBBox) {
 
   if (patternData.patternUnits === "objectBoundingBox") {
     // Dimensions are fractions of target bbox
+    // Zero targetBBox dimensions result in zero tile dimensions (degenerate pattern)
     return {
       x: D(targetBBox.x).plus(D(patternData.x).mul(targetBBox.width)),
       y: D(targetBBox.y).plus(D(patternData.y).mul(targetBBox.height)),
@@ -312,6 +314,7 @@ export function getPatternTile(patternData, targetBBox) {
   }
 
   // userSpaceOnUse - use values directly
+  // Zero pattern dimensions result in degenerate pattern (no tiles generated)
   return {
     x: D(patternData.x),
     y: D(patternData.y),
@@ -424,7 +427,14 @@ export function getPatternContentTransform(patternData, tile, targetBBox) {
     const tileWidth = Number(tile.width);
     const tileHeight = Number(tile.height);
 
-    // Check for division by zero in viewBox dimensions
+    // Check for zero tile dimensions - cannot compute viewBox transform
+    if (tileWidth === 0 || tileHeight === 0) {
+      throw new Error(
+        "getPatternContentTransform: tile width and height must be non-zero when viewBox is present",
+      );
+    }
+
+    // Check for zero viewBox dimensions - division by zero
     if (vb.width === 0 || vb.height === 0) {
       throw new Error(
         "getPatternContentTransform: viewBox width and height must be non-zero",
@@ -457,6 +467,12 @@ export function getPatternContentTransform(patternData, tile, targetBBox) {
 
   // Apply objectBoundingBox scaling if needed
   if (patternData.patternContentUnits === "objectBoundingBox") {
+    // Check for zero targetBBox dimensions - would create degenerate transform
+    if (targetBBox.width === 0 || targetBBox.height === 0) {
+      throw new Error(
+        "getPatternContentTransform: targetBBox width and height must be non-zero when patternContentUnits is objectBoundingBox",
+      );
+    }
     M = M.mul(Transforms2D.translation(targetBBox.x, targetBBox.y));
     M = M.mul(Transforms2D.scale(targetBBox.width, targetBBox.height));
   }
@@ -715,6 +731,11 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
     targetBBox,
   );
 
+  // Parse patternTransform if present
+  const patternTransform = parsePatternTransform(
+    patternData.patternTransform,
+  );
+
   // Get tile positions
   const positions = getTilePositions(tile, targetBBox);
 
@@ -726,8 +747,9 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
     const tileTranslate = Transforms2D.translation(pos.x, pos.y);
 
     for (const child of patternData.children) {
-      // Combine transforms: tile position + content transform + child transform
-      const M = tileTranslate.mul(contentTransform);
+      // Combine transforms: patternTransform -> tile position -> content transform
+      // Transform composition order: apply contentTransform first, then tileTranslate, then patternTransform
+      const M = patternTransform.mul(tileTranslate.mul(contentTransform));
 
       const polygon = patternChildToPolygon(child, M, samples);
 

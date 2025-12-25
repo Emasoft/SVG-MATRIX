@@ -93,9 +93,18 @@ export function douglasPeucker(points, tolerance) {
   if (tolerance < 0) {
     throw new RangeError('douglasPeucker: tolerance cannot be negative');
   }
+  // Prevent impractically small tolerances that cause numerical precision issues and extreme recursion depth
+  if (tolerance > 0 && tolerance < 1e-10) {
+    throw new RangeError('douglasPeucker: tolerance must be either 0 or >= 1e-10 to avoid numerical precision issues');
+  }
 
   if (points.length <= 2) {
     return points;
+  }
+
+  // Use iterative implementation for large arrays to prevent stack overflow
+  if (points.length > 10000) {
+    return douglasPeuckerIterative(points, tolerance);
   }
 
   // Find the point with maximum distance from the line between first and last
@@ -124,6 +133,49 @@ export function douglasPeucker(points, tolerance) {
     // All points are within tolerance, keep only endpoints
     return [first, last];
   }
+}
+
+/**
+ * Douglas-Peucker iterative implementation for large arrays to prevent stack overflow.
+ * @param {Array<{x: number, y: number}>} points - Array of points
+ * @param {number} tolerance - Maximum allowed deviation
+ * @returns {Array<{x: number, y: number}>} Simplified points
+ */
+function douglasPeuckerIterative(points, tolerance) {
+  if (points.length <= 2) return points;
+
+  const markers = new Array(points.length).fill(false);
+  markers[0] = true; // Always keep first point
+  markers[points.length - 1] = true; // Always keep last point
+
+  const stack = [[0, points.length - 1]];
+
+  while (stack.length > 0) {
+    const [start, end] = stack.pop();
+    if (end - start <= 1) continue;
+
+    let maxDistance = 0;
+    let maxIndex = start;
+
+    const first = points[start];
+    const last = points[end];
+
+    for (let i = start + 1; i < end; i++) {
+      const dist = perpendicularDistance(points[i], first, last);
+      if (dist > maxDistance) {
+        maxDistance = dist;
+        maxIndex = i;
+      }
+    }
+
+    if (maxDistance > tolerance) {
+      markers[maxIndex] = true;
+      stack.push([start, maxIndex]);
+      stack.push([maxIndex, end]);
+    }
+  }
+
+  return points.filter((_, i) => markers[i]);
 }
 
 /**
@@ -263,6 +315,10 @@ export function simplifyPolyline(points, tolerance, algorithm = 'douglas-peucker
   }
   if (tolerance < 0) {
     throw new RangeError('simplifyPolyline: tolerance cannot be negative');
+  }
+  // Prevent impractically small tolerances that cause numerical precision issues
+  if (tolerance > 0 && tolerance < 1e-10) {
+    throw new RangeError('simplifyPolyline: tolerance must be either 0 or >= 1e-10 to avoid numerical precision issues');
   }
 
   // Validate algorithm parameter to ensure only valid algorithms are used
@@ -514,6 +570,10 @@ export function simplifyPath(commands, tolerance, algorithm = 'douglas-peucker')
   if (tolerance < 0) {
     throw new RangeError('simplifyPath: tolerance cannot be negative');
   }
+  // Prevent impractically small tolerances that cause numerical precision issues
+  if (tolerance > 0 && tolerance < 1e-10) {
+    throw new RangeError('simplifyPath: tolerance must be either 0 or >= 1e-10 to avoid numerical precision issues');
+  }
 
   if (!isPurePolyline(commands) || commands.length < 3) {
     return {
@@ -524,7 +584,7 @@ export function simplifyPath(commands, tolerance, algorithm = 'douglas-peucker')
     };
   }
 
-  const points = extractPolylinePoints(commands);
+  let points = extractPolylinePoints(commands);
   const originalCount = points.length;
 
   if (originalCount < 3) {
@@ -538,6 +598,16 @@ export function simplifyPath(commands, tolerance, algorithm = 'douglas-peucker')
 
   // Check if path is closed
   const isClosed = commands[commands.length - 1].command.toLowerCase() === 'z';
+
+  // For closed paths, remove duplicate endpoint to avoid degenerate zero-length line segment
+  if (isClosed && points.length > 1) {
+    const first = points[0];
+    const last = points[points.length - 1];
+    // Check if last point is duplicate of first (within floating point tolerance)
+    if (Math.abs(last.x - first.x) < 1e-10 && Math.abs(last.y - first.y) < 1e-10) {
+      points = points.slice(0, -1);
+    }
+  }
 
   const simplifiedPoints = simplifyPolyline(points, tolerance, algorithm);
   const simplifiedCount = simplifiedPoints.length;

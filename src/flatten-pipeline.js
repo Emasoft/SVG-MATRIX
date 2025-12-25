@@ -126,7 +126,7 @@ export function flattenSVG(svgString, options = {}) {
   try {
     // Parse SVG
     const root = parseSVG(svgString);
-    if (root.tagName !== "svg") {
+    if (root.tagName.toLowerCase() !== "svg") {
       throw new Error("Root element must be <svg>");
     }
 
@@ -581,7 +581,7 @@ function resolveAllPatterns(root, defsMap, opts) {
     if (!refId) continue;
 
     const patternEl = defsMap.get(refId);
-    if (!patternEl || patternEl.tagName !== "pattern") continue;
+    if (!patternEl || patternEl.tagName.toLowerCase() !== "pattern") continue;
 
     try {
       // Check coordinate system units - skip if non-default
@@ -692,7 +692,7 @@ function resolveAllMasks(root, defsMap, opts) {
     if (!refId) continue;
 
     const maskEl = defsMap.get(refId);
-    if (!maskEl || maskEl.tagName !== "mask") continue;
+    if (!maskEl || maskEl.tagName.toLowerCase() !== "mask") continue;
 
     try {
       // Check coordinate system units
@@ -815,12 +815,9 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
     if (!refId) continue;
 
     const clipPathEl = defsMap.get(refId);
-    // SVG tagNames may be case-preserved, check both lowercase and camelCase
-    if (
-      !clipPathEl ||
-      (clipPathEl.tagName !== "clippath" && clipPathEl.tagName !== "clipPath")
-    )
-      continue;
+    // SVG spec uses "clipPath" but parsers may lowercase to "clippath"
+    const clipTagName = clipPathEl ? clipPathEl.tagName.toLowerCase() : "";
+    if (!clipPathEl || clipTagName !== "clippath") continue;
 
     try {
       // Check coordinate system units
@@ -951,7 +948,8 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
           opts.precision,
         );
 
-        // Update element
+        // Update element and track which element to clean up
+        let targetElement = el;
         if (el.tagName === "path") {
           el.setAttribute("d", clippedPath);
         } else {
@@ -963,10 +961,11 @@ function applyAllClipPaths(root, defsMap, opts, stats) {
 
           if (el.parentNode) {
             el.parentNode.replaceChild(newPath, el);
+            targetElement = newPath; // Remove clip-path from the new element in DOM
           }
         }
 
-        el.removeAttribute("clip-path");
+        targetElement.removeAttribute("clip-path");
         count++;
       }
     } catch (e) {
@@ -1075,7 +1074,8 @@ function flattenAllTransforms(root, opts, stats) {
         }
       }
 
-      // Update or replace element
+      // Update or replace element and track which element to clean up
+      let targetElement = el;
       if (el.tagName === "path") {
         el.setAttribute("d", transformedPath);
       } else {
@@ -1092,10 +1092,11 @@ function flattenAllTransforms(root, opts, stats) {
 
         if (el.parentNode) {
           el.parentNode.replaceChild(newPath, el);
+          targetElement = newPath; // Remove transform from the new element in DOM
         }
       }
 
-      el.removeAttribute("transform");
+      targetElement.removeAttribute("transform");
       count++;
     } catch (e) {
       errors.push(`transform: ${e.message}`);
@@ -1177,6 +1178,8 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
           { precision: opts.precision },
         );
 
+        // Track which element to clean up transform attribute from
+        let targetChild = child;
         if (child.tagName === "path") {
           child.setAttribute("d", transformedPath);
         } else {
@@ -1187,9 +1190,10 @@ function propagateTransformToChildren(group, ctm, opts, stats) {
           });
 
           group.replaceChild(newPath, child);
+          targetChild = newPath; // Remove transform from the new element in DOM
         }
 
-        child.removeAttribute("transform");
+        targetChild.removeAttribute("transform");
       }
     }
   }

@@ -169,12 +169,12 @@ export class SVGRenderingContext {
    * @private
    */
   _extractProperties(element, inherited) {
-    // Validate inherited is an object - Why: prevent spreading non-objects
-    if (typeof inherited !== "object" || inherited === null) {
-      throw new Error("_extractProperties: inherited must be an object");
+    // Validate inherited is an object or null - Why: prevent spreading non-objects
+    if (inherited !== null && typeof inherited !== "object") {
+      throw new Error("_extractProperties: inherited must be an object or null");
     }
 
-    const props = { ...SVG_DEFAULTS, ...inherited };
+    const props = { ...SVG_DEFAULTS, ...(inherited || {}) };
 
     // Get attributes from element
     if (element && element.getAttributeNames) {
@@ -351,9 +351,9 @@ export class SVGRenderingContext {
       extent = halfWidth.times(this.strokeMiterlimit);
     }
 
-    // Square linecaps extend by half stroke width beyond endpoints
+    // Square linecaps extend by half stroke width beyond endpoints - Why: total extent is stroke radius + cap extension = strokeWidth
     if (this.strokeLinecap === "square") {
-      const capExtent = halfWidth;
+      const capExtent = halfWidth.times(2); // strokeWidth/2 + strokeWidth/2
       if (capExtent.gt(extent)) {
         extent = capExtent;
       }

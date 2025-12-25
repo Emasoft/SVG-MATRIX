@@ -172,6 +172,13 @@ export function arcLength(points, t0 = 0, t1 = 1, options = {}) {
     return arcLength(points, t1, t0, options);
   }
 
+  // EDGE CASE: Zero-length interval optimization
+  // WHY: If t0 == t1, the interval has zero width, so arc length is exactly 0.
+  // Detecting this early avoids unnecessary quadrature computation.
+  if (t0D.eq(t1D)) {
+    return D(0);
+  }
+
   const tol = D(tolerance);
 
   // Use adaptive quadrature
@@ -286,7 +293,12 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
 
   const error = I5.minus(I10).abs();
 
-  // Check convergence
+  // CONVERGENCE CHECK: Accept result if error is within tolerance OR maxDepth reached
+  // WHY: We enforce minDepth to ensure minimum accuracy, then accept if either:
+  // 1. Error is within tolerance (desired case), or
+  // 2. maxDepth is reached (fallback to prevent infinite recursion)
+  // NOTE: If maxDepth is reached without convergence, we still return I10 (best available).
+  // This is intentional - the caller can increase maxDepth if higher accuracy is needed.
   if (depth >= minDepth && (error.lt(tol) || depth >= maxDepth)) {
     return I10;
   }
@@ -433,6 +445,12 @@ export function inverseArcLength(points, targetLength, options = {}) {
     initialT,
   } = options;
 
+  // INPUT VALIDATION: Ensure targetLength is provided
+  // WHY: targetLength is required for inverse arc length computation
+  if (targetLength === null || targetLength === undefined) {
+    throw new Error("inverseArcLength: targetLength is required");
+  }
+
   // INPUT VALIDATION: Ensure maxIterations is a positive integer
   // WHY: maxIterations controls the loop; negative or zero values would prevent convergence
   if (
@@ -466,12 +484,25 @@ export function inverseArcLength(points, targetLength, options = {}) {
     throw new Error("inverseArcLength: targetLength must be finite");
   }
 
-  // Handle edge case: zero length
+  // Handle edge case: zero target length
   if (target.isZero()) {
     return { t: D(0), length: D(0), iterations: 0, converged: true };
   }
 
   const totalLength = arcLength(points, 0, 1, lengthOpts);
+
+  // EDGE CASE: Degenerate curve with zero total length
+  // WHY: If all control points are identical (or curve is degenerate), totalLength is 0.
+  // If target > 0 but totalLength == 0, there's no solution - the curve cannot reach targetLength.
+  // We return t=1 (end of curve) as the best available answer.
+  if (totalLength.isZero() && target.gt(0)) {
+    return {
+      t: D(1),
+      length: D(0),
+      iterations: 0,
+      converged: false,
+    };
+  }
 
   if (target.gte(totalLength)) {
     return { t: D(1), length: totalLength, iterations: 0, converged: true };
@@ -593,6 +624,12 @@ export function pathInverseArcLength(segments, targetLength, options = {}) {
   }
   if (segments.length === 0) {
     throw new Error("pathInverseArcLength: segments array must not be empty");
+  }
+
+  // INPUT VALIDATION: Ensure targetLength is provided
+  // WHY: targetLength is required for path inverse arc length computation
+  if (targetLength === null || targetLength === undefined) {
+    throw new Error("pathInverseArcLength: targetLength is required");
   }
 
   const target = D(targetLength);
@@ -1126,15 +1163,19 @@ export function verifyArcLengthTable(points, samples = 50) {
   }
 
   // Verify getT roundtrip for a few values
+  // WHY: getT uses linear interpolation between table entries, so there's inherent error.
+  // The average gap between entries is totalLength/samples, and we allow 2x this as tolerance
+  // to account for worst-case interpolation error (e.g., at inflection points).
+  const maxAcceptableRoundtripError = table.totalLength.div(samples).times(2);
   for (const fraction of [0.25, 0.5, 0.75]) {
     const targetLength = table.totalLength.times(fraction);
     const foundT = table.getT(targetLength);
     const recoveredLength = arcLength(points, 0, foundT);
     const roundtripError = recoveredLength.minus(targetLength).abs();
 
-    if (roundtripError.gt(table.totalLength.div(samples).times(2))) {
+    if (roundtripError.gt(maxAcceptableRoundtripError)) {
       errors.push(
-        `getT roundtrip error too large at ${fraction}: ${roundtripError}`,
+        `getT roundtrip error too large at ${fraction}: ${roundtripError} > ${maxAcceptableRoundtripError}`,
       );
     }
   }

@@ -72,7 +72,8 @@ export function parseUrlId(value) {
 
   // Match url(#id) or url("#id") or url('#id') with optional whitespace
   const match = value.match(/url\(\s*["']?#([^"')\s]+)\s*["']?\s*\)/);
-  return match ? match[1] : null;
+  // Edge case: reject empty IDs from url(#) patterns
+  return match && match[1] ? match[1] : null;
 }
 
 /**
@@ -83,7 +84,9 @@ export function parseUrlId(value) {
 export function parseHrefId(value) {
   if (!value || typeof value !== "string") return null;
   if (value.startsWith("#")) {
-    return value.substring(1);
+    const id = value.substring(1);
+    // Edge case: reject empty IDs or IDs starting with # (like ##id)
+    return id && !id.startsWith("#") ? id : null;
   }
   return null;
 }
@@ -103,7 +106,9 @@ export function parseAnimationValueIds(value) {
   for (const part of parts) {
     const trimmed = part.trim();
     if (trimmed.startsWith("#")) {
-      ids.push(trimmed.substring(1));
+      const id = trimmed.substring(1);
+      // Edge case: reject empty IDs from "#" alone
+      if (id) ids.push(id);
     }
     // Also check for url(#id) within values
     const urlId = parseUrlId(trimmed);
@@ -118,6 +123,7 @@ export function parseAnimationValueIds(value) {
  *   - "button.click" -> "button"
  *   - "anim1.end" -> "anim1"
  *   - "anim1.begin+1s" -> "anim1"
+ *   - "anim1.end-2s" -> "anim1"
  *   - "click" -> null (no ID reference)
  *   - "3s;button.click" -> "button"
  * @param {string} value - Timing attribute value
@@ -132,10 +138,11 @@ export function parseTimingIds(value) {
 
   for (const part of parts) {
     const trimmed = part.trim();
-    // Match patterns like "id.event" or "id.begin" or "id.end"
+    // Match patterns like "id.event" or "id.begin" or "id.end" with optional offset (+1s, -2s)
     // Events: click, mousedown, mouseup, mouseover, mouseout, focusin, focusout, etc.
+    // Edge case: handle timing offsets like "id.begin+1s" or "id.end-2s"
     const match = trimmed.match(
-      /^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)/,
+      /^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)(?:[+-]\d+(?:\.\d+)?[a-z]*)?/,
     );
     if (match) {
       ids.push(match[1]);
@@ -158,7 +165,10 @@ export function parseCSSIds(css) {
   const urlRegex = /url\(\s*["']?#([^"')]+)["']?\s*\)/g;
   let match;
   while ((match = urlRegex.exec(css)) !== null) {
-    ids.push(match[1]);
+    // Edge case: reject empty IDs from url(#) patterns
+    if (match[1]) {
+      ids.push(match[1]);
+    }
   }
 
   return ids;
@@ -178,17 +188,200 @@ export function parseJavaScriptIds(js) {
   const getByIdRegex = /getElementById\(\s*["']([^"']+)["']\s*\)/g;
   let match;
   while ((match = getByIdRegex.exec(js)) !== null) {
-    ids.push(match[1]);
+    // Edge case: reject empty IDs
+    if (match[1]) {
+      ids.push(match[1]);
+    }
   }
 
   // querySelector('#id') or querySelector("#id")
   const querySelectorRegex =
     /querySelector(?:All)?\(\s*["']#([^"'#\s]+)["']\s*\)/g;
   while ((match = querySelectorRegex.exec(js)) !== null) {
-    ids.push(match[1]);
+    // Edge case: reject empty IDs
+    if (match[1]) {
+      ids.push(match[1]);
+    }
   }
 
   return ids;
+}
+
+/**
+ * Detect circular animation references in begin/end attributes
+ * Example: anim1.begin="anim2.end" and anim2.begin="anim1.end" creates a cycle
+ * @param {SVGElement} root - Root SVG element
+ * @returns {string[][]} Array of circular reference chains (empty if none found)
+ */
+export function detectCircularAnimationReferences(root) {
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError(
+      "detectCircularAnimationReferences: root must be a valid SVGElement",
+    );
+  }
+
+  const animationDeps = new Map(); // id -> Set<id> dependencies
+
+  // Build dependency graph from all animation elements
+  const processElement = (el) => {
+    const tagName = el.tagName?.toLowerCase() || "";
+    if (ANIMATION_ELEMENTS.includes(tagName)) {
+      const elId = el.getAttribute("id");
+      if (elId) {
+        const deps = new Set();
+        // Check begin/end timing references
+        for (const attr of TIMING_ATTRIBUTES) {
+          const value = el.getAttribute(attr);
+          if (value) {
+            parseTimingIds(value).forEach((id) => deps.add(id));
+          }
+        }
+        animationDeps.set(elId, deps);
+      }
+    }
+
+    // Recurse to children
+    if (el.children && typeof el.children[Symbol.iterator] === "function") {
+      for (const child of el.children) {
+        if (child instanceof SVGElement) {
+          processElement(child);
+        }
+      }
+    }
+  };
+
+  processElement(root);
+
+  // Detect cycles using DFS
+  const cycles = [];
+  const visited = new Set();
+  const recursionStack = new Set();
+
+  const dfs = (id, path = []) => {
+    if (recursionStack.has(id)) {
+      // Found cycle - extract the cycle portion
+      const cycleStart = path.indexOf(id);
+      cycles.push([...path.slice(cycleStart), id]);
+      return;
+    }
+    if (visited.has(id)) return;
+
+    visited.add(id);
+    recursionStack.add(id);
+    path.push(id);
+
+    const deps = animationDeps.get(id);
+    if (deps) {
+      for (const depId of deps) {
+        dfs(depId, [...path]);
+      }
+    }
+
+    recursionStack.delete(id);
+  };
+
+  for (const id of animationDeps.keys()) {
+    dfs(id);
+  }
+
+  return cycles;
+}
+
+/**
+ * Validate that animation target elements exist in the document
+ * @param {SVGElement} root - Root SVG element
+ * @returns {{valid: string[], missing: string[], details: Map<string, string[]>}}
+ */
+export function validateAnimationTargets(root) {
+  if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
+    throw new TypeError(
+      "validateAnimationTargets: root must be a valid SVGElement",
+    );
+  }
+
+  const allIds = new Set();
+  const animationTargets = new Map(); // target id -> [animation element ids]
+
+  // Collect all IDs in document
+  const collectIds = (el) => {
+    const id = el.getAttribute("id");
+    if (id) allIds.add(id);
+
+    if (el.children && typeof el.children[Symbol.iterator] === "function") {
+      for (const child of el.children) {
+        if (child instanceof SVGElement) {
+          collectIds(child);
+        }
+      }
+    }
+  };
+
+  // Collect animation targets (from timing, values, and href attributes)
+  const collectTargets = (el) => {
+    const tagName = el.tagName?.toLowerCase() || "";
+    if (ANIMATION_ELEMENTS.includes(tagName)) {
+      const elId = el.getAttribute("id") || "anonymous";
+      const targets = new Set();
+
+      // Timing targets
+      for (const attr of TIMING_ATTRIBUTES) {
+        const value = el.getAttribute(attr);
+        if (value) {
+          parseTimingIds(value).forEach((id) => targets.add(id));
+        }
+      }
+
+      // Value targets
+      for (const attr of VALUE_ATTRIBUTES) {
+        const value = el.getAttribute(attr);
+        if (value) {
+          parseAnimationValueIds(value).forEach((id) => targets.add(id));
+        }
+      }
+
+      // Href targets (animateMotion mpath)
+      for (const attr of HREF_ATTRIBUTES) {
+        const value = el.getAttribute(attr);
+        if (value) {
+          const id = parseHrefId(value);
+          if (id) targets.add(id);
+        }
+      }
+
+      for (const targetId of targets) {
+        if (!animationTargets.has(targetId)) {
+          animationTargets.set(targetId, []);
+        }
+        animationTargets.get(targetId).push(elId);
+      }
+    }
+
+    if (el.children && typeof el.children[Symbol.iterator] === "function") {
+      for (const child of el.children) {
+        if (child instanceof SVGElement) {
+          collectTargets(child);
+        }
+      }
+    }
+  };
+
+  collectIds(root);
+  collectTargets(root);
+
+  const valid = [];
+  const missing = [];
+  const details = new Map();
+
+  for (const [targetId, sources] of animationTargets.entries()) {
+    if (allIds.has(targetId)) {
+      valid.push(targetId);
+    } else {
+      missing.push(targetId);
+    }
+    details.set(targetId, sources);
+  }
+
+  return { valid, missing, details };
 }
 
 /**

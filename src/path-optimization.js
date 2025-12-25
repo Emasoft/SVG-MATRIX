@@ -140,7 +140,7 @@ export function evaluateCubicBezier(p0, p1, p2, p3, t) {
 
   const tD = D(t);
   // Validate t is within valid range [0, 1] for Bezier curves
-  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateCubicBezier: parameter t must be between 0 and 1');
+  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateCubicBezier: parameter t must be in range [0, 1]');
   const oneMinusT = D(1).minus(tD);
 
   // Bernstein basis polynomials
@@ -174,7 +174,7 @@ export function evaluateQuadraticBezier(p0, p1, p2, t) {
 
   const tD = D(t);
   // Validate t is within valid range [0, 1] for Bezier curves
-  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateQuadraticBezier: parameter t must be between 0 and 1');
+  if (tD.lessThan(0) || tD.greaterThan(1)) throw new Error('evaluateQuadraticBezier: parameter t must be in range [0, 1]');
   const oneMinusT = D(1).minus(tD);
 
   // Bernstein basis polynomials
@@ -221,7 +221,8 @@ export function lineToHorizontal(x1, y1, x2, y2, tolerance = EPSILON) {
 
   // VERIFICATION: Endpoint check
   // The H command moves to (x2, y1), so we verify y1 ≈ y2
-  const verified = canConvert ? yDiff.lessThan(tol) : true;
+  // Verification is always true since canConvert already checks the same condition
+  const verified = true;
 
   return {
     canConvert,
@@ -259,7 +260,8 @@ export function lineToVertical(x1, y1, x2, y2, tolerance = EPSILON) {
 
   // VERIFICATION: Endpoint check
   // The V command moves to (x1, y2), so we verify x1 ≈ x2
-  const verified = canConvert ? xDiff.lessThan(tol) : true;
+  // Verification is always true since canConvert already checks the same condition
+  const verified = true;
 
   return {
     canConvert,
@@ -364,6 +366,8 @@ export function curveToSmooth(prevControl, x0, y0, x1, y1, x2, y2, x3, y3, toler
   // VERIFICATION: Sample both curves and compare
   // Original: C with (p0, p1, p2, p3)
   // Smooth: S with (p0, expectedP1, p2, p3)
+  // Use 20 samples for adequate coverage without excessive computation
+  // This provides sufficient resolution for typical SVG curve segments
   const samples = 20;
   let maxSampleDeviation = new Decimal(0);
 
@@ -451,6 +455,8 @@ export function quadraticToSmooth(prevControl, x0, y0, x1, y1, x2, y2, tolerance
   // VERIFICATION: Sample both curves and compare
   // Original: Q with (p0, p1, p2)
   // Smooth: T with (p0, expectedP1, p2)
+  // Use 20 samples for adequate coverage without excessive computation
+  // This provides sufficient resolution for typical SVG curve segments
   const samples = 20;
   let maxSampleDeviation = new Decimal(0);
 
@@ -486,6 +492,11 @@ function _toRelativeArgs(cmd, args, cx, cy) {
   if (!Array.isArray(args)) throw new Error('_toRelativeArgs: args must be an array');
   if (cx === null || cx === undefined) throw new Error('_toRelativeArgs: cx is required');
   if (cy === null || cy === undefined) throw new Error('_toRelativeArgs: cy is required');
+
+  // Validate that commands requiring arguments have at least one
+  if (['M', 'L', 'H', 'V', 'C', 'S', 'Q', 'T', 'A'].includes(cmd) && args.length === 0) {
+    throw new Error(`_toRelativeArgs: ${cmd} command requires arguments but received empty array`);
+  }
 
   if (cmd === 'M' || cmd === 'L' || cmd === 'T') {
     if (args.length % 2 !== 0) throw new Error(`_toRelativeArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
@@ -537,6 +548,11 @@ function _toAbsoluteArgs(cmd, args, cx, cy) {
   if (!Array.isArray(args)) throw new Error('_toAbsoluteArgs: args must be an array');
   if (cx === null || cx === undefined) throw new Error('_toAbsoluteArgs: cx is required');
   if (cy === null || cy === undefined) throw new Error('_toAbsoluteArgs: cy is required');
+
+  // Validate that commands requiring arguments have at least one
+  if (['m', 'l', 'h', 'v', 'c', 's', 'q', 't', 'a'].includes(cmd) && args.length === 0) {
+    throw new Error(`_toAbsoluteArgs: ${cmd} command requires arguments but received empty array`);
+  }
 
   if (cmd === 'm' || cmd === 'l' || cmd === 't') {
     if (args.length % 2 !== 0) throw new Error(`_toAbsoluteArgs: ${cmd} requires pairs of coordinates, got ${args.length} args`);
@@ -728,7 +744,9 @@ function formatCommand(command, precision = 6) {
     // Validate the number is finite
     if (!Number.isFinite(num)) throw new Error(`formatCommand: argument at index ${index} converted to non-finite number: ${num}`);
     // Format with specified precision and remove trailing zeros
-    return parseFloat(num.toFixed(precision)).toString();
+    // Use toFixed for precision, then parseFloat to remove trailing zeros
+    const formatted = num.toFixed(precision);
+    return parseFloat(formatted).toString();
   }).join(',');
 
   return args.length > 0 ? `${cmd}${args}` : cmd;
@@ -763,6 +781,9 @@ export function chooseShorterForm(absCommand, relCommand, precision = 6) {
   const savedBytes = isShorter ? absLen - relLen : 0;
 
   // VERIFICATION: Both commands must have the same number of arguments
+  // Note: This is a basic check. True verification would require comparing the actual path output,
+  // but since both forms represent the same path geometrically (just encoded differently),
+  // and the conversion functions are verified separately, this check is sufficient.
   const verified = absCommand.args.length === relCommand.args.length;
 
   if (isShorter) {
@@ -807,6 +828,12 @@ export function collapseRepeated(commands) {
     if (!commands[i]) throw new Error(`collapseRepeated: command at index ${i} is null or undefined`);
     if (!commands[i].command) throw new Error(`collapseRepeated: command at index ${i} is missing 'command' property`);
     if (!Array.isArray(commands[i].args)) throw new Error(`collapseRepeated: command at index ${i} is missing 'args' array property`);
+    // Validate that commands requiring arguments have them
+    const cmd = commands[i].command;
+    const requiresArgs = ['M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a'].includes(cmd);
+    if (requiresArgs && commands[i].args.length === 0) {
+      throw new Error(`collapseRepeated: command '${cmd}' at index ${i} requires arguments but has empty args array`);
+    }
   }
 
   if (commands.length < 2) {
@@ -828,6 +855,8 @@ export function collapseRepeated(commands) {
 
     // Commands that can be collapsed (those with repeated coordinate pairs)
     // Note: M/m are excluded because M has special semantics (first pair is moveto, subsequent pairs become lineto)
+    // Note: A/a are excluded because arc commands have complex 7-parameter structure and flags
+    // Note: Z/z are excluded because they have no arguments
     const canCollapse = ['L', 'l', 'H', 'h', 'V', 'v', 'T', 't', 'C', 'c', 'S', 's', 'Q', 'q'].includes(command);
 
     if (canCollapse && command === currentCommand) {
@@ -892,7 +921,8 @@ export function lineToZ(lastX, lastY, startX, startY, tolerance = EPSILON) {
   const canConvert = deviation.lessThan(tol);
 
   // VERIFICATION: If we can convert, the deviation must be within tolerance
-  const verified = canConvert ? deviation.lessThan(tol) : true;
+  // Verification is always true since canConvert already checks the same condition
+  const verified = true;
 
   return {
     canConvert,

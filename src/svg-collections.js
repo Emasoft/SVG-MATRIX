@@ -116,7 +116,9 @@ export const elemsGroups = {
     'defs', 'g', 'svg', 'symbol', 'use'
   ]),
   paintServer: new Set([
-    'hatch', 'linearGradient', 'meshGradient', 'pattern', 'radialGradient', 'solidColor'
+    // Include both mixed-case and lowercase for case-insensitive matching
+    'hatch', 'linearGradient', 'lineargradient', 'meshGradient', 'meshgradient',
+    'pattern', 'radialGradient', 'radialgradient', 'solidColor', 'solidcolor'
   ]),
   nonRendering: new Set([
     // Include both mixed-case and lowercase for case-insensitive matching
@@ -868,6 +870,16 @@ export const allowedChildrenPerElement = {
   'feSpotLight': new Set(['animate', 'set']),
   // Stop element
   'stop': new Set(['animate', 'set']),
+  // SVG 2.0 solidColor element (paint server)
+  'solidColor': new Set(['animate', 'animateColor', 'animateTransform', 'desc', 'metadata', 'set', 'title']),
+  'solidcolor': new Set(['animate', 'animateColor', 'animateTransform', 'desc', 'metadata', 'set', 'title']),
+  // Text content elements
+  'tref': new Set(['animate', 'animateColor', 'desc', 'metadata', 'set', 'title']),
+  'altGlyph': new Set(['animate', 'animateColor', 'desc', 'metadata', 'set', 'title']),
+  'altGlyphDef': new Set(['altGlyphItem']),
+  'altGlyphItem': new Set(['glyphRef', 'altGlyphItem']),
+  'glyph': new Set(['animate', 'animateColor', 'animateMotion', 'animateTransform', 'circle', 'desc', 'ellipse', 'line', 'metadata', 'path', 'polygon', 'polyline', 'rect', 'set', 'title', 'use']),
+  'glyphRef': new Set([]),
   // Other elements
   'foreignObject': new Set([]),  // Can contain any non-SVG content
   'style': new Set([]),

@@ -268,8 +268,20 @@ export function scale(sx, sy = null) {
 export function rotate(theta) {
   validateNumeric(theta, 'theta');
   const t = D(theta);
-  const c = new Decimal(Math.cos(t.toNumber()));
-  const s = new Decimal(Math.sin(t.toNumber()));
+  // Normalize angle to [-π, π] to prevent NaN from Math.cos/sin with very large angles
+  const tNum = t.toNumber();
+  const pi = Math.PI;
+  const normalizedAngle = tNum - (2 * pi) * Math.floor((tNum + pi) / (2 * pi));
+  // Check if normalization produced valid number
+  if (!isFinite(normalizedAngle)) {
+    throw new Error(`Angle normalization failed for theta=${theta} (too large or invalid)`);
+  }
+  const c = new Decimal(Math.cos(normalizedAngle));
+  const s = new Decimal(Math.sin(normalizedAngle));
+  // Validate trig results are finite
+  if (!c.isFinite() || !s.isFinite()) {
+    throw new Error(`Trigonometric computation failed for theta=${theta} (produced non-finite values)`);
+  }
   return Matrix.from([
     [c, s.negated(), new Decimal(0)],
     [s, c, new Decimal(0)],
@@ -435,12 +447,13 @@ export function skew(ax, ay) {
  * - (ux, uy) = (1, 0): Horizontal stretch (same as scale(k, 1))
  * - (ux, uy) = (0, 1): Vertical stretch (same as scale(1, k))
  *
- * Note: The axis vector should be normalized (ux² + uy² = 1) for correct behavior,
- * though this is not enforced. Non-unit vectors will produce scaled results.
+ * Note: The axis vector must be normalized (ux² + uy² = 1) for correct behavior.
+ * Non-normalized vectors will produce incorrect stretch factors due to the mathematical
+ * formula requiring a unit vector. Normalization is validated within tolerance 1e-6.
  *
- * @param {number|string|Decimal} ux - X component of stretch axis direction (should be unit vector)
- * @param {number|string|Decimal} uy - Y component of stretch axis direction (should be unit vector)
- * @param {number|string|Decimal} k - Stretch factor along the axis (1 = no change, >1 = stretch, <1 = compress)
+ * @param {number|string|Decimal} ux - X component of stretch axis direction (must be unit vector)
+ * @param {number|string|Decimal} uy - Y component of stretch axis direction (must be unit vector)
+ * @param {number|string|Decimal} k - Stretch factor along the axis (1 = no change, >1 = stretch, 0<k<1 = compress, k<0 = reflect and stretch)
  * @returns {Matrix} 3x3 stretch matrix along the specified axis
  *
  * @example
@@ -474,10 +487,20 @@ export function stretchAlongAxis(ux, uy, k) {
   if (kD.isZero()) {
     throw new Error('Stretch factor k cannot be zero (creates singular matrix)');
   }
-  // Warn if axis vector is not normalized (optional but recommended)
+  // Validate axis vector is not zero
   const normSquared = uxD.mul(uxD).plus(uyD.mul(uyD));
   if (normSquared.isZero()) {
     throw new Error('Axis vector (ux, uy) cannot be zero');
+  }
+  // Validate axis vector is normalized (required for correct stretch factor)
+  const normDiff = normSquared.minus(1).abs();
+  const tolerance = new Decimal(1e-6);
+  if (normDiff.greaterThan(tolerance)) {
+    throw new Error(
+      `Axis vector (ux, uy) must be normalized (||u|| = 1). ` +
+      `Current magnitude squared: ${normSquared.toString()}, expected: 1. ` +
+      `Use normalized vector: (${uxD.div(normSquared.sqrt()).toString()}, ${uyD.div(normSquared.sqrt()).toString()})`
+    );
   }
   const one = new Decimal(1);
   const factor = kD.minus(one);

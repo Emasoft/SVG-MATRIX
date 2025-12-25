@@ -63,6 +63,7 @@ export function parseSelector(selectorString) {
 /**
  * Split selector by combinators while preserving them.
  * Handles: descendant (space), child (>), adjacent sibling (+), general sibling (~)
+ * Correctly ignores combinators inside quotes, brackets, and parentheses.
  *
  * @param {string} selector - Selector string
  * @returns {Array<string>} Parts split by combinators
@@ -72,60 +73,85 @@ function splitByCombinators(selector) {
     throw new Error("Selector must be a string");
   }
 
-  // Match combinators outside of brackets and parentheses
+  // Track nesting depth separately for brackets and parens, and quote state
   const parts = [];
   let current = "";
-  let depth = 0; // Track nesting in [] and ()
-  let inBracket = false;
-  let inParen = false;
+  let bracketDepth = 0; // Track nesting in []
+  let parenDepth = 0; // Track nesting in ()
+  let inQuote = false; // Track if inside quoted string
+  let quoteChar = null; // Which quote character (' or ")
 
   for (let i = 0; i < selector.length; i++) {
     const char = selector[i];
+    const prevChar = i > 0 ? selector[i - 1] : null;
 
-    if (char === "[") {
-      inBracket = true;
-      depth++;
-    } else if (char === "]") {
-      depth--;
-      if (depth < 0) {
-        throw new Error(`Unbalanced brackets at position ${i}`);
+    // Handle quotes (ignore escaped quotes)
+    if ((char === '"' || char === "'") && prevChar !== "\\") {
+      if (!inQuote) {
+        inQuote = true;
+        quoteChar = char;
+      } else if (char === quoteChar) {
+        inQuote = false;
+        quoteChar = null;
       }
-      if (depth === 0) inBracket = false;
-    } else if (char === "(") {
-      inParen = true;
-      depth++;
-    } else if (char === ")") {
-      depth--;
-      if (depth < 0) {
-        throw new Error(`Unbalanced parentheses at position ${i}`);
-      }
-      if (depth === 0) inParen = false;
     }
 
-    // Only split on combinators when not inside brackets or parens
-    if (depth === 0 && !inBracket && !inParen) {
+    // Only track brackets/parens outside quotes
+    if (!inQuote) {
+      if (char === "[" && prevChar !== "\\") {
+        bracketDepth++;
+      } else if (char === "]" && prevChar !== "\\") {
+        bracketDepth--;
+        if (bracketDepth < 0) {
+          throw new Error(`Unbalanced brackets at position ${i}`);
+        }
+      } else if (char === "(" && prevChar !== "\\") {
+        parenDepth++;
+      } else if (char === ")" && prevChar !== "\\") {
+        parenDepth--;
+        if (parenDepth < 0) {
+          throw new Error(`Unbalanced parentheses at position ${i}`);
+        }
+      }
+    }
+
+    // Only split on combinators when not inside quotes, brackets, or parens
+    if (!inQuote && bracketDepth === 0 && parenDepth === 0) {
       if (char === ">" || char === "+" || char === "~") {
-        if (current.trim()) parts.push(current.trim());
-        parts.push(char); // Keep combinator as separate part for context
+        const trimmed = current.trim();
+        if (trimmed) parts.push(trimmed);
+        // Don't push combinator as separate part - combinators don't contribute to specificity
         current = "";
         continue;
-      } else if (char === " " && current.trim()) {
-        // Space combinator (descendant)
-        parts.push(current.trim());
-        current = "";
-        continue;
+      } else if (char === " ") {
+        const trimmed = current.trim();
+        if (trimmed) {
+          parts.push(trimmed);
+          current = "";
+          continue;
+        } else {
+          // Skip consecutive spaces
+          continue;
+        }
       }
     }
 
     current += char;
   }
 
-  if (depth !== 0) {
-    throw new Error("Unclosed brackets or parentheses in selector");
+  if (inQuote) {
+    throw new Error(`Unclosed quote in selector`);
+  }
+  if (bracketDepth !== 0) {
+    throw new Error("Unclosed brackets in selector");
+  }
+  if (parenDepth !== 0) {
+    throw new Error("Unclosed parentheses in selector");
   }
 
-  if (current.trim()) {
-    parts.push(current.trim());
+  const trimmed = current.trim();
+  if (trimmed) {
+    parts.push(trimmed);
   }
 
   return parts;
@@ -150,14 +176,16 @@ function parseSimpleSelector(selector) {
 
     // ID selector
     if (char === "#") {
-      const match = selector.slice(i).match(/^#([\w-]+)/);
+      // ID must start with letter, hyphen, or underscore (not digit)
+      const match = selector.slice(i).match(/^#([a-zA-Z_-][\w-]*)/);
       if (!match) throw new Error(`Invalid ID selector at position ${i}`);
       components.push({ type: SELECTOR_TYPES.ID, value: match[1] });
       i += match[0].length;
     }
     // Class selector
     else if (char === ".") {
-      const match = selector.slice(i).match(/^\.([\w-]+)/);
+      // Class must start with letter, hyphen, or underscore (not digit)
+      const match = selector.slice(i).match(/^\.([a-zA-Z_-][\w-]*)/);
       if (!match) throw new Error(`Invalid class selector at position ${i}`);
       components.push({ type: SELECTOR_TYPES.CLASS, value: match[1] });
       i += match[0].length;
@@ -174,7 +202,7 @@ function parseSimpleSelector(selector) {
     // Pseudo-element (::) or pseudo-class (:)
     else if (char === ":") {
       if (i + 1 < selector.length && selector[i + 1] === ":") {
-        // Pseudo-element
+        // Pseudo-element with :: syntax
         const match = selector.slice(i).match(/^::([\w-]+)/);
         if (!match) throw new Error(`Invalid pseudo-element at position ${i}`);
         components.push({
@@ -183,7 +211,7 @@ function parseSimpleSelector(selector) {
         });
         i += match[0].length;
       } else {
-        // Pseudo-class (may have arguments like :not())
+        // Pseudo-class (may have arguments like :not()) or legacy pseudo-element
         const match = selector.slice(i).match(/^:([\w-]+)/);
         if (!match) throw new Error(`Invalid pseudo-class at position ${i}`);
 
@@ -199,25 +227,58 @@ function parseSimpleSelector(selector) {
           i = endIdx + 1;
         }
 
+        // Handle legacy pseudo-elements (CSS2 syntax with single colon)
+        // These should be treated as pseudo-elements, not pseudo-classes
+        const legacyPseudoElements = ["before", "after", "first-line", "first-letter"];
+        const isPseudoElement = legacyPseudoElements.includes(pseudoValue);
+
         components.push({
-          type: SELECTOR_TYPES.PSEUDO_CLASS,
+          type: isPseudoElement ? SELECTOR_TYPES.PSEUDO_ELEMENT : SELECTOR_TYPES.PSEUDO_CLASS,
           value: pseudoValue,
         });
       }
     }
-    // Universal selector
+    // Universal selector (with potential namespace)
     else if (char === "*") {
+      let nextIdx = i + 1;
+
+      // Check for namespace separator (ns|* or *|*)
+      if (nextIdx < selector.length && selector[nextIdx] === "|") {
+        // This is a namespace prefix, skip it
+        nextIdx++; // Skip the |
+        if (nextIdx < selector.length && selector[nextIdx] === "*") {
+          nextIdx++; // Skip the * after |
+        }
+      }
+
       components.push({ type: SELECTOR_TYPES.UNIVERSAL, value: "*" });
-      i++;
+      i = nextIdx;
     }
-    // Type selector (element name)
+    // Type selector (element name) or namespace
     else if (/[a-zA-Z]/.test(char)) {
-      const match = selector.slice(i).match(/^([\w-]+)/);
+      // Type selectors must start with a letter (not digit or hyphen alone)
+      const match = selector.slice(i).match(/^([a-zA-Z][\w-]*)/);
       if (!match) throw new Error(`Invalid type selector at position ${i}`);
-      components.push({ type: SELECTOR_TYPES.TYPE, value: match[1] });
-      i += match[0].length;
+
+      let value = match[1];
+      let nextIdx = i + match[0].length;
+
+      // Check for namespace separator (|)
+      if (nextIdx < selector.length && selector[nextIdx] === "|") {
+        // This is a namespace prefix, skip it for specificity purposes
+        // The actual element name follows the |
+        nextIdx++; // Skip the |
+        const elementMatch = selector.slice(nextIdx).match(/^([a-zA-Z*][\w-]*)/);
+        if (elementMatch) {
+          value = elementMatch[1]; // Use the element name after namespace
+          nextIdx += elementMatch[0].length;
+        }
+      }
+
+      components.push({ type: SELECTOR_TYPES.TYPE, value });
+      i = nextIdx;
     }
-    // Skip combinators (should not be in simple selector)
+    // Skip combinators (should not be in simple selector after splitByCombinators)
     else if (char === ">" || char === "+" || char === "~" || char === " ") {
       i++;
     } else {
@@ -230,6 +291,7 @@ function parseSimpleSelector(selector) {
 
 /**
  * Find matching closing bracket for attribute selector.
+ * Handles quoted strings correctly (ignores brackets inside quotes).
  *
  * @param {string} str - String to search
  * @param {number} startIdx - Index of opening bracket
@@ -244,11 +306,31 @@ function findMatchingBracket(str, startIdx) {
   }
 
   let depth = 0;
+  let inQuote = false;
+  let quoteChar = null;
+
   for (let i = startIdx; i < str.length; i++) {
-    if (str[i] === "[") depth++;
-    if (str[i] === "]") {
-      depth--;
-      if (depth === 0) return i;
+    const char = str[i];
+    const prevChar = i > 0 ? str[i - 1] : null;
+
+    // Handle quotes (ignore escaped quotes)
+    if ((char === '"' || char === "'") && prevChar !== "\\") {
+      if (!inQuote) {
+        inQuote = true;
+        quoteChar = char;
+      } else if (char === quoteChar) {
+        inQuote = false;
+        quoteChar = null;
+      }
+    }
+
+    // Only count brackets outside quotes
+    if (!inQuote) {
+      if (char === "[" && prevChar !== "\\") depth++;
+      if (char === "]" && prevChar !== "\\") {
+        depth--;
+        if (depth === 0) return i;
+      }
     }
   }
   return -1;
@@ -256,6 +338,7 @@ function findMatchingBracket(str, startIdx) {
 
 /**
  * Find matching closing parenthesis for pseudo-class function.
+ * Handles quoted strings correctly (ignores parens inside quotes).
  *
  * @param {string} str - String to search
  * @param {number} startIdx - Index of opening parenthesis
@@ -270,11 +353,31 @@ function findMatchingParen(str, startIdx) {
   }
 
   let depth = 0;
+  let inQuote = false;
+  let quoteChar = null;
+
   for (let i = startIdx; i < str.length; i++) {
-    if (str[i] === "(") depth++;
-    if (str[i] === ")") {
-      depth--;
-      if (depth === 0) return i;
+    const char = str[i];
+    const prevChar = i > 0 ? str[i - 1] : null;
+
+    // Handle quotes (ignore escaped quotes)
+    if ((char === '"' || char === "'") && prevChar !== "\\") {
+      if (!inQuote) {
+        inQuote = true;
+        quoteChar = char;
+      } else if (char === quoteChar) {
+        inQuote = false;
+        quoteChar = null;
+      }
+    }
+
+    // Only count parens outside quotes
+    if (!inQuote) {
+      if (char === "(" && prevChar !== "\\") depth++;
+      if (char === ")" && prevChar !== "\\") {
+        depth--;
+        if (depth === 0) return i;
+      }
     }
   }
   return -1;
@@ -289,7 +392,10 @@ function findMatchingParen(str, startIdx) {
  *
  * Universal selector (*) and combinators do not contribute to specificity.
  *
- * Note: :not() pseudo-class itself doesn't count, but its argument does.
+ * Note: Special pseudo-class handling:
+ * - :not(), :is(), :has() don't count themselves, but their arguments do
+ * - :where() has zero specificity (neither it nor its arguments count)
+ * - :nth-child() and :nth-last-child() can have an "of" clause whose selector contributes
  *
  * @param {string|Array<Object>} selector - CSS selector string or parsed components
  * @returns {Array<number>} [a, b, c] specificity values
@@ -325,21 +431,72 @@ export function calculateSpecificity(selector) {
         b++;
         break;
 
-      case SELECTOR_TYPES.PSEUDO_CLASS:
-        // Handle :not() - it doesn't count itself, but its argument does
-        if (component.value.startsWith("not(") && component.value.endsWith(")")) {
-          const notContent = component.value.slice(4, -1); // Extract content inside :not()
-          if (notContent.trim()) {
-            // Only process non-empty :not() content
-            const notSpec = calculateSpecificity(notContent);
-            a += notSpec[0];
-            b += notSpec[1];
-            c += notSpec[2];
-          }
-        } else {
-          b++;
+      case SELECTOR_TYPES.PSEUDO_CLASS: {
+        // Handle special pseudo-classes with complex specificity rules
+        const value = component.value;
+
+        // :where() has zero specificity - skip entirely
+        if (value.startsWith("where(") && value.endsWith(")")) {
+          // Neither :where() nor its arguments contribute to specificity
+          break;
         }
+
+        // :not(), :is(), :has() don't count themselves, but their arguments do
+        if (
+          (value.startsWith("not(") || value.startsWith("is(") || value.startsWith("has(")) &&
+          value.endsWith(")")
+        ) {
+          const funcName = value.match(/^(\w+)\(/)[1];
+          const content = value.slice(funcName.length + 1, -1); // Extract content inside parens
+
+          if (content.trim()) {
+            // Process each selector in the argument list (comma-separated)
+            // For :is() and :not(), use the highest specificity among arguments
+            const selectors = splitSelectorList(content);
+            let maxSpec = [0, 0, 0];
+
+            for (const sel of selectors) {
+              if (sel.trim()) {
+                const selSpec = calculateSpecificity(sel.trim());
+                if (compareSpecificity(selSpec, maxSpec) > 0) {
+                  maxSpec = selSpec;
+                }
+              }
+            }
+
+            a += maxSpec[0];
+            b += maxSpec[1];
+            c += maxSpec[2];
+          }
+          break;
+        }
+
+        // :nth-child() and :nth-last-child() with "of S" clause
+        if (
+          (value.startsWith("nth-child(") || value.startsWith("nth-last-child(")) &&
+          value.endsWith(")")
+        ) {
+          const funcName = value.match(/^([\w-]+)\(/)[1];
+          const content = value.slice(funcName.length + 1, -1);
+
+          // Check for "of S" clause
+          const ofMatch = content.match(/\s+of\s+(.+)$/);
+          if (ofMatch) {
+            const ofSelector = ofMatch[1].trim();
+            const ofSpec = calculateSpecificity(ofSelector);
+            a += ofSpec[0];
+            b += ofSpec[1];
+            c += ofSpec[2];
+          }
+          // The :nth-child() itself still counts as a pseudo-class
+          b++;
+          break;
+        }
+
+        // All other pseudo-classes count normally
+        b++;
         break;
+      }
 
       case SELECTOR_TYPES.TYPE:
       case SELECTOR_TYPES.PSEUDO_ELEMENT:
@@ -358,6 +515,64 @@ export function calculateSpecificity(selector) {
   }
 
   return [a, b, c];
+}
+
+/**
+ * Split a comma-separated selector list into individual selectors.
+ * Handles nested parens/brackets correctly.
+ *
+ * @param {string} selectorList - Comma-separated selector list
+ * @returns {Array<string>} Individual selectors
+ */
+function splitSelectorList(selectorList) {
+  if (typeof selectorList !== "string") {
+    throw new Error("selectorList must be a string");
+  }
+
+  const selectors = [];
+  let current = "";
+  let parenDepth = 0;
+  let bracketDepth = 0;
+  let inQuote = false;
+  let quoteChar = null;
+
+  for (let i = 0; i < selectorList.length; i++) {
+    const char = selectorList[i];
+    const prevChar = i > 0 ? selectorList[i - 1] : null;
+
+    // Handle quotes
+    if ((char === '"' || char === "'") && prevChar !== "\\") {
+      if (!inQuote) {
+        inQuote = true;
+        quoteChar = char;
+      } else if (char === quoteChar) {
+        inQuote = false;
+        quoteChar = null;
+      }
+    }
+
+    if (!inQuote) {
+      if (char === "(") parenDepth++;
+      if (char === ")") parenDepth--;
+      if (char === "[") bracketDepth++;
+      if (char === "]") bracketDepth--;
+
+      // Split on comma only at top level
+      if (char === "," && parenDepth === 0 && bracketDepth === 0) {
+        selectors.push(current);
+        current = "";
+        continue;
+      }
+    }
+
+    current += char;
+  }
+
+  if (current) {
+    selectors.push(current);
+  }
+
+  return selectors;
 }
 
 /**

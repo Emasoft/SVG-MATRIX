@@ -48,8 +48,8 @@ export function getKappaForArc(thetaRadians) {
   if (!theta.isFinite()) {
     throw new Error("getKappaForArc: thetaRadians must be finite");
   }
-  if (theta.isZero()) {
-    throw new Error("getKappaForArc: thetaRadians cannot be zero");
+  if (theta.isZero() || theta.isNegative()) {
+    throw new Error("getKappaForArc: thetaRadians must be positive");
   }
   const four = new Decimal(4);
   const three = new Decimal(3);
@@ -86,6 +86,9 @@ export function circleToPathDataHP(cx, cy, r, arcs = 8, precision = 6) {
   const rD = D(r);
   if (!rD.isFinite() || rD.isNegative()) {
     throw new Error("circleToPathDataHP: radius must be finite and non-negative");
+  }
+  if (rD.isZero()) {
+    return ""; // Zero-radius circle produces no visible path
   }
   if (!Number.isFinite(arcs) || arcs <= 0) {
     throw new Error("circleToPathDataHP: arcs must be a positive number");
@@ -135,6 +138,9 @@ export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
   }
   if (!ryD.isFinite() || ryD.isNegative()) {
     throw new Error("ellipseToPathDataHP: ry must be finite and non-negative");
+  }
+  if (rxD.isZero() || ryD.isZero()) {
+    return ""; // Zero-dimension ellipse produces no visible path
   }
   const f = (v) => formatNumber(v, precision);
 
@@ -235,6 +241,9 @@ export function circleToPathData(cx, cy, r, precision = 6) {
   if (!rD.isFinite() || rD.isNegative()) {
     throw new Error("circleToPathData: radius must be finite and non-negative");
   }
+  if (rD.isZero()) {
+    return ""; // Zero-radius circle produces no visible path
+  }
   const k = getKappa().mul(rD);
   const x0 = cxD.plus(rD),
     y0 = cyD;
@@ -289,6 +298,9 @@ export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
   }
   if (!ryD.isFinite() || ryD.isNegative()) {
     throw new Error("ellipseToPathData: ry must be finite and non-negative");
+  }
+  if (rxD.isZero() || ryD.isZero()) {
+    return ""; // Zero-dimension ellipse produces no visible path
   }
   const kappa = getKappa(),
     kx = kappa.mul(rxD),
@@ -365,8 +377,17 @@ export function rectToPathData(
   if (!hD.isFinite() || hD.isNegative()) {
     throw new Error("rectToPathData: height must be finite and non-negative");
   }
+  if (wD.isZero() || hD.isZero()) {
+    return ""; // Zero-dimension rectangle produces no visible path
+  }
   let rxD = D(rx || 0),
     ryD = ry !== null ? D(ry) : rxD;
+  if (!rxD.isFinite() || rxD.isNegative()) {
+    throw new Error("rectToPathData: rx must be finite and non-negative");
+  }
+  if (!ryD.isFinite() || ryD.isNegative()) {
+    throw new Error("rectToPathData: ry must be finite and non-negative");
+  }
   const halfW = wD.div(2),
     halfH = hD.div(2);
   if (rxD.gt(halfW)) rxD = halfW;

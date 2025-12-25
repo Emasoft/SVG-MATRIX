@@ -16,13 +16,16 @@
  * | 0  0  1 |
  *
  * This can be decomposed into:
- * M = T * R * Sk * S
+ * M = T * R * SkY * SkX * S
  *
  * Where:
  * - T = translation(e, f)
  * - R = rotation(theta)
- * - Sk = skewX(skewAngle)
+ * - SkY = skewY(skewYAngle) - always 0 in current implementation
+ * - SkX = skewX(skewXAngle)
  * - S = scale(sx, sy)
+ *
+ * Note: Current decomposition only extracts skewX; skewY is always returned as 0
  *
  * The decomposition uses QR-like factorization:
  * 1. Translation (e, f) is directly from the matrix
@@ -210,9 +213,12 @@ export function extractTranslation(matrix) {
  * Decompose a 2D affine transformation matrix into geometric components.
  *
  * Uses QR decomposition approach:
- * M = T * R * Sk * S
+ * M = T * R * SkY * SkX * S
  *
- * Where T=translation, R=rotation, Sk=skewX, S=scale
+ * Where T=translation, R=rotation, SkY=skewY (always 0), SkX=skewX, S=scale
+ *
+ * Note: This implementation only extracts skewX. SkewY is always returned as 0.
+ * Matrices with significant skewY components may have reduced verification accuracy.
  *
  * VERIFICATION: After decomposition, recompose and verify it matches original.
  *
@@ -262,12 +268,29 @@ export function decomposeMatrix(matrix) {
     };
   }
 
-  const scaleY = det.div(scaleX);
+  let scaleY = det.div(scaleX);
+
+  // Check for extreme scaleY values that indicate numeric instability: why - prevents huge values from small scaleX
+  if (scaleY.abs().greaterThan(new Decimal("1e40"))) {
+    return {
+      translateX: tx,
+      translateY: ty,
+      rotation: D(0),
+      scaleX: D(0),
+      scaleY: D(0),
+      skewX: D(0),
+      skewY: D(0),
+      verified: false,
+      maxError: D("Infinity"),
+      singular: true,
+    };
+  }
 
   // Handle reflection (negative determinant): why - negative determinant means reflection
-  // We put the reflection in scaleX
+  // We put the reflection in scaleX by negating both scaleX and scaleY to preserve det = scaleX * scaleY
   if (det.lessThan(0)) {
     scaleX = scaleX.neg();
+    scaleY = scaleY.neg(); // BUG FIX: must also negate scaleY to maintain det = scaleX * scaleY
   }
 
   // Calculate rotation angle from first column
@@ -299,19 +322,27 @@ export function decomposeMatrix(matrix) {
 
   // Calculate skewX from tan(skewX) = cPrime/aPrime
   let skewX;
-  if (aPrime.abs().greaterThan(EPSILON)) {
-    // skewX = atan(cPrime/aPrime) because tan(skewX) = cPrime/aPrime
-    skewX = Decimal.atan(cPrime.div(aPrime));
+  // Use larger threshold for aPrime to prevent numeric instability: why - very small aPrime causes huge skewX
+  const SKEW_STABILITY_THRESHOLD = new Decimal("1e-30");
+  if (aPrime.abs().greaterThan(SKEW_STABILITY_THRESHOLD)) {
+    const tanSkewX = cPrime.div(aPrime);
+    // Check for extreme skew values that indicate numeric instability: why - prevents huge skew from nearly-zero aPrime
+    if (tanSkewX.abs().greaterThan(new Decimal("1e10"))) {
+      skewX = D(0); // Treat as degenerate case
+    } else {
+      skewX = Decimal.atan(tanSkewX);
+    }
   } else {
-    // If aPrime is near zero, skewX is undefined or π/2
+    // If aPrime is near zero, skewX is undefined or π/2, treat as degenerate
     skewX = D(0);
   }
 
-  // LIMITATION: This decomposition order (T * R * SkX * S) can only handle skewX.
-  // A matrix with both skewX and skewY cannot be uniquely decomposed into this form.
-  // To decompose matrices with skewY, a different decomposition order would be needed
-  // (e.g., T * R * SkY * SkX * S), but that would change the semantic meaning.
-  // For standard 2D affine transforms, skewY is typically 0.
+  // LIMITATION: This decomposition uses order (T * R * SkY * SkX * S) but only extracts skewX.
+  // SkewY is always set to 0 because extracting both skewX and skewY would require
+  // additional constraints or a different decomposition approach.
+  // For matrices with non-zero skewY components, the extracted skewX value will compensate,
+  // but verification accuracy may be reduced.
+  // For standard 2D affine transforms (CSS/SVG), skewY is typically 0.
   const skewY = D(0);
 
   // VERIFICATION: Recompose and compare
@@ -465,7 +496,8 @@ export function decomposeMatrixSVG(matrix) {
 /**
  * Compose a transformation matrix from geometric components.
  *
- * Order: T * R * SkX * S (translate, then rotate, then skew, then scale)
+ * Order: T * R * SkY * SkX * S (right-to-left application)
+ * Point transformation: p' = T * R * SkY * SkX * S * p
  *
  * @param {{
  *   translateX: number|string|Decimal,

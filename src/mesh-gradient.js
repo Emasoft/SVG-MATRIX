@@ -133,7 +133,9 @@ export function color(r, g, b, a = 255) {
  * // {r: 0, g: 255, b: 255, a: 255}
  */
 export function parseColor(colorStr, opacity = 1) {
-  if (!colorStr || typeof colorStr !== "string") return color(0, 0, 0, 255);
+  if (!colorStr || typeof colorStr !== "string") {
+    throw new Error(`parseColor: colorStr must be a non-empty string, got ${colorStr}`);
+  }
   if (!Number.isFinite(opacity))
     throw new Error(`parseColor: opacity must be finite, got ${opacity}`);
   if (opacity < 0 || opacity > 1)
@@ -148,11 +150,15 @@ export function parseColor(colorStr, opacity = 1) {
     const g = parseInt(rgbMatch[2], 10);
     const b = parseInt(rgbMatch[3], 10);
     if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) {
-      return color(0, 0, 0, 255 * opacity);
+      throw new Error(`parseColor: invalid rgb values in "${colorStr}"`);
     }
     const a = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
-    if (!Number.isFinite(a)) return color(r, g, b, 255 * opacity);
-    return color(r, g, b, Math.min(255, a * 255 * opacity));
+    if (!Number.isFinite(a)) {
+      throw new Error(`parseColor: invalid alpha value in "${colorStr}"`);
+    }
+    // Clamp alpha to [0,1] before multiplying to prevent overflow
+    const alphaClamped = Math.max(0, Math.min(1, a));
+    return color(r, g, b, alphaClamped * 255 * opacity);
   }
 
   // Handle hex colors
@@ -200,7 +206,8 @@ export function parseColor(colorStr, opacity = 1) {
     return color(named[0], named[1], named[2], (named[3] ?? 255) * opacity);
   }
 
-  return color(0, 0, 0, 255 * opacity);
+  // Unrecognized color format - throw error instead of silently returning black
+  throw new Error(`parseColor: unrecognized color format "${colorStr}"`);
 }
 
 /**
@@ -245,12 +252,14 @@ export function lerpColor(c1, c2, t) {
   if (!Number.isFinite(tNum))
     throw new Error(`lerpColor: t must be finite, got ${t}`);
 
-  const mt = 1 - tNum;
+  // Clamp t to [0,1] to prevent extrapolation beyond color endpoints
+  const tClamped = Math.max(0, Math.min(1, tNum));
+  const mt = 1 - tClamped;
   return color(
-    c1.r * mt + c2.r * tNum,
-    c1.g * mt + c2.g * tNum,
-    c1.b * mt + c2.b * tNum,
-    c1.a * mt + c2.a * tNum,
+    c1.r * mt + c2.r * tClamped,
+    c1.g * mt + c2.g * tClamped,
+    c1.b * mt + c2.b * tClamped,
+    c1.a * mt + c2.a * tClamped,
   );
 }
 
@@ -305,26 +314,29 @@ export function bilinearColor(c00, c10, c01, c11, u, v) {
   if (!Number.isFinite(vNum))
     throw new Error(`bilinearColor: v must be finite, got ${v}`);
 
-  const mu = 1 - uNum;
-  const mv = 1 - vNum;
+  // Clamp u,v to [0,1] to prevent extrapolation outside the quad
+  const uClamped = Math.max(0, Math.min(1, uNum));
+  const vClamped = Math.max(0, Math.min(1, vNum));
+  const mu = 1 - uClamped;
+  const mv = 1 - vClamped;
 
   return color(
     mu * mv * c00.r +
-      uNum * mv * c10.r +
-      mu * vNum * c01.r +
-      uNum * vNum * c11.r,
+      uClamped * mv * c10.r +
+      mu * vClamped * c01.r +
+      uClamped * vClamped * c11.r,
     mu * mv * c00.g +
-      uNum * mv * c10.g +
-      mu * vNum * c01.g +
-      uNum * vNum * c11.g,
+      uClamped * mv * c10.g +
+      mu * vClamped * c01.g +
+      uClamped * vClamped * c11.g,
     mu * mv * c00.b +
-      uNum * mv * c10.b +
-      mu * vNum * c01.b +
-      uNum * vNum * c11.b,
+      uClamped * mv * c10.b +
+      mu * vClamped * c01.b +
+      uClamped * vClamped * c11.b,
     mu * mv * c00.a +
-      uNum * mv * c10.a +
-      mu * vNum * c01.a +
-      uNum * vNum * c11.a,
+      uClamped * mv * c10.a +
+      mu * vClamped * c01.a +
+      uClamped * vClamped * c11.a,
   );
 }
 
@@ -383,6 +395,10 @@ export function evalCubicBezier(p0, p1, p2, p3, t) {
   const tDecimal = D(t);
   if (!tDecimal.isFinite())
     throw new Error(`evalCubicBezier: t must be finite, got ${t}`);
+  // Warn if t is outside [0,1] - extrapolation beyond curve endpoints
+  if (tDecimal.lt(0) || tDecimal.gt(1)) {
+    console.warn(`evalCubicBezier: t=${t} is outside [0,1], extrapolating beyond curve`);
+  }
 
   const mt = D(1).minus(tDecimal);
   const mt2 = mt.mul(mt);
@@ -580,6 +596,25 @@ export class CoonsPatch {
           );
         }
       }
+    }
+
+    // Validate edge continuity: corners must connect properly for a closed patch
+    const tolerance = 1e-6;
+    const pointsEqual = (p1, p2) =>
+      Math.abs(Number(p1.x) - Number(p2.x)) < tolerance &&
+      Math.abs(Number(p1.y) - Number(p2.y)) < tolerance;
+
+    if (!pointsEqual(top[0], left[0])) {
+      console.warn("CoonsPatch: top-left corner mismatch - top[0] should equal left[0]");
+    }
+    if (!pointsEqual(top[3], right[0])) {
+      console.warn("CoonsPatch: top-right corner mismatch - top[3] should equal right[0]");
+    }
+    if (!pointsEqual(bottom[0], left[3])) {
+      console.warn("CoonsPatch: bottom-left corner mismatch - bottom[0] should equal left[3]");
+    }
+    if (!pointsEqual(bottom[3], right[3])) {
+      console.warn("CoonsPatch: bottom-right corner mismatch - bottom[3] should equal right[3]");
     }
 
     this.top = top;
@@ -983,10 +1018,23 @@ export function parseMeshGradient(meshGradientDef) {
   const gradientTransform = meshGradientDef.gradientTransform || null;
 
   const patches = [];
-  const _meshRows = meshGradientDef.meshrows || [];
+  const meshRows = meshGradientDef.meshrows || [];
 
-  // NOTE: This is a stub implementation - full parsing logic needs to be added
-  // The current implementation only extracts metadata without building actual patches
+  // CRITICAL: Full mesh parsing implementation required
+  // Current implementation is a stub that doesn't build actual CoonsPatch objects
+  // Real implementation needs to:
+  // 1. Parse path commands from stop elements to extract Bezier control points
+  // 2. Build boundary curves for each patch from the path data
+  // 3. Handle patch continuity across rows and columns
+  // 4. Create CoonsPatch objects with proper geometry and corner colors
+
+  if (meshRows.length > 0) {
+    throw new Error(
+      "parseMeshGradient: Full mesh parsing not yet implemented. " +
+      "This stub only handles empty meshGradient definitions. " +
+      "To parse actual mesh data, implement path parsing and patch construction logic."
+    );
+  }
 
   return {
     patches,
@@ -1252,14 +1300,17 @@ function renderPatchQuad(patch, imageData, width, height) {
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
       // Convert pixel to patch (u,v) coordinates
+      // Handle degenerate case where patch has zero width or height
       const uDenom = bbox.maxX.minus(bbox.minX);
       const vDenom = bbox.maxY.minus(bbox.minY);
-      const u = D(x)
-        .minus(bbox.minX)
-        .div(uDenom.isZero() ? D(1) : uDenom);
-      const v = D(y)
-        .minus(bbox.minY)
-        .div(vDenom.isZero() ? D(1) : vDenom);
+
+      // For zero-size dimensions, treat as centered at u=0.5 or v=0.5
+      const u = uDenom.isZero()
+        ? D(0.5)
+        : D(x).minus(bbox.minX).div(uDenom);
+      const v = vDenom.isZero()
+        ? D(0.5)
+        : D(y).minus(bbox.minY).div(vDenom);
 
       if (u.gte(0) && u.lte(1) && v.gte(0) && v.lte(1)) {
         const { color: patchColor } = patch.evaluate(u, v);
