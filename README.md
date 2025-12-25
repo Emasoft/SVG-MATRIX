@@ -500,13 +500,13 @@ SVGFlatten.resolveLength('1in', 96);   // 96
 Find and fix problems:
 
 ```js
-import { validateSvg, fixInvalidSvg } from '@emasoft/svg-matrix';
+import { validateSVG, fixInvalidSVG } from '@emasoft/svg-matrix';
 
-const result = await validateSvg('icon.svg');
+const result = await validateSVG('icon.svg');
 console.log(result.valid);    // true/false
 console.log(result.issues);   // Array of problems
 
-const fixed = await fixInvalidSvg('broken.svg');
+const fixed = await fixInvalidSVG('broken.svg');
 console.log(fixed.svg);       // Fixed SVG string
 ```
 

@@ -1,6 +1,6 @@
 # @emasoft/svg-matrix API Reference
 
-**Version 1.0.1**
+**Version 1.0.32**
 
 A comprehensive arbitrary-precision matrix, vector, and affine transformation library for JavaScript. Built on [decimal.js](https://github.com/MikeMcl/decimal.js/) for calculations that require precision beyond IEEE 754 floating-point.
 

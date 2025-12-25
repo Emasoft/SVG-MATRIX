@@ -133,7 +133,7 @@ const options = {
 
 ### Line Length
 
-Maximum line length: 100 characters. Break long lines logically.
+Maximum line length: No strict limit enforced (prefer readable line lengths).
 
 ```javascript
 // CORRECT

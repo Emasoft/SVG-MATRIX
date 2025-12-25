@@ -9,7 +9,7 @@ The test infrastructure validates SVG transformation and optimization functions 
 The infrastructure currently includes:
 - 525 W3C SVG 1.1 conformance test files
 - 39 SVG 2.0 feature test files
-- 71 tested functions from the SVG Toolbox
+- 70 tested functions from the SVG Toolbox
 - Automated test runners with detailed validation
 - Comprehensive logging and reporting
 
@@ -79,7 +79,7 @@ node tests/utils/svg-function-test-runner.mjs optimize --suite all
 
 ### Available Functions
 
-The test runner supports all 71 functions from the SVG Toolbox, including:
+The test runner supports 70 functions from the SVG Toolbox, including:
 
 **Core Transforms:**
 - optimize, cleanPaths, simplifyTransforms, mergeTransforms
@@ -336,10 +336,10 @@ S   +---------------+-----------+-----------+-----------+-----+
 | 3: Conversion | 10 | 10/10 PASS | 10/10 PASS |
 | 4: Optimization | 8 | 8/8 PASS | 8/8 PASS |
 | 5: Adding/Modification | 7 | 7/7 PASS | 7/7 PASS |
-| 6: Presets | 4 | 4/4 PASS | 4/4 PASS |
+| 6: Presets | 5 | 5/5 PASS | 5/5 PASS |
 | 7: Bonus | 15 | 15/15 PASS | 15/15 PASS |
 | 8: Embedding | 2 | 2/2 PASS | 2/2 PASS |
-| **TOTAL** | **69** | **69/69** | **69/69** |
+| **TOTAL** | **70** | **70/70** | **70/70** |
 
 ### Running the Matrix Test
 
