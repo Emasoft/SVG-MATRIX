@@ -2910,8 +2910,9 @@ export const convertShapesToPath = createOperation((doc, options = {}) => {
       if (el.tagName === "rect" && !convertRoundedRects) {
         const rx = parseFloat(el.getAttribute("rx") || "0");
         const ry = parseFloat(el.getAttribute("ry") || "0");
-        if (rx > 0 || ry > 0) {
-          // Skip - rounded rects need special handling
+        // Validate parsed values - skip if invalid or has border-radius
+        if (isNaN(rx) || isNaN(ry) || rx > 0 || ry > 0) {
+          // Skip - rounded rects or invalid values need special handling
           for (const child of [...el.children]) {
             if (isElement(child)) processElement(child);
           }
@@ -4879,8 +4880,8 @@ function sampleGradient(gradient, position = 0.5) {
     } else {
       offset = parseFloat(offset);
     }
-    // Clamp to 0-1 range
-    offset = Math.max(0, Math.min(1, offset));
+    // Validate and clamp to 0-1 range - default to 0 if NaN
+    offset = isNaN(offset) ? 0 : Math.max(0, Math.min(1, offset));
 
     return {
       offset,
@@ -14891,15 +14892,15 @@ export const fixInvalidSVG = createOperation((doc, options = {}) => {
               break;
             }
           }
-          // Check width and height are non-negative
+          // Check width and height are non-negative and valid
           const width = parseFloat(parts[2]);
           const height = parseFloat(parts[3]);
-          if (width < 0 || height < 0) {
+          if (isNaN(width) || isNaN(height) || width < 0 || height < 0) {
             fixes.push({
               type: "invalid_viewbox_dimensions",
               element: tagName,
               value: viewBox,
-              reason: `viewBox width and height must be non-negative, got ${width}x${height}`,
+              reason: `viewBox width and height must be valid non-negative numbers, got ${width}x${height}`,
             });
           }
         }
@@ -18106,7 +18107,6 @@ export const flattenAll = createOperation(async (doc, options = {}) => {
  * @returns {Document} SVG document with simplified paths
  */
 export const simplifyPath = createOperation((doc, options = {}) => {
-  const _tolerance = options.tolerance || 0.01;
   const paths = doc.getElementsByTagName("path");
 
   for (const path of paths) {
@@ -18175,7 +18175,7 @@ export const optimizeAnimationTiming = createOperation((doc, options = {}) => {
  * - straightTolerance: Tolerance for curve straightness (default: 0.5)
  */
 export const optimizePaths = createOperation((doc, options = {}) => {
-  const _result = optimizeDocumentPaths(doc, {
+  optimizeDocumentPaths(doc, {
     floatPrecision: options.floatPrecision ?? options.precision ?? 3,
     straightCurves: options.straightCurves !== false,
     lineShorthands: options.lineShorthands !== false,
@@ -18221,9 +18221,6 @@ export const simplifyPaths = createOperation((doc, options = {}) => {
   // Build defs map for resolving inherited properties
   const defsMap = buildDefsMap(doc);
 
-  let _pathsSimplified = 0;
-  let _totalPointsRemoved = 0;
-
   const processElement = (el) => {
     const tagName = el.tagName?.toLowerCase();
 
@@ -18258,9 +18255,6 @@ export const simplifyPaths = createOperation((doc, options = {}) => {
             options.precision ?? 3,
           );
           el.setAttribute("d", newD);
-          _pathsSimplified++;
-          _totalPointsRemoved +=
-            result.originalPoints - result.simplifiedPoints;
         }
       }
     }
@@ -18363,6 +18357,11 @@ function getShapePolygon(el, samples) {
       const w = parseFloat(wAttr);
       const h = parseFloat(hAttr);
 
+      // Validate parsed values before using in calculations
+      if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
+        return null; // Return null for invalid rect dimensions
+      }
+
       return [
         { x, y },
         { x: x + w, y },
@@ -18375,6 +18374,11 @@ function getShapePolygon(el, samples) {
       const cx = parseFloat(el.getAttribute("cx") || "0");
       const cy = parseFloat(el.getAttribute("cy") || "0");
       const r = parseFloat(el.getAttribute("r") || "0");
+
+      // Validate parsed values before using in calculations
+      if (isNaN(cx) || isNaN(cy) || isNaN(r)) {
+        return null; // Return null for invalid circle dimensions
+      }
 
       const points = [];
       for (let i = 0; i < samples; i++) {
@@ -18775,6 +18779,11 @@ function setCDATAContent(element, content, doc) {
       );
       break;
     }
+  }
+  if (safetyCounter >= MAX_CHILDREN) {
+    console.error(
+      `Safety limit reached in setCDATAContent: ${MAX_CHILDREN} children processed`,
+    );
   }
 
   const needsCDATA =
@@ -19338,20 +19347,27 @@ export const embedExternalDependencies = createOperation(
       // Ensure defs element exists
       let defs = doc.querySelector("defs");
       if (!defs) {
-        defs = new SVGElement("defs", {}, []);
         const svg = doc.documentElement || doc;
-        // Insert defs as first child - handle null firstChild properly
-        if (typeof svg.insertBefore === "function" && svg.firstChild) {
-          svg.insertBefore(defs, svg.firstChild);
-        } else if (typeof svg.appendChild === "function") {
-          svg.appendChild(defs);
-        } else if (svg.children && Array.isArray(svg.children)) {
-          svg.children.unshift(defs);
-          defs.parentNode = svg;
+        // BUG FIX: Verify svg element exists before manipulating
+        if (!svg) {
+          warnings.push("Cannot add defs: document has no root SVG element");
+          if (onProgress) onProgress("externalSVGs", useArray.length, useArray.length);
+        } else {
+          defs = new SVGElement("defs", {}, []);
+          // Insert defs as first child - handle null firstChild properly
+          if (typeof svg.insertBefore === "function" && svg.firstChild) {
+            svg.insertBefore(defs, svg.firstChild);
+          } else if (typeof svg.appendChild === "function") {
+            svg.appendChild(defs);
+          } else if (svg.children && Array.isArray(svg.children)) {
+            svg.children.unshift(defs);
+            defs.parentNode = svg;
+          }
         }
       }
 
-      for (let i = 0; i < useArray.length; i++) {
+      if (defs) {
+        for (let i = 0; i < useArray.length; i++) {
         const useEl = useArray[i];
         const href =
           useEl.getAttribute("href") || useEl.getAttribute("xlink:href");
@@ -19450,6 +19466,7 @@ export const embedExternalDependencies = createOperation(
         }
 
         if (onProgress) onProgress("externalSVGs", i + 1, useArray.length);
+        }
       }
     }
 
@@ -20269,6 +20286,11 @@ export async function exportEmbeddedResources(input, options = {}) {
           script.removeChild(ch);
           if (script.firstChild === ch) break; // Child not removed, prevent infinite loop
         }
+        if (sc >= 10000) {
+          console.error(
+            `Safety limit reached removing script children: 10000 iterations`,
+          );
+        }
         script.setAttribute("href", `./${filename}`);
       }
 
@@ -20427,6 +20449,11 @@ export async function exportEmbeddedResources(input, options = {}) {
             style.removeChild(ch);
             if (style.firstChild === ch) break; // Child not removed, prevent infinite loop
           }
+          if (sc1 >= 10000) {
+            console.error(
+              `Safety limit reached removing style children: 10000 iterations`,
+            );
+          }
           style.textContent = `@import url('./${filename}');`;
           cssModified = true;
         }
@@ -20438,6 +20465,11 @@ export async function exportEmbeddedResources(input, options = {}) {
           const ch = style.firstChild;
           style.removeChild(ch);
           if (style.firstChild === ch) break; // Child not removed, prevent infinite loop
+        }
+        if (sc2 >= 10000) {
+          console.error(
+            `Safety limit reached updating style children: 10000 iterations`,
+          );
         }
         setCDATAContent(style, css, doc);
       }
