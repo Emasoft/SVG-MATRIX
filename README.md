@@ -782,7 +782,7 @@ npm install @emasoft/svg-matrix
 import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
 ```
 
-### In HTML (no install)
+### In HTML (ESM via CDN)
 
 ```html
 <script type="module">
@@ -790,7 +790,63 @@ import { Matrix, Vector, Transforms2D } from '@emasoft/svg-matrix';
 </script>
 ```
 
-> **Note:** Node.js 24+ is required for modern ECMAScript features. If you need older Node support, please [open an issue](https://github.com/Emasoft/SVG-MATRIX/issues).
+### Browser Bundles (Self-Contained)
+
+Three pre-bundled libraries are available for direct browser use via CDN:
+
+| Bundle | Size | Purpose | Global Variable |
+|--------|------|---------|-----------------|
+| `svg-matrix.min.js` | ~45KB | Math only (Matrix, Vector, Transforms) | `SVGMatrixLib` |
+| `svg-toolbox.min.js` | ~120KB | SVG manipulation (browser-compatible subset) | `SVGToolbox` |
+| `svgm.min.js` | ~150KB | Complete library (math + toolbox) | `SVGM` |
+
+**Math Library (SVGMatrixLib):**
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.min.js"></script>
+<script>
+  // Note: Uses SVGMatrixLib to avoid conflict with native browser SVGMatrix
+  const { Matrix, Vector, Transforms2D } = SVGMatrixLib;
+
+  // Rotate a point around the origin
+  const rotation = Transforms2D.rotate(Math.PI / 4);
+  const [x, y] = Transforms2D.applyTransform(rotation, 10, 0);
+  console.log('Rotated point:', x.toFixed(4), y.toFixed(4)); // 7.0711 7.0711
+</script>
+```
+
+**SVG Toolbox (SVGToolbox):**
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-toolbox.min.js"></script>
+<script>
+  const { GeometryToPath, SVGFlatten, validateSVG } = SVGToolbox;
+
+  // Convert circle to path
+  const circlePath = GeometryToPath.circleToPathData(50, 50, 25);
+  console.log('Circle as path:', circlePath);
+
+  // Parse transform string
+  const matrix = SVGFlatten.parseTransformAttribute('rotate(45) scale(2)');
+</script>
+```
+
+**Complete Library (SVGM):**
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svgm.min.js"></script>
+<script>
+  // Access both math and toolbox
+  const { Matrix, Vector, Transforms2D } = SVGM;
+  const { GeometryToPath, SVGFlatten } = SVGM;
+
+  // Use any functionality from either library
+  const v = Vector.from([3, 4]);
+  console.log('Vector length:', v.norm().toString()); // 5
+</script>
+```
+
+> **Note:** Node.js 24+ is required for CLI tools and server-side usage. Browser bundles work in all modern browsers (ES2020+). If you need older Node support, please [open an issue](https://github.com/Emasoft/SVG-MATRIX/issues).
 
 ---
 

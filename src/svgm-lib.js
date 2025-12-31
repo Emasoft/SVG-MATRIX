@@ -77,9 +77,9 @@ export const { detectSVG2Features, injectPolyfills, setPolyfillMinification, set
  * @returns {Promise<string|void>} Processed SVG string if no output target, void otherwise
  */
 export async function process(input, options = {}) {
-  const { loadInput, saveOutput, optimize, presetDefault } = SVGToolbox;
+  const { loadInput, saveOutput, optimize } = SVGToolbox;
 
-  // Load input
+  // Load input - detectInputType determines how to parse the input source
   const inputType = SVGToolbox.detectInputType(input);
   const doc = await loadInput(input, inputType);
 

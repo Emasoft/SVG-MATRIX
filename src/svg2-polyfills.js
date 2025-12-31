@@ -88,12 +88,39 @@ export function setPolyfillMinification(minify) {
  * @param {string} [polyfills.meshFull] - Full mesh gradient polyfill
  * @param {string} [polyfills.hatchMin] - Minified hatch polyfill
  * @param {string} [polyfills.hatchFull] - Full hatch polyfill
+ * @throws {Error} If polyfills is not an object or values are not strings
  */
 export function setPolyfillContent(polyfills) {
-  if (polyfills.meshMin) INKSCAPE_MESH_POLYFILL_MIN = polyfills.meshMin;
-  if (polyfills.meshFull) INKSCAPE_MESH_POLYFILL_FULL = polyfills.meshFull;
-  if (polyfills.hatchMin) INKSCAPE_HATCH_POLYFILL_MIN = polyfills.hatchMin;
-  if (polyfills.hatchFull) INKSCAPE_HATCH_POLYFILL_FULL = polyfills.hatchFull;
+  // Validate input - polyfills must be an object with string values
+  if (!polyfills || typeof polyfills !== 'object') {
+    throw new Error('setPolyfillContent: polyfills parameter must be an object');
+  }
+
+  // Validate and set each polyfill if provided
+  if (polyfills.meshMin !== undefined) {
+    if (typeof polyfills.meshMin !== 'string') {
+      throw new Error('setPolyfillContent: meshMin must be a string');
+    }
+    INKSCAPE_MESH_POLYFILL_MIN = polyfills.meshMin;
+  }
+  if (polyfills.meshFull !== undefined) {
+    if (typeof polyfills.meshFull !== 'string') {
+      throw new Error('setPolyfillContent: meshFull must be a string');
+    }
+    INKSCAPE_MESH_POLYFILL_FULL = polyfills.meshFull;
+  }
+  if (polyfills.hatchMin !== undefined) {
+    if (typeof polyfills.hatchMin !== 'string') {
+      throw new Error('setPolyfillContent: hatchMin must be a string');
+    }
+    INKSCAPE_HATCH_POLYFILL_MIN = polyfills.hatchMin;
+  }
+  if (polyfills.hatchFull !== undefined) {
+    if (typeof polyfills.hatchFull !== 'string') {
+      throw new Error('setPolyfillContent: hatchFull must be a string');
+    }
+    INKSCAPE_HATCH_POLYFILL_FULL = polyfills.hatchFull;
+  }
 }
 
 /**

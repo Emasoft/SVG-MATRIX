@@ -70,6 +70,11 @@
     "./dist/svg-toolbox.min.js": "./dist/svg-toolbox.min.js",
     "./dist/svgm.min.js": "./dist/svgm.min.js"
   },
+  "browser": {
+    "./src/svg-matrix-lib.js": "./dist/svg-matrix.min.js",
+    "./src/svg-toolbox-lib.js": "./dist/svg-toolbox.min.js",
+    "./src/svgm-lib.js": "./dist/svgm.min.js"
+  },
   "author": "Emasoft",
   "license": "MIT",
   "homepage": "https://github.com/Emasoft/SVG-MATRIX#readme",

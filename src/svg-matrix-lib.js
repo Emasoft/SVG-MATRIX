@@ -11,7 +11,8 @@
  * @example Browser usage:
  * <script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.min.js"></script>
  * <script>
- *   const { Matrix, Vector, Transforms2D } = SVGMatrix;
+ *   // Note: Uses SVGMatrixLib to avoid conflict with native browser SVGMatrix
+ *   const { Matrix, Vector, Transforms2D } = SVGMatrixLib;
  *   const M = Transforms2D.translation(10, 20).mul(Transforms2D.rotate(Math.PI / 4));
  * </script>
  *
@@ -81,6 +82,7 @@ const SVGMatrix = {
 export default SVGMatrix;
 
 // Browser global assignment
+// Note: Using SVGMatrixLib to avoid conflict with native browser SVGMatrix (DOMMatrix alias)
 if (typeof window !== "undefined") {
-  window.SVGMatrix = SVGMatrix;
+  window.SVGMatrixLib = SVGMatrix;
 }

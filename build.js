@@ -66,7 +66,7 @@ async function build() {
       entrypoints: ["./src/svg-toolbox-lib.js"],
       outdir: distDir,
       naming: "svg-toolbox.min.js",
-      external: ["fs", "path", "jsdom"], // These are Node.js only
+      external: ["fs", "path", "url", "jsdom"], // These are Node.js only
     });
 
     if (!toolboxResult.success) {
@@ -82,7 +82,7 @@ async function build() {
       entrypoints: ["./src/svgm-lib.js"],
       outdir: distDir,
       naming: "svgm.min.js",
-      external: ["fs", "path", "jsdom"], // These are Node.js only
+      external: ["fs", "path", "url", "jsdom"], // These are Node.js only
     });
 
     if (!svgmResult.success) {
@@ -136,12 +136,20 @@ async function build() {
 // Run build
 await build();
 
-// Watch mode
+// Watch mode - uses fs.watch for directory watching
 if (isWatch) {
-  console.log("\nWatching for changes...");
-  const watcher = Bun.file("./src").watch();
-  for await (const _event of watcher) {
-    console.log("\nRebuilding...");
-    await build();
-  }
+  console.log("\nWatching for changes in ./src ...");
+  const fs = await import("fs");
+
+  // Watch the src directory recursively for changes
+  fs.watch("./src", { recursive: true }, async (eventType, filename) => {
+    if (filename && filename.endsWith(".js")) {
+      console.log(`\nFile changed: ${filename}`);
+      console.log("Rebuilding...");
+      await build();
+    }
+  });
+
+  // Keep the process alive
+  process.stdin.resume();
 }

@@ -63,6 +63,55 @@ function getIndexJsDocVersion() {
 }
 
 /**
+ * Get version from a library entry point file
+ * @param {string} filename - Filename relative to src/
+ * @returns {string|null} Version string or null if not found
+ */
+function getLibVersion(filename) {
+  try {
+    const content = readFileSync(join(ROOT, 'src', filename), 'utf8');
+    const match = content.match(/export const VERSION = ['"]([^'"]+)['"]/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Update a library entry point file's VERSION constant and @version jsdoc
+ * @param {string} filename - Filename relative to src/
+ * @param {string} version - New version
+ * @returns {boolean} True if updated
+ */
+function updateLibVersion(filename, version) {
+  const filePath = join(ROOT, 'src', filename);
+  try {
+    let content = readFileSync(filePath, 'utf8');
+    const original = content;
+
+    // Update VERSION constant
+    content = content.replace(
+      /export const VERSION = ['"][^'"]+['"]/,
+      `export const VERSION = "${version}"`
+    );
+
+    // Update @version in jsdoc
+    content = content.replace(
+      /@version\s+\S+/,
+      `@version ${version}`
+    );
+
+    if (content !== original) {
+      writeFileSync(filePath, content, 'utf8');
+      return true;
+    }
+  } catch {
+    // File might not exist
+  }
+  return false;
+}
+
+/**
  * Get version from package-lock.json root
  * @returns {string|null} Version string or null if not found
  */
@@ -131,6 +180,13 @@ function updateLockfileVersion(version) {
   return false;
 }
 
+// Library entry points to sync (relative to src/)
+const LIB_ENTRY_POINTS = [
+  'svg-matrix-lib.js',
+  'svg-toolbox-lib.js',
+  'svgm-lib.js',
+];
+
 /**
  * Check if all versions are in sync
  * @returns {{inSync: boolean, versions: Object}}
@@ -148,9 +204,20 @@ function checkVersions() {
     'package-lock.json': lockVersion,
   };
 
+  // WHY: Check VERSION constants in all library entry points
+  let allLibsInSync = true;
+  for (const lib of LIB_ENTRY_POINTS) {
+    const libVersion = getLibVersion(lib);
+    versions[`src/${lib}`] = libVersion;
+    if (libVersion !== null && libVersion !== pkgVersion) {
+      allLibsInSync = false;
+    }
+  }
+
   const inSync = indexVersion === pkgVersion &&
                  jsDocVersion === pkgVersion &&
-                 (lockVersion === null || lockVersion === pkgVersion);
+                 (lockVersion === null || lockVersion === pkgVersion) &&
+                 allLibsInSync;
 
   return { inSync, versions, canonical: pkgVersion };
 }
@@ -171,8 +238,10 @@ ${colors.cyan}Usage:${colors.reset}
   node scripts/version-sync.js --help   Show this help
 
 ${colors.cyan}Files updated:${colors.reset}
-  - src/index.js (VERSION constant)
-  - src/index.js (@version jsdoc)
+  - src/index.js (VERSION constant and @version jsdoc)
+  - src/svg-matrix-lib.js (VERSION constant and @version jsdoc)
+  - src/svg-toolbox-lib.js (VERSION constant and @version jsdoc)
+  - src/svgm-lib.js (VERSION constant and @version jsdoc)
   - package-lock.json (if present)
 `);
     process.exit(0);
@@ -218,6 +287,14 @@ ${colors.cyan}Files updated:${colors.reset}
   if (updateLockfileVersion(canonical)) {
     console.log(`  ${colors.green}Updated${colors.reset} package-lock.json`);
     updated++;
+  }
+
+  // WHY: Sync VERSION constants in all library entry points
+  for (const lib of LIB_ENTRY_POINTS) {
+    if (updateLibVersion(lib, canonical)) {
+      console.log(`  ${colors.green}Updated${colors.reset} src/${lib}`);
+      updated++;
+    }
   }
 
   if (updated > 0) {
