@@ -5,7 +5,7 @@
  * Works in both Node.js and browser environments.
  *
  * @module svg-matrix-lib
- * @version 1.0.34
+ * @version 1.1.0
  * @license MIT
  *
  * @example Browser usage:
@@ -32,7 +32,7 @@ Decimal.set({ precision: 80 });
 /**
  * Library version
  */
-export const VERSION = "1.0.34";
+export const VERSION = "1.1.0";
 
 // Export core classes
 export { Decimal, Matrix, Vector };
