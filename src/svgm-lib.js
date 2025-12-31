@@ -5,7 +5,7 @@
  * comprehensive SVG manipulation (SVGToolbox). Works in Node.js and browser.
  *
  * @module svgm-lib
- * @version 1.0.33
+ * @version 1.0.34
  * @license MIT
  *
  * @example Browser usage:
@@ -49,7 +49,7 @@ Decimal.set({ precision: 80 });
 /**
  * Library version
  */
-export const VERSION = "1.0.33";
+export const VERSION = "1.0.34";
 
 // Export math classes
 export { Decimal, Matrix, Vector };
