@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-12-21T11:42:51.444Z",
-  "duration": "0.39s",
+  "timestamp": "2025-12-31T02:50:11.158Z",
+  "duration": "0.40s",
   "summary": {
     "preEmbed": {
       "passed": 70,
@@ -545,8 +545,8 @@
       "category": "Category 7: Bonus",
       "status": "passed",
       "inputSize": 15106,
-      "outputSize": 16199,
-      "sizeChange": "7.2%"
+      "outputSize": 16175,
+      "sizeChange": "7.1%"
     },
     {
       "function": "embedExternalDependencies",
@@ -1095,7 +1095,7 @@
       "category": "Category 7: Bonus",
       "status": "passed",
       "inputSize": 568725,
-      "outputSize": 570205,
+      "outputSize": 570181,
       "sizeChange": "0.3%"
     },
     {
