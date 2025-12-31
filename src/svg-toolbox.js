@@ -882,6 +882,170 @@ export const OutputFormat = {
 };
 
 /**
+ * Enum for output targets - where to save/write the SVG
+ * Supports both Node.js (file) and browser (DOM) environments
+ */
+export const OutputTarget = {
+  STRING: "string", // Return as string (default)
+  FILE: "file", // Write to file path (Node.js only)
+  DOM_REPLACE: "dom_replace", // Replace existing DOM element's innerHTML
+  DOM_UPDATE: "dom_update", // Update SVG element in place
+  DOWNLOAD: "download", // Trigger browser download
+};
+
+/**
+ * Detect output target type from value.
+ * @param {string|Element|null|undefined} target - Output target to detect
+ * @returns {string} Output target from OutputTarget enum
+ */
+export function detectOutputTarget(target) {
+  // No target specified = return string
+  if (target === null || target === undefined) {
+    return OutputTarget.STRING;
+  }
+
+  // DOM element reference
+  if (typeof target === "object" && target.nodeType) {
+    return OutputTarget.DOM_UPDATE;
+  }
+
+  if (typeof target === "string") {
+    const trimmed = target.trim();
+
+    // CSS selector in browser environment
+    if (
+      typeof document !== "undefined" &&
+      (trimmed.startsWith("#") ||
+        trimmed.startsWith(".") ||
+        trimmed.startsWith("["))
+    ) {
+      return OutputTarget.DOM_REPLACE;
+    }
+
+    // File path (has extension or path separator)
+    if (
+      trimmed.includes("/") ||
+      trimmed.includes("\\") ||
+      /\.\w+$/.test(trimmed)
+    ) {
+      return OutputTarget.FILE;
+    }
+
+    // Special keyword for download
+    if (trimmed.toLowerCase() === "download") {
+      return OutputTarget.DOWNLOAD;
+    }
+  }
+
+  // Default to string
+  return OutputTarget.STRING;
+}
+
+/**
+ * Save SVG output to target (file, DOM element, or return string).
+ * Universal function that works in both Node.js and browser environments.
+ * @param {Document|Element|string} svg - SVG to save (document, element, or string)
+ * @param {string|Element|null} [target] - Where to save: file path, DOM element/selector, or null for string
+ * @param {Object} [options] - Save options
+ * @param {boolean} [options.minify=true] - Whether to minify the output
+ * @param {string} [options.filename='output.svg'] - Filename for download target
+ * @returns {Promise<string|void>} Returns SVG string if target is STRING, void otherwise
+ */
+export async function saveOutput(svg, target = null, options = {}) {
+  const targetType = detectOutputTarget(target);
+
+  // Get SVG as string first
+  let svgString;
+  if (typeof svg === "string") {
+    svgString = svg;
+  } else {
+    svgString = generateOutput(svg, OutputFormat.SVG_STRING, options);
+  }
+
+  switch (targetType) {
+    case OutputTarget.STRING:
+      return svgString;
+
+    case OutputTarget.FILE: {
+      // Node.js environment - write to file
+      if (typeof process !== "undefined" && process.versions?.node) {
+        const fs = await import("fs");
+        const path = await import("path");
+        const dir = path.dirname(target);
+        // Create directory if it doesn't exist
+        if (dir && dir !== "." && !fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(target, svgString, "utf8");
+        return;
+      }
+      throw new Error("File saving requires Node.js environment");
+    }
+
+    case OutputTarget.DOM_REPLACE: {
+      // Browser environment - replace element content
+      if (typeof document === "undefined") {
+        throw new Error("DOM operations require browser environment");
+      }
+      const el = document.querySelector(target);
+      if (!el) {
+        throw new Error(`No element found for selector: ${target}`);
+      }
+      el.innerHTML = svgString;
+      return;
+    }
+
+    case OutputTarget.DOM_UPDATE: {
+      // Browser environment - update SVG element in place
+      if (typeof document === "undefined") {
+        throw new Error("DOM operations require browser environment");
+      }
+      if (target.tagName?.toLowerCase() === "svg") {
+        // Parse new SVG and replace attributes/children
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(svgString, "image/svg+xml");
+        const newSvg = newDoc.documentElement;
+
+        // Clear and copy attributes
+        while (target.attributes.length > 0) {
+          target.removeAttribute(target.attributes[0].name);
+        }
+        for (const attr of newSvg.attributes) {
+          target.setAttribute(attr.name, attr.value);
+        }
+
+        // Replace children
+        target.innerHTML = newSvg.innerHTML;
+      } else {
+        // Not an SVG element, replace innerHTML
+        target.innerHTML = svgString;
+      }
+      return;
+    }
+
+    case OutputTarget.DOWNLOAD: {
+      // Browser environment - trigger download
+      if (typeof document === "undefined" || typeof Blob === "undefined") {
+        throw new Error("Download requires browser environment");
+      }
+      const blob = new Blob([svgString], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = options.filename || "output.svg";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      return;
+    }
+
+    default:
+      return svgString;
+  }
+}
+
+/**
  * Detect input type from value.
  * Supports: SVG string, file path, URL, DOM elements, CSS selectors,
  * and browser-specific containers (object, embed, iframe).
@@ -20522,9 +20686,12 @@ export default {
   // Input/Output
   InputType,
   OutputFormat,
+  OutputTarget,
   detectInputType,
+  detectOutputTarget,
   loadInput,
   generateOutput,
+  saveOutput,
   createOperation,
 
   // Category 1: Cleanup (11)

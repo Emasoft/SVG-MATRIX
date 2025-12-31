@@ -24,8 +24,16 @@ jobs:
         with:
           node-version: '24'
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install dependencies (for prepublishOnly script)
         run: npm install --production=false
+
+      - name: Build browser bundles (dist/)
+        run: bun run build.js
 
       - name: Verify npm version (should be >= 11.5.1)
         run: npm --version

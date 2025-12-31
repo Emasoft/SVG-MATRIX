@@ -14,9 +14,10 @@
  */
 
 import { SVGElement } from './svg-parser.js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+
+// Environment detection
+const IS_NODE = typeof process !== 'undefined' && process.versions && process.versions.node;
+const IS_BROWSER = typeof window !== 'undefined';
 
 // Load Inkscape polyfills at module initialization (minified + full versions)
 let INKSCAPE_MESH_POLYFILL_MIN = '';
@@ -24,35 +25,46 @@ let INKSCAPE_MESH_POLYFILL_FULL = '';
 let INKSCAPE_HATCH_POLYFILL_MIN = '';
 let INKSCAPE_HATCH_POLYFILL_FULL = '';
 
-try {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+// In Node.js, load polyfills from filesystem
+if (IS_NODE) {
+  try {
+    // Dynamic imports for Node.js-only modules
+    const fs = await import('fs');
+    const url = await import('url');
+    const path = await import('path');
 
-  // Load mesh gradient polyfills (GPLv3 by Tavmjong Bah)
-  // Minified version (default, ~16KB)
-  INKSCAPE_MESH_POLYFILL_MIN = readFileSync(
-    join(__dirname, 'vendor', 'inkscape-mesh-polyfill.min.js'),
-    'utf-8'
-  );
-  // Full version (~35KB, for debugging or when --no-minify-polyfills is used)
-  INKSCAPE_MESH_POLYFILL_FULL = readFileSync(
-    join(__dirname, 'vendor', 'inkscape-mesh-polyfill.js'),
-    'utf-8'
-  );
+    const __filename = url.fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
 
-  // Load hatch polyfills (CC0/Public Domain by Valentin Ionita)
-  // Minified version (default, ~5KB)
-  INKSCAPE_HATCH_POLYFILL_MIN = readFileSync(
-    join(__dirname, 'vendor', 'inkscape-hatch-polyfill.min.js'),
-    'utf-8'
-  );
-  // Full version (~10KB, for debugging)
-  INKSCAPE_HATCH_POLYFILL_FULL = readFileSync(
-    join(__dirname, 'vendor', 'inkscape-hatch-polyfill.js'),
-    'utf-8'
-  );
-} catch (e) {
-  throw new Error(`Failed to load SVG2 polyfill files from vendor/ directory: ${e.message}. Ensure all vendor files are present.`);
+    // Load mesh gradient polyfills (GPLv3 by Tavmjong Bah)
+    // Minified version (default, ~16KB)
+    INKSCAPE_MESH_POLYFILL_MIN = fs.readFileSync(
+      path.join(__dirname, 'vendor', 'inkscape-mesh-polyfill.min.js'),
+      'utf-8'
+    );
+    // Full version (~35KB, for debugging or when --no-minify-polyfills is used)
+    INKSCAPE_MESH_POLYFILL_FULL = fs.readFileSync(
+      path.join(__dirname, 'vendor', 'inkscape-mesh-polyfill.js'),
+      'utf-8'
+    );
+
+    // Load hatch polyfills (CC0/Public Domain by Valentin Ionita)
+    // Minified version (default, ~5KB)
+    INKSCAPE_HATCH_POLYFILL_MIN = fs.readFileSync(
+      path.join(__dirname, 'vendor', 'inkscape-hatch-polyfill.min.js'),
+      'utf-8'
+    );
+    // Full version (~10KB, for debugging)
+    INKSCAPE_HATCH_POLYFILL_FULL = fs.readFileSync(
+      path.join(__dirname, 'vendor', 'inkscape-hatch-polyfill.js'),
+      'utf-8'
+    );
+  } catch (e) {
+    throw new Error(`Failed to load SVG2 polyfill files from vendor/ directory: ${e.message}. Ensure all vendor files are present.`);
+  }
+} else if (IS_BROWSER) {
+  // In browser, polyfills must be set via setPolyfillContent() or loaded separately
+  console.warn('SVG2 polyfills: Running in browser mode. Use setPolyfillContent() to provide polyfill scripts.');
 }
 
 // Module-level option for minification (default: true)
@@ -67,6 +79,21 @@ export function setPolyfillMinification(minify) {
     throw new Error('setPolyfillMinification: minify parameter must be a boolean');
   }
   useMinifiedPolyfills = minify;
+}
+
+/**
+ * Set polyfill content programmatically (for browser environments).
+ * @param {Object} polyfills - Object with polyfill content
+ * @param {string} [polyfills.meshMin] - Minified mesh gradient polyfill
+ * @param {string} [polyfills.meshFull] - Full mesh gradient polyfill
+ * @param {string} [polyfills.hatchMin] - Minified hatch polyfill
+ * @param {string} [polyfills.hatchFull] - Full hatch polyfill
+ */
+export function setPolyfillContent(polyfills) {
+  if (polyfills.meshMin) INKSCAPE_MESH_POLYFILL_MIN = polyfills.meshMin;
+  if (polyfills.meshFull) INKSCAPE_MESH_POLYFILL_FULL = polyfills.meshFull;
+  if (polyfills.hatchMin) INKSCAPE_HATCH_POLYFILL_MIN = polyfills.hatchMin;
+  if (polyfills.hatchFull) INKSCAPE_HATCH_POLYFILL_FULL = polyfills.hatchFull;
 }
 
 /**
