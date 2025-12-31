@@ -177,9 +177,7 @@ export function parsePath(d) {
 
     // BUG FIX #6: Validate command exists in COMMAND_PARAMS
     if (paramCount === undefined) {
-      console.warn(
-        `Unknown SVG path command '${cmd}' - skipping`,
-      );
+      console.warn(`Unknown SVG path command '${cmd}' - skipping`);
       continue;
     }
 
@@ -218,7 +216,9 @@ export function parsePath(d) {
 export function formatNumber(num, precision = 3) {
   // Parameter validation: num must be a number
   if (typeof num !== "number") {
-    throw new TypeError(`formatNumber: num must be a number, got ${typeof num}`);
+    throw new TypeError(
+      `formatNumber: num must be a number, got ${typeof num}`,
+    );
   }
   // Parameter validation: precision must be a non-negative integer
   if (
@@ -568,10 +568,14 @@ export function lineToZ(cmd, cx, cy, startX, startY, tolerance = 1e-6) {
     throw new TypeError(`lineToZ: cy must be a finite number, got ${cy}`);
   }
   if (typeof startX !== "number" || !isFinite(startX)) {
-    throw new TypeError(`lineToZ: startX must be a finite number, got ${startX}`);
+    throw new TypeError(
+      `lineToZ: startX must be a finite number, got ${startX}`,
+    );
   }
   if (typeof startY !== "number" || !isFinite(startY)) {
-    throw new TypeError(`lineToZ: startY must be a finite number, got ${startY}`);
+    throw new TypeError(
+      `lineToZ: startY must be a finite number, got ${startY}`,
+    );
   }
   if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
     throw new TypeError(
@@ -919,7 +923,11 @@ export function convertPathData(d, options = {}) {
     throw new TypeError(`convertPathData: d must be a string, got ${typeof d}`);
   }
   // Parameter validation: options must be an object
-  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+  if (
+    typeof options !== "object" ||
+    options === null ||
+    Array.isArray(options)
+  ) {
     throw new TypeError(
       `convertPathData: options must be an object, got ${typeof options}`,
     );
@@ -1119,7 +1127,11 @@ export function optimizeDocumentPaths(root, options = {}) {
     );
   }
   // Parameter validation: options must be an object
-  if (typeof options !== "object" || options === null || Array.isArray(options)) {
+  if (
+    typeof options !== "object" ||
+    options === null ||
+    Array.isArray(options)
+  ) {
     throw new TypeError(
       `optimizeDocumentPaths: options must be an object, got ${typeof options}`,
     );

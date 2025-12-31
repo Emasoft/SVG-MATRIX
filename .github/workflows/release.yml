@@ -1,10 +1,14 @@
-name: Release and Publish to npm
+# DEPRECATED: This workflow is superseded by publish.yml which handles both
+# npm publishing and GitHub release creation with proper OIDC and Bun support.
+# Kept for manual workflow_dispatch testing only.
+name: "[DEPRECATED] Release (use publish.yml instead)"
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*.*.*'
+  # Removed tag trigger - publish.yml now handles v* tags
+  # push:
+  #   tags:
+  #     - 'v*.*.*'
 
 permissions:
   contents: write

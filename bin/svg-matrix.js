@@ -603,6 +603,7 @@ function parseFileList(listPath) {
       if (isFile(resolved)) files.push(resolved);
       else if (isDir(resolved))
         files.push(...getSvgFiles(resolved, config.recursive));
+      // NOTE: Intentional batch mode behavior - warn but continue processing remaining files
       else logWarn(`File not found: ${trimmed}`);
     } catch (e) {
       logWarn(`Invalid path in list: ${trimmed} - ${e.message}`);
@@ -893,7 +894,7 @@ ${boxLine("", W)}
 ${boxLine(`  ${colors.dim}-o, --output <path>${colors.reset}     Output file or directory`, W)}
 ${boxLine(`  ${colors.dim}-l, --list <file>${colors.reset}       Read input files from text file`, W)}
 ${boxLine(`  ${colors.dim}-r, --recursive${colors.reset}         Process directories recursively`, W)}
-${boxLine(`  ${colors.dim}-p, --precision <n>${colors.reset}     Decimal precision (default: 6, max: 50)`, W)}
+${boxLine(`  ${colors.dim}-p, --precision <n>${colors.reset}     Decimal precision (default: 6, min: 1, max: 50)`, W)}
 ${boxLine(`  ${colors.dim}-f, --force${colors.reset}             Overwrite existing output files`, W)}
 ${boxLine(`  ${colors.dim}-n, --dry-run${colors.reset}           Show what would be done`, W)}
 ${boxLine(`  ${colors.dim}-q, --quiet${colors.reset}             Suppress all output except errors`, W)}
@@ -2176,9 +2177,7 @@ function parseArgs(args) {
           .filter((ns) => ns.length > 0);
         // Why: Reject empty array after filtering whitespace-only entries
         if (cfg.preserveNamespaces.length === 0) {
-          logError(
-            "--preserve-ns list is empty after filtering whitespace",
-          );
+          logError("--preserve-ns list is empty after filtering whitespace");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         break;
@@ -2230,8 +2229,10 @@ function parseArgs(args) {
           logError("--e2e-tolerance requires a value");
           process.exit(CONSTANTS.EXIT_ERROR);
         }
-        if (!/^1e-\d+$/.test(value)) {
-          logError("e2e-tolerance must be in format 1e-N (e.g., 1e-10, 1e-12)");
+        if (!/^[\d.]+e[+-]?\d+$/i.test(value)) {
+          logError(
+            "e2e-tolerance must be in scientific notation (e.g., 1e-10, 0.5e-12, 2e-8)",
+          );
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         cfg.e2eTolerance = value;

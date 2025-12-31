@@ -81,11 +81,15 @@ export function getKappaForArc(thetaRadians) {
  */
 export function circleToPathDataHP(cx, cy, r, arcs = 8, precision = 6) {
   if (cx == null || cy == null || r == null) {
-    throw new Error("circleToPathDataHP: cx, cy, and r parameters are required");
+    throw new Error(
+      "circleToPathDataHP: cx, cy, and r parameters are required",
+    );
   }
   const rD = D(r);
   if (!rD.isFinite() || rD.isNegative()) {
-    throw new Error("circleToPathDataHP: radius must be finite and non-negative");
+    throw new Error(
+      "circleToPathDataHP: radius must be finite and non-negative",
+    );
   }
   if (rD.isZero()) {
     return ""; // Zero-radius circle produces no visible path
@@ -116,7 +120,9 @@ export function circleToPathDataHP(cx, cy, r, arcs = 8, precision = 6) {
  */
 export function ellipseToPathDataHP(cx, cy, rx, ry, arcs = 8, precision = 6) {
   if (cx == null || cy == null || rx == null || ry == null) {
-    throw new Error("ellipseToPathDataHP: cx, cy, rx, and ry parameters are required");
+    throw new Error(
+      "ellipseToPathDataHP: cx, cy, rx, and ry parameters are required",
+    );
   }
   if (!Number.isFinite(arcs) || arcs <= 0) {
     throw new Error("ellipseToPathDataHP: arcs must be a positive number");
@@ -284,7 +290,9 @@ export function circleToPathData(cx, cy, r, precision = 6) {
  */
 export function ellipseToPathData(cx, cy, rx, ry, precision = 6) {
   if (cx == null || cy == null || rx == null || ry == null) {
-    throw new Error("ellipseToPathData: cx, cy, rx, and ry parameters are required");
+    throw new Error(
+      "ellipseToPathData: cx, cy, rx, and ry parameters are required",
+    );
   }
   if (!Number.isFinite(precision) || precision < 0) {
     throw new Error("ellipseToPathData: precision must be non-negative");
@@ -356,7 +364,9 @@ export function rectToPathData(
   precision = 6,
 ) {
   if (x == null || y == null || width == null || height == null) {
-    throw new Error("rectToPathData: x, y, width, and height parameters are required");
+    throw new Error(
+      "rectToPathData: x, y, width, and height parameters are required",
+    );
   }
   if (!Number.isFinite(precision) || precision < 0) {
     throw new Error("rectToPathData: precision must be non-negative");
@@ -430,13 +440,23 @@ export function rectToPathData(
  */
 export function lineToPathData(x1, y1, x2, y2, precision = 6) {
   if (x1 == null || y1 == null || x2 == null || y2 == null) {
-    throw new Error("lineToPathData: x1, y1, x2, and y2 parameters are required");
+    throw new Error(
+      "lineToPathData: x1, y1, x2, and y2 parameters are required",
+    );
   }
   if (!Number.isFinite(precision) || precision < 0) {
     throw new Error("lineToPathData: precision must be non-negative");
   }
-  const x1D = D(x1), y1D = D(y1), x2D = D(x2), y2D = D(y2);
-  if (!x1D.isFinite() || !y1D.isFinite() || !x2D.isFinite() || !y2D.isFinite()) {
+  const x1D = D(x1),
+    y1D = D(y1),
+    x2D = D(x2),
+    y2D = D(y2);
+  if (
+    !x1D.isFinite() ||
+    !y1D.isFinite() ||
+    !x2D.isFinite() ||
+    !y2D.isFinite()
+  ) {
     throw new Error("lineToPathData: all coordinates must be finite");
   }
   const f = (v) => formatNumber(v, precision);
@@ -627,7 +647,9 @@ export function pathArrayToString(commands, precision = 6) {
   return commands
     .map((cmd) => {
       if (!cmd || typeof cmd.command !== "string" || !Array.isArray(cmd.args)) {
-        throw new Error("pathArrayToString: each command must have 'command' (string) and 'args' (array) properties");
+        throw new Error(
+          "pathArrayToString: each command must have 'command' (string) and 'args' (array) properties",
+        );
       }
       const { command, args } = cmd;
       const argsStr = args.map((a) => formatNumber(a, precision)).join(" ");
@@ -803,8 +825,18 @@ export function transformArcParams(
   endY,
   matrix,
 ) {
-  if (rx == null || ry == null || xAxisRotation == null || largeArc == null || sweep == null || endX == null || endY == null) {
-    throw new Error("transformArcParams: all parameters (rx, ry, xAxisRotation, largeArc, sweep, endX, endY) are required");
+  if (
+    rx == null ||
+    ry == null ||
+    xAxisRotation == null ||
+    largeArc == null ||
+    sweep == null ||
+    endX == null ||
+    endY == null
+  ) {
+    throw new Error(
+      "transformArcParams: all parameters (rx, ry, xAxisRotation, largeArc, sweep, endX, endY) are required",
+    );
   }
   if (matrix == null) {
     throw new Error("transformArcParams: matrix parameter is required");
@@ -812,9 +844,14 @@ export function transformArcParams(
   if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length !== 3) {
     throw new Error("transformArcParams: matrix must be 3x3");
   }
-  if (!Array.isArray(matrix.data[0]) || matrix.data[0].length < 2 ||
-      !Array.isArray(matrix.data[1]) || matrix.data[1].length < 2 ||
-      !Array.isArray(matrix.data[2]) || matrix.data[2].length < 1) {
+  if (
+    !Array.isArray(matrix.data[0]) ||
+    matrix.data[0].length < 2 ||
+    !Array.isArray(matrix.data[1]) ||
+    matrix.data[1].length < 2 ||
+    !Array.isArray(matrix.data[2]) ||
+    matrix.data[2].length < 1
+  ) {
     throw new Error("transformArcParams: matrix must have valid 3x3 structure");
   }
   const rxD = D(rx),
@@ -828,7 +865,9 @@ export function transformArcParams(
   const transformedEnd = matrix.mul(endPoint);
   const w = transformedEnd.data[2][0];
   if (w.isZero()) {
-    throw new Error("transformArcParams: division by zero in homogeneous coordinate transformation");
+    throw new Error(
+      "transformArcParams: division by zero in homogeneous coordinate transformation",
+    );
   }
   const newEndX = transformedEnd.data[0][0].div(w);
   const newEndY = transformedEnd.data[1][0].div(w);
@@ -897,9 +936,14 @@ export function transformPathData(pathData, matrix, precision = 6) {
   if (!matrix.data || !Array.isArray(matrix.data) || matrix.data.length !== 3) {
     throw new Error("transformPathData: matrix must be 3x3");
   }
-  if (!Array.isArray(matrix.data[0]) || matrix.data[0].length < 2 ||
-      !Array.isArray(matrix.data[1]) || matrix.data[1].length < 2 ||
-      !Array.isArray(matrix.data[2]) || matrix.data[2].length < 1) {
+  if (
+    !Array.isArray(matrix.data[0]) ||
+    matrix.data[0].length < 2 ||
+    !Array.isArray(matrix.data[1]) ||
+    matrix.data[1].length < 2 ||
+    !Array.isArray(matrix.data[2]) ||
+    matrix.data[2].length < 1
+  ) {
     throw new Error("transformPathData: matrix must have valid 3x3 structure");
   }
   if (!Number.isFinite(precision) || precision < 0) {
@@ -915,7 +959,9 @@ export function transformPathData(pathData, matrix, precision = 6) {
       const transformed = matrix.mul(pt);
       const w = transformed.data[2][0];
       if (w.isZero()) {
-        throw new Error("transformPathData: division by zero in homogeneous coordinate transformation");
+        throw new Error(
+          "transformPathData: division by zero in homogeneous coordinate transformation",
+        );
       }
       const x = transformed.data[0][0].div(w);
       const y = transformed.data[1][0].div(w);
@@ -928,7 +974,9 @@ export function transformPathData(pathData, matrix, precision = 6) {
         const transformed = matrix.mul(pt);
         const w = transformed.data[2][0];
         if (w.isZero()) {
-          throw new Error("transformPathData: division by zero in homogeneous coordinate transformation");
+          throw new Error(
+            "transformPathData: division by zero in homogeneous coordinate transformation",
+          );
         }
         transformedArgs.push(transformed.data[0][0].div(w));
         transformedArgs.push(transformed.data[1][0].div(w));
@@ -969,8 +1017,17 @@ export function transformPathData(pathData, matrix, precision = 6) {
  * @returns {Array<Decimal>} Cubic Bezier control points [cp1x, cp1y, cp2x, cp2y, x2, y2]
  */
 function quadraticToCubic(x0, y0, x1, y1, x2, y2) {
-  if (x0 == null || y0 == null || x1 == null || y1 == null || x2 == null || y2 == null) {
-    throw new Error("quadraticToCubic: all parameters (x0, y0, x1, y1, x2, y2) are required");
+  if (
+    x0 == null ||
+    y0 == null ||
+    x1 == null ||
+    y1 == null ||
+    x2 == null ||
+    y2 == null
+  ) {
+    throw new Error(
+      "quadraticToCubic: all parameters (x0, y0, x1, y1, x2, y2) are required",
+    );
   }
   const twoThirds = new Decimal(2).div(3);
   const cp1x = x0.plus(twoThirds.mul(x1.minus(x0)));

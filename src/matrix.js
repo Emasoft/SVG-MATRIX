@@ -96,7 +96,7 @@ export class Matrix {
       throw new Error("size must be a positive integer");
     const out = Array.from({ length: n }, (_, i) =>
       Array.from({ length: n }, (_, j) =>
-        (i === j ? new Decimal(1) : new Decimal(0)),
+        i === j ? new Decimal(1) : new Decimal(0),
       ),
     );
     return new Matrix(out);
@@ -400,11 +400,11 @@ export class Matrix {
     // Create augmented matrix [A | I]
     const aug = Array.from({ length: n }, (_, i) =>
       Array.from({ length: 2 * n }, (_, j) =>
-        (j < n
+        j < n
           ? new Decimal(this.data[i][j])
           : j - n === i
             ? new Decimal(1)
-            : new Decimal(0)),
+            : new Decimal(0),
       ),
     );
     // Gauss-Jordan elimination
@@ -498,7 +498,9 @@ export class Matrix {
     for (let i = n - 1; i >= 0; i--) {
       // Check for zero diagonal element (should not happen after forward elimination)
       if (aug[i][i].isZero())
-        throw new Error("Zero diagonal element in back substitution: system is singular");
+        throw new Error(
+          "Zero diagonal element in back substitution: system is singular",
+        );
       let sum = new Decimal(0);
       for (let j = i + 1; j < n; j++) sum = sum.plus(aug[i][j].mul(x[j]));
       x[i] = aug[i][n].minus(sum).div(aug[i][i]);
@@ -614,7 +616,9 @@ export class Matrix {
       s = Math.max(0, Math.ceil(Math.log2(logVal)));
       // Cap scaling factor to prevent DoS - 50 iterations provides 2^50 scaling which is sufficient
       if (s > 50)
-        throw new Error(`Matrix norm too large: requires ${s} scaling steps (max 50 allowed)`);
+        throw new Error(
+          `Matrix norm too large: requires ${s} scaling steps (max 50 allowed)`,
+        );
     }
     let A = this;
     if (s > 0) A = this.mul(new Decimal(1).div(new Decimal(2).pow(s)));

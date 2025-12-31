@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -24,10 +24,10 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Setup Bun
+      - name: Setup Bun (pinned version for reproducible builds)
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.1.42'
 
       - name: Install dependencies (for prepublishOnly script)
         run: npm install --production=false
@@ -56,3 +56,12 @@ jobs:
 
       - name: Publish to npm (using OIDC trusted publishing)
         run: npm publish --access public
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

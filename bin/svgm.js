@@ -137,10 +137,28 @@ function log(msg) {
 function logError(msg) {
   // Why: Validate parameter to prevent runtime errors with null/undefined
   if (typeof msg !== "string") {
-    console.error(`${colors.red}error:${colors.reset} Invalid error message type: ${typeof msg}`);
+    console.error(
+      `${colors.red}error:${colors.reset} Invalid error message type: ${typeof msg}`,
+    );
     return;
   }
   console.error(`${colors.red}error:${colors.reset} ${msg}`);
+}
+
+/**
+ * Log warning message to console.
+ * @param {string} msg - Warning message
+ * @returns {void}
+ */
+function logWarn(msg) {
+  // Why: Validate parameter to prevent runtime errors with null/undefined
+  if (typeof msg !== "string") {
+    console.warn(
+      `${colors.yellow}warn:${colors.reset} Invalid warning message type: ${typeof msg}`,
+    );
+    return;
+  }
+  console.warn(`${colors.yellow}warn:${colors.reset} ${msg}`);
 }
 
 // ============================================================================
@@ -381,7 +399,9 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
     throw new Error(`getSvgFiles: directory does not exist: ${dir}`);
   }
   if (!Array.isArray(exclude)) {
-    throw new TypeError(`getSvgFiles: expected array exclude, got ${typeof exclude}`);
+    throw new TypeError(
+      `getSvgFiles: expected array exclude, got ${typeof exclude}`,
+    );
   }
 
   // Why: Validate and compile regex patterns once before scanning to fail fast
@@ -418,8 +438,8 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
       const fullPath = join(d, entry.name);
 
       // Check exclusion patterns using pre-compiled regexes
-      const shouldExclude = excludeRegexes.some((regex) =>
-        regex.test(fullPath) || regex.test(entry.name)
+      const shouldExclude = excludeRegexes.some(
+        (regex) => regex.test(fullPath) || regex.test(entry.name),
       );
       if (shouldExclude) continue;
 
@@ -451,13 +471,17 @@ function getSvgFiles(dir, recursive = false, exclude = []) {
 async function optimizeSvg(content, options = {}) {
   // Why: Validate parameters to prevent runtime errors
   if (typeof content !== "string") {
-    throw new TypeError(`optimizeSvg: expected string content, got ${typeof content}`);
+    throw new TypeError(
+      `optimizeSvg: expected string content, got ${typeof content}`,
+    );
   }
   if (content.length === 0) {
     throw new Error("optimizeSvg: content is empty");
   }
   if (options !== null && typeof options !== "object") {
-    throw new TypeError(`optimizeSvg: expected object options, got ${typeof options}`);
+    throw new TypeError(
+      `optimizeSvg: expected object options, got ${typeof options}`,
+    );
   }
   const doc = parseSVG(content);
   const pipeline = DEFAULT_PIPELINE;
@@ -478,8 +502,10 @@ async function optimizeSvg(content, options = {}) {
           precision: options.precision,
           preserveNamespaces: options.preserveNamespaces,
         });
-      } catch {
-        // Skip failed optimizations silently
+      } catch (err) {
+        // Batch processing: log and continue so one plugin failure doesn't abort the pipeline.
+        // This is intentional - optimization plugins are non-critical and should not halt processing.
+        logWarn(`Plugin "${pluginName}" failed: ${err.message}`);
       }
     }
   }
@@ -494,8 +520,10 @@ async function optimizeSvg(content, options = {}) {
             precision: options.precision,
             preserveNamespaces: options.preserveNamespaces,
           });
-        } catch {
-          // Skip failed optimizations silently
+        } catch (err) {
+          // Batch processing: log and continue so one plugin failure doesn't abort the pipeline.
+          // This is intentional - optimization plugins are non-critical and should not halt processing.
+          logWarn(`Plugin "${pluginName}" failed: ${err.message}`);
         }
       }
     }
@@ -567,7 +595,9 @@ function prettifyXml(xml, indent = 2) {
     throw new TypeError(`prettifyXml: expected string xml, got ${typeof xml}`);
   }
   if (typeof indent !== "number" || indent < 0 || indent > 16) {
-    throw new RangeError(`prettifyXml: indent must be number 0-16, got ${indent}`);
+    throw new RangeError(
+      `prettifyXml: indent must be number 0-16, got ${indent}`,
+    );
   }
   // Simple XML prettifier
   const indentStr = " ".repeat(indent);
@@ -614,11 +644,15 @@ function prettifyXml(xml, indent = 2) {
 function toDataUri(content, format) {
   // Why: Validate parameters to prevent runtime errors
   if (typeof content !== "string") {
-    throw new TypeError(`toDataUri: expected string content, got ${typeof content}`);
+    throw new TypeError(
+      `toDataUri: expected string content, got ${typeof content}`,
+    );
   }
   const validFormats = ["base64", "enc", "unenc"];
   if (!validFormats.includes(format)) {
-    throw new Error(`toDataUri: format must be one of ${validFormats.join(", ")}, got ${format}`);
+    throw new Error(
+      `toDataUri: format must be one of ${validFormats.join(", ")}, got ${format}`,
+    );
   }
   if (format === "base64") {
     return (
@@ -644,13 +678,25 @@ function toDataUri(content, format) {
 async function processFile(inputPath, outputPath, options) {
   // Why: Validate parameters to prevent runtime errors
   if (typeof inputPath !== "string") {
-    return { success: false, error: `Invalid input path: ${typeof inputPath}`, inputPath };
+    return {
+      success: false,
+      error: `Invalid input path: ${typeof inputPath}`,
+      inputPath,
+    };
   }
   if (typeof outputPath !== "string") {
-    return { success: false, error: `Invalid output path: ${typeof outputPath}`, inputPath };
+    return {
+      success: false,
+      error: `Invalid output path: ${typeof outputPath}`,
+      inputPath,
+    };
   }
   if (options !== null && typeof options !== "object") {
-    return { success: false, error: `Invalid options: ${typeof options}`, inputPath };
+    return {
+      success: false,
+      error: `Invalid options: ${typeof options}`,
+      inputPath,
+    };
   }
 
   try {
@@ -662,7 +708,7 @@ async function processFile(inputPath, outputPath, options) {
       return {
         success: false,
         error: `File too large: ${originalSize} bytes (max ${CONSTANTS.MAX_FILE_SIZE_BYTES} bytes)`,
-        inputPath
+        inputPath,
       };
     }
 
@@ -716,9 +762,8 @@ async function processFile(inputPath, outputPath, options) {
 
     const savings = originalSize - optimizedSize;
     // Why: Handle case where optimizedSize > originalSize (negative savings)
-    const percent = originalSize > 0
-      ? ((savings / originalSize) * 100).toFixed(1)
-      : "0.0";
+    const percent =
+      originalSize > 0 ? ((savings / originalSize) * 100).toFixed(1) : "0.0";
 
     return {
       success: true,
@@ -752,7 +797,7 @@ Arguments:
 
 Options:
   -v, --version              Output the version number
-  -i, --input <INPUT...>     Input files, "-" for STDIN
+  -i, --input <INPUT...>     Input files
   -s, --string <STRING>      Input SVG data string
   -f, --folder <FOLDER>      Input folder, optimize and rewrite all *.svg files
   -o, --output <OUTPUT...>   Output file or folder (by default same as input),
@@ -857,7 +902,9 @@ function loadConfigFile(configPath) {
 
     // Why: Validate loaded config is an object to prevent runtime errors
     if (loadedConfig === null || typeof loadedConfig !== "object") {
-      logError(`Invalid config file: expected object, got ${typeof loadedConfig}`);
+      logError(
+        `Invalid config file: expected object, got ${typeof loadedConfig}`,
+      );
       process.exit(CONSTANTS.EXIT_ERROR);
     }
 
@@ -1045,7 +1092,9 @@ function parseArgs(args) {
           const parsed = parseInt(precisionArg, 10);
           // Why: Validate parseInt result to prevent NaN and negative values
           if (isNaN(parsed) || parsed < 0) {
-            logError(`--precision requires a non-negative number, got: ${precisionArg}`);
+            logError(
+              `--precision requires a non-negative number, got: ${precisionArg}`,
+            );
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.precision = parsed;
@@ -1074,7 +1123,9 @@ function parseArgs(args) {
           const parsed = parseInt(indentArg, 10);
           // Why: Validate parseInt result to prevent NaN and negative values
           if (isNaN(parsed) || parsed < 0) {
-            logError(`--indent requires a non-negative number, got: ${indentArg}`);
+            logError(
+              `--indent requires a non-negative number, got: ${indentArg}`,
+            );
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.indent = parsed;
@@ -1236,7 +1287,9 @@ function parseArgs(args) {
           const parsed = parseInt(depthArg, 10);
           // Why: Validate parseInt result to prevent NaN and negative/zero values
           if (isNaN(parsed) || parsed < 1) {
-            logError(`--embed-max-depth requires a positive number, got: ${depthArg}`);
+            logError(
+              `--embed-max-depth requires a positive number, got: ${depthArg}`,
+            );
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.embedMaxRecursionDepth = parsed;
@@ -1251,7 +1304,9 @@ function parseArgs(args) {
           const parsed = parseInt(timeoutArg, 10);
           // Why: Validate parseInt result to prevent NaN and negative/zero values
           if (isNaN(parsed) || parsed < 1000) {
-            logError(`--embed-timeout requires a number >= 1000 (ms), got: ${timeoutArg}`);
+            logError(
+              `--embed-timeout requires a number >= 1000 (ms), got: ${timeoutArg}`,
+            );
             process.exit(CONSTANTS.EXIT_ERROR);
           }
           cfg.embedTimeout = parsed;
@@ -1280,23 +1335,34 @@ function parseArgs(args) {
   // Validate numeric arguments
   // Why: Check type first before using isNaN to prevent incorrect validation
   if (
-    cfg.precision !== undefined && cfg.precision !== null &&
-    (typeof cfg.precision !== "number" || isNaN(cfg.precision) ||
-     cfg.precision < CONSTANTS.MIN_PRECISION || cfg.precision > CONSTANTS.MAX_PRECISION)
+    cfg.precision !== undefined &&
+    cfg.precision !== null &&
+    (typeof cfg.precision !== "number" ||
+      isNaN(cfg.precision) ||
+      cfg.precision < CONSTANTS.MIN_PRECISION ||
+      cfg.precision > CONSTANTS.MAX_PRECISION)
   ) {
-    logError(`--precision must be a number between ${CONSTANTS.MIN_PRECISION} and ${CONSTANTS.MAX_PRECISION}`);
+    logError(
+      `--precision must be a number between ${CONSTANTS.MIN_PRECISION} and ${CONSTANTS.MAX_PRECISION}`,
+    );
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.indent !== undefined && cfg.indent !== null &&
-    (typeof cfg.indent !== "number" || isNaN(cfg.indent) || cfg.indent < 0 || cfg.indent > 16)
+    cfg.indent !== undefined &&
+    cfg.indent !== null &&
+    (typeof cfg.indent !== "number" ||
+      isNaN(cfg.indent) ||
+      cfg.indent < 0 ||
+      cfg.indent > 16)
   ) {
     logError("--indent must be a number between 0 and 16");
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.embedMaxRecursionDepth !== undefined && cfg.embedMaxRecursionDepth !== null &&
-    (typeof cfg.embedMaxRecursionDepth !== "number" || isNaN(cfg.embedMaxRecursionDepth) ||
+    cfg.embedMaxRecursionDepth !== undefined &&
+    cfg.embedMaxRecursionDepth !== null &&
+    (typeof cfg.embedMaxRecursionDepth !== "number" ||
+      isNaN(cfg.embedMaxRecursionDepth) ||
       cfg.embedMaxRecursionDepth < 1 ||
       cfg.embedMaxRecursionDepth > 100)
   ) {
@@ -1304,8 +1370,10 @@ function parseArgs(args) {
     process.exit(CONSTANTS.EXIT_ERROR);
   }
   if (
-    cfg.embedTimeout !== undefined && cfg.embedTimeout !== null &&
-    (typeof cfg.embedTimeout !== "number" || isNaN(cfg.embedTimeout) ||
+    cfg.embedTimeout !== undefined &&
+    cfg.embedTimeout !== null &&
+    (typeof cfg.embedTimeout !== "number" ||
+      isNaN(cfg.embedTimeout) ||
       cfg.embedTimeout < 1000 ||
       cfg.embedTimeout > 300000)
   ) {
@@ -1327,7 +1395,6 @@ function parseArgs(args) {
   const validSvgMode = ["extract", "full"];
   if (
     cfg.embedExternalSVGMode != null &&
-    cfg.embedExternalSVGMode !== "extract" &&
     !validSvgMode.includes(cfg.embedExternalSVGMode)
   ) {
     logError(`--embed-svg-mode must be one of: ${validSvgMode.join(", ")}`);
@@ -1485,7 +1552,9 @@ async function main() {
       if (config.output === "-") {
         // Why: Validate stdout output only works with single file
         if (files.length > 1) {
-          logError("Cannot output multiple files to stdout (use -o <dir> instead)");
+          logError(
+            "Cannot output multiple files to stdout (use -o <dir> instead)",
+          );
           process.exit(CONSTANTS.EXIT_ERROR);
         }
         outputPath = "-";
@@ -1494,7 +1563,7 @@ async function main() {
         if (config.output.length !== files.length) {
           logError(
             `Output count mismatch: ${files.length} input file(s) but ${config.output.length} output path(s). ` +
-            `Provide either one output directory or exactly ${files.length} output file(s).`
+              `Provide either one output directory or exactly ${files.length} output file(s).`,
           );
           process.exit(CONSTANTS.EXIT_ERROR);
         }
@@ -1506,7 +1575,7 @@ async function main() {
         if (files.length > 1 && !isDir(outputDir)) {
           logError(
             `Processing ${files.length} files but output "${config.output}" is not a directory. ` +
-            `Create the directory first or provide ${files.length} output paths.`
+              `Create the directory first or provide ${files.length} output paths.`,
           );
           process.exit(CONSTANTS.EXIT_ERROR);
         }

@@ -20,7 +20,7 @@
  * @module animation-optimization
  */
 
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 // Configure Decimal for high precision internally
 Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
@@ -32,9 +32,9 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 export const STANDARD_EASINGS = {
   linear: [0, 0, 1, 1],
   ease: [0.25, 0.1, 0.25, 1],
-  'ease-in': [0.42, 0, 1, 1],
-  'ease-out': [0, 0, 0.58, 1],
-  'ease-in-out': [0.42, 0, 0.58, 1],
+  "ease-in": [0.42, 0, 1, 1],
+  "ease-out": [0, 0, 0.58, 1],
+  "ease-in-out": [0.42, 0, 0.58, 1],
 };
 
 /**
@@ -46,18 +46,26 @@ export const STANDARD_EASINGS = {
 export function formatSplineValue(value, precision = 3) {
   // Validate value parameter
   if (value === null || value === undefined) {
-    throw new Error('formatSplineValue: value parameter is required');
+    throw new Error("formatSplineValue: value parameter is required");
   }
 
   // Validate precision parameter
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('formatSplineValue: precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "formatSplineValue: precision must be a non-negative finite number",
+    );
   }
 
   // Check for NaN/Infinity before creating Decimal
-  const numValue = typeof value === 'number' ? value : parseFloat(value);
+  const numValue = typeof value === "number" ? value : parseFloat(value);
   if (!Number.isFinite(numValue)) {
-    throw new Error(`formatSplineValue: value must be a finite number, got ${value}`);
+    throw new Error(
+      `formatSplineValue: value must be a finite number, got ${value}`,
+    );
   }
 
   const num = new Decimal(value);
@@ -69,19 +77,19 @@ export function formatSplineValue(value, precision = 3) {
   let str = rounded.toString();
 
   // Remove trailing zeros after decimal point
-  if (str.includes('.')) {
-    str = str.replace(/\.?0+$/, '');
+  if (str.includes(".")) {
+    str = str.replace(/\.?0+$/, "");
   }
 
   // Remove leading zero for values between -1 and 1 (exclusive)
-  if (str.startsWith('0.')) {
+  if (str.startsWith("0.")) {
     str = str.substring(1); // "0.5" -> ".5"
-  } else if (str.startsWith('-0.')) {
-    str = '-' + str.substring(2); // "-0.5" -> "-.5"
+  } else if (str.startsWith("-0.")) {
+    str = "-" + str.substring(2); // "-0.5" -> "-.5"
   }
 
   // Handle edge cases: ".0" should be "0", "-0" should be "0"
-  if (str === '' || str === '.' || str === '-0') str = '0';
+  if (str === "" || str === "." || str === "-0") str = "0";
 
   return str;
 }
@@ -93,25 +101,30 @@ export function formatSplineValue(value, precision = 3) {
  * @returns {number[][]} Array of [x1, y1, x2, y2] arrays
  */
 export function parseKeySplines(keySplines) {
-  if (!keySplines || typeof keySplines !== 'string') return [];
+  if (!keySplines || typeof keySplines !== "string") return [];
 
   // Split by semicolon to get individual splines
-  const splines = keySplines.split(';').map(s => s.trim()).filter(s => s);
+  const splines = keySplines
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s);
 
-  return splines
-    .map(spline => {
-      // Split by whitespace or comma to get control points
-      const values = spline.split(/[\s,]+/)
-        .map(v => parseFloat(v))
-        .filter(v => Number.isFinite(v)); // Filter out NaN and Infinity
+  return splines.map((spline) => {
+    // Split by whitespace or comma to get control points
+    const values = spline
+      .split(/[\s,]+/)
+      .map((v) => parseFloat(v))
+      .filter((v) => Number.isFinite(v)); // Filter out NaN and Infinity
 
-      // Each spline must have exactly 4 control points
-      if (values.length !== 4) {
-        throw new Error(`parseKeySplines: invalid spline "${spline}", expected 4 values, got ${values.length}`);
-      }
+    // Each spline must have exactly 4 control points
+    if (values.length !== 4) {
+      throw new Error(
+        `parseKeySplines: invalid spline "${spline}", expected 4 values, got ${values.length}`,
+      );
+    }
 
-      return values;
-    });
+    return values;
+  });
 }
 
 /**
@@ -123,25 +136,37 @@ export function parseKeySplines(keySplines) {
 export function serializeKeySplines(splines, precision = 3) {
   // Validate splines parameter
   if (!Array.isArray(splines)) {
-    throw new Error('serializeKeySplines: splines must be an array');
+    throw new Error("serializeKeySplines: splines must be an array");
   }
 
   // Validate precision parameter
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('serializeKeySplines: precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "serializeKeySplines: precision must be a non-negative finite number",
+    );
   }
 
-  return splines.map((spline, index) => {
-    // Validate each spline is an array with 4 values
-    if (!Array.isArray(spline)) {
-      throw new Error(`serializeKeySplines: spline at index ${index} must be an array`);
-    }
-    if (spline.length !== 4) {
-      throw new Error(`serializeKeySplines: spline at index ${index} must have exactly 4 values, got ${spline.length}`);
-    }
+  return splines
+    .map((spline, index) => {
+      // Validate each spline is an array with 4 values
+      if (!Array.isArray(spline)) {
+        throw new Error(
+          `serializeKeySplines: spline at index ${index} must be an array`,
+        );
+      }
+      if (spline.length !== 4) {
+        throw new Error(
+          `serializeKeySplines: spline at index ${index} must have exactly 4 values, got ${spline.length}`,
+        );
+      }
 
-    return spline.map(v => formatSplineValue(v, precision)).join(' ');
-  }).join('; ');
+      return spline.map((v) => formatSplineValue(v, precision)).join(" ");
+    })
+    .join("; ");
 }
 
 /**
@@ -155,14 +180,25 @@ export function isLinearSpline(spline, tolerance = 0.001) {
   if (!Array.isArray(spline) || spline.length !== 4) return false;
 
   // Validate tolerance parameter
-  if (typeof tolerance !== 'number' || tolerance < 0 || !Number.isFinite(tolerance)) {
-    throw new Error('isLinearSpline: tolerance must be a non-negative finite number');
+  if (
+    typeof tolerance !== "number" ||
+    tolerance < 0 ||
+    !Number.isFinite(tolerance)
+  ) {
+    throw new Error(
+      "isLinearSpline: tolerance must be a non-negative finite number",
+    );
   }
 
   const [x1, y1, x2, y2] = spline;
 
   // Check for NaN values in spline
-  if (!Number.isFinite(x1) || !Number.isFinite(y1) || !Number.isFinite(x2) || !Number.isFinite(y2)) {
+  if (
+    !Number.isFinite(x1) ||
+    !Number.isFinite(y1) ||
+    !Number.isFinite(x2) ||
+    !Number.isFinite(y2)
+  ) {
     return false;
   }
 
@@ -183,7 +219,7 @@ export function areAllSplinesLinear(keySplines) {
   const splines = parseKeySplines(keySplines);
   if (splines.length === 0) return false;
   // Must wrap in arrow function to avoid .every() passing index as tolerance
-  return splines.every(s => isLinearSpline(s));
+  return splines.every((s) => isLinearSpline(s));
 }
 
 /**
@@ -197,15 +233,23 @@ export function identifyStandardEasing(spline, tolerance = 0.01) {
   if (!Array.isArray(spline) || spline.length !== 4) return null;
 
   // Validate tolerance parameter
-  if (typeof tolerance !== 'number' || tolerance < 0 || !Number.isFinite(tolerance)) {
-    throw new Error('identifyStandardEasing: tolerance must be a non-negative finite number');
+  if (
+    typeof tolerance !== "number" ||
+    tolerance < 0 ||
+    !Number.isFinite(tolerance)
+  ) {
+    throw new Error(
+      "identifyStandardEasing: tolerance must be a non-negative finite number",
+    );
   }
 
   // Check for NaN values in spline
-  if (!spline.every(val => Number.isFinite(val))) return null;
+  if (!spline.every((val) => Number.isFinite(val))) return null;
 
   for (const [name, standard] of Object.entries(STANDARD_EASINGS)) {
-    const matches = spline.every((val, i) => Math.abs(val - standard[i]) < tolerance);
+    const matches = spline.every(
+      (val, i) => Math.abs(val - standard[i]) < tolerance,
+    );
     if (matches) return name;
   }
   return null;
@@ -230,10 +274,12 @@ export function optimizeKeySplines(keySplines, options = {}) {
   }
 
   // Must wrap in arrow function to avoid .every() passing index as tolerance
-  const allLinear = splines.every(s => isLinearSpline(s));
+  const allLinear = splines.every((s) => isLinearSpline(s));
 
   // Identify standard easings
-  const standardEasings = splines.map(s => identifyStandardEasing(s)).filter(Boolean);
+  const standardEasings = splines
+    .map((s) => identifyStandardEasing(s))
+    .filter(Boolean);
 
   // If all linear and removeLinear is true, suggest removing keySplines
   if (allLinear && removeLinear) {
@@ -252,8 +298,11 @@ export function optimizeKeySplines(keySplines, options = {}) {
  * @returns {number[]} Array of time values
  */
 export function parseKeyTimes(keyTimes) {
-  if (!keyTimes || typeof keyTimes !== 'string') return [];
-  return keyTimes.split(';').map(s => parseFloat(s.trim())).filter(v => Number.isFinite(v));
+  if (!keyTimes || typeof keyTimes !== "string") return [];
+  return keyTimes
+    .split(";")
+    .map((s) => parseFloat(s.trim()))
+    .filter((v) => Number.isFinite(v));
 }
 
 /**
@@ -265,18 +314,24 @@ export function parseKeyTimes(keyTimes) {
 export function serializeKeyTimes(times, precision = 3) {
   // Validate times parameter
   if (!Array.isArray(times)) {
-    throw new Error('serializeKeyTimes: times must be an array');
+    throw new Error("serializeKeyTimes: times must be an array");
   }
 
   // Validate precision parameter
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('serializeKeyTimes: precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "serializeKeyTimes: precision must be a non-negative finite number",
+    );
   }
 
   // Return empty string for empty array
-  if (times.length === 0) return '';
+  if (times.length === 0) return "";
 
-  return times.map(t => formatSplineValue(t, precision)).join('; ');
+  return times.map((t) => formatSplineValue(t, precision)).join("; ");
 }
 
 /**
@@ -288,12 +343,18 @@ export function serializeKeyTimes(times, precision = 3) {
 export function optimizeKeyTimes(keyTimes, precision = 3) {
   // Validate keyTimes parameter
   if (keyTimes === null || keyTimes === undefined) {
-    throw new Error('optimizeKeyTimes: keyTimes parameter is required');
+    throw new Error("optimizeKeyTimes: keyTimes parameter is required");
   }
 
   // Validate precision parameter
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('optimizeKeyTimes: precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "optimizeKeyTimes: precision must be a non-negative finite number",
+    );
   }
 
   const times = parseKeyTimes(keyTimes);
@@ -309,39 +370,45 @@ export function optimizeKeyTimes(keyTimes, precision = 3) {
  * @returns {string} Optimized values
  */
 export function optimizeAnimationValues(values, precision = 3) {
-  if (!values || typeof values !== 'string') return values;
+  if (!values || typeof values !== "string") return values;
 
   // Validate precision parameter
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('optimizeAnimationValues: precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "optimizeAnimationValues: precision must be a non-negative finite number",
+    );
   }
 
   // Split by semicolon
-  const parts = values.split(';');
+  const parts = values.split(";");
 
   // Handle empty values string
   if (parts.length === 0) return values;
 
-  const optimized = parts.map(part => {
+  const optimized = parts.map((part) => {
     const trimmed = part.trim();
 
     // Preserve ID references exactly
-    if (trimmed.startsWith('#') || trimmed.includes('url(')) {
+    if (trimmed.startsWith("#") || trimmed.includes("url(")) {
       return trimmed;
     }
 
     // Try to parse as numbers (could be space-separated like "0 0" for translate)
-    const nums = trimmed.split(/[\s,]+/).filter(n => n); // Filter empty strings
-    const optimizedNums = nums.map(n => {
+    const nums = trimmed.split(/[\s,]+/).filter((n) => n); // Filter empty strings
+    const optimizedNums = nums.map((n) => {
       const num = parseFloat(n);
       if (!Number.isFinite(num)) return n; // Not a finite number, preserve as-is
       return formatSplineValue(num, precision);
     });
 
-    return optimizedNums.join(' ');
+    return optimizedNums.join(" ");
   });
 
-  return optimized.join('; ');
+  return optimized.join("; ");
 }
 
 /**
@@ -352,11 +419,19 @@ export function optimizeAnimationValues(values, precision = 3) {
  */
 export function optimizeElementTiming(el, options = {}) {
   // Validate el parameter
-  if (!el || typeof el !== 'object') {
-    throw new Error('optimizeElementTiming: el parameter must be a valid element');
+  if (!el || typeof el !== "object") {
+    throw new Error(
+      "optimizeElementTiming: el parameter must be a valid element",
+    );
   }
-  if (typeof el.getAttribute !== 'function' || typeof el.setAttribute !== 'function' || typeof el.removeAttribute !== 'function') {
-    throw new Error('optimizeElementTiming: el parameter must have getAttribute, setAttribute, and removeAttribute methods');
+  if (
+    typeof el.getAttribute !== "function" ||
+    typeof el.setAttribute !== "function" ||
+    typeof el.removeAttribute !== "function"
+  ) {
+    throw new Error(
+      "optimizeElementTiming: el parameter must have getAttribute, setAttribute, and removeAttribute methods",
+    );
   }
 
   const precision = options.precision ?? 3;
@@ -364,40 +439,49 @@ export function optimizeElementTiming(el, options = {}) {
   const optimizeValues = options.optimizeValues !== false;
 
   // Validate precision from options
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error('optimizeElementTiming: options.precision must be a non-negative finite number');
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      "optimizeElementTiming: options.precision must be a non-negative finite number",
+    );
   }
 
   const changes = [];
   let modified = false;
 
   // Optimize keySplines
-  const keySplines = el.getAttribute('keySplines');
+  const keySplines = el.getAttribute("keySplines");
   if (keySplines) {
-    const result = optimizeKeySplines(keySplines, { precision, removeLinear: removeLinearSplines });
+    const result = optimizeKeySplines(keySplines, {
+      precision,
+      removeLinear: removeLinearSplines,
+    });
 
     if (result.allLinear && removeLinearSplines) {
       // All splines are linear - can simplify to calcMode="linear"
-      const calcMode = el.getAttribute('calcMode');
-      if (calcMode === 'spline') {
-        el.setAttribute('calcMode', 'linear');
-        el.removeAttribute('keySplines');
+      const calcMode = el.getAttribute("calcMode");
+      if (calcMode === "spline") {
+        el.setAttribute("calcMode", "linear");
+        el.removeAttribute("keySplines");
         changes.push('Converted linear splines to calcMode="linear"');
         modified = true;
       }
     } else if (result.value && result.value !== keySplines) {
-      el.setAttribute('keySplines', result.value);
+      el.setAttribute("keySplines", result.value);
       changes.push(`keySplines: "${keySplines}" -> "${result.value}"`);
       modified = true;
     }
   }
 
   // Optimize keyTimes
-  const keyTimes = el.getAttribute('keyTimes');
+  const keyTimes = el.getAttribute("keyTimes");
   if (keyTimes) {
     const optimized = optimizeKeyTimes(keyTimes, precision);
     if (optimized !== keyTimes) {
-      el.setAttribute('keyTimes', optimized);
+      el.setAttribute("keyTimes", optimized);
       changes.push(`keyTimes: "${keyTimes}" -> "${optimized}"`);
       modified = true;
     }
@@ -405,11 +489,11 @@ export function optimizeElementTiming(el, options = {}) {
 
   // Optimize values (optimizeAnimationValues internally preserves ID refs)
   if (optimizeValues) {
-    const values = el.getAttribute('values');
+    const values = el.getAttribute("values");
     if (values) {
       const optimized = optimizeAnimationValues(values, precision);
       if (optimized !== values) {
-        el.setAttribute('values', optimized);
+        el.setAttribute("values", optimized);
         changes.push(`values: "${values}" -> "${optimized}"`);
         modified = true;
       }
@@ -417,7 +501,7 @@ export function optimizeElementTiming(el, options = {}) {
   }
 
   // Optimize from/to/by (optimizeAnimationValues internally preserves ID refs)
-  for (const attr of ['from', 'to', 'by']) {
+  for (const attr of ["from", "to", "by"]) {
     const val = el.getAttribute(attr);
     if (val) {
       const optimized = optimizeAnimationValues(val, precision);
@@ -436,7 +520,13 @@ export function optimizeElementTiming(el, options = {}) {
  * Animation elements that can have timing attributes
  * Note: all lowercase to match svg-parser tagName normalization
  */
-export const ANIMATION_ELEMENTS = ['animate', 'animatetransform', 'animatemotion', 'animatecolor', 'set'];
+export const ANIMATION_ELEMENTS = [
+  "animate",
+  "animatetransform",
+  "animatemotion",
+  "animatecolor",
+  "set",
+];
 
 /**
  * Optimize all animation timing in an SVG document
@@ -446,8 +536,10 @@ export const ANIMATION_ELEMENTS = ['animate', 'animatetransform', 'animatemotion
  */
 export function optimizeDocumentAnimationTiming(root, options = {}) {
   // Validate root parameter
-  if (!root || typeof root !== 'object') {
-    throw new Error('optimizeDocumentAnimationTiming: root parameter must be a valid element');
+  if (!root || typeof root !== "object") {
+    throw new Error(
+      "optimizeDocumentAnimationTiming: root parameter must be a valid element",
+    );
   }
 
   let elementsModified = 0;
@@ -456,7 +548,7 @@ export function optimizeDocumentAnimationTiming(root, options = {}) {
 
   const processElement = (el) => {
     // Skip if not a valid element
-    if (!el || typeof el !== 'object') return;
+    if (!el || typeof el !== "object") return;
 
     const tagName = el.tagName?.toLowerCase();
 
@@ -470,8 +562,8 @@ export function optimizeDocumentAnimationTiming(root, options = {}) {
         totalChanges += result.changes.length;
         details.push({
           element: tagName,
-          id: el.getAttribute('id') || null,
-          changes: result.changes
+          id: el.getAttribute("id") || null,
+          changes: result.changes,
         });
       }
     }

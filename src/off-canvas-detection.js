@@ -221,14 +221,10 @@ function createBBox(minX, minY, maxX, maxY) {
 
   // Validate bounds are not inverted (WHY: catch logic errors early)
   if (dMaxX.lessThan(dMinX)) {
-    throw new Error(
-      `createBBox: maxX (${dMaxX}) must be >= minX (${dMinX})`,
-    );
+    throw new Error(`createBBox: maxX (${dMaxX}) must be >= minX (${dMinX})`);
   }
   if (dMaxY.lessThan(dMinY)) {
-    throw new Error(
-      `createBBox: maxY (${dMaxY}) must be >= minY (${dMinY})`,
-    );
+    throw new Error(`createBBox: maxY (${dMaxY}) must be >= minY (${dMinY})`);
   }
 
   return {
@@ -413,7 +409,9 @@ function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, samples = 20) {
 function pointInBBox(pt, bbox, tolerance = DEFAULT_TOLERANCE) {
   // Validate point parameter (WHY: prevent null dereference)
   if (!pt || typeof pt !== "object" || pt.x == null || pt.y == null) {
-    throw new Error("pointInBBox: pt must be an object with x and y properties");
+    throw new Error(
+      "pointInBBox: pt must be an object with x and y properties",
+    );
   }
 
   // Validate bbox parameter (WHY: prevent null dereference)
@@ -479,7 +477,12 @@ export function pathBoundingBox(pathCommands) {
 
   for (const cmd of pathCommands) {
     // Validate command object and type property (WHY: prevent null dereference and type errors)
-    if (!cmd || typeof cmd !== "object" || !cmd.type || typeof cmd.type !== "string") {
+    if (
+      !cmd ||
+      typeof cmd !== "object" ||
+      !cmd.type ||
+      typeof cmd.type !== "string"
+    ) {
       throw new Error(
         "pathBoundingBox: each command must be an object with a string type property",
       );
@@ -494,7 +497,9 @@ export function pathBoundingBox(pathCommands) {
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
           if (cmd.x == null || cmd.y == null) {
-            throw new Error("pathBoundingBox: M command requires x and y properties");
+            throw new Error(
+              "pathBoundingBox: M command requires x and y properties",
+            );
           }
 
           // BUG 1 FIX: Handle relative coordinates
@@ -521,7 +526,9 @@ export function pathBoundingBox(pathCommands) {
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
           if (cmd.x == null || cmd.y == null) {
-            throw new Error("pathBoundingBox: L command requires x and y properties");
+            throw new Error(
+              "pathBoundingBox: L command requires x and y properties",
+            );
           }
 
           // BUG 1 FIX: Handle relative coordinates
@@ -639,7 +646,12 @@ export function pathBoundingBox(pathCommands) {
       case "S": // Smooth cubic Bezier
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
-          if (cmd.x2 == null || cmd.y2 == null || cmd.x == null || cmd.y == null) {
+          if (
+            cmd.x2 == null ||
+            cmd.y2 == null ||
+            cmd.x == null ||
+            cmd.y == null
+          ) {
             throw new Error(
               "pathBoundingBox: S command requires x2, y2, x, y properties",
             );
@@ -692,7 +704,12 @@ export function pathBoundingBox(pathCommands) {
       case "Q": // Quadratic Bezier
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
-          if (cmd.x1 == null || cmd.y1 == null || cmd.x == null || cmd.y == null) {
+          if (
+            cmd.x1 == null ||
+            cmd.y1 == null ||
+            cmd.x == null ||
+            cmd.y == null
+          ) {
             throw new Error(
               "pathBoundingBox: Q command requires x1, y1, x, y properties",
             );
@@ -733,7 +750,9 @@ export function pathBoundingBox(pathCommands) {
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
           if (cmd.x == null || cmd.y == null) {
-            throw new Error("pathBoundingBox: T command requires x and y properties");
+            throw new Error(
+              "pathBoundingBox: T command requires x and y properties",
+            );
           }
 
           // BUG 1 FIX: Handle relative coordinates
@@ -779,8 +798,15 @@ export function pathBoundingBox(pathCommands) {
       case "A": // Arc (proper extrema calculation)
         {
           // Validate required properties (WHY: prevent accessing undefined properties)
-          if (cmd.x == null || cmd.y == null || cmd.rx == null || cmd.ry == null) {
-            throw new Error("pathBoundingBox: A command requires x, y, rx, ry properties");
+          if (
+            cmd.x == null ||
+            cmd.y == null ||
+            cmd.rx == null ||
+            cmd.ry == null
+          ) {
+            throw new Error(
+              "pathBoundingBox: A command requires x, y, rx, ry properties",
+            );
           }
 
           // BUG 4 FIX: Proper arc bounding box calculation with extrema points
@@ -1003,7 +1029,12 @@ export function shapeBoundingBox(shape) {
           // Horizontal line
           bbox = createBBox(cx.minus(rx), cy, cx.plus(rx), cy);
         } else {
-          bbox = createBBox(cx.minus(rx), cy.minus(ry), cx.plus(rx), cy.plus(ry));
+          bbox = createBBox(
+            cx.minus(rx),
+            cy.minus(ry),
+            cx.plus(rx),
+            cy.plus(ry),
+          );
         }
 
         // Sample points around ellipse
@@ -1522,7 +1553,12 @@ export function clipPathToViewBox(pathCommands, viewBox) {
 
   for (const cmd of pathCommands) {
     // Validate command object and type (WHY: prevent null dereference)
-    if (!cmd || typeof cmd !== "object" || !cmd.type || typeof cmd.type !== "string") {
+    if (
+      !cmd ||
+      typeof cmd !== "object" ||
+      !cmd.type ||
+      typeof cmd.type !== "string"
+    ) {
       continue; // Skip invalid commands during clipping (WHY: graceful degradation)
     }
 

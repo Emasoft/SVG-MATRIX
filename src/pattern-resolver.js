@@ -732,9 +732,7 @@ export function resolvePattern(patternData, targetBBox, options = {}) {
   );
 
   // Parse patternTransform if present
-  const patternTransform = parsePatternTransform(
-    patternData.patternTransform,
-  );
+  const patternTransform = parsePatternTransform(patternData.patternTransform);
 
   // Get tile positions
   const positions = getTilePositions(tile, targetBBox);

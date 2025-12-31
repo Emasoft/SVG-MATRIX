@@ -104,7 +104,11 @@ class SVGDocument {
    */
   createElementNS(namespace, tagName) {
     // Validation: Ensure namespace is a string (though unused, for API compatibility)
-    if (namespace !== null && namespace !== undefined && typeof namespace !== "string") {
+    if (
+      namespace !== null &&
+      namespace !== undefined &&
+      typeof namespace !== "string"
+    ) {
       throw new Error("createElementNS: namespace must be a string");
     }
     return this.createElement(tagName);

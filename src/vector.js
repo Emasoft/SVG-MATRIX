@@ -1,4 +1,4 @@
-import Decimal from 'decimal.js';
+import Decimal from "decimal.js";
 
 /**
  * Helper to convert any numeric input to Decimal.
@@ -7,9 +7,11 @@ import Decimal from 'decimal.js';
  * @returns {Decimal} The Decimal representation
  * @throws {Error} If x is null, undefined, or cannot be converted to Decimal
  */
-const D = x => {
+const D = (x) => {
   if (x === null || x === undefined) {
-    throw new Error(`Cannot convert ${x === null ? 'null' : 'undefined'} to Decimal`);
+    throw new Error(
+      `Cannot convert ${x === null ? "null" : "undefined"} to Decimal`,
+    );
   }
   if (x instanceof Decimal) return x;
   try {
@@ -42,12 +44,15 @@ export class Vector {
    * @throws {Error} If components is not an array, is empty, or contains invalid values
    */
   constructor(components) {
-    if (!Array.isArray(components)) throw new Error('Vector requires array');
-    if (components.length === 0) throw new Error('Vector requires at least one component');
+    if (!Array.isArray(components)) throw new Error("Vector requires array");
+    if (components.length === 0)
+      throw new Error("Vector requires at least one component");
     try {
       this.data = components.map((c, i) => {
         if (c === null || c === undefined) {
-          throw new Error(`Vector component at index ${i} is ${c === null ? 'null' : 'undefined'}`);
+          throw new Error(
+            `Vector component at index ${i} is ${c === null ? "null" : "undefined"}`,
+          );
         }
         return D(c);
       });
@@ -65,7 +70,9 @@ export class Vector {
    */
   static from(arr) {
     if (arr === null || arr === undefined) {
-      throw new Error(`Vector.from: argument is ${arr === null ? 'null' : 'undefined'}`);
+      throw new Error(
+        `Vector.from: argument is ${arr === null ? "null" : "undefined"}`,
+      );
     }
     return new Vector(arr);
   }
@@ -75,7 +82,7 @@ export class Vector {
    * @returns {Vector} New Vector with copied values
    */
   clone() {
-    return new Vector(this.data.map(v => new Decimal(v)));
+    return new Vector(this.data.map((v) => new Decimal(v)));
   }
 
   /**
@@ -93,7 +100,7 @@ export class Vector {
    * @returns {number[]} Array of number values
    */
   toNumberArray() {
-    return this.data.map(v => v.toNumber());
+    return this.data.map((v) => v.toNumber());
   }
 
   /**
@@ -102,7 +109,7 @@ export class Vector {
    * @returns {string[]} Array of string values
    */
   toStringArray() {
-    return this.data.map(v => v.toString());
+    return this.data.map((v) => v.toString());
   }
 
   /**
@@ -113,10 +120,12 @@ export class Vector {
    */
   add(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('add: argument must be a Vector');
+      throw new Error("add: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`add: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `add: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     return new Vector(this.data.map((v, i) => v.plus(other.data[i])));
   }
@@ -129,10 +138,12 @@ export class Vector {
    */
   sub(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('sub: argument must be a Vector');
+      throw new Error("sub: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`sub: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `sub: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     return new Vector(this.data.map((v, i) => v.minus(other.data[i])));
   }
@@ -145,7 +156,9 @@ export class Vector {
    */
   scale(scalar) {
     if (scalar === null || scalar === undefined) {
-      throw new Error(`scale: scalar is ${scalar === null ? 'null' : 'undefined'}`);
+      throw new Error(
+        `scale: scalar is ${scalar === null ? "null" : "undefined"}`,
+      );
     }
     let s;
     try {
@@ -153,7 +166,7 @@ export class Vector {
     } catch (err) {
       throw new Error(`scale: invalid scalar - ${err.message}`);
     }
-    return new Vector(this.data.map(v => v.mul(s)));
+    return new Vector(this.data.map((v) => v.mul(s)));
   }
 
   /**
@@ -161,7 +174,7 @@ export class Vector {
    * @returns {Vector} New Vector with negated components
    */
   negate() {
-    return new Vector(this.data.map(v => v.negated()));
+    return new Vector(this.data.map((v) => v.negated()));
   }
 
   /**
@@ -172,12 +185,17 @@ export class Vector {
    */
   dot(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('dot: argument must be a Vector');
+      throw new Error("dot: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`dot: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `dot: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
-    return this.data.reduce((acc, v, i) => acc.plus(v.mul(other.data[i])), new Decimal(0));
+    return this.data.reduce(
+      (acc, v, i) => acc.plus(v.mul(other.data[i])),
+      new Decimal(0),
+    );
   }
 
   /**
@@ -194,14 +212,15 @@ export class Vector {
    */
   outer(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('outer: argument must be a Vector');
+      throw new Error("outer: argument must be a Vector");
     }
     if (this.length === 0 || other.length === 0) {
-      throw new Error('outer: cannot compute outer product with empty vector');
+      throw new Error("outer: cannot compute outer product with empty vector");
     }
-    const rows = this.length, cols = other.length;
+    const rows = this.length,
+      cols = other.length;
     const out = Array.from({ length: rows }, (_, i) =>
-      Array.from({ length: cols }, (_, j) => this.data[i].mul(other.data[j]))
+      Array.from({ length: cols }, (_, j) => this.data[i].mul(other.data[j])),
     );
     return out;
   }
@@ -214,17 +233,19 @@ export class Vector {
    */
   cross(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('cross: argument must be a Vector');
+      throw new Error("cross: argument must be a Vector");
     }
     if (this.length !== 3 || other.length !== 3) {
-      throw new Error(`cross: requires 3D vectors (got ${this.length}D and ${other.length}D)`);
+      throw new Error(
+        `cross: requires 3D vectors (got ${this.length}D and ${other.length}D)`,
+      );
     }
     const [a1, a2, a3] = this.data;
     const [b1, b2, b3] = other.data;
     return new Vector([
       a2.mul(b3).minus(a3.mul(b2)),
       a3.mul(b1).minus(a1.mul(b3)),
-      a1.mul(b2).minus(a2.mul(b1))
+      a1.mul(b2).minus(a2.mul(b1)),
     ]);
   }
 
@@ -245,7 +266,7 @@ export class Vector {
    */
   normalize() {
     const n = this.norm();
-    if (n.isZero()) throw new Error('Cannot normalize zero vector');
+    if (n.isZero()) throw new Error("Cannot normalize zero vector");
     return this.scale(new Decimal(1).div(n));
   }
 
@@ -257,16 +278,18 @@ export class Vector {
    */
   angleBetween(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('angleBetween: argument must be a Vector');
+      throw new Error("angleBetween: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`angleBetween: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `angleBetween: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     const dotProduct = this.dot(other);
     const n1 = this.norm();
     const n2 = other.norm();
     if (n1.isZero() || n2.isZero()) {
-      throw new Error('angleBetween: angle with zero vector is undefined');
+      throw new Error("angleBetween: angle with zero vector is undefined");
     }
     // Clamp cosine to [-1, 1] for numerical safety
     const cosv = dotProduct.div(n1.mul(n2));
@@ -283,14 +306,16 @@ export class Vector {
    */
   projectOnto(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('projectOnto: argument must be a Vector');
+      throw new Error("projectOnto: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`projectOnto: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `projectOnto: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     const denom = other.dot(other);
     if (denom.isZero()) {
-      throw new Error('projectOnto: cannot project onto zero vector');
+      throw new Error("projectOnto: cannot project onto zero vector");
     }
     const coef = this.dot(other).div(denom);
     return other.scale(coef);
@@ -306,7 +331,9 @@ export class Vector {
   orthogonal() {
     const n = this.norm();
     if (n.isZero()) {
-      throw new Error('orthogonal: cannot find orthogonal vector to zero vector');
+      throw new Error(
+        "orthogonal: cannot find orthogonal vector to zero vector",
+      );
     }
     if (this.length === 2) {
       // 2D perpendicular: rotate 90 degrees counterclockwise [-y, x]
@@ -315,7 +342,10 @@ export class Vector {
     // For n > 2: find a standard basis vector not parallel to this,
     // then use Gram-Schmidt orthogonalization
     for (let i = 0; i < this.length; i++) {
-      const ei = Array.from({ length: this.length }, (_, j) => new Decimal(j === i ? 1 : 0));
+      const ei = Array.from(
+        { length: this.length },
+        (_, j) => new Decimal(j === i ? 1 : 0),
+      );
       const candidate = new Vector(ei);
       // Project candidate out of this vector's direction
       const proj = candidate.projectOnto(this);
@@ -323,7 +353,9 @@ export class Vector {
       const orthNorm = orth.norm();
       if (!orthNorm.isZero()) return orth.normalize();
     }
-    throw new Error('orthogonal: unable to find orthogonal vector (degenerate case)');
+    throw new Error(
+      "orthogonal: unable to find orthogonal vector (degenerate case)",
+    );
   }
 
   /**
@@ -334,10 +366,12 @@ export class Vector {
    */
   isOrthogonalTo(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('isOrthogonalTo: argument must be a Vector');
+      throw new Error("isOrthogonalTo: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`isOrthogonalTo: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `isOrthogonalTo: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     return this.dot(other).isZero();
   }
@@ -350,10 +384,12 @@ export class Vector {
    */
   distance(other) {
     if (!other || !(other instanceof Vector)) {
-      throw new Error('distance: argument must be a Vector');
+      throw new Error("distance: argument must be a Vector");
     }
     if (this.length !== other.length) {
-      throw new Error(`distance: dimension mismatch (${this.length} vs ${other.length})`);
+      throw new Error(
+        `distance: dimension mismatch (${this.length} vs ${other.length})`,
+      );
     }
     return this.sub(other).norm();
   }
@@ -369,16 +405,16 @@ export class Vector {
     if (!(other instanceof Vector)) return false;
     if (other.length !== this.length) return false;
     if (tolerance === null) {
-      throw new Error('equals: tolerance cannot be null');
+      throw new Error("equals: tolerance cannot be null");
     }
     let tol;
     try {
       tol = D(tolerance);
       if (tol.isNaN()) {
-        throw new Error('equals: tolerance cannot be NaN');
+        throw new Error("equals: tolerance cannot be NaN");
       }
       if (tol.isNegative()) {
-        throw new Error('equals: tolerance must be non-negative');
+        throw new Error("equals: tolerance must be non-negative");
       }
     } catch (err) {
       throw new Error(`equals: invalid tolerance - ${err.message}`);

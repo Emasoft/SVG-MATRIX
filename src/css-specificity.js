@@ -229,11 +229,18 @@ function parseSimpleSelector(selector) {
 
         // Handle legacy pseudo-elements (CSS2 syntax with single colon)
         // These should be treated as pseudo-elements, not pseudo-classes
-        const legacyPseudoElements = ["before", "after", "first-line", "first-letter"];
+        const legacyPseudoElements = [
+          "before",
+          "after",
+          "first-line",
+          "first-letter",
+        ];
         const isPseudoElement = legacyPseudoElements.includes(pseudoValue);
 
         components.push({
-          type: isPseudoElement ? SELECTOR_TYPES.PSEUDO_ELEMENT : SELECTOR_TYPES.PSEUDO_CLASS,
+          type: isPseudoElement
+            ? SELECTOR_TYPES.PSEUDO_ELEMENT
+            : SELECTOR_TYPES.PSEUDO_CLASS,
           value: pseudoValue,
         });
       }
@@ -268,7 +275,9 @@ function parseSimpleSelector(selector) {
         // This is a namespace prefix, skip it for specificity purposes
         // The actual element name follows the |
         nextIdx++; // Skip the |
-        const elementMatch = selector.slice(nextIdx).match(/^([a-zA-Z*][\w-]*)/);
+        const elementMatch = selector
+          .slice(nextIdx)
+          .match(/^([a-zA-Z*][\w-]*)/);
         if (elementMatch) {
           value = elementMatch[1]; // Use the element name after namespace
           nextIdx += elementMatch[0].length;
@@ -443,7 +452,9 @@ export function calculateSpecificity(selector) {
 
         // :not(), :is(), :has() don't count themselves, but their arguments do
         if (
-          (value.startsWith("not(") || value.startsWith("is(") || value.startsWith("has(")) &&
+          (value.startsWith("not(") ||
+            value.startsWith("is(") ||
+            value.startsWith("has(")) &&
           value.endsWith(")")
         ) {
           const funcName = value.match(/^(\w+)\(/)[1];
@@ -473,7 +484,8 @@ export function calculateSpecificity(selector) {
 
         // :nth-child() and :nth-last-child() with "of S" clause
         if (
-          (value.startsWith("nth-child(") || value.startsWith("nth-last-child(")) &&
+          (value.startsWith("nth-child(") ||
+            value.startsWith("nth-last-child(")) &&
           value.endsWith(")")
         ) {
           const funcName = value.match(/^([\w-]+)\(/)[1];
@@ -596,10 +608,18 @@ export function compareSpecificity(spec1, spec2) {
 
   // Validate all elements are valid numbers
   for (let i = 0; i < 3; i++) {
-    if (typeof spec1[i] !== "number" || !Number.isFinite(spec1[i]) || spec1[i] < 0) {
+    if (
+      typeof spec1[i] !== "number" ||
+      !Number.isFinite(spec1[i]) ||
+      spec1[i] < 0
+    ) {
       throw new Error(`spec1[${i}] must be a non-negative finite number`);
     }
-    if (typeof spec2[i] !== "number" || !Number.isFinite(spec2[i]) || spec2[i] < 0) {
+    if (
+      typeof spec2[i] !== "number" ||
+      !Number.isFinite(spec2[i]) ||
+      spec2[i] < 0
+    ) {
       throw new Error(`spec2[${i}] must be a non-negative finite number`);
     }
   }
@@ -669,10 +689,14 @@ export function stringifySelector(components) {
   return components
     .map((component, index) => {
       if (!component || typeof component.type !== "string") {
-        throw new Error(`Component at index ${index} must have a 'type' property`);
+        throw new Error(
+          `Component at index ${index} must have a 'type' property`,
+        );
       }
       if (component.value === undefined) {
-        throw new Error(`Component at index ${index} must have a 'value' property`);
+        throw new Error(
+          `Component at index ${index} must have a 'value' property`,
+        );
       }
       switch (component.type) {
         case SELECTOR_TYPES.ID:

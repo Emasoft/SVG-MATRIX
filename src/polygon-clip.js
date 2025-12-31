@@ -166,10 +166,24 @@ export function point(x, y) {
  */
 export function pointsEqual(p1, p2, tolerance = EPSILON) {
   // Validate parameters - check for null/undefined explicitly since Decimal objects are always truthy
-  if (!p1 || typeof p1 !== "object" || p1.x === null || p1.x === undefined || p1.y === null || p1.y === undefined) {
+  if (
+    !p1 ||
+    typeof p1 !== "object" ||
+    p1.x === null ||
+    p1.x === undefined ||
+    p1.y === null ||
+    p1.y === undefined
+  ) {
     throw new Error("pointsEqual: p1 must be a point with x and y properties");
   }
-  if (!p2 || typeof p2 !== "object" || p2.x === null || p2.x === undefined || p2.y === null || p2.y === undefined) {
+  if (
+    !p2 ||
+    typeof p2 !== "object" ||
+    p2.x === null ||
+    p2.x === undefined ||
+    p2.y === null ||
+    p2.y === undefined
+  ) {
     throw new Error("pointsEqual: p2 must be a point with x and y properties");
   }
   if (!tolerance || typeof tolerance.abs !== "function") {
@@ -221,13 +235,31 @@ export function pointsEqual(p1, p2, tolerance = EPSILON) {
  */
 export function cross(o, a, b) {
   // Validate parameters - check for null/undefined explicitly since Decimal objects are always truthy
-  if (!o || o.x === null || o.x === undefined || o.y === null || o.y === undefined) {
+  if (
+    !o ||
+    o.x === null ||
+    o.x === undefined ||
+    o.y === null ||
+    o.y === undefined
+  ) {
     throw new Error("cross: origin point o must have x and y properties");
   }
-  if (!a || a.x === null || a.x === undefined || a.y === null || a.y === undefined) {
+  if (
+    !a ||
+    a.x === null ||
+    a.x === undefined ||
+    a.y === null ||
+    a.y === undefined
+  ) {
     throw new Error("cross: point a must have x and y properties");
   }
-  if (!b || b.x === null || b.x === undefined || b.y === null || b.y === undefined) {
+  if (
+    !b ||
+    b.x === null ||
+    b.x === undefined ||
+    b.y === null ||
+    b.y === undefined
+  ) {
     throw new Error("cross: point b must have x and y properties");
   }
   const ax = a.x.minus(o.x);
@@ -279,13 +311,31 @@ export function cross(o, a, b) {
  */
 export function dot(o, a, b) {
   // Validate parameters - check for null/undefined explicitly since Decimal objects are always truthy
-  if (!o || o.x === null || o.x === undefined || o.y === null || o.y === undefined) {
+  if (
+    !o ||
+    o.x === null ||
+    o.x === undefined ||
+    o.y === null ||
+    o.y === undefined
+  ) {
     throw new Error("dot: origin point o must have x and y properties");
   }
-  if (!a || a.x === null || a.x === undefined || a.y === null || a.y === undefined) {
+  if (
+    !a ||
+    a.x === null ||
+    a.x === undefined ||
+    a.y === null ||
+    a.y === undefined
+  ) {
     throw new Error("dot: point a must have x and y properties");
   }
-  if (!b || b.x === null || b.x === undefined || b.y === null || b.y === undefined) {
+  if (
+    !b ||
+    b.x === null ||
+    b.x === undefined ||
+    b.y === null ||
+    b.y === undefined
+  ) {
     throw new Error("dot: point b must have x and y properties");
   }
   const ax = a.x.minus(o.x);
@@ -372,17 +422,49 @@ export function sign(val) {
  */
 export function segmentIntersection(a, b, c, d) {
   // Validate all segment endpoints - check for null/undefined explicitly
-  if (!a || a.x === null || a.x === undefined || a.y === null || a.y === undefined) {
-    throw new Error("segmentIntersection: point a must have x and y properties");
+  if (
+    !a ||
+    a.x === null ||
+    a.x === undefined ||
+    a.y === null ||
+    a.y === undefined
+  ) {
+    throw new Error(
+      "segmentIntersection: point a must have x and y properties",
+    );
   }
-  if (!b || b.x === null || b.x === undefined || b.y === null || b.y === undefined) {
-    throw new Error("segmentIntersection: point b must have x and y properties");
+  if (
+    !b ||
+    b.x === null ||
+    b.x === undefined ||
+    b.y === null ||
+    b.y === undefined
+  ) {
+    throw new Error(
+      "segmentIntersection: point b must have x and y properties",
+    );
   }
-  if (!c || c.x === null || c.x === undefined || c.y === null || c.y === undefined) {
-    throw new Error("segmentIntersection: point c must have x and y properties");
+  if (
+    !c ||
+    c.x === null ||
+    c.x === undefined ||
+    c.y === null ||
+    c.y === undefined
+  ) {
+    throw new Error(
+      "segmentIntersection: point c must have x and y properties",
+    );
   }
-  if (!d || d.x === null || d.x === undefined || d.y === null || d.y === undefined) {
-    throw new Error("segmentIntersection: point d must have x and y properties");
+  if (
+    !d ||
+    d.x === null ||
+    d.x === undefined ||
+    d.y === null ||
+    d.y === undefined
+  ) {
+    throw new Error(
+      "segmentIntersection: point d must have x and y properties",
+    );
   }
 
   // Direction vectors
@@ -465,17 +547,49 @@ export function segmentIntersection(a, b, c, d) {
  */
 export function lineSegmentIntersection(lineA, lineB, segA, segB) {
   // Validate all points - check for null/undefined explicitly
-  if (!lineA || lineA.x === null || lineA.x === undefined || lineA.y === null || lineA.y === undefined) {
-    throw new Error("lineSegmentIntersection: lineA must have x and y properties");
+  if (
+    !lineA ||
+    lineA.x === null ||
+    lineA.x === undefined ||
+    lineA.y === null ||
+    lineA.y === undefined
+  ) {
+    throw new Error(
+      "lineSegmentIntersection: lineA must have x and y properties",
+    );
   }
-  if (!lineB || lineB.x === null || lineB.x === undefined || lineB.y === null || lineB.y === undefined) {
-    throw new Error("lineSegmentIntersection: lineB must have x and y properties");
+  if (
+    !lineB ||
+    lineB.x === null ||
+    lineB.x === undefined ||
+    lineB.y === null ||
+    lineB.y === undefined
+  ) {
+    throw new Error(
+      "lineSegmentIntersection: lineB must have x and y properties",
+    );
   }
-  if (!segA || segA.x === null || segA.x === undefined || segA.y === null || segA.y === undefined) {
-    throw new Error("lineSegmentIntersection: segA must have x and y properties");
+  if (
+    !segA ||
+    segA.x === null ||
+    segA.x === undefined ||
+    segA.y === null ||
+    segA.y === undefined
+  ) {
+    throw new Error(
+      "lineSegmentIntersection: segA must have x and y properties",
+    );
   }
-  if (!segB || segB.x === null || segB.x === undefined || segB.y === null || segB.y === undefined) {
-    throw new Error("lineSegmentIntersection: segB must have x and y properties");
+  if (
+    !segB ||
+    segB.x === null ||
+    segB.x === undefined ||
+    segB.y === null ||
+    segB.y === undefined
+  ) {
+    throw new Error(
+      "lineSegmentIntersection: segB must have x and y properties",
+    );
   }
 
   const dx1 = lineB.x.minus(lineA.x);
@@ -553,7 +667,13 @@ export function lineSegmentIntersection(lineA, lineB, segA, segB) {
  */
 export function pointInPolygon(pt, polygon) {
   // Validate point parameter - check for null/undefined explicitly
-  if (!pt || pt.x === null || pt.x === undefined || pt.y === null || pt.y === undefined) {
+  if (
+    !pt ||
+    pt.x === null ||
+    pt.x === undefined ||
+    pt.y === null ||
+    pt.y === undefined
+  ) {
     throw new Error("pointInPolygon: pt must have x and y properties");
   }
   // Validate polygon is an array
@@ -567,8 +687,16 @@ export function pointInPolygon(pt, polygon) {
 
   // Validate polygon elements have x and y properties
   for (let i = 0; i < n; i++) {
-    if (!polygon[i] || polygon[i].x === null || polygon[i].x === undefined || polygon[i].y === null || polygon[i].y === undefined) {
-      throw new Error(`pointInPolygon: polygon[${i}] must have x and y properties`);
+    if (
+      !polygon[i] ||
+      polygon[i].x === null ||
+      polygon[i].x === undefined ||
+      polygon[i].y === null ||
+      polygon[i].y === undefined
+    ) {
+      throw new Error(
+        `pointInPolygon: polygon[${i}] must have x and y properties`,
+      );
     }
   }
 
@@ -640,14 +768,36 @@ export function pointInPolygon(pt, polygon) {
  */
 export function pointOnSegment(pt, a, b) {
   // Validate all points - check for null/undefined explicitly
-  if (!pt || pt.x === null || pt.x === undefined || pt.y === null || pt.y === undefined) {
+  if (
+    !pt ||
+    pt.x === null ||
+    pt.x === undefined ||
+    pt.y === null ||
+    pt.y === undefined
+  ) {
     throw new Error("pointOnSegment: pt must have x and y properties");
   }
-  if (!a || a.x === null || a.x === undefined || a.y === null || a.y === undefined) {
-    throw new Error("pointOnSegment: segment point a must have x and y properties");
+  if (
+    !a ||
+    a.x === null ||
+    a.x === undefined ||
+    a.y === null ||
+    a.y === undefined
+  ) {
+    throw new Error(
+      "pointOnSegment: segment point a must have x and y properties",
+    );
   }
-  if (!b || b.x === null || b.x === undefined || b.y === null || b.y === undefined) {
-    throw new Error("pointOnSegment: segment point b must have x and y properties");
+  if (
+    !b ||
+    b.x === null ||
+    b.x === undefined ||
+    b.y === null ||
+    b.y === undefined
+  ) {
+    throw new Error(
+      "pointOnSegment: segment point b must have x and y properties",
+    );
   }
 
   // Check collinearity using cross product
@@ -734,14 +884,28 @@ export function clipPolygonSH(subject, clip) {
 
   // Validate all subject points have x and y properties
   for (let i = 0; i < subject.length; i++) {
-    if (!subject[i] || subject[i].x === null || subject[i].x === undefined || subject[i].y === null || subject[i].y === undefined) {
-      throw new Error(`clipPolygonSH: subject[${i}] must have x and y properties`);
+    if (
+      !subject[i] ||
+      subject[i].x === null ||
+      subject[i].x === undefined ||
+      subject[i].y === null ||
+      subject[i].y === undefined
+    ) {
+      throw new Error(
+        `clipPolygonSH: subject[${i}] must have x and y properties`,
+      );
     }
   }
 
   // Validate all clip points have x and y properties
   for (let i = 0; i < clip.length; i++) {
-    if (!clip[i] || clip[i].x === null || clip[i].x === undefined || clip[i].y === null || clip[i].y === undefined) {
+    if (
+      !clip[i] ||
+      clip[i].x === null ||
+      clip[i].x === undefined ||
+      clip[i].y === null ||
+      clip[i].y === undefined
+    ) {
       throw new Error(`clipPolygonSH: clip[${i}] must have x and y properties`);
     }
   }
@@ -822,13 +986,31 @@ export function clipPolygonSH(subject, clip) {
  */
 function isInsideEdge(pt, edgeStart, edgeEnd) {
   // Validate inputs (defensive check for internal function) - check for null/undefined explicitly
-  if (!pt || pt.x === null || pt.x === undefined || pt.y === null || pt.y === undefined) {
+  if (
+    !pt ||
+    pt.x === null ||
+    pt.x === undefined ||
+    pt.y === null ||
+    pt.y === undefined
+  ) {
     throw new Error("isInsideEdge: pt must have x and y properties");
   }
-  if (!edgeStart || edgeStart.x === null || edgeStart.x === undefined || edgeStart.y === null || edgeStart.y === undefined) {
+  if (
+    !edgeStart ||
+    edgeStart.x === null ||
+    edgeStart.x === undefined ||
+    edgeStart.y === null ||
+    edgeStart.y === undefined
+  ) {
     throw new Error("isInsideEdge: edgeStart must have x and y properties");
   }
-  if (!edgeEnd || edgeEnd.x === null || edgeEnd.x === undefined || edgeEnd.y === null || edgeEnd.y === undefined) {
+  if (
+    !edgeEnd ||
+    edgeEnd.x === null ||
+    edgeEnd.x === undefined ||
+    edgeEnd.y === null ||
+    edgeEnd.y === undefined
+  ) {
     throw new Error("isInsideEdge: edgeEnd must have x and y properties");
   }
 
@@ -852,16 +1034,40 @@ function isInsideEdge(pt, edgeStart, edgeEnd) {
  */
 function lineIntersection(a, b, c, d) {
   // Validate inputs (defensive check for internal function) - check for null/undefined explicitly
-  if (!a || a.x === null || a.x === undefined || a.y === null || a.y === undefined) {
+  if (
+    !a ||
+    a.x === null ||
+    a.x === undefined ||
+    a.y === null ||
+    a.y === undefined
+  ) {
     throw new Error("lineIntersection: point a must have x and y properties");
   }
-  if (!b || b.x === null || b.x === undefined || b.y === null || b.y === undefined) {
+  if (
+    !b ||
+    b.x === null ||
+    b.x === undefined ||
+    b.y === null ||
+    b.y === undefined
+  ) {
     throw new Error("lineIntersection: point b must have x and y properties");
   }
-  if (!c || c.x === null || c.x === undefined || c.y === null || c.y === undefined) {
+  if (
+    !c ||
+    c.x === null ||
+    c.x === undefined ||
+    c.y === null ||
+    c.y === undefined
+  ) {
     throw new Error("lineIntersection: point c must have x and y properties");
   }
-  if (!d || d.x === null || d.x === undefined || d.y === null || d.y === undefined) {
+  if (
+    !d ||
+    d.x === null ||
+    d.x === undefined ||
+    d.y === null ||
+    d.y === undefined
+  ) {
     throw new Error("lineIntersection: point d must have x and y properties");
   }
 
@@ -937,8 +1143,16 @@ export function polygonArea(polygon) {
 
   // Validate all polygon points have x and y properties
   for (let i = 0; i < n; i++) {
-    if (!polygon[i] || polygon[i].x === null || polygon[i].x === undefined || polygon[i].y === null || polygon[i].y === undefined) {
-      throw new Error(`polygonArea: polygon[${i}] must have x and y properties`);
+    if (
+      !polygon[i] ||
+      polygon[i].x === null ||
+      polygon[i].x === undefined ||
+      polygon[i].y === null ||
+      polygon[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonArea: polygon[${i}] must have x and y properties`,
+      );
     }
   }
 
@@ -1083,8 +1297,16 @@ export function convexHull(points) {
   if (points.length < 3) {
     // Validate and convert points
     for (let i = 0; i < points.length; i++) {
-      if (!points[i] || points[i].x === null || points[i].x === undefined || points[i].y === null || points[i].y === undefined) {
-        throw new Error(`convexHull: points[${i}] must have x and y properties`);
+      if (
+        !points[i] ||
+        points[i].x === null ||
+        points[i].x === undefined ||
+        points[i].y === null ||
+        points[i].y === undefined
+      ) {
+        throw new Error(
+          `convexHull: points[${i}] must have x and y properties`,
+        );
       }
     }
     return points.map((p) => point(p.x, p.y));
@@ -1092,7 +1314,13 @@ export function convexHull(points) {
 
   // Validate all points have x and y properties before converting
   for (let i = 0; i < points.length; i++) {
-    if (!points[i] || points[i].x === null || points[i].x === undefined || points[i].y === null || points[i].y === undefined) {
+    if (
+      !points[i] ||
+      points[i].x === null ||
+      points[i].x === undefined ||
+      points[i].y === null ||
+      points[i].y === undefined
+    ) {
       throw new Error(`convexHull: points[${i}] must have x and y properties`);
     }
   }
@@ -1183,7 +1411,13 @@ export function boundingBox(polygon) {
   }
 
   // Validate first point has x and y properties
-  if (!polygon[0] || polygon[0].x === null || polygon[0].x === undefined || polygon[0].y === null || polygon[0].y === undefined) {
+  if (
+    !polygon[0] ||
+    polygon[0].x === null ||
+    polygon[0].x === undefined ||
+    polygon[0].y === null ||
+    polygon[0].y === undefined
+  ) {
     throw new Error("boundingBox: polygon[0] must have x and y properties");
   }
 
@@ -1195,8 +1429,16 @@ export function boundingBox(polygon) {
   for (let i = 0; i < polygon.length; i++) {
     const p = polygon[i];
     // Validate each point has x and y properties
-    if (!p || p.x === null || p.x === undefined || p.y === null || p.y === undefined) {
-      throw new Error(`boundingBox: polygon[${i}] must have x and y properties`);
+    if (
+      !p ||
+      p.x === null ||
+      p.x === undefined ||
+      p.y === null ||
+      p.y === undefined
+    ) {
+      throw new Error(
+        `boundingBox: polygon[${i}] must have x and y properties`,
+      );
     }
     const x = D(p.x);
     const y = D(p.y);
@@ -1242,13 +1484,33 @@ export function bboxIntersects(bb1, bb2) {
   if (!bb1 || !bb2) return false;
 
   // Validate bounding boxes have required properties - check for null/undefined explicitly
-  if (bb1.minX === null || bb1.minX === undefined || bb1.minY === null || bb1.minY === undefined ||
-      bb1.maxX === null || bb1.maxX === undefined || bb1.maxY === null || bb1.maxY === undefined) {
-    throw new Error("bboxIntersects: bb1 must have minX, minY, maxX, maxY properties");
+  if (
+    bb1.minX === null ||
+    bb1.minX === undefined ||
+    bb1.minY === null ||
+    bb1.minY === undefined ||
+    bb1.maxX === null ||
+    bb1.maxX === undefined ||
+    bb1.maxY === null ||
+    bb1.maxY === undefined
+  ) {
+    throw new Error(
+      "bboxIntersects: bb1 must have minX, minY, maxX, maxY properties",
+    );
   }
-  if (bb2.minX === null || bb2.minX === undefined || bb2.minY === null || bb2.minY === undefined ||
-      bb2.maxX === null || bb2.maxX === undefined || bb2.maxY === null || bb2.maxY === undefined) {
-    throw new Error("bboxIntersects: bb2 must have minX, minY, maxX, maxY properties");
+  if (
+    bb2.minX === null ||
+    bb2.minX === undefined ||
+    bb2.minY === null ||
+    bb2.minY === undefined ||
+    bb2.maxX === null ||
+    bb2.maxX === undefined ||
+    bb2.maxY === null ||
+    bb2.maxY === undefined
+  ) {
+    throw new Error(
+      "bboxIntersects: bb2 must have minX, minY, maxX, maxY properties",
+    );
   }
 
   return !(
@@ -1312,15 +1574,31 @@ export function polygonIntersection(subject, clip) {
 
   // Validate all subject points have x and y properties
   for (let i = 0; i < subject.length; i++) {
-    if (!subject[i] || subject[i].x === null || subject[i].x === undefined || subject[i].y === null || subject[i].y === undefined) {
-      throw new Error(`polygonIntersection: subject[${i}] must have x and y properties`);
+    if (
+      !subject[i] ||
+      subject[i].x === null ||
+      subject[i].x === undefined ||
+      subject[i].y === null ||
+      subject[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonIntersection: subject[${i}] must have x and y properties`,
+      );
     }
   }
 
   // Validate all clip points have x and y properties
   for (let i = 0; i < clip.length; i++) {
-    if (!clip[i] || clip[i].x === null || clip[i].x === undefined || clip[i].y === null || clip[i].y === undefined) {
-      throw new Error(`polygonIntersection: clip[${i}] must have x and y properties`);
+    if (
+      !clip[i] ||
+      clip[i].x === null ||
+      clip[i].x === undefined ||
+      clip[i].y === null ||
+      clip[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonIntersection: clip[${i}] must have x and y properties`,
+      );
     }
   }
 
@@ -1388,7 +1666,13 @@ export function isConvex(polygon) {
 
   // Validate all polygon points have x and y properties
   for (let i = 0; i < n; i++) {
-    if (!polygon[i] || polygon[i].x === null || polygon[i].x === undefined || polygon[i].y === null || polygon[i].y === undefined) {
+    if (
+      !polygon[i] ||
+      polygon[i].x === null ||
+      polygon[i].x === undefined ||
+      polygon[i].y === null ||
+      polygon[i].y === undefined
+    ) {
       throw new Error(`isConvex: polygon[${i}] must have x and y properties`);
     }
   }
@@ -1438,7 +1722,9 @@ export function isConvex(polygon) {
 function generalPolygonIntersection(subject, clip) {
   // Validate inputs are arrays (defensive check for internal function)
   if (!Array.isArray(subject) || !Array.isArray(clip)) {
-    throw new Error("generalPolygonIntersection: both arguments must be arrays");
+    throw new Error(
+      "generalPolygonIntersection: both arguments must be arrays",
+    );
   }
 
   const intersectionPoints = [];
@@ -1566,15 +1852,31 @@ export function polygonUnion(polygon1, polygon2) {
 
   // Validate all polygon1 points have x and y properties
   for (let i = 0; i < polygon1.length; i++) {
-    if (!polygon1[i] || polygon1[i].x === null || polygon1[i].x === undefined || polygon1[i].y === null || polygon1[i].y === undefined) {
-      throw new Error(`polygonUnion: polygon1[${i}] must have x and y properties`);
+    if (
+      !polygon1[i] ||
+      polygon1[i].x === null ||
+      polygon1[i].x === undefined ||
+      polygon1[i].y === null ||
+      polygon1[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonUnion: polygon1[${i}] must have x and y properties`,
+      );
     }
   }
 
   // Validate all polygon2 points have x and y properties
   for (let i = 0; i < polygon2.length; i++) {
-    if (!polygon2[i] || polygon2[i].x === null || polygon2[i].x === undefined || polygon2[i].y === null || polygon2[i].y === undefined) {
-      throw new Error(`polygonUnion: polygon2[${i}] must have x and y properties`);
+    if (
+      !polygon2[i] ||
+      polygon2[i].x === null ||
+      polygon2[i].x === undefined ||
+      polygon2[i].y === null ||
+      polygon2[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonUnion: polygon2[${i}] must have x and y properties`,
+      );
     }
   }
 
@@ -1913,15 +2215,31 @@ export function polygonDifference(polygon1, polygon2) {
 
   // Validate all polygon1 points have x and y properties
   for (let i = 0; i < polygon1.length; i++) {
-    if (!polygon1[i] || polygon1[i].x === null || polygon1[i].x === undefined || polygon1[i].y === null || polygon1[i].y === undefined) {
-      throw new Error(`polygonDifference: polygon1[${i}] must have x and y properties`);
+    if (
+      !polygon1[i] ||
+      polygon1[i].x === null ||
+      polygon1[i].x === undefined ||
+      polygon1[i].y === null ||
+      polygon1[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonDifference: polygon1[${i}] must have x and y properties`,
+      );
     }
   }
 
   // Validate all polygon2 points have x and y properties
   for (let i = 0; i < polygon2.length; i++) {
-    if (!polygon2[i] || polygon2[i].x === null || polygon2[i].x === undefined || polygon2[i].y === null || polygon2[i].y === undefined) {
-      throw new Error(`polygonDifference: polygon2[${i}] must have x and y properties`);
+    if (
+      !polygon2[i] ||
+      polygon2[i].x === null ||
+      polygon2[i].x === undefined ||
+      polygon2[i].y === null ||
+      polygon2[i].y === undefined
+    ) {
+      throw new Error(
+        `polygonDifference: polygon2[${i}] must have x and y properties`,
+      );
     }
   }
 

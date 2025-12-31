@@ -131,8 +131,10 @@ export const MaskType = {
  * console.log(`Number of shapes: ${maskData.children.length}`);
  */
 export function parseMaskElement(maskElement) {
-  if (!maskElement) throw new Error('parseMaskElement: maskElement is required');
-  if (!maskElement.getAttribute) throw new Error('parseMaskElement: maskElement must be a DOM element');
+  if (!maskElement)
+    throw new Error("parseMaskElement: maskElement is required");
+  if (!maskElement.getAttribute)
+    throw new Error("parseMaskElement: maskElement must be a DOM element");
 
   const data = {
     id: maskElement.getAttribute("id") || "",
@@ -159,15 +161,24 @@ export function parseMaskElement(maskElement) {
 
   // Set defaults based on maskUnits
   if (data.maskUnits === "objectBoundingBox") {
-    data.x = data.x !== null ? safeParseFloat(data.x, DEFAULT_MASK_X) : DEFAULT_MASK_X;
-    data.y = data.y !== null ? safeParseFloat(data.y, DEFAULT_MASK_Y) : DEFAULT_MASK_Y;
-    data.width = data.width !== null ? safeParseFloat(data.width, DEFAULT_MASK_WIDTH) : DEFAULT_MASK_WIDTH;
-    data.height = data.height !== null ? safeParseFloat(data.height, DEFAULT_MASK_HEIGHT) : DEFAULT_MASK_HEIGHT;
+    data.x =
+      data.x !== null ? safeParseFloat(data.x, DEFAULT_MASK_X) : DEFAULT_MASK_X;
+    data.y =
+      data.y !== null ? safeParseFloat(data.y, DEFAULT_MASK_Y) : DEFAULT_MASK_Y;
+    data.width =
+      data.width !== null
+        ? safeParseFloat(data.width, DEFAULT_MASK_WIDTH)
+        : DEFAULT_MASK_WIDTH;
+    data.height =
+      data.height !== null
+        ? safeParseFloat(data.height, DEFAULT_MASK_HEIGHT)
+        : DEFAULT_MASK_HEIGHT;
   } else {
     data.x = data.x !== null ? safeParseFloat(data.x, null) : null;
     data.y = data.y !== null ? safeParseFloat(data.y, null) : null;
     data.width = data.width !== null ? safeParseFloat(data.width, null) : null;
-    data.height = data.height !== null ? safeParseFloat(data.height, null) : null;
+    data.height =
+      data.height !== null ? safeParseFloat(data.height, null) : null;
   }
 
   // Parse child elements
@@ -182,11 +193,11 @@ export function parseMaskElement(maskElement) {
       fill: child.getAttribute("fill") || child.style?.fill || "black",
       fillOpacity: safeParseFloat(
         child.getAttribute("fill-opacity") || child.style?.fillOpacity || "1",
-        1
+        1,
       ),
       opacity: safeParseFloat(
         child.getAttribute("opacity") || child.style?.opacity || "1",
-        1
+        1,
       ),
       transform: child.getAttribute("transform") || null,
     };
@@ -197,7 +208,10 @@ export function parseMaskElement(maskElement) {
         childData.x = safeParseFloat(child.getAttribute("x") || "0", 0);
         childData.y = safeParseFloat(child.getAttribute("y") || "0", 0);
         childData.width = safeParseFloat(child.getAttribute("width") || "0", 0);
-        childData.height = safeParseFloat(child.getAttribute("height") || "0", 0);
+        childData.height = safeParseFloat(
+          child.getAttribute("height") || "0",
+          0,
+        );
         childData.rx = safeParseFloat(child.getAttribute("rx") || "0", 0);
         childData.ry = safeParseFloat(child.getAttribute("ry") || "0", 0);
         break;
@@ -292,21 +306,39 @@ export function parseMaskElement(maskElement) {
  * // region.y = 50 (absolute)
  */
 export function getMaskRegion(maskData, targetBBox) {
-  if (!maskData) throw new Error('getMaskRegion: maskData is required');
-  if (!targetBBox) throw new Error('getMaskRegion: targetBBox is required');
-  if (typeof targetBBox.x !== 'number' || typeof targetBBox.y !== 'number' ||
-      typeof targetBBox.width !== 'number' || typeof targetBBox.height !== 'number') {
-    throw new Error('getMaskRegion: targetBBox must have numeric x, y, width, height properties');
+  if (!maskData) throw new Error("getMaskRegion: maskData is required");
+  if (!targetBBox) throw new Error("getMaskRegion: targetBBox is required");
+  if (
+    typeof targetBBox.x !== "number" ||
+    typeof targetBBox.y !== "number" ||
+    typeof targetBBox.width !== "number" ||
+    typeof targetBBox.height !== "number"
+  ) {
+    throw new Error(
+      "getMaskRegion: targetBBox must have numeric x, y, width, height properties",
+    );
   }
   if (targetBBox.width < 0 || targetBBox.height < 0) {
-    throw new Error('getMaskRegion: targetBBox width and height cannot be negative');
+    throw new Error(
+      "getMaskRegion: targetBBox width and height cannot be negative",
+    );
   }
   if (targetBBox.width === 0 || targetBBox.height === 0) {
-    throw new Error('getMaskRegion: targetBBox width and height must be greater than zero');
+    throw new Error(
+      "getMaskRegion: targetBBox width and height must be greater than zero",
+    );
   }
-  if (!maskData.maskUnits) throw new Error('getMaskRegion: maskData.maskUnits is required');
-  if (maskData.x == null || maskData.y == null || maskData.width == null || maskData.height == null) {
-    throw new Error('getMaskRegion: maskData must have x, y, width, height properties');
+  if (!maskData.maskUnits)
+    throw new Error("getMaskRegion: maskData.maskUnits is required");
+  if (
+    maskData.x == null ||
+    maskData.y == null ||
+    maskData.width == null ||
+    maskData.height == null
+  ) {
+    throw new Error(
+      "getMaskRegion: maskData must have x, y, width, height properties",
+    );
   }
 
   if (maskData.maskUnits === "objectBoundingBox") {
@@ -376,18 +408,28 @@ export function maskChildToPolygon(
   contentUnits,
   samples = 20,
 ) {
-  if (!child) throw new Error('maskChildToPolygon: child is required');
-  if (!targetBBox) throw new Error('maskChildToPolygon: targetBBox is required');
-  if (!contentUnits) throw new Error('maskChildToPolygon: contentUnits is required');
-  if (typeof samples !== 'number' || samples <= 0) {
-    throw new Error('maskChildToPolygon: samples must be a positive number');
+  if (!child) throw new Error("maskChildToPolygon: child is required");
+  if (!targetBBox)
+    throw new Error("maskChildToPolygon: targetBBox is required");
+  if (!contentUnits)
+    throw new Error("maskChildToPolygon: contentUnits is required");
+  if (typeof samples !== "number" || samples <= 0) {
+    throw new Error("maskChildToPolygon: samples must be a positive number");
   }
-  if (typeof targetBBox.x !== 'number' || typeof targetBBox.y !== 'number' ||
-      typeof targetBBox.width !== 'number' || typeof targetBBox.height !== 'number') {
-    throw new Error('maskChildToPolygon: targetBBox must have numeric x, y, width, height properties');
+  if (
+    typeof targetBBox.x !== "number" ||
+    typeof targetBBox.y !== "number" ||
+    typeof targetBBox.width !== "number" ||
+    typeof targetBBox.height !== "number"
+  ) {
+    throw new Error(
+      "maskChildToPolygon: targetBBox must have numeric x, y, width, height properties",
+    );
   }
   if (targetBBox.width < 0 || targetBBox.height < 0) {
-    throw new Error('maskChildToPolygon: targetBBox width and height cannot be negative');
+    throw new Error(
+      "maskChildToPolygon: targetBBox width and height cannot be negative",
+    );
   }
 
   // Create element-like object for ClipPathResolver
@@ -470,12 +512,14 @@ export function colorToLuminance(colorStr) {
     return 0;
   }
 
-  if (typeof colorStr !== 'string') {
+  if (typeof colorStr !== "string") {
     return 0; // Invalid input: treat as black (luminance = 0)
   }
 
   // Parse RGB values (note: alpha channel in rgba() is intentionally ignored for luminance calculation)
-  const rgbMatch = colorStr.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  const rgbMatch = colorStr.match(
+    /rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i,
+  );
   if (rgbMatch) {
     const r = parseInt(rgbMatch[1], 10);
     const g = parseInt(rgbMatch[2], 10);
@@ -501,7 +545,8 @@ export function colorToLuminance(colorStr) {
     const b = parseInt(hex.slice(4, 6), 16);
     // Validate parsed values
     if (isNaN(r) || isNaN(g) || isNaN(b)) return 0; // Invalid hex: treat as black
-    const luminance = 0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
+    const luminance =
+      0.2126 * (r / 255) + 0.7152 * (g / 255) + 0.0722 * (b / 255);
     return isNaN(luminance) ? 0 : luminance; // NaN: treat as black
   }
 
@@ -570,14 +615,22 @@ export function colorToLuminance(colorStr) {
  * // Returns: 1.0 × 1.0 × 0.0 = 0.0 (black = fully transparent in luminance mask)
  */
 export function getMaskChildOpacity(child, maskType) {
-  if (!child) throw new Error('getMaskChildOpacity: child is required');
-  if (!maskType) throw new Error('getMaskChildOpacity: maskType is required');
+  if (!child) throw new Error("getMaskChildOpacity: child is required");
+  if (!maskType) throw new Error("getMaskChildOpacity: maskType is required");
   if (maskType !== MaskType.LUMINANCE && maskType !== MaskType.ALPHA) {
-    throw new Error('getMaskChildOpacity: maskType must be "luminance" or "alpha"');
+    throw new Error(
+      'getMaskChildOpacity: maskType must be "luminance" or "alpha"',
+    );
   }
 
-  const fillOpacity = typeof child.fillOpacity === 'number' && !isNaN(child.fillOpacity) ? child.fillOpacity : 1;
-  const opacity = typeof child.opacity === 'number' && !isNaN(child.opacity) ? child.opacity : 1;
+  const fillOpacity =
+    typeof child.fillOpacity === "number" && !isNaN(child.fillOpacity)
+      ? child.fillOpacity
+      : 1;
+  const opacity =
+    typeof child.opacity === "number" && !isNaN(child.opacity)
+      ? child.opacity
+      : 1;
   const baseOpacity = fillOpacity * opacity;
 
   if (maskType === MaskType.ALPHA) {
@@ -632,13 +685,14 @@ export function getMaskChildOpacity(child, maskType) {
  * });
  */
 export function resolveMask(maskData, targetBBox, options = {}) {
-  if (!maskData) throw new Error('resolveMask: maskData is required');
-  if (!targetBBox) throw new Error('resolveMask: targetBBox is required');
-  if (!Array.isArray(maskData.children)) throw new Error('resolveMask: maskData.children must be an array');
+  if (!maskData) throw new Error("resolveMask: maskData is required");
+  if (!targetBBox) throw new Error("resolveMask: targetBBox is required");
+  if (!Array.isArray(maskData.children))
+    throw new Error("resolveMask: maskData.children must be an array");
 
   const { samples = 20 } = options;
-  if (typeof samples !== 'number' || samples <= 0) {
-    throw new Error('resolveMask: samples must be a positive number');
+  if (typeof samples !== "number" || samples <= 0) {
+    throw new Error("resolveMask: samples must be a positive number");
   }
 
   const maskType = maskData.maskType || MaskType.LUMINANCE;
@@ -718,11 +772,12 @@ export function resolveMask(maskData, targetBBox, options = {}) {
  * });
  */
 export function applyMask(targetPolygon, maskData, targetBBox, options = {}) {
-  if (!targetPolygon) throw new Error('applyMask: targetPolygon is required');
-  if (!Array.isArray(targetPolygon)) throw new Error('applyMask: targetPolygon must be an array');
+  if (!targetPolygon) throw new Error("applyMask: targetPolygon is required");
+  if (!Array.isArray(targetPolygon))
+    throw new Error("applyMask: targetPolygon must be an array");
   if (targetPolygon.length === 0) return []; // Empty polygon returns empty result
-  if (!maskData) throw new Error('applyMask: maskData is required');
-  if (!targetBBox) throw new Error('applyMask: targetBBox is required');
+  if (!maskData) throw new Error("applyMask: maskData is required");
+  if (!targetBBox) throw new Error("applyMask: targetBBox is required");
 
   const maskRegions = resolveMask(maskData, targetBBox, options);
   const result = [];
@@ -800,10 +855,16 @@ export function maskToClipPath(
   opacityThreshold = 0.5,
   options = {},
 ) {
-  if (!maskData) throw new Error('maskToClipPath: maskData is required');
-  if (!targetBBox) throw new Error('maskToClipPath: targetBBox is required');
-  if (typeof opacityThreshold !== 'number' || opacityThreshold < 0 || opacityThreshold > 1) {
-    throw new Error('maskToClipPath: opacityThreshold must be a number between 0 and 1');
+  if (!maskData) throw new Error("maskToClipPath: maskData is required");
+  if (!targetBBox) throw new Error("maskToClipPath: targetBBox is required");
+  if (
+    typeof opacityThreshold !== "number" ||
+    opacityThreshold < 0 ||
+    opacityThreshold > 1
+  ) {
+    throw new Error(
+      "maskToClipPath: opacityThreshold must be a number between 0 and 1",
+    );
   }
 
   const maskRegions = resolveMask(maskData, targetBBox, options);
@@ -868,8 +929,8 @@ export function maskToClipPath(
  * `;
  */
 export function maskToPathData(maskData, targetBBox, options = {}) {
-  if (!maskData) throw new Error('maskToPathData: maskData is required');
-  if (!targetBBox) throw new Error('maskToPathData: targetBBox is required');
+  if (!maskData) throw new Error("maskToPathData: maskData is required");
+  if (!targetBBox) throw new Error("maskToPathData: targetBBox is required");
 
   const polygon = maskToClipPath(maskData, targetBBox, 0.5, options);
 
@@ -882,7 +943,8 @@ export function maskToPathData(maskData, targetBBox, options = {}) {
     if (!p || p.x === undefined || p.y === undefined) continue; // Skip invalid points
     const xNum = Number(p.x);
     const yNum = Number(p.y);
-    if (isNaN(xNum) || isNaN(yNum) || !isFinite(xNum) || !isFinite(yNum)) continue; // Skip NaN/Infinity
+    if (isNaN(xNum) || isNaN(yNum) || !isFinite(xNum) || !isFinite(yNum))
+      continue; // Skip NaN/Infinity
     const x = xNum.toFixed(6);
     const y = yNum.toFixed(6);
     d += validPointCount === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
@@ -976,12 +1038,15 @@ export function parseGradientReference(fill) {
  */
 export function rgbToLuminance(color) {
   if (!color) return 0;
-  if (typeof color !== 'object') return 0;
+  if (typeof color !== "object") return 0;
 
   // Validate and clamp RGB values to 0-255 range
-  const rVal = typeof color.r === 'number' ? Math.max(0, Math.min(255, color.r)) : 0;
-  const gVal = typeof color.g === 'number' ? Math.max(0, Math.min(255, color.g)) : 0;
-  const bVal = typeof color.b === 'number' ? Math.max(0, Math.min(255, color.b)) : 0;
+  const rVal =
+    typeof color.r === "number" ? Math.max(0, Math.min(255, color.r)) : 0;
+  const gVal =
+    typeof color.g === "number" ? Math.max(0, Math.min(255, color.g)) : 0;
+  const bVal =
+    typeof color.b === "number" ? Math.max(0, Math.min(255, color.b)) : 0;
 
   const r = rVal / 255;
   const g = gVal / 255;
@@ -1046,15 +1111,21 @@ export function sampleMeshGradientForMask(
   maskType = "luminance",
   options = {},
 ) {
-  if (!meshData) throw new Error('sampleMeshGradientForMask: meshData is required');
-  if (!shapeBBox) throw new Error('sampleMeshGradientForMask: shapeBBox is required');
+  if (!meshData)
+    throw new Error("sampleMeshGradientForMask: meshData is required");
+  if (!shapeBBox)
+    throw new Error("sampleMeshGradientForMask: shapeBBox is required");
   if (maskType !== MaskType.LUMINANCE && maskType !== MaskType.ALPHA) {
-    throw new Error('sampleMeshGradientForMask: maskType must be "luminance" or "alpha"');
+    throw new Error(
+      'sampleMeshGradientForMask: maskType must be "luminance" or "alpha"',
+    );
   }
 
   const { subdivisions = 4 } = options;
-  if (typeof subdivisions !== 'number' || subdivisions <= 0) {
-    throw new Error('sampleMeshGradientForMask: subdivisions must be a positive number');
+  if (typeof subdivisions !== "number" || subdivisions <= 0) {
+    throw new Error(
+      "sampleMeshGradientForMask: subdivisions must be a positive number",
+    );
   }
 
   const result = [];
@@ -1073,7 +1144,8 @@ export function sampleMeshGradientForMask(
     let opacity;
     if (maskType === MaskType.ALPHA) {
       // Alpha mask: use alpha channel
-      const alphaVal = typeof color.a === 'number' ? Math.max(0, Math.min(255, color.a)) : 255;
+      const alphaVal =
+        typeof color.a === "number" ? Math.max(0, Math.min(255, color.a)) : 255;
       opacity = alphaVal / 255;
     } else {
       // Luminance mask: calculate from RGB
@@ -1140,11 +1212,14 @@ export function applyMeshGradientMask(
   maskType = "luminance",
   options = {},
 ) {
-  if (!targetPolygon) throw new Error('applyMeshGradientMask: targetPolygon is required');
-  if (!Array.isArray(targetPolygon)) throw new Error('applyMeshGradientMask: targetPolygon must be an array');
+  if (!targetPolygon)
+    throw new Error("applyMeshGradientMask: targetPolygon is required");
+  if (!Array.isArray(targetPolygon))
+    throw new Error("applyMeshGradientMask: targetPolygon must be an array");
   if (targetPolygon.length === 0) return []; // Empty polygon returns empty result
-  if (!meshData) throw new Error('applyMeshGradientMask: meshData is required');
-  if (!targetBBox) throw new Error('applyMeshGradientMask: targetBBox is required');
+  if (!meshData) throw new Error("applyMeshGradientMask: meshData is required");
+  if (!targetBBox)
+    throw new Error("applyMeshGradientMask: targetBBox is required");
 
   const meshMaskRegions = sampleMeshGradientForMask(
     meshData,
@@ -1245,16 +1320,25 @@ export function resolveMaskWithGradients(
   gradientDefs = {},
   options = {},
 ) {
-  if (!maskData) throw new Error('resolveMaskWithGradients: maskData is required');
-  if (!targetBBox) throw new Error('resolveMaskWithGradients: targetBBox is required');
-  if (!Array.isArray(maskData.children)) throw new Error('resolveMaskWithGradients: maskData.children must be an array');
+  if (!maskData)
+    throw new Error("resolveMaskWithGradients: maskData is required");
+  if (!targetBBox)
+    throw new Error("resolveMaskWithGradients: targetBBox is required");
+  if (!Array.isArray(maskData.children))
+    throw new Error(
+      "resolveMaskWithGradients: maskData.children must be an array",
+    );
 
   const { samples = 20, subdivisions = 4 } = options;
-  if (typeof samples !== 'number' || samples <= 0) {
-    throw new Error('resolveMaskWithGradients: samples must be a positive number');
+  if (typeof samples !== "number" || samples <= 0) {
+    throw new Error(
+      "resolveMaskWithGradients: samples must be a positive number",
+    );
   }
-  if (typeof subdivisions !== 'number' || subdivisions <= 0) {
-    throw new Error('resolveMaskWithGradients: subdivisions must be a positive number');
+  if (typeof subdivisions !== "number" || subdivisions <= 0) {
+    throw new Error(
+      "resolveMaskWithGradients: subdivisions must be a positive number",
+    );
   }
 
   const maskType = maskData.maskType || MaskType.LUMINANCE;
@@ -1307,10 +1391,22 @@ export function resolveMaskWithGradients(
           for (const clippedPoly of clipped) {
             if (clippedPoly && clippedPoly.length >= 3) {
               // Combine mesh opacity with child opacity - validate all values
-              const childOpacity = typeof child.opacity === 'number' && !isNaN(child.opacity) ? child.opacity : 1;
-              const childFillOpacity = typeof child.fillOpacity === 'number' && !isNaN(child.fillOpacity) ? child.fillOpacity : 1;
-              const combinedOpacity = meshOpacity * childOpacity * childFillOpacity;
-              if (combinedOpacity > 0 && !isNaN(combinedOpacity) && isFinite(combinedOpacity)) {
+              const childOpacity =
+                typeof child.opacity === "number" && !isNaN(child.opacity)
+                  ? child.opacity
+                  : 1;
+              const childFillOpacity =
+                typeof child.fillOpacity === "number" &&
+                !isNaN(child.fillOpacity)
+                  ? child.fillOpacity
+                  : 1;
+              const combinedOpacity =
+                meshOpacity * childOpacity * childFillOpacity;
+              if (
+                combinedOpacity > 0 &&
+                !isNaN(combinedOpacity) &&
+                isFinite(combinedOpacity)
+              ) {
                 result.push({ polygon: clippedPoly, opacity: combinedOpacity });
               }
             }
@@ -1396,11 +1492,19 @@ export function createMeshGradientMask(
   maskType = "luminance",
   options = {},
 ) {
-  if (!meshData) throw new Error('createMeshGradientMask: meshData is required');
-  if (!bounds) throw new Error('createMeshGradientMask: bounds is required');
-  if (typeof bounds !== 'object' || typeof bounds.x !== 'number' || typeof bounds.y !== 'number' ||
-      typeof bounds.width !== 'number' || typeof bounds.height !== 'number') {
-    throw new Error('createMeshGradientMask: bounds must have numeric x, y, width, height properties');
+  if (!meshData)
+    throw new Error("createMeshGradientMask: meshData is required");
+  if (!bounds) throw new Error("createMeshGradientMask: bounds is required");
+  if (
+    typeof bounds !== "object" ||
+    typeof bounds.x !== "number" ||
+    typeof bounds.y !== "number" ||
+    typeof bounds.width !== "number" ||
+    typeof bounds.height !== "number"
+  ) {
+    throw new Error(
+      "createMeshGradientMask: bounds must have numeric x, y, width, height properties",
+    );
   }
 
   const regions = sampleMeshGradientForMask(
@@ -1465,14 +1569,21 @@ export function createMeshGradientMask(
  * console.log(`Boundary has ${boundary.length} vertices`);
  */
 export function getMeshGradientBoundary(meshData, options = {}) {
-  if (!meshData) throw new Error('getMeshGradientBoundary: meshData is required');
+  if (!meshData)
+    throw new Error("getMeshGradientBoundary: meshData is required");
 
   const { samples = 20 } = options;
-  if (typeof samples !== 'number' || samples <= 0) {
-    throw new Error('getMeshGradientBoundary: samples must be a positive number');
+  if (typeof samples !== "number" || samples <= 0) {
+    throw new Error(
+      "getMeshGradientBoundary: samples must be a positive number",
+    );
   }
 
-  if (!meshData.patches || !Array.isArray(meshData.patches) || meshData.patches.length === 0) {
+  if (
+    !meshData.patches ||
+    !Array.isArray(meshData.patches) ||
+    meshData.patches.length === 0
+  ) {
     return [];
   }
 
@@ -1583,14 +1694,21 @@ export function clipWithMeshGradientShape(
   meshData,
   options = {},
 ) {
-  if (!targetPolygon) throw new Error('clipWithMeshGradientShape: targetPolygon is required');
-  if (!Array.isArray(targetPolygon)) throw new Error('clipWithMeshGradientShape: targetPolygon must be an array');
+  if (!targetPolygon)
+    throw new Error("clipWithMeshGradientShape: targetPolygon is required");
+  if (!Array.isArray(targetPolygon))
+    throw new Error(
+      "clipWithMeshGradientShape: targetPolygon must be an array",
+    );
   if (targetPolygon.length === 0) return []; // Empty polygon returns empty result
-  if (!meshData) throw new Error('clipWithMeshGradientShape: meshData is required');
+  if (!meshData)
+    throw new Error("clipWithMeshGradientShape: meshData is required");
 
   const { subdivisions = 4 } = options;
-  if (typeof subdivisions !== 'number' || subdivisions <= 0) {
-    throw new Error('clipWithMeshGradientShape: subdivisions must be a positive number');
+  if (typeof subdivisions !== "number" || subdivisions <= 0) {
+    throw new Error(
+      "clipWithMeshGradientShape: subdivisions must be a positive number",
+    );
   }
 
   // Get all patch polygons (ignoring colors)
@@ -1609,14 +1727,22 @@ export function clipWithMeshGradientShape(
   }
 
   for (let i = 1; i < meshPolygons.length; i++) {
-    if (!meshPolygons[i] || !meshPolygons[i].polygon || meshPolygons[i].polygon.length < 3) {
+    if (
+      !meshPolygons[i] ||
+      !meshPolygons[i].polygon ||
+      meshPolygons[i].polygon.length < 3
+    ) {
       continue; // Skip invalid polygons
     }
     const unionResult = PolygonClip.polygonUnion(
       meshShape,
       meshPolygons[i].polygon,
     );
-    if (Array.isArray(unionResult) && unionResult.length > 0 && unionResult[0].length >= 3) {
+    if (
+      Array.isArray(unionResult) &&
+      unionResult.length > 0 &&
+      unionResult[0].length >= 3
+    ) {
       meshShape = unionResult[0];
     }
   }
@@ -1672,11 +1798,14 @@ export function clipWithMeshGradientShape(
  * const svgClipPath = `<clipPath id="mesh-shape"><path d="${pathData}"/></clipPath>`;
  */
 export function meshGradientToClipPath(meshData, options = {}) {
-  if (!meshData) throw new Error('meshGradientToClipPath: meshData is required');
+  if (!meshData)
+    throw new Error("meshGradientToClipPath: meshData is required");
 
   const { subdivisions = 4 } = options;
-  if (typeof subdivisions !== 'number' || subdivisions <= 0) {
-    throw new Error('meshGradientToClipPath: subdivisions must be a positive number');
+  if (typeof subdivisions !== "number" || subdivisions <= 0) {
+    throw new Error(
+      "meshGradientToClipPath: subdivisions must be a positive number",
+    );
   }
 
   const meshPolygons = MeshGradient.meshGradientToPolygons(meshData, {
@@ -1699,7 +1828,11 @@ export function meshGradientToClipPath(meshData, options = {}) {
     const poly = meshPolygons[i].polygon;
     if (poly.length >= 3) {
       const unionResult = PolygonClip.polygonUnion(result, poly);
-      if (Array.isArray(unionResult) && unionResult.length > 0 && unionResult[0].length >= 3) {
+      if (
+        Array.isArray(unionResult) &&
+        unionResult.length > 0 &&
+        unionResult[0].length >= 3
+      ) {
         result = unionResult[0];
       }
     }

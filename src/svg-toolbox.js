@@ -648,8 +648,10 @@ const resetLevenshteinCache = () => levenshteinCache.clear();
  */
 const findClosestMatch = (name, validSet, maxDistance = 2) => {
   if (!name || typeof name !== "string") return null;
-  if (!validSet || !(validSet instanceof Set) || validSet.size === 0) return null;
-  const validMaxDistance = (typeof maxDistance !== "number" || maxDistance < 0) ? 2 : maxDistance;
+  if (!validSet || !(validSet instanceof Set) || validSet.size === 0)
+    return null;
+  const validMaxDistance =
+    typeof maxDistance !== "number" || maxDistance < 0 ? 2 : maxDistance;
   const lower = name.toLowerCase();
   let closest = null;
   let minDist = validMaxDistance + 1;
@@ -1345,7 +1347,9 @@ export const cleanupIds = createOperation((doc, options = {}) => {
     try {
       return decodeURI(id);
     } catch (e) {
-      // Log error for debugging - invalid URI encoding
+      // LEGITIMATE FALLBACK: Malformed percent-encoding (e.g., "%zz") should not crash.
+      // Return original ID which may still be valid as a literal string reference.
+      // Real-world SVGs often contain malformed IDs that work because they're used literally.
       if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
       return id;
     }
@@ -9667,7 +9671,9 @@ export const generateFullCompatibilityMatrix = createOperation(
           const docUrl = new URL(doc.documentURI || doc.baseURI || "");
           isCrossOrigin = imgUrl.origin !== docUrl.origin;
         } catch (e) {
-          // If URL parsing fails, assume cross-origin for safety - log error for debugging
+          // LEGITIMATE FALLBACK: URL parsing may fail for relative paths or malformed URLs.
+          // Defaulting to cross-origin=true is the SECURE choice (more restrictive).
+          // This is feature detection behavior, not error-hiding.
           if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
           isCrossOrigin = true;
         }
@@ -11681,374 +11687,6 @@ export function printHierarchicalMatrix(matrixData, options = {}) {
   console.log("\n" + "═".repeat(140) + "\n");
 
   return matrixData;
-}
-
-/**
- * Generate an SVG visualization of the compatibility matrix (LEGACY - simple version).
- * @deprecated Use generateDetailedCompatibilityMatrixSVG for full hierarchical output
- */
-export function generateCompatibilityMatrixSVG_legacy(
-  matrixData,
-  options = {},
-) {
-  const cellWidth = options.cellWidth || 60;
-  const cellHeight = options.cellHeight || 45;
-  const fontFamily =
-    options.fontFamily || "system-ui, -apple-system, sans-serif";
-  const interactive = options.interactive !== false;
-
-  // Axis definitions (same as printHierarchicalMatrix)
-  const COL_L1_SYNTAX = [
-    { id: "direct", label: "DIRECT", desc: "SVG file" },
-    { id: "img", label: "IMG", desc: "<img>" },
-    { id: "object", label: "OBJECT", desc: "<object>" },
-    { id: "embed", label: "EMBED", desc: "<embed>" },
-    { id: "inline", label: "INLINE", desc: "<svg>" },
-    { id: "css", label: "CSS", desc: "bg-image" },
-  ];
-
-  const COL_L2_STORAGE = [
-    { id: "embedded", label: "EMB", desc: "Embedded (data-uri)" },
-    { id: "local", label: "LOC", desc: "Local path" },
-    { id: "remote", label: "REM", desc: "Remote URL" },
-  ];
-
-  const ROW_L1_DISPLAY = [
-    { id: "browser", label: "BROWSER", desc: "Desktop browsers" },
-    { id: "mobile", label: "MOBILE", desc: "Mobile WebView" },
-    { id: "renderer", label: "RENDER", desc: "Server-side render" },
-  ];
-
-  const ROW_L2_LOAD = [
-    { id: "file", label: "file://", desc: "Local filesystem" },
-    { id: "http", label: "http(s)://", desc: "Web server" },
-    { id: "data", label: "data:", desc: "Data URI" },
-  ];
-
-  const ROW_L3_PROCESSING = [
-    { id: "script", label: "+JS", desc: "With JavaScript" },
-    { id: "noscript", label: "-JS", desc: "No JavaScript" },
-  ];
-
-  const BROWSERS_LOCAL = [
-    { id: "chrome", code: "C", name: "Chrome", color: "#4285F4" },
-    { id: "firefox", code: "F", name: "Firefox", color: "#FF7139" },
-    { id: "safari", code: "S", name: "Safari", color: "#006CFF" },
-    { id: "edge", code: "E", name: "Edge", color: "#0078D7" },
-    { id: "ie11", code: "I", name: "IE11", color: "#1EBBEE" },
-    { id: "ios", code: "i", name: "iOS", color: "#999" },
-    { id: "android", code: "A", name: "Android", color: "#3DDC84" },
-  ];
-
-  const FUNCS = [
-    { id: "display", code: "D", name: "Display", color: "#2196F3" },
-    { id: "animation", code: "A", name: "Animation", color: "#9C27B0" },
-    { id: "scripting", code: "J", name: "JavaScript", color: "#FF9800" },
-    { id: "events", code: "E", name: "Events", color: "#E91E63" },
-    { id: "media", code: "M", name: "Media", color: "#00BCD4" },
-    { id: "html", code: "H", name: "foreignObject", color: "#795548" },
-    { id: "images", code: "I", name: "Images", color: "#8BC34A" },
-    { id: "fonts", code: "T", name: "Fonts", color: "#607D8B" },
-    { id: "sprites", code: "U", name: "use/sprites", color: "#FF5722" },
-    { id: "links", code: "L", name: "Links", color: "#3F51B5" },
-  ];
-
-  // Calculate dimensions
-  const rowHeaderWidth = 140;
-  const colHeaderHeight = 80;
-  const totalCols = COL_L1_SYNTAX.length * COL_L2_STORAGE.length;
-  const totalRows =
-    ROW_L1_DISPLAY.length * ROW_L2_LOAD.length * ROW_L3_PROCESSING.length;
-  const svgWidth = rowHeaderWidth + totalCols * cellWidth + 40;
-  const svgHeight = colHeaderHeight + totalRows * cellHeight + 200; // Extra for legend
-
-  // Color helpers
-  const statusColors = {
-    ok: "#4CAF50",
-    warn: "#FF9800",
-    block: "#F44336",
-  };
-
-  /**
-   * Evaluate a cell for the legacy SVG visualization (simplified version).
-   * @param {string} display - Display environment ID
-   * @param {string} load - Load protocol ID
-   * @param {string} storage - Storage type ID
-   * @param {string} syntax - Embedding syntax ID
-   * @param {string} processing - Processing context ID
-   * @returns {Object} Simplified cell evaluation result
-   */
-  const evaluateCell = (display, load, storage, syntax, processing) => {
-    const result = { browserStatus: {}, funcStatus: {}, overallStatus: "ok" };
-
-    // Initialize
-    for (const b of BROWSERS_LOCAL) {
-      result.browserStatus[b.id] = {};
-      for (const f of FUNCS) result.browserStatus[b.id][f.id] = "ok";
-    }
-    for (const f of FUNCS) result.funcStatus[f.id] = "ok";
-
-    // Apply rules
-    if (syntax === "img" || syntax === "css") {
-      ["animation", "scripting", "events", "html", "media", "links"].forEach(
-        (f) => {
-          result.funcStatus[f] = "block";
-          BROWSERS_LOCAL.forEach((b) => {
-            result.browserStatus[b.id][f] = "block";
-          });
-        },
-      );
-    }
-
-    if (display === "renderer") {
-      ["animation", "scripting", "events", "media", "html"].forEach((f) => {
-        result.funcStatus[f] = "block";
-        BROWSERS_LOCAL.forEach((b) => {
-          result.browserStatus[b.id][f] = "block";
-        });
-      });
-    }
-
-    if (processing === "noscript") {
-      result.funcStatus["scripting"] = "block";
-      result.funcStatus["events"] = "warn";
-      BROWSERS_LOCAL.forEach((b) => {
-        result.browserStatus[b.id]["scripting"] = "block";
-        result.browserStatus[b.id]["events"] = "warn";
-      });
-    }
-
-    // IE11 specific
-    result.browserStatus["ie11"]["animation"] = "block";
-    result.browserStatus["ie11"]["html"] = "block";
-
-    // Media autoplay
-    if (matrixData.detectedCapabilities?.some((c) => c.startsWith("AUDIO_"))) {
-      BROWSERS_LOCAL.forEach((b) => {
-        if (result.browserStatus[b.id]["media"] !== "block") {
-          result.browserStatus[b.id]["media"] = "warn";
-        }
-      });
-      result.browserStatus["ios"]["media"] = "block";
-      result.funcStatus["media"] = "warn";
-    }
-
-    // Remote storage
-    if (storage === "remote") {
-      ["images", "fonts", "sprites"].forEach((f) => {
-        if (result.funcStatus[f] !== "block") result.funcStatus[f] = "warn";
-      });
-    }
-
-    // Note: SMIL is fully supported in all modern browsers (except IE11)
-    // Google retracted the deprecation notice after community feedback
-
-    // Calculate overall
-    let hasBlock = false,
-      hasWarn = false;
-    Object.values(result.funcStatus).forEach((s) => {
-      if (s === "block") hasBlock = true;
-      else if (s === "warn") hasWarn = true;
-    });
-    result.overallStatus = hasBlock ? "block" : hasWarn ? "warn" : "ok";
-
-    return result;
-  };
-
-  // Build SVG
-  let svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-     viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMinYMin meet" height="${svgHeight}" width="100%">
-  <title>SVG Compatibility Matrix</title>
-  <desc>Browser and functionality compatibility for different SVG embedding methods</desc>
-
-  <defs>
-    <style>
-      .title { font: bold 18px ${fontFamily}; fill: #333; }
-      .subtitle { font: 12px ${fontFamily}; fill: #666; }
-      .col-header { font: bold 11px ${fontFamily}; fill: #333; }
-      .col-subheader { font: 10px ${fontFamily}; fill: #555; }
-      .row-header { font: bold 10px ${fontFamily}; fill: #333; }
-      .row-subheader { font: 9px ${fontFamily}; fill: #555; }
-      .cell-text { font: 8px ${fontFamily}; fill: #333; }
-      .cell-ok { fill: #E8F5E9; }
-      .cell-warn { fill: #FFF3E0; }
-      .cell-block { fill: #FFEBEE; }
-      .legend-text { font: 10px ${fontFamily}; fill: #333; }
-      .grid-line { stroke: #DDD; stroke-width: 1; }
-      .grid-line-bold { stroke: #999; stroke-width: 2; }
-      ${
-        interactive
-          ? `
-      .cell-group:hover rect { stroke: #333; stroke-width: 2; }
-      .tooltip { pointer-events: none; opacity: 0; transition: opacity 0.2s; }
-      .cell-group:hover .tooltip { opacity: 1; }
-      `
-          : ""
-      }
-    </style>
-  </defs>
-
-  <!-- Title -->
-  <text x="${svgWidth / 2}" y="25" text-anchor="middle" class="title">SVG Compatibility Matrix</text>
-  <text x="${svgWidth / 2}" y="42" text-anchor="middle" class="subtitle">
-    ${totalCols} columns × ${totalRows} rows = ${totalCols * totalRows} combinations
-  </text>
-
-  <g transform="translate(20, 55)">
-`;
-
-  // Column headers - Level 1 (SYNTAX)
-  let colX = rowHeaderWidth;
-  for (const syntax of COL_L1_SYNTAX) {
-    const groupWidth = COL_L2_STORAGE.length * cellWidth;
-    svg += `    <rect x="${colX}" y="0" width="${groupWidth}" height="25" fill="#E3F2FD" stroke="#90CAF9"/>
-    <text x="${colX + groupWidth / 2}" y="17" text-anchor="middle" class="col-header">${syntax.label}</text>
-`;
-    // Level 2 (STORAGE)
-    for (let i = 0; i < COL_L2_STORAGE.length; i++) {
-      const storage = COL_L2_STORAGE[i];
-      const x = colX + i * cellWidth;
-      svg += `    <rect x="${x}" y="25" width="${cellWidth}" height="20" fill="#F5F5F5" stroke="#DDD"/>
-    <text x="${x + cellWidth / 2}" y="39" text-anchor="middle" class="col-subheader">${storage.label}</text>
-`;
-    }
-    colX += groupWidth;
-  }
-
-  // Row headers and cells
-  let rowY = colHeaderHeight - 35;
-  for (const displayEnv of ROW_L1_DISPLAY) {
-    // Display header
-    const displayRows = ROW_L2_LOAD.length * ROW_L3_PROCESSING.length;
-    const displayHeight = displayRows * cellHeight;
-    svg += `    <rect x="0" y="${rowY}" width="50" height="${displayHeight}" fill="#E8EAF6" stroke="#9FA8DA"/>
-    <text x="25" y="${rowY + displayHeight / 2}" text-anchor="middle" dominant-baseline="middle" class="row-header" transform="rotate(-90, 25, ${rowY + displayHeight / 2})">${displayEnv.label}</text>
-`;
-
-    for (const loadProto of ROW_L2_LOAD) {
-      for (const procCtx of ROW_L3_PROCESSING) {
-        // Row label
-        svg += `    <rect x="50" y="${rowY}" width="90" height="${cellHeight}" fill="#FAFAFA" stroke="#EEE"/>
-    <text x="55" y="${rowY + cellHeight / 2 - 6}" class="row-subheader">${loadProto.label}</text>
-    <text x="55" y="${rowY + cellHeight / 2 + 8}" class="row-subheader">${procCtx.label}</text>
-`;
-
-        // Cells
-        colX = rowHeaderWidth;
-        for (const syntax of COL_L1_SYNTAX) {
-          for (const storage of COL_L2_STORAGE) {
-            const cellResult = evaluateCell(
-              displayEnv.id,
-              loadProto.id,
-              storage.id,
-              syntax.id,
-              procCtx.id,
-            );
-            const cellClass = `cell-${cellResult.overallStatus}`;
-
-            // Build browser status string
-            let browserStr = "";
-            for (const b of BROWSERS_LOCAL) {
-              let bStatus = "ok";
-              for (const f of FUNCS) {
-                const s = cellResult.browserStatus[b.id][f.id];
-                if (s === "block") {
-                  bStatus = "block";
-                  break;
-                } else if (s === "warn" && bStatus !== "block")
-                  bStatus = "warn";
-              }
-              const symbol =
-                bStatus === "ok" ? "✓" : bStatus === "warn" ? "⚠" : "✗";
-              browserStr += `${b.code}${symbol}`;
-            }
-
-            // Build func status string
-            let funcStr = "";
-            for (const f of FUNCS) {
-              const s = cellResult.funcStatus[f.id];
-              if (s !== "ok") {
-                funcStr += `${f.code}${s === "warn" ? "⚠" : "✗"}`;
-              }
-            }
-            if (!funcStr) funcStr = "OK";
-
-            svg += `    <g class="cell-group">
-      <rect x="${colX}" y="${rowY}" width="${cellWidth}" height="${cellHeight}" class="${cellClass}" stroke="#DDD"/>
-      <text x="${colX + cellWidth / 2}" y="${rowY + 15}" text-anchor="middle" class="cell-text">${browserStr.substring(0, 10)}</text>
-      <text x="${colX + cellWidth / 2}" y="${rowY + 28}" text-anchor="middle" class="cell-text">${browserStr.substring(10)}</text>
-      <text x="${colX + cellWidth / 2}" y="${rowY + 40}" text-anchor="middle" class="cell-text" fill="${statusColors[cellResult.overallStatus]}">${funcStr.substring(0, 8)}</text>
-`;
-            if (interactive) {
-              // Tooltip
-              svg += `      <g class="tooltip" transform="translate(${colX + cellWidth / 2}, ${rowY - 5})">
-        <rect x="-60" y="-45" width="120" height="40" fill="#333" rx="4"/>
-        <text x="0" y="-30" text-anchor="middle" fill="#FFF" font-size="9">${syntax.label}/${storage.label}</text>
-        <text x="0" y="-17" text-anchor="middle" fill="#FFF" font-size="8">${displayEnv.label} ${loadProto.label} ${procCtx.label}</text>
-      </g>
-`;
-            }
-            svg += `    </g>
-`;
-            colX += cellWidth;
-          }
-        }
-        rowY += cellHeight;
-      }
-    }
-  }
-
-  // Legend
-  const legendY = colHeaderHeight + totalRows * cellHeight + 20;
-  svg += `
-  <!-- Legend -->
-  <g transform="translate(0, ${legendY})">
-    <text x="10" y="15" class="col-header">LEGEND</text>
-
-    <!-- Status colors -->
-    <rect x="10" y="25" width="20" height="15" class="cell-ok" stroke="#4CAF50"/>
-    <text x="35" y="37" class="legend-text">OK - All features work</text>
-
-    <rect x="160" y="25" width="20" height="15" class="cell-warn" stroke="#FF9800"/>
-    <text x="185" y="37" class="legend-text">Warning - Partial support</text>
-
-    <rect x="340" y="25" width="20" height="15" class="cell-block" stroke="#F44336"/>
-    <text x="365" y="37" class="legend-text">Blocked - Not supported</text>
-
-    <!-- Browser codes -->
-    <text x="10" y="60" class="col-header">BROWSERS:</text>
-`;
-
-  let legendX = 90;
-  for (const b of BROWSERS_LOCAL) {
-    svg += `    <text x="${legendX}" y="60" class="legend-text"><tspan fill="${b.color}" font-weight="bold">${b.code}</tspan>=${b.name}</text>
-`;
-    legendX += 85;
-  }
-
-  svg += `
-    <!-- Functionality codes -->
-    <text x="10" y="80" class="col-header">FUNCTIONS:</text>
-`;
-
-  legendX = 90;
-  let legendRow = 0;
-  for (const f of FUNCS) {
-    if (legendX > 600) {
-      legendX = 90;
-      legendRow++;
-    }
-    svg += `    <text x="${legendX}" y="${80 + legendRow * 18}" class="legend-text"><tspan fill="${f.color}" font-weight="bold">${f.code}</tspan>=${f.name}</text>
-`;
-    legendX += 100;
-  }
-
-  svg += `  </g>
-</g>
-</svg>`;
-
-  return svg;
 }
 
 /**
@@ -19515,7 +19153,8 @@ export const embedExternalDependencies = createOperation(
         // BUG FIX: Verify svg element exists before manipulating
         if (!svg) {
           warnings.push("Cannot add defs: document has no root SVG element");
-          if (onProgress) onProgress("externalSVGs", useArray.length, useArray.length);
+          if (onProgress)
+            onProgress("externalSVGs", useArray.length, useArray.length);
         } else {
           defs = new SVGElement("defs", {}, []);
           // Insert defs as first child - handle null firstChild properly
@@ -19532,104 +19171,105 @@ export const embedExternalDependencies = createOperation(
 
       if (defs) {
         for (let i = 0; i < useArray.length; i++) {
-        const useEl = useArray[i];
-        const href =
-          useEl.getAttribute("href") || useEl.getAttribute("xlink:href");
+          const useEl = useArray[i];
+          const href =
+            useEl.getAttribute("href") || useEl.getAttribute("xlink:href");
 
-        if (!href || !isExternalHref(href)) continue;
+          if (!href || !isExternalHref(href)) continue;
 
-        const { path, fragment } = parseExternalSVGRef(href);
-        if (!path) continue;
+          const { path, fragment } = parseExternalSVGRef(href);
+          if (!path) continue;
 
-        // Check circular reference
-        const resolvedPath = resolveURL(path, basePath);
-        if (visitedURLs.has(resolvedPath)) {
-          warnings.push(`Circular reference detected: ${resolvedPath}`);
-          continue;
-        }
-        visitedURLs.add(resolvedPath);
-
-        try {
-          const { content } = await fetchResource(
-            resolvedPath,
-            "text",
-            timeout,
-          );
-          const externalDoc = parseSVG(content);
-
-          if (!externalDoc) {
-            handleMissingResource(path, new Error("Failed to parse SVG"));
+          // Check circular reference
+          const resolvedPath = resolveURL(path, basePath);
+          if (visitedURLs.has(resolvedPath)) {
+            warnings.push(`Circular reference detected: ${resolvedPath}`);
             continue;
           }
+          visitedURLs.add(resolvedPath);
 
-          // Extract vendor namespaces from external SVG for later preservation
-          const externalSvgRoot = externalDoc.documentElement || externalDoc;
-          extractVendorNamespaces(externalSvgRoot);
+          try {
+            const { content } = await fetchResource(
+              resolvedPath,
+              "text",
+              timeout,
+            );
+            const externalDoc = parseSVG(content);
 
-          // Recursively process external SVG if enabled
-          if (recursive && maxRecursionDepth > 0) {
-            await embedExternalDependencies(externalDoc, {
-              ...options,
-              basePath: resolvedPath,
-              maxRecursionDepth: maxRecursionDepth - 1,
-              // BUG FIX: Pass visitedURLs to detect cross-document circular references (A → B → A)
-              _visitedURLs: visitedURLs,
-            });
-          }
+            if (!externalDoc) {
+              handleMissingResource(path, new Error("Failed to parse SVG"));
+              continue;
+            }
 
-          extCounter++;
-          const uniquePrefix = `${idPrefix}${extCounter}_`;
+            // Extract vendor namespaces from external SVG for later preservation
+            const externalSvgRoot = externalDoc.documentElement || externalDoc;
+            extractVendorNamespaces(externalSvgRoot);
 
-          if (externalSVGMode === "extract" && fragment) {
-            // Extract just the referenced element
-            const targetEl = externalDoc.getElementById(fragment);
-            if (targetEl) {
-              // Clone and relocate IDs
-              const cloned = targetEl.clone
-                ? targetEl.clone()
-                : JSON.parse(JSON.stringify(targetEl));
-              relocateIds(cloned, uniquePrefix);
+            // Recursively process external SVG if enabled
+            if (recursive && maxRecursionDepth > 0) {
+              await embedExternalDependencies(externalDoc, {
+                ...options,
+                basePath: resolvedPath,
+                maxRecursionDepth: maxRecursionDepth - 1,
+                // BUG FIX: Pass visitedURLs to detect cross-document circular references (A → B → A)
+                _visitedURLs: visitedURLs,
+              });
+            }
+
+            extCounter++;
+            const uniquePrefix = `${idPrefix}${extCounter}_`;
+
+            if (externalSVGMode === "extract" && fragment) {
+              // Extract just the referenced element
+              const targetEl = externalDoc.getElementById(fragment);
+              if (targetEl) {
+                // Clone and relocate IDs
+                const cloned = targetEl.clone
+                  ? targetEl.clone()
+                  : JSON.parse(JSON.stringify(targetEl));
+                relocateIds(cloned, uniquePrefix);
+
+                // Add to defs
+                defs.children.push(cloned);
+
+                // Update use href to local reference
+                const newId = uniquePrefix + fragment;
+                if (useEl.getAttribute("href"))
+                  useEl.setAttribute("href", "#" + newId);
+                if (useEl.getAttribute("xlink:href"))
+                  useEl.setAttribute("xlink:href", "#" + newId);
+              } else {
+                handleMissingResource(
+                  href,
+                  new Error(`Fragment #${fragment} not found in ${path}`),
+                );
+              }
+            } else {
+              // Embed entire external SVG
+              const externalSvg = externalDoc.documentElement || externalDoc;
+              relocateIds(externalSvg, uniquePrefix);
+
+              // Set an ID on the external SVG
+              const svgId = uniquePrefix + "svg";
+              externalSvg.setAttribute("id", svgId);
 
               // Add to defs
-              defs.children.push(cloned);
+              defs.children.push(externalSvg);
 
-              // Update use href to local reference
-              const newId = uniquePrefix + fragment;
+              // Update use href
+              const newHref = fragment
+                ? "#" + uniquePrefix + fragment
+                : "#" + svgId;
               if (useEl.getAttribute("href"))
-                useEl.setAttribute("href", "#" + newId);
+                useEl.setAttribute("href", newHref);
               if (useEl.getAttribute("xlink:href"))
-                useEl.setAttribute("xlink:href", "#" + newId);
-            } else {
-              handleMissingResource(
-                href,
-                new Error(`Fragment #${fragment} not found in ${path}`),
-              );
+                useEl.setAttribute("xlink:href", newHref);
             }
-          } else {
-            // Embed entire external SVG
-            const externalSvg = externalDoc.documentElement || externalDoc;
-            relocateIds(externalSvg, uniquePrefix);
-
-            // Set an ID on the external SVG
-            const svgId = uniquePrefix + "svg";
-            externalSvg.setAttribute("id", svgId);
-
-            // Add to defs
-            defs.children.push(externalSvg);
-
-            // Update use href
-            const newHref = fragment
-              ? "#" + uniquePrefix + fragment
-              : "#" + svgId;
-            if (useEl.getAttribute("href")) useEl.setAttribute("href", newHref);
-            if (useEl.getAttribute("xlink:href"))
-              useEl.setAttribute("xlink:href", newHref);
+          } catch (e) {
+            handleMissingResource(path, e);
           }
-        } catch (e) {
-          handleMissingResource(path, e);
-        }
 
-        if (onProgress) onProgress("externalSVGs", i + 1, useArray.length);
+          if (onProgress) onProgress("externalSVGs", i + 1, useArray.length);
         }
       }
     }
@@ -20062,11 +19702,13 @@ function decodeDataUri(parsed) {
     return Buffer.from(parsed.data, "base64");
   }
   // URL-encoded or plain text
-  // BUG FIX: Handle malformed percent-encoded sequences gracefully
+  // LEGITIMATE FALLBACK: Handle malformed percent-encoded sequences.
+  // Real-world data URIs may have invalid percent-encoding but the raw data is still usable.
+  // Returning as-is allows the caller to attempt to use the data rather than crashing.
   try {
     return decodeURIComponent(parsed.data);
   } catch (e) {
-    // If decodeURIComponent fails (e.g., malformed %XX), return data as-is - log error for debugging
+    // Malformed %XX sequences - return raw data which may still be valid for the use case
     if (process.env.DEBUG) console.warn(`[svg-toolbox] ${e.message}`);
     return parsed.data;
   }

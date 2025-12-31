@@ -36,16 +36,18 @@ Decimal.set({ precision: 80 });
  */
 function hasCircularReference(startId, getNextId, maxDepth = 100) {
   // Parameter validation: startId must be a non-empty string
-  if (!startId || typeof startId !== 'string') {
-    throw new Error('hasCircularReference: startId must be a non-empty string');
+  if (!startId || typeof startId !== "string") {
+    throw new Error("hasCircularReference: startId must be a non-empty string");
   }
   // Parameter validation: getNextId must be a function
-  if (typeof getNextId !== 'function') {
-    throw new Error('hasCircularReference: getNextId must be a function');
+  if (typeof getNextId !== "function") {
+    throw new Error("hasCircularReference: getNextId must be a function");
   }
   // Parameter validation: maxDepth must be a positive finite number
-  if (typeof maxDepth !== 'number' || maxDepth <= 0 || !isFinite(maxDepth)) {
-    throw new Error('hasCircularReference: maxDepth must be a positive finite number');
+  if (typeof maxDepth !== "number" || maxDepth <= 0 || !isFinite(maxDepth)) {
+    throw new Error(
+      "hasCircularReference: maxDepth must be a positive finite number",
+    );
   }
 
   const visited = new Set();
@@ -100,7 +102,7 @@ function hasCircularReference(startId, getNextId, maxDepth = 100) {
  */
 export function parseUseElement(useElement) {
   // Parameter validation: useElement must be defined
-  if (!useElement) throw new Error('parseUseElement: useElement is required');
+  if (!useElement) throw new Error("parseUseElement: useElement is required");
 
   const href =
     useElement.getAttribute("href") ||
@@ -111,7 +113,9 @@ export function parseUseElement(useElement) {
 
   // Validate href is not empty after parsing
   if (!parsedHref) {
-    throw new Error('parseUseElement: href attribute must reference a valid element id (found empty reference)');
+    throw new Error(
+      "parseUseElement: href attribute must reference a valid element id (found empty reference)",
+    );
   }
 
   // Parse numeric attributes and validate for NaN and finiteness
@@ -120,7 +124,9 @@ export function parseUseElement(useElement) {
 
   // Validate that x and y are valid finite numbers
   if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) {
-    throw new Error('parseUseElement: x and y attributes must be valid finite numbers');
+    throw new Error(
+      "parseUseElement: x and y attributes must be valid finite numbers",
+    );
   }
 
   // Parse width and height if present, validate for NaN and finiteness and positivity
@@ -130,14 +136,18 @@ export function parseUseElement(useElement) {
   if (useElement.getAttribute("width")) {
     width = parseFloat(useElement.getAttribute("width"));
     if (isNaN(width) || !isFinite(width) || width <= 0) {
-      throw new Error('parseUseElement: width attribute must be a valid positive finite number');
+      throw new Error(
+        "parseUseElement: width attribute must be a valid positive finite number",
+      );
     }
   }
 
   if (useElement.getAttribute("height")) {
     height = parseFloat(useElement.getAttribute("height"));
     if (isNaN(height) || !isFinite(height) || height <= 0) {
-      throw new Error('parseUseElement: height attribute must be a valid positive finite number');
+      throw new Error(
+        "parseUseElement: height attribute must be a valid positive finite number",
+      );
     }
   }
 
@@ -193,14 +203,17 @@ export function parseUseElement(useElement) {
  */
 export function parseSymbolElement(symbolElement) {
   // Parameter validation: symbolElement must be defined
-  if (!symbolElement) throw new Error('parseSymbolElement: symbolElement is required');
+  if (!symbolElement)
+    throw new Error("parseSymbolElement: symbolElement is required");
 
   // Parse refX and refY with NaN and finiteness validation
   const refX = parseFloat(symbolElement.getAttribute("refX") || "0");
   const refY = parseFloat(symbolElement.getAttribute("refY") || "0");
 
   if (isNaN(refX) || isNaN(refY) || !isFinite(refX) || !isFinite(refY)) {
-    throw new Error('parseSymbolElement: refX and refY must be valid finite numbers');
+    throw new Error(
+      "parseSymbolElement: refX and refY must be valid finite numbers",
+    );
   }
 
   const data = {
@@ -302,7 +315,7 @@ export function parseSymbolElement(symbolElement) {
 export function parseChildElement(element) {
   // Parameter validation: element must be defined and have a tagName
   if (!element || !element.tagName) {
-    throw new Error('parseChildElement: element with tagName is required');
+    throw new Error("parseChildElement: element with tagName is required");
   }
 
   const tagName = element.tagName.toLowerCase();
@@ -318,7 +331,9 @@ export function parseChildElement(element) {
   const safeParseFloat = (attrName, defaultValue = "0") => {
     const value = parseFloat(element.getAttribute(attrName) || defaultValue);
     if (isNaN(value) || !isFinite(value)) {
-      throw new Error(`parseChildElement: ${attrName} must be a valid finite number in ${tagName} element`);
+      throw new Error(
+        `parseChildElement: ${attrName} must be a valid finite number in ${tagName} element`,
+      );
     }
     return value;
   };
@@ -428,7 +443,7 @@ export function parseChildElement(element) {
 export function extractStyleAttributes(element) {
   // Parameter validation: element must be defined
   if (!element) {
-    throw new Error('extractStyleAttributes: element is required');
+    throw new Error("extractStyleAttributes: element is required");
   }
 
   return {
@@ -502,7 +517,12 @@ export function calculateViewBoxTransform(
   }
 
   // Validate targetWidth and targetHeight are finite positive numbers
-  if (!isFinite(targetWidth) || !isFinite(targetHeight) || targetWidth <= 0 || targetHeight <= 0) {
+  if (
+    !isFinite(targetWidth) ||
+    !isFinite(targetHeight) ||
+    targetWidth <= 0 ||
+    targetHeight <= 0
+  ) {
     return Matrix.identity(3);
   }
 
@@ -512,7 +532,14 @@ export function calculateViewBoxTransform(
   const vbY = viewBox.y;
 
   // Validate viewBox dimensions are finite and positive
-  if (!isFinite(vbW) || !isFinite(vbH) || !isFinite(vbX) || !isFinite(vbY) || vbW <= 0 || vbH <= 0) {
+  if (
+    !isFinite(vbW) ||
+    !isFinite(vbH) ||
+    !isFinite(vbX) ||
+    !isFinite(vbY) ||
+    vbW <= 0 ||
+    vbH <= 0
+  ) {
     return Matrix.identity(3);
   }
 
@@ -639,63 +666,99 @@ export function calculateViewBoxTransform(
 export function resolveUse(useData, defs, options = {}) {
   // Parameter validation: useData must be defined with href property
   if (!useData || !useData.href) {
-    throw new Error('resolveUse: useData with href property is required');
+    throw new Error("resolveUse: useData with href property is required");
   }
 
   // Parameter validation: defs must be defined
   if (!defs) {
-    throw new Error('resolveUse: defs map is required');
+    throw new Error("resolveUse: defs map is required");
   }
 
   // Validate useData.x and useData.y are valid numbers
-  if (typeof useData.x !== 'number' || isNaN(useData.x) || !isFinite(useData.x)) {
-    throw new Error('resolveUse: useData.x must be a valid finite number');
+  if (
+    typeof useData.x !== "number" ||
+    isNaN(useData.x) ||
+    !isFinite(useData.x)
+  ) {
+    throw new Error("resolveUse: useData.x must be a valid finite number");
   }
-  if (typeof useData.y !== 'number' || isNaN(useData.y) || !isFinite(useData.y)) {
-    throw new Error('resolveUse: useData.y must be a valid finite number');
+  if (
+    typeof useData.y !== "number" ||
+    isNaN(useData.y) ||
+    !isFinite(useData.y)
+  ) {
+    throw new Error("resolveUse: useData.y must be a valid finite number");
   }
 
   // Validate useData.width and useData.height are null or valid numbers
-  if (useData.width !== null && (typeof useData.width !== 'number' || isNaN(useData.width) || !isFinite(useData.width) || useData.width <= 0)) {
-    throw new Error('resolveUse: useData.width must be null or a positive finite number');
+  if (
+    useData.width !== null &&
+    (typeof useData.width !== "number" ||
+      isNaN(useData.width) ||
+      !isFinite(useData.width) ||
+      useData.width <= 0)
+  ) {
+    throw new Error(
+      "resolveUse: useData.width must be null or a positive finite number",
+    );
   }
-  if (useData.height !== null && (typeof useData.height !== 'number' || isNaN(useData.height) || !isFinite(useData.height) || useData.height <= 0)) {
-    throw new Error('resolveUse: useData.height must be null or a positive finite number');
+  if (
+    useData.height !== null &&
+    (typeof useData.height !== "number" ||
+      isNaN(useData.height) ||
+      !isFinite(useData.height) ||
+      useData.height <= 0)
+  ) {
+    throw new Error(
+      "resolveUse: useData.height must be null or a positive finite number",
+    );
   }
 
   // Validate useData.style is an object or null/undefined
   if (useData.style !== null && useData.style !== undefined) {
-    if (typeof useData.style !== 'object' || Array.isArray(useData.style)) {
-      throw new Error('resolveUse: useData.style must be null, undefined, or a valid non-array object');
+    if (typeof useData.style !== "object" || Array.isArray(useData.style)) {
+      throw new Error(
+        "resolveUse: useData.style must be null, undefined, or a valid non-array object",
+      );
     }
   }
 
   // Validate useData.transform is a string or null/undefined
-  if (useData.transform !== null && useData.transform !== undefined && typeof useData.transform !== 'string') {
-    throw new Error('resolveUse: useData.transform must be null, undefined, or a string');
+  if (
+    useData.transform !== null &&
+    useData.transform !== undefined &&
+    typeof useData.transform !== "string"
+  ) {
+    throw new Error(
+      "resolveUse: useData.transform must be null, undefined, or a string",
+    );
   }
 
   // Validate options parameter
-  if (options && typeof options !== 'object') {
-    throw new Error('resolveUse: options must be an object or undefined');
+  if (options && typeof options !== "object") {
+    throw new Error("resolveUse: options must be an object or undefined");
   }
 
   const { maxDepth = 10, _visited = new Set() } = options;
 
   // Validate maxDepth is a positive finite number
-  if (typeof maxDepth !== 'number' || maxDepth <= 0 || !isFinite(maxDepth)) {
-    throw new Error('resolveUse: maxDepth must be a positive finite number');
+  if (typeof maxDepth !== "number" || maxDepth <= 0 || !isFinite(maxDepth)) {
+    throw new Error("resolveUse: maxDepth must be a positive finite number");
   }
 
   // Detect circular references by tracking visited IDs
   if (_visited.has(useData.href)) {
-    console.warn(`resolveUse: circular reference detected for '#${useData.href}', skipping to prevent infinite loop`);
+    console.warn(
+      `resolveUse: circular reference detected for '#${useData.href}', skipping to prevent infinite loop`,
+    );
     return null;
   }
 
   const target = defs[useData.href];
   if (!target) {
-    console.warn(`resolveUse: target element '#${useData.href}' not found in defs map`);
+    console.warn(
+      `resolveUse: target element '#${useData.href}' not found in defs map`,
+    );
     return null; // Target element not found
   }
 
@@ -726,17 +789,28 @@ export function resolveUse(useData, defs, options = {}) {
   if (target.type === "symbol" && target.viewBoxParsed) {
     // Validate viewBoxParsed has all required properties with finite values (x, y, width, height)
     // and width/height must be positive
-    if (typeof target.viewBoxParsed.x !== 'number' || typeof target.viewBoxParsed.y !== 'number' ||
-        typeof target.viewBoxParsed.width !== 'number' || typeof target.viewBoxParsed.height !== 'number' ||
-        !isFinite(target.viewBoxParsed.x) || !isFinite(target.viewBoxParsed.y) ||
-        !isFinite(target.viewBoxParsed.width) || !isFinite(target.viewBoxParsed.height) ||
-        target.viewBoxParsed.width <= 0 || target.viewBoxParsed.height <= 0) {
-      throw new Error('resolveUse: target.viewBoxParsed must have finite x, y and positive finite width, height');
+    if (
+      typeof target.viewBoxParsed.x !== "number" ||
+      typeof target.viewBoxParsed.y !== "number" ||
+      typeof target.viewBoxParsed.width !== "number" ||
+      typeof target.viewBoxParsed.height !== "number" ||
+      !isFinite(target.viewBoxParsed.x) ||
+      !isFinite(target.viewBoxParsed.y) ||
+      !isFinite(target.viewBoxParsed.width) ||
+      !isFinite(target.viewBoxParsed.height) ||
+      target.viewBoxParsed.width <= 0 ||
+      target.viewBoxParsed.height <= 0
+    ) {
+      throw new Error(
+        "resolveUse: target.viewBoxParsed must have finite x, y and positive finite width, height",
+      );
     }
 
     // Use explicit null check to allow width/height of 0 (though unusual)
-    const width = useData.width !== null ? useData.width : target.viewBoxParsed.width;
-    const height = useData.height !== null ? useData.height : target.viewBoxParsed.height;
+    const width =
+      useData.width !== null ? useData.width : target.viewBoxParsed.width;
+    const height =
+      useData.height !== null ? useData.height : target.viewBoxParsed.height;
 
     const viewBoxTransform = calculateViewBoxTransform(
       target.viewBoxParsed,
@@ -753,19 +827,27 @@ export function resolveUse(useData, defs, options = {}) {
   const resolvedChildren = [];
   // For symbols and groups, use children array; for leaf elements, wrap as single child
   // Check for children property existence and if it's an array, not just truthiness
-  const children = (target.children && Array.isArray(target.children) && target.children.length > 0)
-    ? target.children
-    : [target];
+  const children =
+    target.children &&
+    Array.isArray(target.children) &&
+    target.children.length > 0
+      ? target.children
+      : [target];
 
   for (const child of children) {
     if (child.type === "use") {
       // Check maxDepth before recursing to prevent infinite recursion
       if (maxDepth <= 1) {
-        console.warn(`resolveUse: maximum nesting depth reached for use element '#${child.href}', skipping nested resolution`);
+        console.warn(
+          `resolveUse: maximum nesting depth reached for use element '#${child.href}', skipping nested resolution`,
+        );
         continue;
       }
       // Recursive resolution with passed _visited set to track circular references across the chain
-      const resolved = resolveUse(child, defs, { maxDepth: maxDepth - 1, _visited });
+      const resolved = resolveUse(child, defs, {
+        maxDepth: maxDepth - 1,
+        _visited,
+      });
       if (resolved) {
         resolvedChildren.push(resolved);
       }
@@ -848,8 +930,10 @@ export function flattenResolvedUse(resolved, samples = 20) {
   if (!resolved) return results;
 
   // Parameter validation: samples must be a positive number
-  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
-    throw new Error('flattenResolvedUse: samples must be a positive finite number');
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "flattenResolvedUse: samples must be a positive finite number",
+    );
   }
 
   // Validate required properties exist
@@ -932,12 +1016,14 @@ export function flattenResolvedUse(resolved, samples = 20) {
 export function elementToPolygon(element, transform, samples = 20) {
   // Parameter validation: element must be defined
   if (!element) {
-    throw new Error('elementToPolygon: element is required');
+    throw new Error("elementToPolygon: element is required");
   }
 
   // Parameter validation: samples must be a positive finite number
-  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
-    throw new Error('elementToPolygon: samples must be a positive finite number');
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "elementToPolygon: samples must be a positive finite number",
+    );
   }
 
   // Use ClipPathResolver's shapeToPolygon
@@ -1000,8 +1086,8 @@ export function elementToPolygon(element, transform, samples = 20) {
  */
 export function mergeStyles(inherited, element) {
   // Parameter validation: element must be defined (inherited can be null)
-  if (!element || typeof element !== 'object' || Array.isArray(element)) {
-    throw new Error('mergeStyles: element must be a valid non-array object');
+  if (!element || typeof element !== "object" || Array.isArray(element)) {
+    throw new Error("mergeStyles: element must be a valid non-array object");
   }
 
   const result = { ...element };
@@ -1009,8 +1095,10 @@ export function mergeStyles(inherited, element) {
   // Inherited can be null/undefined, handle gracefully
   // Also validate inherited is an object if not null/undefined
   if (inherited !== null && inherited !== undefined) {
-    if (typeof inherited !== 'object' || Array.isArray(inherited)) {
-      throw new Error('mergeStyles: inherited must be null, undefined, or a valid non-array object');
+    if (typeof inherited !== "object" || Array.isArray(inherited)) {
+      throw new Error(
+        "mergeStyles: inherited must be null, undefined, or a valid non-array object",
+      );
     }
   }
 
@@ -1069,8 +1157,10 @@ export function mergeStyles(inherited, element) {
  */
 export function getResolvedBBox(resolved, samples = 20) {
   // Parameter validation: samples must be a positive finite number
-  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
-    throw new Error('getResolvedBBox: samples must be a positive finite number');
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "getResolvedBBox: samples must be a positive finite number",
+    );
   }
 
   const polygons = flattenResolvedUse(resolved, samples);
@@ -1160,17 +1250,21 @@ export function getResolvedBBox(resolved, samples = 20) {
 export function clipResolvedUse(resolved, clipPolygon, samples = 20) {
   // Parameter validation: clipPolygon must be defined and be an array
   if (!clipPolygon || !Array.isArray(clipPolygon)) {
-    throw new Error('clipResolvedUse: clipPolygon must be a valid array');
+    throw new Error("clipResolvedUse: clipPolygon must be a valid array");
   }
 
   // Validate clipPolygon has at least 3 points
   if (clipPolygon.length < 3) {
-    throw new Error('clipResolvedUse: clipPolygon must have at least 3 vertices');
+    throw new Error(
+      "clipResolvedUse: clipPolygon must have at least 3 vertices",
+    );
   }
 
   // Parameter validation: samples must be a positive finite number
-  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
-    throw new Error('clipResolvedUse: samples must be a positive finite number');
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "clipResolvedUse: samples must be a positive finite number",
+    );
   }
 
   const polygons = flattenResolvedUse(resolved, samples);
@@ -1243,8 +1337,10 @@ export function clipResolvedUse(resolved, clipPolygon, samples = 20) {
  */
 export function resolvedUseToPathData(resolved, samples = 20) {
   // Parameter validation: samples must be a positive finite number
-  if (typeof samples !== 'number' || samples <= 0 || !isFinite(samples)) {
-    throw new Error('resolvedUseToPathData: samples must be a positive finite number');
+  if (typeof samples !== "number" || samples <= 0 || !isFinite(samples)) {
+    throw new Error(
+      "resolvedUseToPathData: samples must be a positive finite number",
+    );
   }
 
   const polygons = flattenResolvedUse(resolved, samples);
@@ -1263,7 +1359,10 @@ export function resolvedUseToPathData(resolved, samples = 20) {
           continue;
         }
 
-        d += i === 0 ? `M ${x.toFixed(6)} ${y.toFixed(6)}` : ` L ${x.toFixed(6)} ${y.toFixed(6)}`;
+        d +=
+          i === 0
+            ? `M ${x.toFixed(6)} ${y.toFixed(6)}`
+            : ` L ${x.toFixed(6)} ${y.toFixed(6)}`;
       }
       d += " Z";
       paths.push(d);
@@ -1326,8 +1425,8 @@ export function resolvedUseToPathData(resolved, samples = 20) {
  */
 export function buildDefsMap(svgRoot) {
   // Parameter validation: svgRoot must be defined and have querySelectorAll method
-  if (!svgRoot || typeof svgRoot.querySelectorAll !== 'function') {
-    throw new Error('buildDefsMap: svgRoot must be a valid DOM element');
+  if (!svgRoot || typeof svgRoot.querySelectorAll !== "function") {
+    throw new Error("buildDefsMap: svgRoot must be a valid DOM element");
   }
 
   const defs = {};
@@ -1427,13 +1526,13 @@ export function buildDefsMap(svgRoot) {
  */
 export function resolveAllUses(svgRoot, options = {}) {
   // Parameter validation: svgRoot must be defined and have querySelectorAll method
-  if (!svgRoot || typeof svgRoot.querySelectorAll !== 'function') {
-    throw new Error('resolveAllUses: svgRoot must be a valid DOM element');
+  if (!svgRoot || typeof svgRoot.querySelectorAll !== "function") {
+    throw new Error("resolveAllUses: svgRoot must be a valid DOM element");
   }
 
   // Validate options parameter
-  if (options && typeof options !== 'object') {
-    throw new Error('resolveAllUses: options must be an object or undefined');
+  if (options && typeof options !== "object") {
+    throw new Error("resolveAllUses: options must be an object or undefined");
   }
 
   const defs = buildDefsMap(svgRoot);
@@ -1443,7 +1542,7 @@ export function resolveAllUses(svgRoot, options = {}) {
   // Helper to get the next use reference from a definition
   const getUseRef = (id) => {
     // Validate id parameter
-    if (!id || typeof id !== 'string') {
+    if (!id || typeof id !== "string") {
       return null;
     }
 

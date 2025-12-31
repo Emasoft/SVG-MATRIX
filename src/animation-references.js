@@ -642,7 +642,9 @@ export function getIdReferenceInfo(root, id) {
 export function findUnreferencedDefs(root) {
   // Validate input parameter
   if (!root || typeof root !== "object" || !(root instanceof SVGElement)) {
-    throw new TypeError("findUnreferencedDefs: root must be a valid SVGElement");
+    throw new TypeError(
+      "findUnreferencedDefs: root must be a valid SVGElement",
+    );
   }
 
   const refs = collectAllReferences(root);
@@ -668,7 +670,10 @@ export function findUnreferencedDefs(root) {
 
   for (const defs of defsElements) {
     // Validate defs.children exists and is iterable
-    if (!defs.children || typeof defs.children[Symbol.iterator] !== "function") {
+    if (
+      !defs.children ||
+      typeof defs.children[Symbol.iterator] !== "function"
+    ) {
       continue; // Skip this defs element if children is not iterable
     }
 
@@ -728,7 +733,10 @@ export function removeUnreferencedDefsSafe(root) {
 
   for (const defs of defsElements) {
     // Validate defs.children exists and is iterable before spreading
-    if (!defs.children || typeof defs.children[Symbol.iterator] !== "function") {
+    if (
+      !defs.children ||
+      typeof defs.children[Symbol.iterator] !== "function"
+    ) {
       continue; // Skip this defs element if children is not iterable
     }
 

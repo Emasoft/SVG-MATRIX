@@ -171,7 +171,9 @@ export class SVGRenderingContext {
   _extractProperties(element, inherited) {
     // Validate inherited is an object or null - Why: prevent spreading non-objects
     if (inherited !== null && typeof inherited !== "object") {
-      throw new Error("_extractProperties: inherited must be an object or null");
+      throw new Error(
+        "_extractProperties: inherited must be an object or null",
+      );
     }
 
     const props = { ...SVG_DEFAULTS, ...(inherited || {}) };

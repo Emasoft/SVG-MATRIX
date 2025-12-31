@@ -60,9 +60,16 @@ export function pointInPolygonWithRule(
   fillRule = FillRule.NONZERO,
 ) {
   if (!pt || typeof pt !== "object") {
-    throw new Error("pointInPolygonWithRule: pt must be an object with x, y properties");
+    throw new Error(
+      "pointInPolygonWithRule: pt must be an object with x, y properties",
+    );
   }
-  if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null) {
+  if (
+    pt.x === undefined ||
+    pt.x === null ||
+    pt.y === undefined ||
+    pt.y === null
+  ) {
     throw new Error("pointInPolygonWithRule: pt must have x and y properties");
   }
   if (!Array.isArray(polygon)) {
@@ -121,9 +128,20 @@ function pointOnSegment(pt, a, b) {
   if (!pt || !a || !b) {
     throw new Error("pointOnSegment: pt, a, and b must be defined");
   }
-  if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null ||
-      a.x === undefined || a.x === null || a.y === undefined || a.y === null ||
-      b.x === undefined || b.x === null || b.y === undefined || b.y === null) {
+  if (
+    pt.x === undefined ||
+    pt.x === null ||
+    pt.y === undefined ||
+    pt.y === null ||
+    a.x === undefined ||
+    a.x === null ||
+    a.y === undefined ||
+    a.y === null ||
+    b.x === undefined ||
+    b.x === null ||
+    b.y === undefined ||
+    b.y === null
+  ) {
     throw new Error("pointOnSegment: all points must have x and y properties");
   }
   const crossVal = cross(a, b, pt);
@@ -270,8 +288,14 @@ export function circleToPolygon(circle, segments = 32) {
   if (circle.r === undefined || circle.r === null) {
     throw new Error("circleToPolygon: circle must have r property");
   }
-  if (typeof segments !== "number" || segments <= 0 || !Number.isFinite(segments)) {
-    throw new Error("circleToPolygon: segments must be a positive finite number");
+  if (
+    typeof segments !== "number" ||
+    segments <= 0 ||
+    !Number.isFinite(segments)
+  ) {
+    throw new Error(
+      "circleToPolygon: segments must be a positive finite number",
+    );
   }
   const cx = D(circle.cx || 0);
   const cy = D(circle.cy || 0);
@@ -312,8 +336,14 @@ export function ellipseToPolygon(ellipse, segments = 32) {
   if (ellipse.ry === undefined || ellipse.ry === null) {
     throw new Error("ellipseToPolygon: ellipse must have ry property");
   }
-  if (typeof segments !== "number" || segments <= 0 || !Number.isFinite(segments)) {
-    throw new Error("ellipseToPolygon: segments must be a positive finite number");
+  if (
+    typeof segments !== "number" ||
+    segments <= 0 ||
+    !Number.isFinite(segments)
+  ) {
+    throw new Error(
+      "ellipseToPolygon: segments must be a positive finite number",
+    );
   }
   const cx = D(ellipse.cx || 0);
   const cy = D(ellipse.cy || 0);
@@ -465,8 +495,15 @@ export function svgPolygonToPolygon(points) {
       throw new Error("svgPolygonToPolygon: points array cannot be empty");
     }
     return points.map((p) => {
-      if (!p || typeof p !== "object" || p.x === undefined || p.y === undefined) {
-        throw new Error("svgPolygonToPolygon: each point must have x and y properties");
+      if (
+        !p ||
+        typeof p !== "object" ||
+        p.x === undefined ||
+        p.y === undefined
+      ) {
+        throw new Error(
+          "svgPolygonToPolygon: each point must have x and y properties",
+        );
       }
       return point(p.x, p.y);
     });
@@ -485,15 +522,21 @@ export function svgPolygonToPolygon(points) {
   const coords = trimmed.split(/[\s,]+/).map(Number);
 
   if (coords.length < 2) {
-    throw new Error("svgPolygonToPolygon: points must contain at least one coordinate pair");
+    throw new Error(
+      "svgPolygonToPolygon: points must contain at least one coordinate pair",
+    );
   }
 
   if (coords.length % 2 !== 0) {
-    throw new Error("svgPolygonToPolygon: points must contain an even number of coordinates");
+    throw new Error(
+      "svgPolygonToPolygon: points must contain an even number of coordinates",
+    );
   }
 
   if (coords.some((c) => !Number.isFinite(c))) {
-    throw new Error("svgPolygonToPolygon: all coordinates must be finite numbers");
+    throw new Error(
+      "svgPolygonToPolygon: all coordinates must be finite numbers",
+    );
   }
 
   const vertices = [];
@@ -688,7 +731,9 @@ export function strokeToFilledPolygon(polygon, strokeProps) {
     throw new Error("strokeToFilledPolygon: strokeProps must be an object");
   }
   if (strokeProps.width === undefined || strokeProps.width === null) {
-    throw new Error("strokeToFilledPolygon: strokeProps must have width property");
+    throw new Error(
+      "strokeToFilledPolygon: strokeProps must have width property",
+    );
   }
 
   const halfWidth = D(strokeProps.width).div(2);
@@ -732,8 +777,12 @@ export function applyDashArray(polygon, dashArray, dashOffset = 0) {
     throw new Error("applyDashArray: dashArray must be an array");
   }
 
-  if (dashArray.some((d) => typeof d !== "number" || !Number.isFinite(d) || d < 0)) {
-    throw new Error("applyDashArray: all dash values must be non-negative finite numbers");
+  if (
+    dashArray.some((d) => typeof d !== "number" || !Number.isFinite(d) || d < 0)
+  ) {
+    throw new Error(
+      "applyDashArray: all dash values must be non-negative finite numbers",
+    );
   }
 
   // Normalize dash array (must have even length)
@@ -912,7 +961,11 @@ export class SVGRegion {
     }
 
     // Add stroke region if element has stroke
-    if (style.stroke !== "none" && typeof style.strokeWidth === "number" && style.strokeWidth > 0) {
+    if (
+      style.stroke !== "none" &&
+      typeof style.strokeWidth === "number" &&
+      style.strokeWidth > 0
+    ) {
       const sourcePolygon =
         type === "line"
           ? lineToPolygon(props, {
@@ -925,7 +978,10 @@ export class SVGRegion {
         let strokePolygons;
 
         // Apply dash array if present
-        if (Array.isArray(style.strokeDasharray) && style.strokeDasharray.length > 0) {
+        if (
+          Array.isArray(style.strokeDasharray) &&
+          style.strokeDasharray.length > 0
+        ) {
           const dashedSegments = applyDashArray(
             sourcePolygon,
             style.strokeDasharray,
@@ -974,8 +1030,15 @@ export class SVGRegion {
     if (!pt || typeof pt !== "object") {
       throw new Error("SVGRegion.containsPoint: pt must be an object");
     }
-    if (pt.x === undefined || pt.x === null || pt.y === undefined || pt.y === null) {
-      throw new Error("SVGRegion.containsPoint: pt must have x and y properties");
+    if (
+      pt.x === undefined ||
+      pt.x === null ||
+      pt.y === undefined ||
+      pt.y === null
+    ) {
+      throw new Error(
+        "SVGRegion.containsPoint: pt must have x and y properties",
+      );
     }
 
     // Check fill polygons with fill rule
@@ -1012,10 +1075,14 @@ export class SVGRegion {
  */
 export function regionIntersection(regionA, regionB) {
   if (!regionA || !(regionA instanceof SVGRegion)) {
-    throw new Error("regionIntersection: regionA must be an SVGRegion instance");
+    throw new Error(
+      "regionIntersection: regionA must be an SVGRegion instance",
+    );
   }
   if (!regionB || !(regionB instanceof SVGRegion)) {
-    throw new Error("regionIntersection: regionB must be an SVGRegion instance");
+    throw new Error(
+      "regionIntersection: regionB must be an SVGRegion instance",
+    );
   }
 
   const resultPolygons = [];

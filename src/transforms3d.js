@@ -30,7 +30,11 @@ function validateNumeric(value, name) {
   if (value === undefined || value === null) {
     throw new Error(`${name} is required`);
   }
-  if (typeof value !== 'number' && typeof value !== 'string' && !(value instanceof Decimal)) {
+  if (
+    typeof value !== "number" &&
+    typeof value !== "string" &&
+    !(value instanceof Decimal)
+  ) {
     throw new Error(`${name} must be a number, string, or Decimal`);
   }
 }
@@ -52,7 +56,8 @@ function normalizeAngle(theta) {
   }
 
   // For small angles, no normalization needed - preserve full precision
-  if (Math.abs(tNum) <= 6.283185307179586) { // 2π
+  if (Math.abs(tNum) <= 6.283185307179586) {
+    // 2π
     return tNum;
   }
 
@@ -148,9 +153,9 @@ function normalizeAngle(theta) {
  * // First translates by (10,0,0), then rotates around Z
  */
 export function translation(tx, ty, tz) {
-  validateNumeric(tx, 'tx');
-  validateNumeric(ty, 'ty');
-  validateNumeric(tz, 'tz');
+  validateNumeric(tx, "tx");
+  validateNumeric(ty, "ty");
+  validateNumeric(tz, "tz");
   return Matrix.from([
     [new Decimal(1), new Decimal(0), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), new Decimal(0), D(ty)],
@@ -209,12 +214,12 @@ export function translation(tx, ty, tz) {
  * // Cannot invert this matrix - information about z coordinate is lost
  */
 export function scale(sx, sy = null, sz = null) {
-  validateNumeric(sx, 'sx');
+  validateNumeric(sx, "sx");
   if (sy !== null) {
-    validateNumeric(sy, 'sy');
+    validateNumeric(sy, "sy");
   }
   if (sz !== null) {
-    validateNumeric(sz, 'sz');
+    validateNumeric(sz, "sz");
   }
   const syValue = sy === null ? sx : sy;
   const szValue = sz === null ? sx : sz;
@@ -270,7 +275,7 @@ export function scale(sx, sy = null, sz = null) {
  * const pitch = rotateX(-0.1); // Slight downward tilt
  */
 export function rotateX(theta) {
-  validateNumeric(theta, 'theta');
+  validateNumeric(theta, "theta");
   const t = D(theta);
   // Normalize angle to reduce precision loss for very large angles
   const tNum = normalizeAngle(t);
@@ -317,7 +322,7 @@ export function rotateX(theta) {
  * const yaw = rotateY(0.5); // Turn right by ~28.6°
  */
 export function rotateY(theta) {
-  validateNumeric(theta, 'theta');
+  validateNumeric(theta, "theta");
   const t = D(theta);
   // Normalize angle to reduce precision loss for very large angles
   const tNum = normalizeAngle(t);
@@ -365,7 +370,7 @@ export function rotateY(theta) {
  * const roll = rotateZ(0.2); // Slight clockwise tilt from viewer perspective
  */
 export function rotateZ(theta) {
-  validateNumeric(theta, 'theta');
+  validateNumeric(theta, "theta");
   const t = D(theta);
   // Normalize angle to reduce precision loss for very large angles
   const tNum = normalizeAngle(t);
@@ -434,10 +439,10 @@ export function rotateZ(theta) {
  * // Equivalent to rotateX(Math.PI / 2)
  */
 export function rotateAroundAxis(ux, uy, uz, theta) {
-  validateNumeric(ux, 'ux');
-  validateNumeric(uy, 'uy');
-  validateNumeric(uz, 'uz');
-  validateNumeric(theta, 'theta');
+  validateNumeric(ux, "ux");
+  validateNumeric(uy, "uy");
+  validateNumeric(uz, "uz");
+  validateNumeric(theta, "theta");
   const u = [D(ux), D(uy), D(uz)];
   const norm = u[0].mul(u[0]).plus(u[1].mul(u[1])).plus(u[2].mul(u[2])).sqrt();
   if (norm.isZero()) {
@@ -520,13 +525,13 @@ export function rotateAroundAxis(ux, uy, uz, theta) {
  * // Complex rotation around axis (1,1,1) passing through (10,20,30)
  */
 export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
-  validateNumeric(ux, 'ux');
-  validateNumeric(uy, 'uy');
-  validateNumeric(uz, 'uz');
-  validateNumeric(theta, 'theta');
-  validateNumeric(px, 'px');
-  validateNumeric(py, 'py');
-  validateNumeric(pz, 'pz');
+  validateNumeric(ux, "ux");
+  validateNumeric(uy, "uy");
+  validateNumeric(uz, "uz");
+  validateNumeric(theta, "theta");
+  validateNumeric(px, "px");
+  validateNumeric(py, "py");
+  validateNumeric(pz, "pz");
   const pxD = D(px),
     pyD = D(py),
     pzD = D(pz);
@@ -582,14 +587,14 @@ export function rotateAroundPoint(ux, uy, uz, theta, px, py, pz) {
  */
 export function applyTransform(M, x, y, z) {
   if (!(M instanceof Matrix)) {
-    throw new Error('M must be a Matrix instance');
+    throw new Error("M must be a Matrix instance");
   }
   if (M.rows !== 4 || M.cols !== 4) {
     throw new Error(`M must be a 4x4 matrix, got ${M.rows}x${M.cols}`);
   }
-  validateNumeric(x, 'x');
-  validateNumeric(y, 'y');
-  validateNumeric(z, 'z');
+  validateNumeric(x, "x");
+  validateNumeric(y, "y");
+  validateNumeric(z, "z");
 
   const P = Matrix.from([[D(x)], [D(y)], [D(z)], [new Decimal(1)]]);
   const R = M.mul(P);
@@ -599,7 +604,9 @@ export function applyTransform(M, x, y, z) {
     rw = R.data[3][0];
 
   if (rw.isZero()) {
-    throw new Error('Perspective division by zero: transformation results in point at infinity');
+    throw new Error(
+      "Perspective division by zero: transformation results in point at infinity",
+    );
   }
 
   return [rx.div(rw), ry.div(rw), rz.div(rw)];

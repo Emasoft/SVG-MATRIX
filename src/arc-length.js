@@ -103,7 +103,7 @@ const DEFAULT_ARC_LENGTH_TOLERANCE = "1e-30";
  * differ by less than this, we accept the higher-order result.
  * NOTE: Currently unused - kept for potential future enhancement.
  */
- 
+
 const _SUBDIVISION_CONVERGENCE_THRESHOLD = new Decimal("1e-15");
 
 /**
@@ -255,9 +255,7 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
     throw new Error("adaptiveQuadrature: b must be a Decimal");
   }
   if (!tol || !(tol instanceof Decimal) || tol.lte(0)) {
-    throw new Error(
-      "adaptiveQuadrature: tol must be a positive Decimal",
-    );
+    throw new Error("adaptiveQuadrature: tol must be a positive Decimal");
   }
   if (
     typeof maxDepth !== "number" ||
@@ -277,14 +275,8 @@ function adaptiveQuadrature(f, a, b, tol, maxDepth, minDepth, depth) {
       "adaptiveQuadrature: minDepth must be a non-negative integer",
     );
   }
-  if (
-    typeof depth !== "number" ||
-    depth < 0 ||
-    !Number.isInteger(depth)
-  ) {
-    throw new Error(
-      "adaptiveQuadrature: depth must be a non-negative integer",
-    );
+  if (typeof depth !== "number" || depth < 0 || !Number.isInteger(depth)) {
+    throw new Error("adaptiveQuadrature: depth must be a non-negative integer");
   }
 
   // Compute integral using 5-point and 10-point rules
@@ -354,7 +346,12 @@ function gaussLegendre(f, a, b, order) {
 
   // INTERNAL CONSISTENCY CHECK: Verify Gauss-Legendre table has correct structure
   // WHY: Ensures the precomputed tables haven't been corrupted or misconfigured
-  if (!gl.nodes || !gl.weights || gl.nodes.length !== order || gl.weights.length !== order) {
+  if (
+    !gl.nodes ||
+    !gl.weights ||
+    gl.nodes.length !== order ||
+    gl.weights.length !== order
+  ) {
     throw new Error(
       `gaussLegendre: GAUSS_LEGENDRE[${order}] table is malformed (expected ${order} nodes and weights)`,
     );
@@ -385,16 +382,24 @@ function gaussLegendre(f, a, b, order) {
     // VALIDATION: Ensure function returns a valid Decimal
     // WHY: If f returns null, undefined, NaN, or non-Decimal, arithmetic operations will fail
     if (fValue === null || fValue === undefined) {
-      throw new Error("gaussLegendre: integrand function f returned null or undefined");
+      throw new Error(
+        "gaussLegendre: integrand function f returned null or undefined",
+      );
     }
     if (!(fValue instanceof Decimal)) {
-      throw new Error("gaussLegendre: integrand function f must return a Decimal instance");
+      throw new Error(
+        "gaussLegendre: integrand function f must return a Decimal instance",
+      );
     }
     if (fValue.isNaN()) {
-      throw new Error(`gaussLegendre: integrand function f returned NaN at t=${t}`);
+      throw new Error(
+        `gaussLegendre: integrand function f returned NaN at t=${t}`,
+      );
     }
     if (!fValue.isFinite()) {
-      throw new Error(`gaussLegendre: integrand function f returned non-finite value at t=${t}`);
+      throw new Error(
+        `gaussLegendre: integrand function f returned non-finite value at t=${t}`,
+      );
     }
 
     sum = sum.plus(weight.times(fValue));
@@ -1112,9 +1117,7 @@ export function verifyArcLengthTable(points, samples = 50) {
     !Number.isInteger(samples) ||
     samples < 2
   ) {
-    throw new Error(
-      "verifyArcLengthTable: samples must be an integer >= 2",
-    );
+    throw new Error("verifyArcLengthTable: samples must be an integer >= 2");
   }
 
   const errors = [];

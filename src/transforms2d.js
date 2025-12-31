@@ -35,16 +35,22 @@ function validateNumeric(value, name) {
   if (value === undefined || value === null) {
     throw new Error(`${name} is required`);
   }
-  if (typeof value !== 'number' && typeof value !== 'string' && !(value instanceof Decimal)) {
+  if (
+    typeof value !== "number" &&
+    typeof value !== "string" &&
+    !(value instanceof Decimal)
+  ) {
     throw new Error(`${name} must be a number, string, or Decimal`);
   }
   // Check for NaN and Infinity in numeric values
-  if (typeof value === 'number' && !isFinite(value)) {
+  if (typeof value === "number" && !isFinite(value)) {
     throw new Error(`${name} must be a finite number (got ${value})`);
   }
   // Check for Infinity in Decimal instances
   if (value instanceof Decimal && !value.isFinite()) {
-    throw new Error(`${name} must be a finite Decimal (got ${value.toString()})`);
+    throw new Error(
+      `${name} must be a finite Decimal (got ${value.toString()})`,
+    );
   }
 }
 
@@ -138,8 +144,8 @@ function validateNumeric(value, name) {
  * // This rotates 45° AFTER translating 10 units right
  */
 export function translation(tx, ty) {
-  validateNumeric(tx, 'tx');
-  validateNumeric(ty, 'ty');
+  validateNumeric(tx, "tx");
+  validateNumeric(ty, "ty");
   return Matrix.from([
     [new Decimal(1), new Decimal(0), D(tx)],
     [new Decimal(0), new Decimal(1), D(ty)],
@@ -195,16 +201,16 @@ export function translation(tx, ty) {
  * // This scales by 2× around point (100, 50) instead of origin
  */
 export function scale(sx, sy = null) {
-  validateNumeric(sx, 'sx');
+  validateNumeric(sx, "sx");
   if (sy !== null) {
-    validateNumeric(sy, 'sy');
+    validateNumeric(sy, "sy");
   }
   const syValue = sy === null ? sx : sy;
   // Check for zero scale factors which create singular matrices
   const sxD = D(sx);
   const syD = D(syValue);
   if (sxD.isZero() || syD.isZero()) {
-    throw new Error('Scale factors cannot be zero (creates singular matrix)');
+    throw new Error("Scale factors cannot be zero (creates singular matrix)");
   }
   return Matrix.from([
     [sxD, new Decimal(0), new Decimal(0)],
@@ -266,21 +272,25 @@ export function scale(sx, sy = null) {
  * // Rotates 90° around point (100, 100)
  */
 export function rotate(theta) {
-  validateNumeric(theta, 'theta');
+  validateNumeric(theta, "theta");
   const t = D(theta);
   // Normalize angle to [-π, π] to prevent NaN from Math.cos/sin with very large angles
   const tNum = t.toNumber();
   const pi = Math.PI;
-  const normalizedAngle = tNum - (2 * pi) * Math.floor((tNum + pi) / (2 * pi));
+  const normalizedAngle = tNum - 2 * pi * Math.floor((tNum + pi) / (2 * pi));
   // Check if normalization produced valid number
   if (!isFinite(normalizedAngle)) {
-    throw new Error(`Angle normalization failed for theta=${theta} (too large or invalid)`);
+    throw new Error(
+      `Angle normalization failed for theta=${theta} (too large or invalid)`,
+    );
   }
   const c = new Decimal(Math.cos(normalizedAngle));
   const s = new Decimal(Math.sin(normalizedAngle));
   // Validate trig results are finite
   if (!c.isFinite() || !s.isFinite()) {
-    throw new Error(`Trigonometric computation failed for theta=${theta} (produced non-finite values)`);
+    throw new Error(
+      `Trigonometric computation failed for theta=${theta} (produced non-finite values)`,
+    );
   }
   return Matrix.from([
     [c, s.negated(), new Decimal(0)],
@@ -335,9 +345,9 @@ export function rotate(theta) {
  * // Result: point moves 30° counterclockwise around the center
  */
 export function rotateAroundPoint(theta, px, py) {
-  validateNumeric(theta, 'theta');
-  validateNumeric(px, 'px');
-  validateNumeric(py, 'py');
+  validateNumeric(theta, "theta");
+  validateNumeric(px, "px");
+  validateNumeric(py, "py");
   const pxD = D(px);
   const pyD = D(py);
   return translation(pxD, pyD)
@@ -400,14 +410,16 @@ export function rotateAroundPoint(theta, px, py) {
  * // Both coordinates affect each other, creating complex shearing
  */
 export function skew(ax, ay) {
-  validateNumeric(ax, 'ax');
-  validateNumeric(ay, 'ay');
+  validateNumeric(ax, "ax");
+  validateNumeric(ay, "ay");
   const axD = D(ax);
   const ayD = D(ay);
   // Check determinant: det = 1 - ax*ay. If det <= 0, matrix is singular or inverts orientation
   const det = new Decimal(1).minus(axD.mul(ayD));
   if (det.lessThanOrEqualTo(0)) {
-    throw new Error(`Skew parameters create singular or orientation-inverting matrix (ax*ay = ${axD.mul(ayD).toString()}, must be < 1)`);
+    throw new Error(
+      `Skew parameters create singular or orientation-inverting matrix (ax*ay = ${axD.mul(ayD).toString()}, must be < 1)`,
+    );
   }
   return Matrix.from([
     [new Decimal(1), axD, new Decimal(0)],
@@ -477,20 +489,22 @@ export function skew(ax, ay) {
  * // Result: x = 10, y = 10 (Y compressed to half)
  */
 export function stretchAlongAxis(ux, uy, k) {
-  validateNumeric(ux, 'ux');
-  validateNumeric(uy, 'uy');
-  validateNumeric(k, 'k');
+  validateNumeric(ux, "ux");
+  validateNumeric(uy, "uy");
+  validateNumeric(k, "k");
   const uxD = D(ux);
   const uyD = D(uy);
   const kD = D(k);
   // Check if k is zero which creates singular matrix
   if (kD.isZero()) {
-    throw new Error('Stretch factor k cannot be zero (creates singular matrix)');
+    throw new Error(
+      "Stretch factor k cannot be zero (creates singular matrix)",
+    );
   }
   // Validate axis vector is not zero
   const normSquared = uxD.mul(uxD).plus(uyD.mul(uyD));
   if (normSquared.isZero()) {
-    throw new Error('Axis vector (ux, uy) cannot be zero');
+    throw new Error("Axis vector (ux, uy) cannot be zero");
   }
   // Validate axis vector is normalized (required for correct stretch factor)
   const normDiff = normSquared.minus(1).abs();
@@ -498,8 +512,8 @@ export function stretchAlongAxis(ux, uy, k) {
   if (normDiff.greaterThan(tolerance)) {
     throw new Error(
       `Axis vector (ux, uy) must be normalized (||u|| = 1). ` +
-      `Current magnitude squared: ${normSquared.toString()}, expected: 1. ` +
-      `Use normalized vector: (${uxD.div(normSquared.sqrt()).toString()}, ${uyD.div(normSquared.sqrt()).toString()})`
+        `Current magnitude squared: ${normSquared.toString()}, expected: 1. ` +
+        `Use normalized vector: (${uxD.div(normSquared.sqrt()).toString()}, ${uyD.div(normSquared.sqrt()).toString()})`,
     );
   }
   const one = new Decimal(1);
@@ -573,33 +587,52 @@ export function stretchAlongAxis(ux, uy, k) {
  * // Efficiently reuses the same transformation matrix
  */
 export function applyTransform(M, x, y) {
-  if (!M || typeof M.mul !== 'function') {
-    throw new Error('applyTransform: first argument must be a Matrix');
+  if (!M || typeof M.mul !== "function") {
+    throw new Error("applyTransform: first argument must be a Matrix");
   }
   // Check matrix dimensions
-  if (!M.data || !Array.isArray(M.data) || M.data.length !== 3 ||
-      !M.data[0] || M.data[0].length !== 3 ||
-      !M.data[1] || M.data[1].length !== 3 ||
-      !M.data[2] || M.data[2].length !== 3) {
-    throw new Error('applyTransform: matrix must be 3x3');
+  if (
+    !M.data ||
+    !Array.isArray(M.data) ||
+    M.data.length !== 3 ||
+    !M.data[0] ||
+    M.data[0].length !== 3 ||
+    !M.data[1] ||
+    M.data[1].length !== 3 ||
+    !M.data[2] ||
+    M.data[2].length !== 3
+  ) {
+    throw new Error("applyTransform: matrix must be 3x3");
   }
-  validateNumeric(x, 'x');
-  validateNumeric(y, 'y');
+  validateNumeric(x, "x");
+  validateNumeric(y, "y");
   const P = Matrix.from([[D(x)], [D(y)], [new Decimal(1)]]);
   const R = M.mul(P);
   // Validate result matrix structure
-  if (!R || !R.data || !Array.isArray(R.data) || R.data.length !== 3 ||
-      !R.data[0] || !R.data[0][0] ||
-      !R.data[1] || !R.data[1][0] ||
-      !R.data[2] || !R.data[2][0]) {
-    throw new Error('applyTransform: matrix multiplication produced invalid result');
+  if (
+    !R ||
+    !R.data ||
+    !Array.isArray(R.data) ||
+    R.data.length !== 3 ||
+    !R.data[0] ||
+    !R.data[0][0] ||
+    !R.data[1] ||
+    !R.data[1][0] ||
+    !R.data[2] ||
+    !R.data[2][0]
+  ) {
+    throw new Error(
+      "applyTransform: matrix multiplication produced invalid result",
+    );
   }
   const rx = R.data[0][0],
     ry = R.data[1][0],
     rw = R.data[2][0];
   // Check for zero division in perspective division
   if (rw.isZero()) {
-    throw new Error('applyTransform: perspective division by zero (invalid transformation matrix)');
+    throw new Error(
+      "applyTransform: perspective division by zero (invalid transformation matrix)",
+    );
   }
   // Perspective division (for affine transforms, rw is always 1)
   return [rx.div(rw), ry.div(rw)];

@@ -34,14 +34,14 @@
 // Why: Only appendFileSync is needed - we use sync writes in flush() for reliability
 // during shutdown or before critical operations. Async writes were considered but
 // the complexity of handling async flush during process exit wasn't worth it.
-import { appendFileSync } from 'fs';
+import { appendFileSync } from "fs";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 // Why: Centralize configuration values to make tuning easier
-const LOG_BUFFER_SIZE = 100;          // Flush after this many messages
-const LOG_FLUSH_INTERVAL_MS = 5000;   // Auto-flush every 5 seconds
+const LOG_BUFFER_SIZE = 100; // Flush after this many messages
+const LOG_FLUSH_INTERVAL_MS = 5000; // Auto-flush every 5 seconds
 
 // ============================================================================
 // LOG LEVELS
@@ -125,8 +125,8 @@ export const Logger = {
    */
   _safeStringify(value) {
     // Why: Handle null/undefined explicitly to show their actual type
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
+    if (value === null) return "null";
+    if (value === undefined) return "undefined";
 
     // Why: Error objects should include stack traces for debugging
     if (value instanceof Error) {
@@ -134,7 +134,7 @@ export const Logger = {
     }
 
     // Why: For primitives, use String() for simple conversion
-    if (typeof value !== 'object') {
+    if (typeof value !== "object") {
       return String(value);
     }
 
@@ -143,9 +143,9 @@ export const Logger = {
       const seen = new WeakSet();
       return JSON.stringify(value, (key, val) => {
         // Why: Handle circular references by replacing with placeholder
-        if (typeof val === 'object' && val !== null) {
+        if (typeof val === "object" && val !== null) {
           if (seen.has(val)) {
-            return '[Circular]';
+            return "[Circular]";
           }
           seen.add(val);
         }
@@ -168,8 +168,8 @@ export const Logger = {
    */
   _format(level, message) {
     // Why: Validate parameters to prevent crashes from invalid inputs
-    if (typeof level !== 'string' || !level) {
-      throw new Error('Logger._format: level must be a non-empty string');
+    if (typeof level !== "string" || !level) {
+      throw new Error("Logger._format: level must be a non-empty string");
     }
     // Why: Use safe stringify to handle all message types including errors and objects
     const messageStr = this._safeStringify(message);
@@ -219,7 +219,7 @@ export const Logger = {
     try {
       // Why sync here: flush() is called when reliability matters more
       // than performance (shutdown, before risky operation)
-      const content = this._buffer.join('\n') + '\n';
+      const content = this._buffer.join("\n") + "\n";
       appendFileSync(this.logToFile, content);
       this._buffer = [];
     } catch {
@@ -240,9 +240,11 @@ export const Logger = {
     // Why: Check level FIRST - avoid performance cost of validation when logging is disabled
     if (this.level < LogLevel.ERROR) return;
 
-    const formatted = this._format('ERROR', message);
+    const formatted = this._format("ERROR", message);
     // Why: Safely stringify args to handle objects, errors, and circular refs
-    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    const argsStr = args.length
+      ? " " + args.map((a) => this._safeStringify(a)).join(" ")
+      : "";
     console.error(formatted, ...args);
     this._bufferWrite(formatted + argsStr);
     // Why: Errors are important enough to flush immediately
@@ -258,9 +260,11 @@ export const Logger = {
     // Why: Check level FIRST - avoid performance cost when logging is disabled
     if (this.level < LogLevel.WARN) return;
 
-    const formatted = this._format('WARN', message);
+    const formatted = this._format("WARN", message);
     // Why: Safely stringify args to handle objects, errors, and circular refs
-    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    const argsStr = args.length
+      ? " " + args.map((a) => this._safeStringify(a)).join(" ")
+      : "";
     console.warn(formatted, ...args);
     this._bufferWrite(formatted + argsStr);
   },
@@ -274,9 +278,11 @@ export const Logger = {
     // Why: Check level FIRST - avoid performance cost when logging is disabled
     if (this.level < LogLevel.INFO) return;
 
-    const formatted = this._format('INFO', message);
+    const formatted = this._format("INFO", message);
     // Why: Safely stringify args to handle objects, errors, and circular refs
-    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    const argsStr = args.length
+      ? " " + args.map((a) => this._safeStringify(a)).join(" ")
+      : "";
     console.log(formatted, ...args);
     this._bufferWrite(formatted + argsStr);
   },
@@ -290,9 +296,11 @@ export const Logger = {
     // Why: Check level FIRST - avoid performance cost when logging is disabled
     if (this.level < LogLevel.DEBUG) return;
 
-    const formatted = this._format('DEBUG', message);
+    const formatted = this._format("DEBUG", message);
     // Why: Safely stringify args to handle objects, errors, and circular refs
-    const argsStr = args.length ? ' ' + args.map(a => this._safeStringify(a)).join(' ') : '';
+    const argsStr = args.length
+      ? " " + args.map((a) => this._safeStringify(a)).join(" ")
+      : "";
     console.log(formatted, ...args);
     this._bufferWrite(formatted + argsStr);
   },
@@ -319,12 +327,16 @@ export const Logger = {
  */
 export function setLogLevel(level) {
   // Why: Validate level is a number to catch type errors
-  if (typeof level !== 'number' || !Number.isFinite(level)) {
-    throw new Error(`setLogLevel: level must be a finite number, got ${typeof level}`);
+  if (typeof level !== "number" || !Number.isFinite(level)) {
+    throw new Error(
+      `setLogLevel: level must be a finite number, got ${typeof level}`,
+    );
   }
   // Why: Validate level is within valid range to catch typos
   if (level < LogLevel.SILENT || level > LogLevel.DEBUG) {
-    throw new Error(`Invalid log level: ${level}. Use LogLevel.SILENT (0) through LogLevel.DEBUG (4)`);
+    throw new Error(
+      `Invalid log level: ${level}. Use LogLevel.SILENT (0) through LogLevel.DEBUG (4)`,
+    );
   }
   Logger.level = level;
 }
@@ -347,16 +359,20 @@ export function getLogLevel() {
  */
 export function enableFileLogging(filePath, withTimestamps = true) {
   // Why: Validate filePath type to catch type errors
-  if (typeof filePath !== 'string') {
-    throw new Error(`enableFileLogging: filePath must be a string, got ${typeof filePath}`);
+  if (typeof filePath !== "string") {
+    throw new Error(
+      `enableFileLogging: filePath must be a string, got ${typeof filePath}`,
+    );
   }
   // Why: Don't accept empty/null paths - would cause confusing errors later
   if (!filePath) {
-    throw new Error('File path required for enableFileLogging()');
+    throw new Error("File path required for enableFileLogging()");
   }
   // Why: Validate withTimestamps type to catch type errors
-  if (typeof withTimestamps !== 'boolean') {
-    throw new Error(`enableFileLogging: withTimestamps must be a boolean, got ${typeof withTimestamps}`);
+  if (typeof withTimestamps !== "boolean") {
+    throw new Error(
+      `enableFileLogging: withTimestamps must be a boolean, got ${typeof withTimestamps}`,
+    );
   }
   Logger.logToFile = filePath;
   Logger.timestamps = withTimestamps;

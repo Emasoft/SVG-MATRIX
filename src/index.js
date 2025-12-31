@@ -135,7 +135,7 @@ Decimal.set({ precision: 80 });
  * Library version
  * @constant {string}
  */
-export const VERSION = '1.1.0';
+export const VERSION = "1.1.0";
 
 /**
  * Default precision for path output (decimal places)
@@ -313,7 +313,6 @@ export {
   analyzeCompatibilityMatrix,
   generateFullCompatibilityMatrix,
   printHierarchicalMatrix,
-  generateCompatibilityMatrixSVG_legacy,
   generateCompatibilityMatrixSVG,
   generateFlexibleSVGTable,
   generateCompatibilityMatrixFlexible,
@@ -528,10 +527,14 @@ export function circleToPath(cx, cy, r, precision = DEFAULT_PRECISION) {
     throw new TypeError("circleToPath: r cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`circleToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `circleToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`circleToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `circleToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.circleToPathData(cx, cy, r, precision);
 }
@@ -561,10 +564,14 @@ export function ellipseToPath(cx, cy, rx, ry, precision = DEFAULT_PRECISION) {
     throw new TypeError("ellipseToPath: ry cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`ellipseToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `ellipseToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`ellipseToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `ellipseToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.ellipseToPathData(cx, cy, rx, ry, precision);
 }
@@ -604,10 +611,14 @@ export function rectToPath(
     throw new TypeError("rectToPath: height cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`rectToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `rectToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`rectToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `rectToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.rectToPathData(
     x,
@@ -646,10 +657,14 @@ export function lineToPath(x1, y1, x2, y2, precision = DEFAULT_PRECISION) {
     throw new TypeError("lineToPath: y2 cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`lineToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `lineToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`lineToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `lineToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.lineToPathData(x1, y1, x2, y2, precision);
 }
@@ -667,10 +682,14 @@ export function polygonToPath(points, precision = DEFAULT_PRECISION) {
     throw new TypeError("polygonToPath: points cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`polygonToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `polygonToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`polygonToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `polygonToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.polygonToPathData(points, precision);
 }
@@ -688,10 +707,14 @@ export function polylineToPath(points, precision = DEFAULT_PRECISION) {
     throw new TypeError("polylineToPath: points cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`polylineToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `polylineToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`polylineToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `polylineToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.polylineToPathData(points, precision);
 }
@@ -731,10 +754,14 @@ export function pathToString(commands, precision = DEFAULT_PRECISION) {
     throw new TypeError("pathToString: commands cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`pathToString: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `pathToString: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`pathToString: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `pathToString: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.pathArrayToString(commands, precision);
 }
@@ -783,10 +810,14 @@ export function transformPath(pathData, matrix, precision = DEFAULT_PRECISION) {
     throw new TypeError("transformPath: matrix cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`transformPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `transformPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`transformPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `transformPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.transformPathData(pathData, matrix, precision);
 }
@@ -805,10 +836,14 @@ export function elementToPath(element, precision = DEFAULT_PRECISION) {
     throw new TypeError("elementToPath: element cannot be null or undefined");
   }
   if (typeof precision !== "number" || !Number.isFinite(precision)) {
-    throw new TypeError(`elementToPath: precision must be a finite number, got ${typeof precision}`);
+    throw new TypeError(
+      `elementToPath: precision must be a finite number, got ${typeof precision}`,
+    );
   }
   if (precision < 0) {
-    throw new RangeError(`elementToPath: precision must be non-negative, got ${precision}`);
+    throw new RangeError(
+      `elementToPath: precision must be non-negative, got ${precision}`,
+    );
   }
   return GeometryToPath.convertElementToPath(element, precision);
 }

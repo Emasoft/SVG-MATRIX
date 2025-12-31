@@ -989,7 +989,11 @@ function refineSelfIntersection(bezier, t1Init, t2Init, tol, minSep) {
         const tryT2 = Decimal.max(D(0), Decimal.min(D(1), t2.plus(dt2)));
         const [tx1, ty1] = bezierPoint(bezier, tryT1);
         const [tx2, ty2] = bezierPoint(bezier, tryT2);
-        const tryError = tx1.minus(tx2).pow(2).plus(ty1.minus(ty2).pow(2)).sqrt();
+        const tryError = tx1
+          .minus(tx2)
+          .pow(2)
+          .plus(ty1.minus(ty2).pow(2))
+          .sqrt();
 
         if (tryError.lt(bestError)) {
           bestError = tryError;
@@ -1256,7 +1260,11 @@ export function verifyLineLineIntersection(
   if (intersection.t2 === undefined || intersection.t2 === null) {
     return { valid: false, reason: "intersection.t2 is missing" };
   }
-  if (!intersection.point || !Array.isArray(intersection.point) || intersection.point.length < 2) {
+  if (
+    !intersection.point ||
+    !Array.isArray(intersection.point) ||
+    intersection.point.length < 2
+  ) {
     return { valid: false, reason: "intersection.point is missing or invalid" };
   }
 
@@ -1386,7 +1394,11 @@ export function verifyBezierLineIntersection(
   if (intersection.t2 === undefined || intersection.t2 === null) {
     return { valid: false, reason: "intersection.t2 is missing" };
   }
-  if (!intersection.point || !Array.isArray(intersection.point) || intersection.point.length < 2) {
+  if (
+    !intersection.point ||
+    !Array.isArray(intersection.point) ||
+    intersection.point.length < 2
+  ) {
     return { valid: false, reason: "intersection.point is missing or invalid" };
   }
 
@@ -1754,7 +1766,9 @@ export function verifyPathPathIntersection(
 export function verifyAllIntersectionFunctions(tolerance = "1e-30") {
   // WHY: Validate tolerance parameter to prevent invalid configuration
   if (tolerance === undefined || tolerance === null) {
-    throw new Error("verifyAllIntersectionFunctions: tolerance cannot be undefined or null");
+    throw new Error(
+      "verifyAllIntersectionFunctions: tolerance cannot be undefined or null",
+    );
   }
 
   const results = {};

@@ -69,26 +69,37 @@ Decimal.set({ precision: 80 });
  */
 export function parseMarkerElement(markerElement) {
   // Validate required parameter
-  if (!markerElement) throw new Error('parseMarkerElement: markerElement is required');
-  if (typeof markerElement.getAttribute !== 'function') {
-    throw new Error('parseMarkerElement: markerElement must be a DOM element');
+  if (!markerElement)
+    throw new Error("parseMarkerElement: markerElement is required");
+  if (typeof markerElement.getAttribute !== "function") {
+    throw new Error("parseMarkerElement: markerElement must be a DOM element");
   }
 
   // Parse numeric attributes with validation - NaN check ensures valid numbers
-  const markerWidth = parseFloat(markerElement.getAttribute("markerWidth") || "3");
-  const markerHeight = parseFloat(markerElement.getAttribute("markerHeight") || "3");
+  const markerWidth = parseFloat(
+    markerElement.getAttribute("markerWidth") || "3",
+  );
+  const markerHeight = parseFloat(
+    markerElement.getAttribute("markerHeight") || "3",
+  );
   const refX = parseFloat(markerElement.getAttribute("refX") || "0");
   const refY = parseFloat(markerElement.getAttribute("refY") || "0");
 
   // Validate numeric values to prevent NaN propagation
   if (isNaN(markerWidth) || markerWidth <= 0) {
-    throw new Error('parseMarkerElement: markerWidth must be a positive number');
+    throw new Error(
+      "parseMarkerElement: markerWidth must be a positive number",
+    );
   }
   if (isNaN(markerHeight) || markerHeight <= 0) {
-    throw new Error('parseMarkerElement: markerHeight must be a positive number');
+    throw new Error(
+      "parseMarkerElement: markerHeight must be a positive number",
+    );
   }
-  if (isNaN(refX)) throw new Error('parseMarkerElement: refX must be a valid number');
-  if (isNaN(refY)) throw new Error('parseMarkerElement: refY must be a valid number');
+  if (isNaN(refX))
+    throw new Error("parseMarkerElement: refX must be a valid number");
+  if (isNaN(refY))
+    throw new Error("parseMarkerElement: refY must be a valid number");
 
   const data = {
     id: markerElement.getAttribute("id") || "",
@@ -112,7 +123,7 @@ export function parseMarkerElement(markerElement) {
       .split(/[\s,]+/)
       .map(Number);
     // Validate viewBox has exactly 4 valid finite numbers
-    if (parts.length === 4 && parts.every(n => !isNaN(n) && isFinite(n))) {
+    if (parts.length === 4 && parts.every((n) => !isNaN(n) && isFinite(n))) {
       data.viewBox = {
         x: parts[0],
         y: parts[1],
@@ -158,8 +169,9 @@ export function parseMarkerElement(markerElement) {
  */
 export function parseMarkerChild(element) {
   // Validate required parameter
-  if (!element) throw new Error('parseMarkerChild: element is required');
-  if (!element.tagName) throw new Error('parseMarkerChild: element must have a tagName property');
+  if (!element) throw new Error("parseMarkerChild: element is required");
+  if (!element.tagName)
+    throw new Error("parseMarkerChild: element must have a tagName property");
 
   const tagName = element.tagName.toLowerCase();
   const data = {
@@ -176,7 +188,9 @@ export function parseMarkerChild(element) {
   const parseValidFloat = (value, defaultVal, name) => {
     const parsed = parseFloat(value || String(defaultVal));
     if (isNaN(parsed) || !isFinite(parsed)) {
-      throw new Error(`parseMarkerChild: ${name} must be a valid finite number`);
+      throw new Error(
+        `parseMarkerChild: ${name} must be a valid finite number`,
+      );
     }
     return parsed;
   };
@@ -190,7 +204,11 @@ export function parseMarkerChild(element) {
       data.x = parseValidFloat(element.getAttribute("x"), 0, "x");
       data.y = parseValidFloat(element.getAttribute("y"), 0, "y");
       data.width = parseValidFloat(element.getAttribute("width"), 0, "width");
-      data.height = parseValidFloat(element.getAttribute("height"), 0, "height");
+      data.height = parseValidFloat(
+        element.getAttribute("height"),
+        0,
+        "height",
+      );
       break;
     case "circle":
       // Validate all circle attributes are valid numbers
@@ -265,15 +283,33 @@ export function getMarkerTransform(
   isStart = false,
 ) {
   // Validate required parameters
-  if (!markerDef) throw new Error('getMarkerTransform: markerDef is required');
-  if (!position || typeof position.x !== 'number' || typeof position.y !== 'number') {
-    throw new Error('getMarkerTransform: position must be an object with x and y numeric properties');
+  if (!markerDef) throw new Error("getMarkerTransform: markerDef is required");
+  if (
+    !position ||
+    typeof position.x !== "number" ||
+    typeof position.y !== "number"
+  ) {
+    throw new Error(
+      "getMarkerTransform: position must be an object with x and y numeric properties",
+    );
   }
-  if (typeof tangentAngle !== 'number' || isNaN(tangentAngle) || !isFinite(tangentAngle)) {
-    throw new Error('getMarkerTransform: tangentAngle must be a valid finite number');
+  if (
+    typeof tangentAngle !== "number" ||
+    isNaN(tangentAngle) ||
+    !isFinite(tangentAngle)
+  ) {
+    throw new Error(
+      "getMarkerTransform: tangentAngle must be a valid finite number",
+    );
   }
-  if (typeof strokeWidth !== 'number' || isNaN(strokeWidth) || strokeWidth <= 0) {
-    throw new Error('getMarkerTransform: strokeWidth must be a positive number');
+  if (
+    typeof strokeWidth !== "number" ||
+    isNaN(strokeWidth) ||
+    strokeWidth <= 0
+  ) {
+    throw new Error(
+      "getMarkerTransform: strokeWidth must be a positive number",
+    );
   }
 
   // Extract markerDef properties with validation
@@ -288,17 +324,25 @@ export function getMarkerTransform(
   } = markerDef;
 
   // Validate markerDef has required numeric properties
-  if (typeof markerWidth !== 'number' || markerWidth <= 0) {
-    throw new Error('getMarkerTransform: markerDef.markerWidth must be a positive number');
+  if (typeof markerWidth !== "number" || markerWidth <= 0) {
+    throw new Error(
+      "getMarkerTransform: markerDef.markerWidth must be a positive number",
+    );
   }
-  if (typeof markerHeight !== 'number' || markerHeight <= 0) {
-    throw new Error('getMarkerTransform: markerDef.markerHeight must be a positive number');
+  if (typeof markerHeight !== "number" || markerHeight <= 0) {
+    throw new Error(
+      "getMarkerTransform: markerDef.markerHeight must be a positive number",
+    );
   }
-  if (typeof refX !== 'number' || !isFinite(refX)) {
-    throw new Error('getMarkerTransform: markerDef.refX must be a finite number');
+  if (typeof refX !== "number" || !isFinite(refX)) {
+    throw new Error(
+      "getMarkerTransform: markerDef.refX must be a finite number",
+    );
   }
-  if (typeof refY !== 'number' || !isFinite(refY)) {
-    throw new Error('getMarkerTransform: markerDef.refY must be a finite number');
+  if (typeof refY !== "number" || !isFinite(refY)) {
+    throw new Error(
+      "getMarkerTransform: markerDef.refY must be a finite number",
+    );
   }
 
   // Start with identity matrix
@@ -340,7 +384,12 @@ export function getMarkerTransform(
     const vbHeight = viewBox.height;
 
     // Prevent division by zero
-    if (vbWidth > 0 && vbHeight > 0 && isFinite(vbWidth) && isFinite(vbHeight)) {
+    if (
+      vbWidth > 0 &&
+      vbHeight > 0 &&
+      isFinite(vbWidth) &&
+      isFinite(vbHeight)
+    ) {
       // Calculate uniform scale factor based on preserveAspectRatio
       const scaleFactorX = markerWidth / vbWidth;
       const scaleFactorY = markerHeight / vbHeight;
@@ -354,7 +403,10 @@ export function getMarkerTransform(
         scaleY *= scaleFactor;
 
         // Translate to account for viewBox origin
-        const viewBoxTranslate = Transforms2D.translation(-viewBox.x, -viewBox.y);
+        const viewBoxTranslate = Transforms2D.translation(
+          -viewBox.x,
+          -viewBox.y,
+        );
         transform = transform.mul(viewBoxTranslate);
       }
     }
@@ -413,8 +465,8 @@ export function getMarkerTransform(
  */
 export function getPathVertices(pathData) {
   // Validate pathData parameter
-  if (typeof pathData !== 'string') {
-    throw new Error('getPathVertices: pathData must be a string');
+  if (typeof pathData !== "string") {
+    throw new Error("getPathVertices: pathData must be a string");
   }
 
   const vertices = [];
@@ -463,9 +515,12 @@ export function getPathVertices(pathData) {
         // Calculate tangent angle (handle zero-length segments)
         const dx = currentX - prevX;
         const dy = currentY - prevY;
-        const lineAngle = (dx === 0 && dy === 0)
-          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
-          : Math.atan2(dy, dx);
+        const lineAngle =
+          dx === 0 && dy === 0
+            ? vertices.length > 0
+              ? vertices[vertices.length - 1].tangentOut
+              : 0
+            : Math.atan2(dy, dx);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -492,17 +547,19 @@ export function getPathVertices(pathData) {
         // Handle degenerate case: if first control point coincides with start
         const dx1 = cmd.x1 - prevX;
         const dy1 = cmd.y1 - prevY;
-        const startTangent = (dx1 === 0 && dy1 === 0)
-          ? Math.atan2(cmd.y2 - prevY, cmd.x2 - prevX) // Use second control point
-          : Math.atan2(dy1, dx1);
+        const startTangent =
+          dx1 === 0 && dy1 === 0
+            ? Math.atan2(cmd.y2 - prevY, cmd.x2 - prevX) // Use second control point
+            : Math.atan2(dy1, dx1);
 
         // Calculate tangent at end (direction from last control point)
         // Handle degenerate case: if last control point coincides with end
         const dx2 = currentX - cmd.x2;
         const dy2 = currentY - cmd.y2;
-        const endTangent = (dx2 === 0 && dy2 === 0)
-          ? Math.atan2(currentY - cmd.y1, currentX - cmd.x1) // Use first control point
-          : Math.atan2(dy2, dx2);
+        const endTangent =
+          dx2 === 0 && dy2 === 0
+            ? Math.atan2(currentY - cmd.y1, currentX - cmd.x1) // Use first control point
+            : Math.atan2(dy2, dx2);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -528,16 +585,18 @@ export function getPathVertices(pathData) {
         // Calculate tangent at start (handle degenerate case)
         const dxq1 = cmd.x1 - prevX;
         const dyq1 = cmd.y1 - prevY;
-        const qStartTangent = (dxq1 === 0 && dyq1 === 0)
-          ? Math.atan2(currentY - prevY, currentX - prevX) // Use endpoint
-          : Math.atan2(dyq1, dxq1);
+        const qStartTangent =
+          dxq1 === 0 && dyq1 === 0
+            ? Math.atan2(currentY - prevY, currentX - prevX) // Use endpoint
+            : Math.atan2(dyq1, dxq1);
 
         // Calculate tangent at end (handle degenerate case)
         const dxq2 = currentX - cmd.x1;
         const dyq2 = currentY - cmd.y1;
-        const qEndTangent = (dxq2 === 0 && dyq2 === 0)
-          ? Math.atan2(currentY - prevY, currentX - prevX) // Use startpoint
-          : Math.atan2(dyq2, dxq2);
+        const qEndTangent =
+          dxq2 === 0 && dyq2 === 0
+            ? Math.atan2(currentY - prevY, currentX - prevX) // Use startpoint
+            : Math.atan2(dyq2, dxq2);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -563,9 +622,12 @@ export function getPathVertices(pathData) {
         // Simplified tangent calculation (handle zero-length arc)
         const dxa = currentX - prevX;
         const dya = currentY - prevY;
-        const arcAngle = (dxa === 0 && dya === 0)
-          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
-          : Math.atan2(dya, dxa);
+        const arcAngle =
+          dxa === 0 && dya === 0
+            ? vertices.length > 0
+              ? vertices[vertices.length - 1].tangentOut
+              : 0
+            : Math.atan2(dya, dxa);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -591,9 +653,12 @@ export function getPathVertices(pathData) {
         // Calculate tangent from last point to start (handle zero-length close)
         const dxz = currentX - prevX;
         const dyz = currentY - prevY;
-        const closeAngle = (dxz === 0 && dyz === 0)
-          ? (vertices.length > 0 ? vertices[vertices.length - 1].tangentOut : 0)
-          : Math.atan2(dyz, dxz);
+        const closeAngle =
+          dxz === 0 && dyz === 0
+            ? vertices.length > 0
+              ? vertices[vertices.length - 1].tangentOut
+              : 0
+            : Math.atan2(dyz, dxz);
 
         // Update previous vertex's outgoing tangent
         if (vertices.length > 0) {
@@ -622,14 +687,14 @@ export function getPathVertices(pathData) {
  */
 export function parsePathCommands(pathData) {
   // Validate pathData parameter
-  if (typeof pathData !== 'string') {
-    throw new Error('parsePathCommands: pathData must be a string');
+  if (typeof pathData !== "string") {
+    throw new Error("parsePathCommands: pathData must be a string");
   }
 
   const commands = [];
 
   // Handle empty path data
-  if (pathData.trim() === '') {
+  if (pathData.trim() === "") {
     return commands;
   }
 
@@ -675,11 +740,15 @@ export function parsePathCommands(pathData) {
   // Helper to safely parse token with bounds checking
   const parseToken = (index, name) => {
     if (index >= tokens.length) {
-      throw new Error(`parsePathCommands: missing ${name} parameter at token ${index}`);
+      throw new Error(
+        `parsePathCommands: missing ${name} parameter at token ${index}`,
+      );
     }
     const value = parseFloat(tokens[index]);
     if (isNaN(value) || !isFinite(value)) {
-      throw new Error(`parsePathCommands: invalid ${name} value "${tokens[index]}" at token ${index}`);
+      throw new Error(
+        `parsePathCommands: invalid ${name} value "${tokens[index]}" at token ${index}`,
+      );
     }
     return value;
   };
@@ -690,8 +759,8 @@ export function parsePathCommands(pathData) {
     switch (cmdType.toUpperCase()) {
       case "M": {
         // moveto - requires 2 parameters (x, y)
-        const mx = parseToken(i + 1, 'M.x');
-        const my = parseToken(i + 2, 'M.y');
+        const mx = parseToken(i + 1, "M.x");
+        const my = parseToken(i + 2, "M.y");
         commands.push({
           type: "M",
           x: cmdType === "M" ? mx : currentX + mx,
@@ -705,8 +774,8 @@ export function parsePathCommands(pathData) {
 
       case "L": {
         // lineto - requires 2 parameters (x, y)
-        const lx = parseToken(i + 1, 'L.x');
-        const ly = parseToken(i + 2, 'L.y');
+        const lx = parseToken(i + 1, "L.x");
+        const ly = parseToken(i + 2, "L.y");
         commands.push({
           type: "L",
           x: cmdType === "L" ? lx : currentX + lx,
@@ -720,7 +789,7 @@ export function parsePathCommands(pathData) {
 
       case "H": {
         // horizontal lineto - requires 1 parameter (x)
-        const hx = parseToken(i + 1, 'H.x');
+        const hx = parseToken(i + 1, "H.x");
         commands.push({
           type: "L",
           x: cmdType === "H" ? hx : currentX + hx,
@@ -733,7 +802,7 @@ export function parsePathCommands(pathData) {
 
       case "V": {
         // vertical lineto - requires 1 parameter (y)
-        const vy = parseToken(i + 1, 'V.y');
+        const vy = parseToken(i + 1, "V.y");
         commands.push({
           type: "L",
           x: currentX,
@@ -746,12 +815,12 @@ export function parsePathCommands(pathData) {
 
       case "C": {
         // cubic bezier - requires 6 parameters (x1, y1, x2, y2, x, y)
-        const c1x = parseToken(i + 1, 'C.x1');
-        const c1y = parseToken(i + 2, 'C.y1');
-        const c2x = parseToken(i + 3, 'C.x2');
-        const c2y = parseToken(i + 4, 'C.y2');
-        const cx = parseToken(i + 5, 'C.x');
-        const cy = parseToken(i + 6, 'C.y');
+        const c1x = parseToken(i + 1, "C.x1");
+        const c1y = parseToken(i + 2, "C.y1");
+        const c2x = parseToken(i + 3, "C.x2");
+        const c2y = parseToken(i + 4, "C.y2");
+        const cx = parseToken(i + 5, "C.x");
+        const cy = parseToken(i + 6, "C.y");
         commands.push({
           type: "C",
           x1: cmdType === "C" ? c1x : currentX + c1x,
@@ -769,10 +838,10 @@ export function parsePathCommands(pathData) {
 
       case "Q": {
         // quadratic bezier - requires 4 parameters (x1, y1, x, y)
-        const q1x = parseToken(i + 1, 'Q.x1');
-        const q1y = parseToken(i + 2, 'Q.y1');
-        const qx = parseToken(i + 3, 'Q.x');
-        const qy = parseToken(i + 4, 'Q.y');
+        const q1x = parseToken(i + 1, "Q.x1");
+        const q1y = parseToken(i + 2, "Q.y1");
+        const qx = parseToken(i + 3, "Q.x");
+        const qy = parseToken(i + 4, "Q.y");
         commands.push({
           type: "Q",
           x1: cmdType === "Q" ? q1x : currentX + q1x,
@@ -788,9 +857,9 @@ export function parsePathCommands(pathData) {
 
       case "A": {
         // arc - requires 7 parameters (rx, ry, rotation, largeArc, sweep, x, y)
-        const rx = parseToken(i + 1, 'A.rx');
-        const ry = parseToken(i + 2, 'A.ry');
-        const xAxisRotation = parseToken(i + 3, 'A.rotation');
+        const rx = parseToken(i + 1, "A.rx");
+        const ry = parseToken(i + 2, "A.ry");
+        const xAxisRotation = parseToken(i + 3, "A.rotation");
         // Flags must be 0 or 1
         if (i + 4 >= tokens.length || i + 5 >= tokens.length) {
           throw new Error(`parsePathCommands: missing arc flag parameters`);
@@ -800,8 +869,8 @@ export function parsePathCommands(pathData) {
         if (isNaN(largeArcFlag) || isNaN(sweepFlag)) {
           throw new Error(`parsePathCommands: invalid arc flag values`);
         }
-        const ax = parseToken(i + 6, 'A.x');
-        const ay = parseToken(i + 7, 'A.y');
+        const ax = parseToken(i + 6, "A.x");
+        const ay = parseToken(i + 7, "A.y");
         commands.push({
           type: "A",
           rx,
@@ -864,9 +933,9 @@ export function parsePathCommands(pathData) {
  */
 export function resolveMarkers(pathElement, defsMap) {
   // Validate required parameters
-  if (!pathElement) throw new Error('resolveMarkers: pathElement is required');
-  if (!defsMap || typeof defsMap !== 'object') {
-    throw new Error('resolveMarkers: defsMap must be an object');
+  if (!pathElement) throw new Error("resolveMarkers: pathElement is required");
+  if (!defsMap || typeof defsMap !== "object") {
+    throw new Error("resolveMarkers: defsMap must be an object");
   }
 
   const instances = [];
@@ -881,7 +950,7 @@ export function resolveMarkers(pathElement, defsMap) {
   const strokeWidth = parseFloat(strokeWidthStr);
   // Validate strokeWidth is a positive number
   if (isNaN(strokeWidth) || strokeWidth <= 0) {
-    throw new Error('resolveMarkers: stroke-width must be a positive number');
+    throw new Error("resolveMarkers: stroke-width must be a positive number");
   }
 
   // Get path data and extract vertices
@@ -1012,18 +1081,25 @@ export function resolveMarkers(pathElement, defsMap) {
  */
 export function markerToPolygons(markerInstance, options = {}) {
   // Validate markerInstance parameter
-  if (!markerInstance) throw new Error('markerToPolygons: markerInstance is required');
-  if (!markerInstance.markerDef) throw new Error('markerToPolygons: markerInstance.markerDef is required');
-  if (!markerInstance.transform) throw new Error('markerToPolygons: markerInstance.transform is required');
+  if (!markerInstance)
+    throw new Error("markerToPolygons: markerInstance is required");
+  if (!markerInstance.markerDef)
+    throw new Error("markerToPolygons: markerInstance.markerDef is required");
+  if (!markerInstance.transform)
+    throw new Error("markerToPolygons: markerInstance.transform is required");
 
   const { precision = 2, curveSegments = 10 } = options;
 
   // Validate options
-  if (typeof precision !== 'number' || precision < 0) {
-    throw new Error('markerToPolygons: precision must be a non-negative number');
+  if (typeof precision !== "number" || precision < 0) {
+    throw new Error(
+      "markerToPolygons: precision must be a non-negative number",
+    );
   }
-  if (typeof curveSegments !== 'number' || curveSegments <= 0) {
-    throw new Error('markerToPolygons: curveSegments must be a positive number');
+  if (typeof curveSegments !== "number" || curveSegments <= 0) {
+    throw new Error(
+      "markerToPolygons: curveSegments must be a positive number",
+    );
   }
 
   const polygons = [];
@@ -1031,7 +1107,7 @@ export function markerToPolygons(markerInstance, options = {}) {
 
   // Validate markerDef has children array
   if (!Array.isArray(markerDef.children)) {
-    throw new Error('markerToPolygons: markerDef.children must be an array');
+    throw new Error("markerToPolygons: markerDef.children must be an array");
   }
 
   // Process each child element
@@ -1112,11 +1188,11 @@ export function markerToPolygons(markerInstance, options = {}) {
  */
 export function pathToPoints(pathData, segments = 10) {
   // Validate parameters
-  if (typeof pathData !== 'string') {
-    throw new Error('pathToPoints: pathData must be a string');
+  if (typeof pathData !== "string") {
+    throw new Error("pathToPoints: pathData must be a string");
   }
-  if (typeof segments !== 'number' || segments <= 0) {
-    throw new Error('pathToPoints: segments must be a positive number');
+  if (typeof segments !== "number" || segments <= 0) {
+    throw new Error("pathToPoints: segments must be a positive number");
   }
 
   const points = [];
@@ -1197,17 +1273,17 @@ export function pathToPoints(pathData, segments = 10) {
  */
 export function circleToPoints(cx, cy, r, segments = 32) {
   // Validate parameters
-  if (typeof cx !== 'number' || !isFinite(cx)) {
-    throw new Error('circleToPoints: cx must be a finite number');
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new Error("circleToPoints: cx must be a finite number");
   }
-  if (typeof cy !== 'number' || !isFinite(cy)) {
-    throw new Error('circleToPoints: cy must be a finite number');
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new Error("circleToPoints: cy must be a finite number");
   }
-  if (typeof r !== 'number' || !isFinite(r) || r < 0) {
-    throw new Error('circleToPoints: r must be a non-negative finite number');
+  if (typeof r !== "number" || !isFinite(r) || r < 0) {
+    throw new Error("circleToPoints: r must be a non-negative finite number");
   }
-  if (typeof segments !== 'number' || segments <= 0) {
-    throw new Error('circleToPoints: segments must be a positive number');
+  if (typeof segments !== "number" || segments <= 0) {
+    throw new Error("circleToPoints: segments must be a positive number");
   }
 
   const points = [];
@@ -1233,20 +1309,20 @@ export function circleToPoints(cx, cy, r, segments = 32) {
  */
 export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
   // Validate parameters
-  if (typeof cx !== 'number' || !isFinite(cx)) {
-    throw new Error('ellipseToPoints: cx must be a finite number');
+  if (typeof cx !== "number" || !isFinite(cx)) {
+    throw new Error("ellipseToPoints: cx must be a finite number");
   }
-  if (typeof cy !== 'number' || !isFinite(cy)) {
-    throw new Error('ellipseToPoints: cy must be a finite number');
+  if (typeof cy !== "number" || !isFinite(cy)) {
+    throw new Error("ellipseToPoints: cy must be a finite number");
   }
-  if (typeof rx !== 'number' || !isFinite(rx) || rx < 0) {
-    throw new Error('ellipseToPoints: rx must be a non-negative finite number');
+  if (typeof rx !== "number" || !isFinite(rx) || rx < 0) {
+    throw new Error("ellipseToPoints: rx must be a non-negative finite number");
   }
-  if (typeof ry !== 'number' || !isFinite(ry) || ry < 0) {
-    throw new Error('ellipseToPoints: ry must be a non-negative finite number');
+  if (typeof ry !== "number" || !isFinite(ry) || ry < 0) {
+    throw new Error("ellipseToPoints: ry must be a non-negative finite number");
   }
-  if (typeof segments !== 'number' || segments <= 0) {
-    throw new Error('ellipseToPoints: segments must be a positive number');
+  if (typeof segments !== "number" || segments <= 0) {
+    throw new Error("ellipseToPoints: segments must be a positive number");
   }
 
   const points = [];
@@ -1268,8 +1344,8 @@ export function ellipseToPoints(cx, cy, rx, ry, segments = 32) {
  */
 export function parsePoints(pointsStr) {
   // Validate parameter
-  if (typeof pointsStr !== 'string') {
-    throw new Error('parsePoints: pointsStr must be a string');
+  if (typeof pointsStr !== "string") {
+    throw new Error("parsePoints: pointsStr must be a string");
   }
 
   const points = [];
@@ -1277,11 +1353,13 @@ export function parsePoints(pointsStr) {
     .trim()
     .split(/[\s,]+/)
     .map(Number)
-    .filter(n => !isNaN(n) && isFinite(n)); // Filter out invalid numbers
+    .filter((n) => !isNaN(n) && isFinite(n)); // Filter out invalid numbers
 
   // Ensure we have an even number of coordinates
   if (coords.length % 2 !== 0) {
-    throw new Error('parsePoints: pointsStr must contain an even number of valid coordinates');
+    throw new Error(
+      "parsePoints: pointsStr must contain an even number of valid coordinates",
+    );
   }
 
   for (let i = 0; i < coords.length; i += 2) {
@@ -1310,10 +1388,12 @@ export function parsePoints(pointsStr) {
 export function markersToPathData(markerInstances, precision = 2) {
   // Validate parameters
   if (!Array.isArray(markerInstances)) {
-    throw new Error('markersToPathData: markerInstances must be an array');
+    throw new Error("markersToPathData: markerInstances must be an array");
   }
-  if (typeof precision !== 'number' || precision < 0) {
-    throw new Error('markersToPathData: precision must be a non-negative number');
+  if (typeof precision !== "number" || precision < 0) {
+    throw new Error(
+      "markersToPathData: precision must be a non-negative number",
+    );
   }
 
   const pathParts = [];

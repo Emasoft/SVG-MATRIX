@@ -63,8 +63,12 @@ export * from "./svg-toolbox.js";
 export const { parseSVG, serializeSVG } = SVGParser;
 
 // Export polyfills
-export const { detectSVG2Features, injectPolyfills, setPolyfillMinification, setPolyfillContent } =
-  SVG2Polyfills;
+export const {
+  detectSVG2Features,
+  injectPolyfills,
+  setPolyfillMinification,
+  setPolyfillContent,
+} = SVG2Polyfills;
 
 /**
  * High-level process function - load, optimize, save in one call.

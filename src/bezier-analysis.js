@@ -49,9 +49,7 @@ function _assertFinite(val, context) {
   // INPUT VALIDATION: Ensure val is a Decimal instance
   // WHY: Calling .isFinite() on null/undefined/non-Decimal throws errors
   if (!val || !(val instanceof Decimal)) {
-    throw new Error(
-      `${context}: expected Decimal instance, got ${typeof val}`,
-    );
+    throw new Error(`${context}: expected Decimal instance, got ${typeof val}`);
   }
   if (!val.isFinite()) {
     throw new Error(`${context}: encountered non-finite value ${val}`);
@@ -982,9 +980,7 @@ function findRootsBySubdivision(coeffs, t0, t1, maxDepth) {
   const t0D = t0 instanceof Decimal ? t0 : D(t0);
   const t1D = t1 instanceof Decimal ? t1 : D(t1);
   if (!t0D.isFinite() || !t1D.isFinite()) {
-    throw new Error(
-      "findRootsBySubdivision: t0 and t1 must be finite numbers",
-    );
+    throw new Error("findRootsBySubdivision: t0 and t1 must be finite numbers");
   }
   if (t1D.lte(t0D)) {
     throw new Error("findRootsBySubdivision: t1 must be greater than t0");
@@ -1189,14 +1185,10 @@ export function polynomialToBezier(xCoeffs, yCoeffs) {
   // WHY: Arithmetic operations fail on null/undefined values
   for (let i = 0; i < xCoeffs.length; i++) {
     if (xCoeffs[i] == null) {
-      throw new Error(
-        `polynomialToBezier: xCoeffs[${i}] is null or undefined`,
-      );
+      throw new Error(`polynomialToBezier: xCoeffs[${i}] is null or undefined`);
     }
     if (yCoeffs[i] == null) {
-      throw new Error(
-        `polynomialToBezier: yCoeffs[${i}] is null or undefined`,
-      );
+      throw new Error(`polynomialToBezier: yCoeffs[${i}] is null or undefined`);
     }
   }
 
@@ -1686,7 +1678,11 @@ export function verifyBoundingBox(points, samples = 100, tolerance = "1e-40") {
 
   // PARAMETER VALIDATION: Ensure samples is a positive integer
   // WHY: Non-positive or non-integer samples would cause loop errors or division by zero
-  if (typeof samples !== "number" || samples < 1 || !Number.isInteger(samples)) {
+  if (
+    typeof samples !== "number" ||
+    samples < 1 ||
+    !Number.isInteger(samples)
+  ) {
     throw new Error(
       `verifyBoundingBox: samples must be a positive integer, got ${samples}`,
     );

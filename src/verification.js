@@ -807,7 +807,8 @@ export function verifyRectToPath(x, y, width, height, pathData) {
       valid: false,
       error: new Decimal(Infinity),
       tolerance,
-      message: "Rectangle parameters (x, y, width, height) cannot be null or undefined",
+      message:
+        "Rectangle parameters (x, y, width, height) cannot be null or undefined",
     };
   }
   if (typeof pathData !== "string") {
@@ -1130,9 +1131,7 @@ function isPointOnSegment(point, segStart, segEnd) {
     throw new Error("Invalid point parameter: must have x and y properties");
   }
   if (!segStart || segStart.x == null || segStart.y == null) {
-    throw new Error(
-      "Invalid segStart parameter: must have x and y properties",
-    );
+    throw new Error("Invalid segStart parameter: must have x and y properties");
   }
   if (!segEnd || segEnd.x == null || segEnd.y == null) {
     throw new Error("Invalid segEnd parameter: must have x and y properties");

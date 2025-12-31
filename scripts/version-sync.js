@@ -18,27 +18,41 @@
  * @license MIT
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync, writeFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
+const ROOT = join(__dirname, "..");
 
 // ANSI colors for output
-const colors = process.env.NO_COLOR !== undefined ? {
-  reset: '', red: '', green: '', yellow: '', cyan: '', dim: '', bright: '',
-} : {
-  reset: '\x1b[0m', red: '\x1b[31m', green: '\x1b[32m',
-  yellow: '\x1b[33m', cyan: '\x1b[36m', dim: '\x1b[2m', bright: '\x1b[1m',
-};
+const colors =
+  process.env.NO_COLOR !== undefined
+    ? {
+        reset: "",
+        red: "",
+        green: "",
+        yellow: "",
+        cyan: "",
+        dim: "",
+        bright: "",
+      }
+    : {
+        reset: "\x1b[0m",
+        red: "\x1b[31m",
+        green: "\x1b[32m",
+        yellow: "\x1b[33m",
+        cyan: "\x1b[36m",
+        dim: "\x1b[2m",
+        bright: "\x1b[1m",
+      };
 
 /**
  * Read the canonical version from package.json
  * @returns {string} Version string
  */
 function getPackageVersion() {
-  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+  const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   return pkg.version;
 }
 
@@ -47,7 +61,7 @@ function getPackageVersion() {
  * @returns {string|null} Version string or null if not found
  */
 function getIndexVersion() {
-  const content = readFileSync(join(ROOT, 'src', 'index.js'), 'utf8');
+  const content = readFileSync(join(ROOT, "src", "index.js"), "utf8");
   const match = content.match(/export const VERSION = ['"]([^'"]+)['"]/);
   return match ? match[1] : null;
 }
@@ -57,7 +71,7 @@ function getIndexVersion() {
  * @returns {string|null} Version string or null if not found
  */
 function getIndexJsDocVersion() {
-  const content = readFileSync(join(ROOT, 'src', 'index.js'), 'utf8');
+  const content = readFileSync(join(ROOT, "src", "index.js"), "utf8");
   const match = content.match(/@version\s+(\S+)/);
   return match ? match[1] : null;
 }
@@ -69,7 +83,7 @@ function getIndexJsDocVersion() {
  */
 function getLibVersion(filename) {
   try {
-    const content = readFileSync(join(ROOT, 'src', filename), 'utf8');
+    const content = readFileSync(join(ROOT, "src", filename), "utf8");
     const match = content.match(/export const VERSION = ['"]([^'"]+)['"]/);
     return match ? match[1] : null;
   } catch {
@@ -84,25 +98,22 @@ function getLibVersion(filename) {
  * @returns {boolean} True if updated
  */
 function updateLibVersion(filename, version) {
-  const filePath = join(ROOT, 'src', filename);
+  const filePath = join(ROOT, "src", filename);
   try {
-    let content = readFileSync(filePath, 'utf8');
+    let content = readFileSync(filePath, "utf8");
     const original = content;
 
     // Update VERSION constant
     content = content.replace(
       /export const VERSION = ['"][^'"]+['"]/,
-      `export const VERSION = "${version}"`
+      `export const VERSION = "${version}"`,
     );
 
     // Update @version in jsdoc
-    content = content.replace(
-      /@version\s+\S+/,
-      `@version ${version}`
-    );
+    content = content.replace(/@version\s+\S+/, `@version ${version}`);
 
     if (content !== original) {
-      writeFileSync(filePath, content, 'utf8');
+      writeFileSync(filePath, content, "utf8");
       return true;
     }
   } catch {
@@ -117,7 +128,9 @@ function updateLibVersion(filename, version) {
  */
 function getLockfileVersion() {
   try {
-    const lock = JSON.parse(readFileSync(join(ROOT, 'package-lock.json'), 'utf8'));
+    const lock = JSON.parse(
+      readFileSync(join(ROOT, "package-lock.json"), "utf8"),
+    );
     return lock.version;
   } catch {
     return null;
@@ -130,24 +143,21 @@ function getLockfileVersion() {
  * @returns {boolean} True if updated
  */
 function updateIndexVersion(version) {
-  const filePath = join(ROOT, 'src', 'index.js');
-  let content = readFileSync(filePath, 'utf8');
+  const filePath = join(ROOT, "src", "index.js");
+  let content = readFileSync(filePath, "utf8");
   const original = content;
 
   // Update VERSION constant
   content = content.replace(
     /export const VERSION = ['"][^'"]+['"]/,
-    `export const VERSION = '${version}'`
+    `export const VERSION = '${version}'`,
   );
 
   // Update @version in jsdoc
-  content = content.replace(
-    /@version\s+\S+/,
-    `@version ${version}`
-  );
+  content = content.replace(/@version\s+\S+/, `@version ${version}`);
 
   if (content !== original) {
-    writeFileSync(filePath, content, 'utf8');
+    writeFileSync(filePath, content, "utf8");
     return true;
   }
   return false;
@@ -159,19 +169,19 @@ function updateIndexVersion(version) {
  * @returns {boolean} True if updated
  */
 function updateLockfileVersion(version) {
-  const filePath = join(ROOT, 'package-lock.json');
+  const filePath = join(ROOT, "package-lock.json");
   try {
-    const lock = JSON.parse(readFileSync(filePath, 'utf8'));
+    const lock = JSON.parse(readFileSync(filePath, "utf8"));
     const original = JSON.stringify(lock);
 
     lock.version = version;
-    if (lock.packages && lock.packages['']) {
-      lock.packages[''].version = version;
+    if (lock.packages && lock.packages[""]) {
+      lock.packages[""].version = version;
     }
 
-    const updated = JSON.stringify(lock, null, 2) + '\n';
+    const updated = JSON.stringify(lock, null, 2) + "\n";
     if (updated !== original) {
-      writeFileSync(filePath, updated, 'utf8');
+      writeFileSync(filePath, updated, "utf8");
       return true;
     }
   } catch {
@@ -182,9 +192,9 @@ function updateLockfileVersion(version) {
 
 // Library entry points to sync (relative to src/)
 const LIB_ENTRY_POINTS = [
-  'svg-matrix-lib.js',
-  'svg-toolbox-lib.js',
-  'svgm-lib.js',
+  "svg-matrix-lib.js",
+  "svg-toolbox-lib.js",
+  "svgm-lib.js",
 ];
 
 /**
@@ -198,10 +208,10 @@ function checkVersions() {
   const lockVersion = getLockfileVersion();
 
   const versions = {
-    'package.json': pkgVersion,
-    'src/index.js (VERSION)': indexVersion,
-    'src/index.js (@version)': jsDocVersion,
-    'package-lock.json': lockVersion,
+    "package.json": pkgVersion,
+    "src/index.js (VERSION)": indexVersion,
+    "src/index.js (@version)": jsDocVersion,
+    "package-lock.json": lockVersion,
   };
 
   // WHY: Check VERSION constants in all library entry points
@@ -214,10 +224,11 @@ function checkVersions() {
     }
   }
 
-  const inSync = indexVersion === pkgVersion &&
-                 jsDocVersion === pkgVersion &&
-                 (lockVersion === null || lockVersion === pkgVersion) &&
-                 allLibsInSync;
+  const inSync =
+    indexVersion === pkgVersion &&
+    jsDocVersion === pkgVersion &&
+    (lockVersion === null || lockVersion === pkgVersion) &&
+    allLibsInSync;
 
   return { inSync, versions, canonical: pkgVersion };
 }
@@ -228,7 +239,7 @@ function checkVersions() {
 function main() {
   const args = process.argv.slice(2);
 
-  if (args.includes('--help') || args.includes('-h')) {
+  if (args.includes("--help") || args.includes("-h")) {
     console.log(`
 ${colors.bright}version-sync.js${colors.reset} - Synchronize version numbers across the codebase
 
@@ -247,22 +258,25 @@ ${colors.cyan}Files updated:${colors.reset}
     process.exit(0);
   }
 
-  const checkOnly = args.includes('--check');
+  const checkOnly = args.includes("--check");
   const { inSync, versions, canonical } = checkVersions();
 
   console.log(`${colors.bright}Version Check${colors.reset}`);
-  console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
+  console.log(`${colors.dim}${"─".repeat(50)}${colors.reset}`);
 
   for (const [file, version] of Object.entries(versions)) {
-    const status = version === canonical
-      ? `${colors.green}OK${colors.reset}`
-      : version === null
-        ? `${colors.yellow}N/A${colors.reset}`
-        : `${colors.red}MISMATCH${colors.reset}`;
-    console.log(`  ${file.padEnd(30)} ${(version || 'N/A').padEnd(12)} ${status}`);
+    const status =
+      version === canonical
+        ? `${colors.green}OK${colors.reset}`
+        : version === null
+          ? `${colors.yellow}N/A${colors.reset}`
+          : `${colors.red}MISMATCH${colors.reset}`;
+    console.log(
+      `  ${file.padEnd(30)} ${(version || "N/A").padEnd(12)} ${status}`,
+    );
   }
 
-  console.log(`${colors.dim}${'─'.repeat(50)}${colors.reset}`);
+  console.log(`${colors.dim}${"─".repeat(50)}${colors.reset}`);
   console.log(`  Canonical version: ${colors.cyan}${canonical}${colors.reset}`);
 
   if (inSync) {
@@ -272,7 +286,9 @@ ${colors.cyan}Files updated:${colors.reset}
 
   if (checkOnly) {
     console.log(`\n${colors.red}Version mismatch detected!${colors.reset}`);
-    console.log(`Run ${colors.cyan}node scripts/version-sync.js${colors.reset} to fix.`);
+    console.log(
+      `Run ${colors.cyan}node scripts/version-sync.js${colors.reset} to fix.`,
+    );
     process.exit(1);
   }
 
@@ -298,7 +314,9 @@ ${colors.cyan}Files updated:${colors.reset}
   }
 
   if (updated > 0) {
-    console.log(`\n${colors.green}Synced ${updated} file(s) to version ${canonical}${colors.reset}`);
+    console.log(
+      `\n${colors.green}Synced ${updated} file(s) to version ${canonical}${colors.reset}`,
+    );
   } else {
     console.log(`\n${colors.green}All files already in sync.${colors.reset}`);
   }

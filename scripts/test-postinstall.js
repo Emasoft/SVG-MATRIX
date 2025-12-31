@@ -5,24 +5,24 @@
  * proper rendering of box characters.
  */
 
-import { spawn } from 'child_process';
+import { spawn } from "child_process";
 
-console.log('\n=== Testing postinstall.js Unicode/ASCII support ===\n');
+console.log("\n=== Testing postinstall.js Unicode/ASCII support ===\n");
 
 const tests = [
   {
-    name: 'Unicode mode (UTF-8 locale)',
-    env: { LANG: 'en_US.UTF-8' },
+    name: "Unicode mode (UTF-8 locale)",
+    env: { LANG: "en_US.UTF-8" },
     expectUnicode: true,
   },
   {
-    name: 'ASCII fallback (C locale)',
-    env: { LANG: 'C' },
+    name: "ASCII fallback (C locale)",
+    env: { LANG: "C" },
     expectUnicode: false,
   },
   {
-    name: 'UTF-8 in LC_CTYPE',
-    env: { LC_CTYPE: 'en_US.UTF-8', LANG: '' },
+    name: "UTF-8 in LC_CTYPE",
+    env: { LC_CTYPE: "en_US.UTF-8", LANG: "" },
     expectUnicode: true,
   },
 ];
@@ -37,18 +37,18 @@ async function runTest(test) {
     // Prepare environment
     const env = { ...process.env, ...test.env };
 
-    const child = spawn('node', ['scripts/postinstall.js'], {
+    const child = spawn("node", ["scripts/postinstall.js"], {
       env,
-      stdio: 'pipe',
+      stdio: "pipe",
     });
 
-    let output = '';
+    let output = "";
 
-    child.stdout.on('data', (data) => {
+    child.stdout.on("data", (data) => {
       output += data.toString();
     });
 
-    child.on('close', () => {
+    child.on("close", () => {
       // Check for Unicode or ASCII box characters
       const hasUnicodeBox = /[╭╮╰╯─│]/.test(output);
       const hasAsciiBox = /[+\-|]/.test(output);
@@ -60,12 +60,14 @@ async function runTest(test) {
         console.log(`  ✓ PASS: ASCII fallback characters detected\n`);
         resolve(true);
       } else {
-        console.log(`  ✗ FAIL: Expected ${test.expectUnicode ? 'Unicode' : 'ASCII'} but got different output\n`);
+        console.log(
+          `  ✗ FAIL: Expected ${test.expectUnicode ? "Unicode" : "ASCII"} but got different output\n`,
+        );
         resolve(false);
       }
     });
 
-    child.on('error', (error) => {
+    child.on("error", (error) => {
       console.log(`  ✗ FAIL: ${error.message}\n`);
       resolve(false);
     });
@@ -82,7 +84,7 @@ async function runAllTests() {
     }
   }
 
-  console.log('=== Test Results ===');
+  console.log("=== Test Results ===");
   console.log(`Passed: ${passed}`);
   console.log(`Failed: ${failed}`);
   console.log(`Total:  ${passed + failed}\n`);

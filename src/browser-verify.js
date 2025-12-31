@@ -160,7 +160,9 @@ export class BrowserVerifier {
         }
         const ctm = rect.getCTM();
         if (!ctm) {
-          throw new Error("getCTM() returned null - element may not be rendered");
+          throw new Error(
+            "getCTM() returned null - element may not be rendered",
+          );
         }
         return { a: ctm.a, b: ctm.b, c: ctm.c, d: ctm.d, e: ctm.e, f: ctm.f };
       } finally {
@@ -309,7 +311,9 @@ export class BrowserVerifier {
           }
           const ctm = rect.getCTM();
           if (!ctm) {
-            throw new Error("getCTM() returned null - element may not be rendered");
+            throw new Error(
+              "getCTM() returned null - element may not be rendered",
+            );
           }
           if (!svg.createSVGPoint || typeof svg.createSVGPoint !== "function") {
             throw new Error("Browser does not support createSVGPoint API");
@@ -317,7 +321,10 @@ export class BrowserVerifier {
           const point = svg.createSVGPoint();
           point.x = px;
           point.y = py;
-          if (!point.matrixTransform || typeof point.matrixTransform !== "function") {
+          if (
+            !point.matrixTransform ||
+            typeof point.matrixTransform !== "function"
+          ) {
             throw new Error("Browser does not support matrixTransform API");
           }
           const transformed = point.matrixTransform(ctm);
@@ -356,7 +363,11 @@ export class BrowserVerifier {
         "matrix.data must have at least 2 rows with at least 3 columns each",
       );
     }
-    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    if (
+      typeof tolerance !== "number" ||
+      !isFinite(tolerance) ||
+      tolerance < 0
+    ) {
       throw new Error("tolerance must be a non-negative finite number");
     }
     // Validate that matrix.data contains Decimal objects with toNumber() method
@@ -432,7 +443,11 @@ export class BrowserVerifier {
     ) {
       throw new Error("preserveAspectRatio must be a non-empty string");
     }
-    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    if (
+      typeof tolerance !== "number" ||
+      !isFinite(tolerance) ||
+      tolerance < 0
+    ) {
       throw new Error("tolerance must be a non-negative finite number");
     }
 
@@ -476,7 +491,11 @@ export class BrowserVerifier {
     if (typeof transform !== "string" || transform.trim().length === 0) {
       throw new Error("transform must be a non-empty string");
     }
-    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    if (
+      typeof tolerance !== "number" ||
+      !isFinite(tolerance) ||
+      tolerance < 0
+    ) {
       throw new Error("tolerance must be a non-negative finite number");
     }
 
@@ -522,7 +541,11 @@ export class BrowserVerifier {
     if (!config || typeof config !== "object") {
       throw new Error("config must be a valid object");
     }
-    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    if (
+      typeof tolerance !== "number" ||
+      !isFinite(tolerance) ||
+      tolerance < 0
+    ) {
       throw new Error("tolerance must be a non-negative finite number");
     }
 
@@ -568,7 +591,11 @@ export class BrowserVerifier {
     if (!Array.isArray(testCases)) {
       throw new Error("testCases must be an array");
     }
-    if (typeof tolerance !== "number" || !isFinite(tolerance) || tolerance < 0) {
+    if (
+      typeof tolerance !== "number" ||
+      !isFinite(tolerance) ||
+      tolerance < 0
+    ) {
       throw new Error("tolerance must be a non-negative finite number");
     }
 

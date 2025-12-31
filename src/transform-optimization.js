@@ -155,7 +155,9 @@ export function scaleMatrix(sx, sy) {
  */
 export function matrixMaxDifference(m1, m2) {
   if (!m1 || !m2) {
-    throw new Error("matrixMaxDifference: both m1 and m2 parameters are required");
+    throw new Error(
+      "matrixMaxDifference: both m1 and m2 parameters are required",
+    );
   }
   if (!m1.rows || !m1.cols || !m1.data) {
     throw new Error("matrixMaxDifference: m1 must be a valid Matrix object");
@@ -164,7 +166,9 @@ export function matrixMaxDifference(m1, m2) {
     throw new Error("matrixMaxDifference: m2 must be a valid Matrix object");
   }
   if (m1.rows !== m2.rows || m1.cols !== m2.cols) {
-    throw new Error(`matrixMaxDifference: matrix dimensions must match (m1: ${m1.rows}x${m1.cols}, m2: ${m2.rows}x${m2.cols})`);
+    throw new Error(
+      `matrixMaxDifference: matrix dimensions must match (m1: ${m1.rows}x${m1.cols}, m2: ${m2.rows}x${m2.cols})`,
+    );
   }
 
   let maxDiff = D(0);
@@ -221,12 +225,24 @@ export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
  */
 export function mergeTranslations(t1, t2) {
   if (!t1 || !t2) {
-    throw new Error("mergeTranslations: both t1 and t2 parameters are required");
+    throw new Error(
+      "mergeTranslations: both t1 and t2 parameters are required",
+    );
   }
-  if (t1.tx === null || t1.tx === undefined || t1.ty === null || t1.ty === undefined) {
+  if (
+    t1.tx === null ||
+    t1.tx === undefined ||
+    t1.ty === null ||
+    t1.ty === undefined
+  ) {
     throw new Error("mergeTranslations: t1 must have tx and ty properties");
   }
-  if (t2.tx === null || t2.tx === undefined || t2.ty === null || t2.ty === undefined) {
+  if (
+    t2.tx === null ||
+    t2.tx === undefined ||
+    t2.ty === null ||
+    t2.ty === undefined
+  ) {
     throw new Error("mergeTranslations: t2 must have tx and ty properties");
   }
 
@@ -343,10 +359,20 @@ export function mergeScales(s1, s2) {
   if (!s1 || !s2) {
     throw new Error("mergeScales: both s1 and s2 parameters are required");
   }
-  if (s1.sx === null || s1.sx === undefined || s1.sy === null || s1.sy === undefined) {
+  if (
+    s1.sx === null ||
+    s1.sx === undefined ||
+    s1.sy === null ||
+    s1.sy === undefined
+  ) {
     throw new Error("mergeScales: s1 must have sx and sy properties");
   }
-  if (s2.sx === null || s2.sx === undefined || s2.sy === null || s2.sy === undefined) {
+  if (
+    s2.sx === null ||
+    s2.sx === undefined ||
+    s2.sy === null ||
+    s2.sy === undefined
+  ) {
     throw new Error("mergeScales: s2 must have sx and sy properties");
   }
 
@@ -409,7 +435,9 @@ export function matrixToTranslate(matrix) {
     throw new Error("matrixToTranslate: matrix must be a valid Matrix object");
   }
   if (matrix.rows !== 3 || matrix.cols !== 3) {
-    throw new Error(`matrixToTranslate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+    throw new Error(
+      `matrixToTranslate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`,
+    );
   }
 
   const data = matrix.data;
@@ -488,7 +516,9 @@ export function matrixToRotate(matrix) {
     throw new Error("matrixToRotate: matrix must be a valid Matrix object");
   }
   if (matrix.rows !== 3 || matrix.cols !== 3) {
-    throw new Error(`matrixToRotate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+    throw new Error(
+      `matrixToRotate: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`,
+    );
   }
 
   const data = matrix.data;
@@ -589,7 +619,9 @@ export function matrixToScale(matrix) {
     throw new Error("matrixToScale: matrix must be a valid Matrix object");
   }
   if (matrix.rows !== 3 || matrix.cols !== 3) {
-    throw new Error(`matrixToScale: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`);
+    throw new Error(
+      `matrixToScale: matrix must be 3x3 (got ${matrix.rows}x${matrix.cols})`,
+    );
   }
 
   const data = matrix.data;
@@ -682,7 +714,9 @@ export function matrixToScale(matrix) {
  */
 export function removeIdentityTransforms(transforms) {
   if (!transforms) {
-    throw new Error("removeIdentityTransforms: transforms parameter is required");
+    throw new Error(
+      "removeIdentityTransforms: transforms parameter is required",
+    );
   }
   if (!Array.isArray(transforms)) {
     throw new Error("removeIdentityTransforms: transforms must be an array");
@@ -693,17 +727,21 @@ export function removeIdentityTransforms(transforms) {
 
   const filtered = transforms.filter((t) => {
     // Validate transform object structure
-    if (!t || typeof t !== 'object') {
+    if (!t || typeof t !== "object") {
       return true; // Keep malformed transforms for debugging
     }
-    if (!t.type || !t.params || typeof t.params !== 'object') {
+    if (!t.type || !t.params || typeof t.params !== "object") {
       return true; // Keep malformed transforms for debugging
     }
 
     switch (t.type) {
       case "translate": {
-        if (t.params.tx === null || t.params.tx === undefined ||
-            t.params.ty === null || t.params.ty === undefined) {
+        if (
+          t.params.tx === null ||
+          t.params.tx === undefined ||
+          t.params.ty === null ||
+          t.params.ty === undefined
+        ) {
           return true; // Keep transforms with missing params for debugging
         }
         const tx = D(t.params.tx);
@@ -725,8 +763,12 @@ export function removeIdentityTransforms(transforms) {
       }
 
       case "scale": {
-        if (t.params.sx === null || t.params.sx === undefined ||
-            t.params.sy === null || t.params.sy === undefined) {
+        if (
+          t.params.sx === null ||
+          t.params.sx === undefined ||
+          t.params.sy === null ||
+          t.params.sy === undefined
+        ) {
           return true; // Keep transforms with missing params for debugging
         }
         const sx = D(t.params.sx);
@@ -881,15 +923,25 @@ export function optimizeTransformList(transforms) {
   let originalMatrix = identityMatrix();
   for (const t of transforms) {
     // Validate transform object structure
-    if (!t || typeof t !== 'object' || !t.type || !t.params || typeof t.params !== 'object') {
+    if (
+      !t ||
+      typeof t !== "object" ||
+      !t.type ||
+      !t.params ||
+      typeof t.params !== "object"
+    ) {
       continue; // Skip malformed transforms
     }
 
     let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
-        if (t.params.tx === null || t.params.tx === undefined ||
-            t.params.ty === null || t.params.ty === undefined) {
+        if (
+          t.params.tx === null ||
+          t.params.tx === undefined ||
+          t.params.ty === null ||
+          t.params.ty === undefined
+        ) {
           continue; // Skip transforms with missing params
         }
         m = translationMatrix(t.params.tx, t.params.ty);
@@ -898,8 +950,12 @@ export function optimizeTransformList(transforms) {
         if (t.params.angle === null || t.params.angle === undefined) {
           continue; // Skip transforms with missing angle
         }
-        if (t.params.cx !== undefined && t.params.cx !== null &&
-            t.params.cy !== undefined && t.params.cy !== null) {
+        if (
+          t.params.cx !== undefined &&
+          t.params.cx !== null &&
+          t.params.cy !== undefined &&
+          t.params.cy !== null
+        ) {
           m = rotationMatrixAroundPoint(
             t.params.angle,
             t.params.cx,
@@ -910,8 +966,12 @@ export function optimizeTransformList(transforms) {
         }
         break;
       case "scale":
-        if (t.params.sx === null || t.params.sx === undefined ||
-            t.params.sy === null || t.params.sy === undefined) {
+        if (
+          t.params.sx === null ||
+          t.params.sx === undefined ||
+          t.params.sy === null ||
+          t.params.sy === undefined
+        ) {
           continue; // Skip transforms with missing params
         }
         m = scaleMatrix(t.params.sx, t.params.sy);
@@ -944,8 +1004,14 @@ export function optimizeTransformList(transforms) {
     const next = optimized[i + 1];
 
     // Validate transform objects before processing
-    if (!current || !current.type || !current.params ||
-        !next || !next.type || !next.params) {
+    if (
+      !current ||
+      !current.type ||
+      !current.params ||
+      !next ||
+      !next.type ||
+      !next.params
+    ) {
       i++;
       continue;
     }
@@ -963,18 +1029,36 @@ export function optimizeTransformList(transforms) {
       }
     } else if (current.type === "rotate" && next.type === "rotate") {
       // Only merge if both are around origin: cx and cy are undefined/null OR both are ≈0
-      const currentCx = current.params.cx !== undefined && current.params.cx !== null ? D(current.params.cx) : null;
-      const currentCy = current.params.cy !== undefined && current.params.cy !== null ? D(current.params.cy) : null;
-      const nextCx = next.params.cx !== undefined && next.params.cx !== null ? D(next.params.cx) : null;
-      const nextCy = next.params.cy !== undefined && next.params.cy !== null ? D(next.params.cy) : null;
+      const currentCx =
+        current.params.cx !== undefined && current.params.cx !== null
+          ? D(current.params.cx)
+          : null;
+      const currentCy =
+        current.params.cy !== undefined && current.params.cy !== null
+          ? D(current.params.cy)
+          : null;
+      const nextCx =
+        next.params.cx !== undefined && next.params.cx !== null
+          ? D(next.params.cx)
+          : null;
+      const nextCy =
+        next.params.cy !== undefined && next.params.cy !== null
+          ? D(next.params.cy)
+          : null;
 
       // Check if rotation is effectively around origin
-      const currentIsOrigin = (currentCx === null && currentCy === null) ||
-                               (currentCx !== null && currentCy !== null &&
-                                currentCx.abs().lessThan(EPSILON) && currentCy.abs().lessThan(EPSILON));
-      const nextIsOrigin = (nextCx === null && nextCy === null) ||
-                           (nextCx !== null && nextCy !== null &&
-                            nextCx.abs().lessThan(EPSILON) && nextCy.abs().lessThan(EPSILON));
+      const currentIsOrigin =
+        (currentCx === null && currentCy === null) ||
+        (currentCx !== null &&
+          currentCy !== null &&
+          currentCx.abs().lessThan(EPSILON) &&
+          currentCy.abs().lessThan(EPSILON));
+      const nextIsOrigin =
+        (nextCx === null && nextCy === null) ||
+        (nextCx !== null &&
+          nextCy !== null &&
+          nextCx.abs().lessThan(EPSILON) &&
+          nextCy.abs().lessThan(EPSILON));
 
       if (currentIsOrigin && nextIsOrigin) {
         const result = mergeRotations(current.params, next.params);
@@ -1012,9 +1096,17 @@ export function optimizeTransformList(transforms) {
     const t3 = optimized[i + 2];
 
     // Validate transform objects before processing
-    if (!t1 || !t1.type || !t1.params ||
-        !t2 || !t2.type || !t2.params ||
-        !t3 || !t3.type || !t3.params) {
+    if (
+      !t1 ||
+      !t1.type ||
+      !t1.params ||
+      !t2 ||
+      !t2.type ||
+      !t2.params ||
+      !t3 ||
+      !t3.type ||
+      !t3.params
+    ) {
       i++;
       continue;
     }
@@ -1025,11 +1117,18 @@ export function optimizeTransformList(transforms) {
       t3.type === "translate"
     ) {
       // Validate required parameters exist
-      if (t1.params.tx === null || t1.params.tx === undefined ||
-          t1.params.ty === null || t1.params.ty === undefined ||
-          t2.params.angle === null || t2.params.angle === undefined ||
-          t3.params.tx === null || t3.params.tx === undefined ||
-          t3.params.ty === null || t3.params.ty === undefined) {
+      if (
+        t1.params.tx === null ||
+        t1.params.tx === undefined ||
+        t1.params.ty === null ||
+        t1.params.ty === undefined ||
+        t2.params.angle === null ||
+        t2.params.angle === undefined ||
+        t3.params.tx === null ||
+        t3.params.tx === undefined ||
+        t3.params.ty === null ||
+        t3.params.ty === undefined
+      ) {
         i++;
         continue;
       }
@@ -1114,15 +1213,25 @@ export function optimizeTransformList(transforms) {
   let optimizedMatrix = identityMatrix();
   for (const t of final) {
     // Validate transform object structure
-    if (!t || typeof t !== 'object' || !t.type || !t.params || typeof t.params !== 'object') {
+    if (
+      !t ||
+      typeof t !== "object" ||
+      !t.type ||
+      !t.params ||
+      typeof t.params !== "object"
+    ) {
       continue; // Skip malformed transforms
     }
 
     let m = null; // Initialize m to null to catch missing assignments
     switch (t.type) {
       case "translate":
-        if (t.params.tx === null || t.params.tx === undefined ||
-            t.params.ty === null || t.params.ty === undefined) {
+        if (
+          t.params.tx === null ||
+          t.params.tx === undefined ||
+          t.params.ty === null ||
+          t.params.ty === undefined
+        ) {
           continue; // Skip transforms with missing params
         }
         m = translationMatrix(t.params.tx, t.params.ty);
@@ -1131,8 +1240,12 @@ export function optimizeTransformList(transforms) {
         if (t.params.angle === null || t.params.angle === undefined) {
           continue; // Skip transforms with missing angle
         }
-        if (t.params.cx !== undefined && t.params.cx !== null &&
-            t.params.cy !== undefined && t.params.cy !== null) {
+        if (
+          t.params.cx !== undefined &&
+          t.params.cx !== null &&
+          t.params.cy !== undefined &&
+          t.params.cy !== null
+        ) {
           m = rotationMatrixAroundPoint(
             t.params.angle,
             t.params.cx,
@@ -1143,8 +1256,12 @@ export function optimizeTransformList(transforms) {
         }
         break;
       case "scale":
-        if (t.params.sx === null || t.params.sx === undefined ||
-            t.params.sy === null || t.params.sy === undefined) {
+        if (
+          t.params.sx === null ||
+          t.params.sx === undefined ||
+          t.params.sy === null ||
+          t.params.sy === undefined
+        ) {
           continue; // Skip transforms with missing params
         }
         m = scaleMatrix(t.params.sx, t.params.sy);

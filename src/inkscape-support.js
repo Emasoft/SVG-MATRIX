@@ -7,14 +7,14 @@
  * @module inkscape-support
  */
 
-import { SVGElement } from './svg-parser.js';
+import { SVGElement } from "./svg-parser.js";
 
 // Inkscape namespace URIs
-export const INKSCAPE_NS = 'http://www.inkscape.org/namespaces/inkscape';
-export const SODIPODI_NS = 'http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd';
+export const INKSCAPE_NS = "http://www.inkscape.org/namespaces/inkscape";
+export const SODIPODI_NS = "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd";
 
 // Inkscape-specific element and attribute prefixes
-export const INKSCAPE_PREFIXES = ['inkscape', 'sodipodi'];
+export const INKSCAPE_PREFIXES = ["inkscape", "sodipodi"];
 
 /**
  * Check if an element is an Inkscape layer.
@@ -24,10 +24,10 @@ export const INKSCAPE_PREFIXES = ['inkscape', 'sodipodi'];
  * @returns {boolean} True if the element is an Inkscape layer
  */
 export function isInkscapeLayer(element) {
-  if (!element || element.tagName !== 'g') return false;
+  if (!element || element.tagName !== "g") return false;
   // Safety check: ensure getAttribute method exists before calling it
-  if (typeof element.getAttribute !== 'function') return false;
-  return element.getAttribute('inkscape:groupmode') === 'layer';
+  if (typeof element.getAttribute !== "function") return false;
+  return element.getAttribute("inkscape:groupmode") === "layer";
 }
 
 /**
@@ -37,8 +37,8 @@ export function isInkscapeLayer(element) {
  * @returns {string|null} Layer label or null if not set
  */
 export function getLayerLabel(element) {
-  if (!element || typeof element.getAttribute !== 'function') return null;
-  return element.getAttribute('inkscape:label') || null;
+  if (!element || typeof element.getAttribute !== "function") return null;
+  return element.getAttribute("inkscape:label") || null;
 }
 
 /**
@@ -56,7 +56,8 @@ export function findLayers(doc) {
       layers.push({
         element: el,
         label: getLayerLabel(el),
-        id: (typeof el.getAttribute === 'function' ? el.getAttribute('id') : null)
+        id:
+          typeof el.getAttribute === "function" ? el.getAttribute("id") : null,
       });
     }
     // Safety check: ensure children is an array before iteration
@@ -87,7 +88,7 @@ export function getNamedViewSettings(doc) {
 
   const findNamedview = (el) => {
     if (!el) return;
-    if (el.tagName === 'sodipodi:namedview') {
+    if (el.tagName === "sodipodi:namedview") {
       namedview = el;
       return;
     }
@@ -100,21 +101,21 @@ export function getNamedViewSettings(doc) {
   };
 
   findNamedview(doc);
-  if (!namedview || typeof namedview.getAttribute !== 'function') return null;
+  if (!namedview || typeof namedview.getAttribute !== "function") return null;
 
   return {
-    pagecolor: namedview.getAttribute('pagecolor'),
-    bordercolor: namedview.getAttribute('bordercolor'),
-    borderopacity: namedview.getAttribute('borderopacity'),
-    showgrid: namedview.getAttribute('showgrid'),
-    showguides: namedview.getAttribute('showguides'),
-    guidetolerance: namedview.getAttribute('guidetolerance'),
-    inkscapeZoom: namedview.getAttribute('inkscape:zoom'),
-    inkscapeCx: namedview.getAttribute('inkscape:cx'),
-    inkscapeCy: namedview.getAttribute('inkscape:cy'),
-    inkscapeWindowWidth: namedview.getAttribute('inkscape:window-width'),
-    inkscapeWindowHeight: namedview.getAttribute('inkscape:window-height'),
-    inkscapeCurrentLayer: namedview.getAttribute('inkscape:current-layer')
+    pagecolor: namedview.getAttribute("pagecolor"),
+    bordercolor: namedview.getAttribute("bordercolor"),
+    borderopacity: namedview.getAttribute("borderopacity"),
+    showgrid: namedview.getAttribute("showgrid"),
+    showguides: namedview.getAttribute("showguides"),
+    guidetolerance: namedview.getAttribute("guidetolerance"),
+    inkscapeZoom: namedview.getAttribute("inkscape:zoom"),
+    inkscapeCx: namedview.getAttribute("inkscape:cx"),
+    inkscapeCy: namedview.getAttribute("inkscape:cy"),
+    inkscapeWindowWidth: namedview.getAttribute("inkscape:window-width"),
+    inkscapeWindowHeight: namedview.getAttribute("inkscape:window-height"),
+    inkscapeCurrentLayer: namedview.getAttribute("inkscape:current-layer"),
   };
 }
 
@@ -132,9 +133,9 @@ export function findGuides(doc) {
 
   const walk = (el) => {
     if (!el) return;
-    if (el.tagName === 'sodipodi:guide') {
-      const position = el.getAttribute?.('position') || null;
-      const orientation = el.getAttribute?.('orientation') || null;
+    if (el.tagName === "sodipodi:guide") {
+      const position = el.getAttribute?.("position") || null;
+      const orientation = el.getAttribute?.("orientation") || null;
 
       // Validate guide has required attributes (position and orientation)
       if (!position || !orientation) {
@@ -150,9 +151,9 @@ export function findGuides(doc) {
       guides.push({
         position,
         orientation,
-        id: el.getAttribute?.('id') || null,
-        inkscapeColor: el.getAttribute?.('inkscape:color') || null,
-        inkscapeLabel: el.getAttribute?.('inkscape:label') || null
+        id: el.getAttribute?.("id") || null,
+        inkscapeColor: el.getAttribute?.("inkscape:color") || null,
+        inkscapeLabel: el.getAttribute?.("inkscape:label") || null,
       });
     }
     // Safety check: ensure children is an array before iteration
@@ -175,29 +176,29 @@ export function findGuides(doc) {
  * @returns {Object|null} Arc parameters or null if not an arc
  */
 export function getArcParameters(element) {
-  if (!element || typeof element.getAttribute !== 'function') return null;
+  if (!element || typeof element.getAttribute !== "function") return null;
 
-  const type = element.getAttribute('sodipodi:type');
-  if (type !== 'arc') return null;
+  const type = element.getAttribute("sodipodi:type");
+  if (type !== "arc") return null;
 
   // Validate that required arc parameters exist
-  const cx = element.getAttribute('sodipodi:cx');
-  const cy = element.getAttribute('sodipodi:cy');
-  const rx = element.getAttribute('sodipodi:rx');
-  const ry = element.getAttribute('sodipodi:ry');
+  const cx = element.getAttribute("sodipodi:cx");
+  const cy = element.getAttribute("sodipodi:cy");
+  const rx = element.getAttribute("sodipodi:rx");
+  const ry = element.getAttribute("sodipodi:ry");
 
   // Arc must have center and radii
   if (!cx || !cy || !rx || !ry) return null;
 
   return {
-    type: 'arc',
+    type: "arc",
     cx,
     cy,
     rx,
     ry,
-    start: element.getAttribute('sodipodi:start'),
-    end: element.getAttribute('sodipodi:end'),
-    open: element.getAttribute('sodipodi:open')
+    start: element.getAttribute("sodipodi:start"),
+    end: element.getAttribute("sodipodi:end"),
+    open: element.getAttribute("sodipodi:open"),
   };
 }
 
@@ -209,9 +210,9 @@ export function getArcParameters(element) {
  * @returns {string|null} Node types string (c=corner, s=smooth, z=symmetric, a=auto)
  */
 export function getNodeTypes(element) {
-  if (!element || typeof element.getAttribute !== 'function') return null;
+  if (!element || typeof element.getAttribute !== "function") return null;
 
-  const nodeTypes = element.getAttribute('sodipodi:nodetypes');
+  const nodeTypes = element.getAttribute("sodipodi:nodetypes");
   if (!nodeTypes) return null;
 
   // Validate format: should only contain c, s, z, a characters
@@ -227,11 +228,11 @@ export function getNodeTypes(element) {
  * @returns {Object|null} Export settings or null if not set
  */
 export function getExportSettings(element) {
-  if (!element || typeof element.getAttribute !== 'function') return null;
+  if (!element || typeof element.getAttribute !== "function") return null;
 
-  const filename = element.getAttribute('inkscape:export-filename');
-  const xdpi = element.getAttribute('inkscape:export-xdpi');
-  const ydpi = element.getAttribute('inkscape:export-ydpi');
+  const filename = element.getAttribute("inkscape:export-filename");
+  const xdpi = element.getAttribute("inkscape:export-xdpi");
+  const ydpi = element.getAttribute("inkscape:export-ydpi");
 
   if (!filename && !xdpi && !ydpi) return null;
 
@@ -241,8 +242,8 @@ export function getExportSettings(element) {
 
   return {
     filename,
-    xdpi: (parsedXdpi !== null && !isNaN(parsedXdpi)) ? parsedXdpi : null,
-    ydpi: (parsedYdpi !== null && !isNaN(parsedYdpi)) ? parsedYdpi : null
+    xdpi: parsedXdpi !== null && !isNaN(parsedXdpi) ? parsedXdpi : null,
+    ydpi: parsedYdpi !== null && !isNaN(parsedYdpi) ? parsedYdpi : null,
   };
 }
 
@@ -253,8 +254,8 @@ export function getExportSettings(element) {
  * @returns {boolean} True if element is a tiled clone
  */
 export function isTiledClone(element) {
-  if (!element || typeof element.hasAttribute !== 'function') return false;
-  return element.hasAttribute('inkscape:tiled-clone-of');
+  if (!element || typeof element.hasAttribute !== "function") return false;
+  return element.hasAttribute("inkscape:tiled-clone-of");
 }
 
 /**
@@ -264,8 +265,8 @@ export function isTiledClone(element) {
  * @returns {string|null} Source element ID or null
  */
 export function getTiledCloneSource(element) {
-  if (!element || typeof element.getAttribute !== 'function') return null;
-  return element.getAttribute('inkscape:tiled-clone-of') || null;
+  if (!element || typeof element.getAttribute !== "function") return null;
+  return element.getAttribute("inkscape:tiled-clone-of") || null;
 }
 
 /**
@@ -279,11 +280,11 @@ export function hasInkscapeNamespaces(doc) {
 
   // Try documentElement first, fall back to doc itself
   const svg = doc.documentElement || doc;
-  if (!svg || typeof svg.getAttribute !== 'function') return false;
+  if (!svg || typeof svg.getAttribute !== "function") return false;
 
   // Check for exact namespace URI matches
-  const inkscapeNs = svg.getAttribute('xmlns:inkscape');
-  const sodipodiNs = svg.getAttribute('xmlns:sodipodi');
+  const inkscapeNs = svg.getAttribute("xmlns:inkscape");
+  const sodipodiNs = svg.getAttribute("xmlns:sodipodi");
 
   const hasInkscape = inkscapeNs === INKSCAPE_NS;
   const hasSodipodi = sodipodiNs === SODIPODI_NS;
@@ -305,15 +306,18 @@ export function ensureInkscapeNamespaces(doc) {
   const svg = doc.documentElement || doc;
 
   // Safety check: ensure getAttribute and setAttribute methods exist
-  if (typeof svg.getAttribute !== 'function' || typeof svg.setAttribute !== 'function') {
+  if (
+    typeof svg.getAttribute !== "function" ||
+    typeof svg.setAttribute !== "function"
+  ) {
     return doc;
   }
 
-  if (!svg.getAttribute('xmlns:inkscape')) {
-    svg.setAttribute('xmlns:inkscape', INKSCAPE_NS);
+  if (!svg.getAttribute("xmlns:inkscape")) {
+    svg.setAttribute("xmlns:inkscape", INKSCAPE_NS);
   }
-  if (!svg.getAttribute('xmlns:sodipodi')) {
-    svg.setAttribute('xmlns:sodipodi', SODIPODI_NS);
+  if (!svg.getAttribute("xmlns:sodipodi")) {
+    svg.setAttribute("xmlns:sodipodi", SODIPODI_NS);
   }
 
   return doc;
@@ -339,24 +343,30 @@ export function findReferencedIds(element) {
 
   // Attributes that can contain url(#id) references
   const urlRefAttrs = [
-    'fill', 'stroke', 'clip-path', 'mask', 'filter',
-    'marker-start', 'marker-mid', 'marker-end'
+    "fill",
+    "stroke",
+    "clip-path",
+    "mask",
+    "filter",
+    "marker-start",
+    "marker-mid",
+    "marker-end",
   ];
 
   // Attributes that can contain #id or url(#id) references
-  const hrefAttrs = ['href', 'xlink:href'];
+  const hrefAttrs = ["href", "xlink:href"];
 
   const extractUrlId = (value) => {
-    if (!value || typeof value !== 'string') return null;
+    if (!value || typeof value !== "string") return null;
     // Match url(#id) or url("#id")
     const match = value.match(/url\(["']?#([^"')]+)["']?\)/);
     return match ? match[1] : null;
   };
 
   const extractHrefId = (value) => {
-    if (!value || typeof value !== 'string') return null;
+    if (!value || typeof value !== "string") return null;
     // Match #id references
-    if (value.startsWith('#')) {
+    if (value.startsWith("#")) {
       return value.slice(1);
     }
     return null;
@@ -378,7 +388,7 @@ export function findReferencedIds(element) {
     }
 
     // Check style attribute for url() references
-    const style = el.getAttribute?.('style');
+    const style = el.getAttribute?.("style");
     if (style) {
       const urlMatches = style.matchAll(/url\(["']?#([^"')]+)["']?\)/g);
       for (const match of urlMatches) {
@@ -414,7 +424,7 @@ export function buildDefsMapFromDefs(doc) {
     if (!el) return;
 
     // If element has an ID, add to map
-    const id = el.getAttribute?.('id');
+    const id = el.getAttribute?.("id");
     if (id) {
       defsMap.set(id, el);
     }
@@ -430,7 +440,7 @@ export function buildDefsMapFromDefs(doc) {
   // Only scan defs elements for efficiency
   const findDefs = (el) => {
     if (!el) return;
-    if (el.tagName === 'defs') {
+    if (el.tagName === "defs") {
       walk(el);
     }
     if (el.children && Array.isArray(el.children)) {
@@ -455,10 +465,12 @@ export function buildDefsMapFromDefs(doc) {
 export function resolveDefsDependencies(initialIds, defsMap) {
   // Validate parameters
   if (!initialIds || !(initialIds instanceof Set)) {
-    throw new Error('resolveDefsDependencies: initialIds parameter must be a Set');
+    throw new Error(
+      "resolveDefsDependencies: initialIds parameter must be a Set",
+    );
   }
   if (!defsMap || !(defsMap instanceof Map)) {
-    throw new Error('resolveDefsDependencies: defsMap parameter must be a Map');
+    throw new Error("resolveDefsDependencies: defsMap parameter must be a Map");
   }
 
   const resolved = new Set();
@@ -498,7 +510,7 @@ export function cloneElement(element) {
   const attrs = {};
   if (element._attributes) {
     Object.assign(attrs, element._attributes);
-  } else if (typeof element.getAttributeNames === 'function') {
+  } else if (typeof element.getAttributeNames === "function") {
     for (const name of element.getAttributeNames()) {
       attrs[name] = element.getAttribute(name);
     }
@@ -520,7 +532,7 @@ export function cloneElement(element) {
     element.tagName,
     attrs,
     clonedChildren,
-    element.textContent || null
+    element.textContent || null,
   );
 
   return clone;
@@ -540,16 +552,18 @@ export function cloneElement(element) {
 export function extractLayer(doc, layerOrId, options = {}) {
   // Validate doc parameter
   if (!doc) {
-    throw new Error('doc parameter is required');
+    throw new Error("doc parameter is required");
   }
 
   const { preserveTransform = true } = options;
 
   // Find the layer element
   let layer;
-  if (typeof layerOrId === 'string') {
+  if (typeof layerOrId === "string") {
     const layers = findLayers(doc);
-    const found = layers.find(l => l.id === layerOrId || l.label === layerOrId);
+    const found = layers.find(
+      (l) => l.id === layerOrId || l.label === layerOrId,
+    );
     if (!found) {
       throw new Error(`Layer not found: ${layerOrId}`);
     }
@@ -559,13 +573,13 @@ export function extractLayer(doc, layerOrId, options = {}) {
     layer = found.element;
   } else {
     if (!layerOrId) {
-      throw new Error('layerOrId parameter is required');
+      throw new Error("layerOrId parameter is required");
     }
     layer = layerOrId;
   }
 
   if (!isInkscapeLayer(layer)) {
-    throw new Error('Element is not an Inkscape layer');
+    throw new Error("Element is not an Inkscape layer");
   }
 
   // Get SVG root element
@@ -584,7 +598,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
   const svgAttrs = {};
   if (svgRoot._attributes) {
     Object.assign(svgAttrs, svgRoot._attributes);
-  } else if (typeof svgRoot.getAttributeNames === 'function') {
+  } else if (typeof svgRoot.getAttributeNames === "function") {
     for (const name of svgRoot.getAttributeNames()) {
       svgAttrs[name] = svgRoot.getAttribute(name);
     }
@@ -603,7 +617,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
       }
     }
     if (defsChildren.length > 0) {
-      const newDefs = new SVGElement('defs', {}, defsChildren, null);
+      const newDefs = new SVGElement("defs", {}, defsChildren, null);
       svgChildren.push(newDefs);
     }
   }
@@ -619,12 +633,15 @@ export function extractLayer(doc, layerOrId, options = {}) {
   svgChildren.push(clonedLayer);
 
   // Create new SVG document using SVGElement
-  const newSvg = new SVGElement('svg', svgAttrs, svgChildren, null);
+  const newSvg = new SVGElement("svg", svgAttrs, svgChildren, null);
 
   // Get layer info
   const layerInfo = {
-    id: (typeof layer.getAttribute === 'function' ? layer.getAttribute('id') : null),
-    label: getLayerLabel(layer)
+    id:
+      typeof layer.getAttribute === "function"
+        ? layer.getAttribute("id")
+        : null,
+    label: getLayerLabel(layer),
   };
 
   return { svg: newSvg, layerInfo };
@@ -642,7 +659,7 @@ export function extractLayer(doc, layerOrId, options = {}) {
 export function extractAllLayers(doc, options = {}) {
   // Validate doc parameter
   if (!doc) {
-    throw new Error('doc parameter is required');
+    throw new Error("doc parameter is required");
   }
 
   const { includeHidden = false } = options;
@@ -655,20 +672,22 @@ export function extractAllLayers(doc, options = {}) {
     // Skip hidden layers unless requested
     if (!includeHidden) {
       // Validate getAttribute method exists
-      if (typeof layer.getAttribute !== 'function') continue;
+      if (typeof layer.getAttribute !== "function") continue;
 
-      const style = layer.getAttribute('style') || '';
-      const display = layer.getAttribute('display');
-      const visibility = layer.getAttribute('visibility');
+      const style = layer.getAttribute("style") || "";
+      const display = layer.getAttribute("display");
+      const visibility = layer.getAttribute("visibility");
 
       // Use regex to avoid partial matches in style attribute
       const hasDisplayNone = /display\s*:\s*none/i.test(style);
       const hasVisibilityHidden = /visibility\s*:\s*hidden/i.test(style);
 
-      if (display === 'none' ||
-          visibility === 'hidden' ||
-          hasDisplayNone ||
-          hasVisibilityHidden) {
+      if (
+        display === "none" ||
+        visibility === "hidden" ||
+        hasDisplayNone ||
+        hasVisibilityHidden
+      ) {
         continue;
       }
     }
@@ -678,7 +697,9 @@ export function extractAllLayers(doc, options = {}) {
       results.push(extracted);
     } catch (e) {
       // Skip layers that fail to extract
-      console.warn(`Failed to extract layer ${layerData.id || layerData.label}: ${e.message}`);
+      console.warn(
+        `Failed to extract layer ${layerData.id || layerData.label}: ${e.message}`,
+      );
     }
   }
 
@@ -695,17 +716,17 @@ export function extractAllLayers(doc, options = {}) {
 export function analyzeLayerDependencies(doc) {
   // Validate doc parameter
   if (!doc) {
-    throw new Error('doc parameter is required');
+    throw new Error("doc parameter is required");
   }
 
   const layers = findLayers(doc);
   const defsMap = buildDefsMapFromDefs(doc);
   const layerRefs = new Map(); // layer ID -> Set of referenced def IDs
-  const defUsage = new Map();  // def ID -> Set of layer IDs that use it
+  const defUsage = new Map(); // def ID -> Set of layer IDs that use it
 
   for (const layerData of layers) {
     const layer = layerData.element;
-    const layerId = layerData.id || layerData.label || 'unnamed';
+    const layerId = layerData.id || layerData.label || "unnamed";
 
     // Find refs for this layer
     const refs = findReferencedIds(layer);
@@ -730,7 +751,7 @@ export function analyzeLayerDependencies(doc) {
     if (layerSet.size > 1) {
       sharedDefs.push({
         id: defId,
-        usedBy: [...layerSet]
+        usedBy: [...layerSet],
       });
     } else {
       const layerId = [...layerSet][0];
@@ -742,13 +763,13 @@ export function analyzeLayerDependencies(doc) {
   }
 
   return {
-    layers: layers.map(l => ({
+    layers: layers.map((l) => ({
       id: l.id,
       label: l.label,
-      referencedDefs: [...(layerRefs.get(l.id || l.label || 'unnamed') || [])]
+      referencedDefs: [...(layerRefs.get(l.id || l.label || "unnamed") || [])],
     })),
     sharedDefs,
     exclusiveDefs: Object.fromEntries(exclusiveDefs),
-    totalDefs: defsMap.size
+    totalDefs: defsMap.size,
   };
 }

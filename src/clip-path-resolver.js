@@ -94,9 +94,16 @@ export function pathToPolygon(
   pathData,
   samplesPerCurve = DEFAULT_CURVE_SAMPLES,
 ) {
-  if (typeof pathData !== 'string') throw new Error('pathToPolygon: pathData must be a string');
-  if (typeof samplesPerCurve !== 'number' || samplesPerCurve <= 0 || !Number.isFinite(samplesPerCurve)) {
-    throw new Error(`pathToPolygon: samplesPerCurve must be a positive finite number, got ${samplesPerCurve}`);
+  if (typeof pathData !== "string")
+    throw new Error("pathToPolygon: pathData must be a string");
+  if (
+    typeof samplesPerCurve !== "number" ||
+    samplesPerCurve <= 0 ||
+    !Number.isFinite(samplesPerCurve)
+  ) {
+    throw new Error(
+      `pathToPolygon: samplesPerCurve must be a positive finite number, got ${samplesPerCurve}`,
+    );
   }
   const points = [];
   let currentX = D(0),
@@ -106,18 +113,23 @@ export function pathToPolygon(
 
   const commands = parsePathCommands(pathData);
   if (!Array.isArray(commands)) {
-    throw new Error('pathToPolygon: parsePathCommands must return an array');
+    throw new Error("pathToPolygon: parsePathCommands must return an array");
   }
 
   for (const cmd of commands) {
     const { type, args } = cmd;
     if (!Array.isArray(args)) {
-      throw new Error(`pathToPolygon: command args must be an array for command ${type}`);
+      throw new Error(
+        `pathToPolygon: command args must be an array for command ${type}`,
+      );
     }
 
     switch (type) {
       case "M":
-        if (args.length < 2) throw new Error(`pathToPolygon: M command requires 2 arguments, got ${args.length}`);
+        if (args.length < 2)
+          throw new Error(
+            `pathToPolygon: M command requires 2 arguments, got ${args.length}`,
+          );
         currentX = D(args[0]);
         currentY = D(args[1]);
         startX = currentX;
@@ -125,7 +137,10 @@ export function pathToPolygon(
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "m":
-        if (args.length < 2) throw new Error(`pathToPolygon: m command requires 2 arguments, got ${args.length}`);
+        if (args.length < 2)
+          throw new Error(
+            `pathToPolygon: m command requires 2 arguments, got ${args.length}`,
+          );
         currentX = currentX.plus(args[0]);
         currentY = currentY.plus(args[1]);
         startX = currentX;
@@ -133,39 +148,60 @@ export function pathToPolygon(
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "L":
-        if (args.length < 2) throw new Error(`pathToPolygon: L command requires 2 arguments, got ${args.length}`);
+        if (args.length < 2)
+          throw new Error(
+            `pathToPolygon: L command requires 2 arguments, got ${args.length}`,
+          );
         currentX = D(args[0]);
         currentY = D(args[1]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "l":
-        if (args.length < 2) throw new Error(`pathToPolygon: l command requires 2 arguments, got ${args.length}`);
+        if (args.length < 2)
+          throw new Error(
+            `pathToPolygon: l command requires 2 arguments, got ${args.length}`,
+          );
         currentX = currentX.plus(args[0]);
         currentY = currentY.plus(args[1]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "H":
-        if (args.length < 1) throw new Error(`pathToPolygon: H command requires 1 argument, got ${args.length}`);
+        if (args.length < 1)
+          throw new Error(
+            `pathToPolygon: H command requires 1 argument, got ${args.length}`,
+          );
         currentX = D(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "h":
-        if (args.length < 1) throw new Error(`pathToPolygon: h command requires 1 argument, got ${args.length}`);
+        if (args.length < 1)
+          throw new Error(
+            `pathToPolygon: h command requires 1 argument, got ${args.length}`,
+          );
         currentX = currentX.plus(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "V":
-        if (args.length < 1) throw new Error(`pathToPolygon: V command requires 1 argument, got ${args.length}`);
+        if (args.length < 1)
+          throw new Error(
+            `pathToPolygon: V command requires 1 argument, got ${args.length}`,
+          );
         currentY = D(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "v":
-        if (args.length < 1) throw new Error(`pathToPolygon: v command requires 1 argument, got ${args.length}`);
+        if (args.length < 1)
+          throw new Error(
+            `pathToPolygon: v command requires 1 argument, got ${args.length}`,
+          );
         currentY = currentY.plus(args[0]);
         points.push(PolygonClip.point(currentX, currentY));
         break;
       case "C":
-        if (args.length < 6) throw new Error(`pathToPolygon: C command requires 6 arguments, got ${args.length}`);
+        if (args.length < 6)
+          throw new Error(
+            `pathToPolygon: C command requires 6 arguments, got ${args.length}`,
+          );
         sampleCubicBezier(
           points,
           currentX,
@@ -182,7 +218,10 @@ export function pathToPolygon(
         currentY = D(args[5]);
         break;
       case "c":
-        if (args.length < 6) throw new Error(`pathToPolygon: c command requires 6 arguments, got ${args.length}`);
+        if (args.length < 6)
+          throw new Error(
+            `pathToPolygon: c command requires 6 arguments, got ${args.length}`,
+          );
         sampleCubicBezier(
           points,
           currentX,
@@ -199,7 +238,10 @@ export function pathToPolygon(
         currentY = currentY.plus(args[5]);
         break;
       case "Q":
-        if (args.length < 4) throw new Error(`pathToPolygon: Q command requires 4 arguments, got ${args.length}`);
+        if (args.length < 4)
+          throw new Error(
+            `pathToPolygon: Q command requires 4 arguments, got ${args.length}`,
+          );
         sampleQuadraticBezier(
           points,
           currentX,
@@ -214,7 +256,10 @@ export function pathToPolygon(
         currentY = D(args[3]);
         break;
       case "q":
-        if (args.length < 4) throw new Error(`pathToPolygon: q command requires 4 arguments, got ${args.length}`);
+        if (args.length < 4)
+          throw new Error(
+            `pathToPolygon: q command requires 4 arguments, got ${args.length}`,
+          );
         sampleQuadraticBezier(
           points,
           currentX,
@@ -229,7 +274,10 @@ export function pathToPolygon(
         currentY = currentY.plus(args[3]);
         break;
       case "A":
-        if (args.length < 7) throw new Error(`pathToPolygon: A command requires 7 arguments, got ${args.length}`);
+        if (args.length < 7)
+          throw new Error(
+            `pathToPolygon: A command requires 7 arguments, got ${args.length}`,
+          );
         sampleArc(
           points,
           currentX,
@@ -247,7 +295,10 @@ export function pathToPolygon(
         currentY = D(args[6]);
         break;
       case "a":
-        if (args.length < 7) throw new Error(`pathToPolygon: a command requires 7 arguments, got ${args.length}`);
+        if (args.length < 7)
+          throw new Error(
+            `pathToPolygon: a command requires 7 arguments, got ${args.length}`,
+          );
         sampleArc(
           points,
           currentX,
@@ -293,8 +344,10 @@ export function pathToPolygon(
  * // Returns: [{type: 'M', args: [10, 20]}, {type: 'L', args: [30, 40]}]
  */
 function parsePathCommands(pathData) {
-  if (typeof pathData !== 'string') {
-    throw new Error(`parsePathCommands: pathData must be a string, got ${typeof pathData}`);
+  if (typeof pathData !== "string") {
+    throw new Error(
+      `parsePathCommands: pathData must be a string, got ${typeof pathData}`,
+    );
   }
   const commands = [];
   const regex = /([MmLlHhVvCcSsQqTtAaZz])([^MmLlHhVvCcSsQqTtAaZz]*)/g;
@@ -340,14 +393,30 @@ function parsePathCommands(pathData) {
  */
 function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
   if (!Array.isArray(points)) {
-    throw new Error('sampleCubicBezier: points must be an array');
+    throw new Error("sampleCubicBezier: points must be an array");
   }
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`sampleCubicBezier: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `sampleCubicBezier: samples must be a positive finite number, got ${samples}`,
+    );
   }
-  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(x1 instanceof Decimal) || !(y1 instanceof Decimal) ||
-      !(x2 instanceof Decimal) || !(y2 instanceof Decimal) || !(x3 instanceof Decimal) || !(y3 instanceof Decimal)) {
-    throw new Error('sampleCubicBezier: all coordinate parameters must be Decimal instances');
+  if (
+    !(x0 instanceof Decimal) ||
+    !(y0 instanceof Decimal) ||
+    !(x1 instanceof Decimal) ||
+    !(y1 instanceof Decimal) ||
+    !(x2 instanceof Decimal) ||
+    !(y2 instanceof Decimal) ||
+    !(x3 instanceof Decimal) ||
+    !(y3 instanceof Decimal)
+  ) {
+    throw new Error(
+      "sampleCubicBezier: all coordinate parameters must be Decimal instances",
+    );
   }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
@@ -393,14 +462,28 @@ function sampleCubicBezier(points, x0, y0, x1, y1, x2, y2, x3, y3, samples) {
  */
 function sampleQuadraticBezier(points, x0, y0, x1, y1, x2, y2, samples) {
   if (!Array.isArray(points)) {
-    throw new Error('sampleQuadraticBezier: points must be an array');
+    throw new Error("sampleQuadraticBezier: points must be an array");
   }
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`sampleQuadraticBezier: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `sampleQuadraticBezier: samples must be a positive finite number, got ${samples}`,
+    );
   }
-  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(x1 instanceof Decimal) ||
-      !(y1 instanceof Decimal) || !(x2 instanceof Decimal) || !(y2 instanceof Decimal)) {
-    throw new Error('sampleQuadraticBezier: all coordinate parameters must be Decimal instances');
+  if (
+    !(x0 instanceof Decimal) ||
+    !(y0 instanceof Decimal) ||
+    !(x1 instanceof Decimal) ||
+    !(y1 instanceof Decimal) ||
+    !(x2 instanceof Decimal) ||
+    !(y2 instanceof Decimal)
+  ) {
+    throw new Error(
+      "sampleQuadraticBezier: all coordinate parameters must be Decimal instances",
+    );
   }
   for (let i = 1; i <= samples; i++) {
     const t = D(i).div(samples);
@@ -451,19 +534,34 @@ function sampleArc(
   samples,
 ) {
   if (!Array.isArray(points)) {
-    throw new Error('sampleArc: points must be an array');
+    throw new Error("sampleArc: points must be an array");
   }
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`sampleArc: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `sampleArc: samples must be a positive finite number, got ${samples}`,
+    );
   }
-  if (!(x0 instanceof Decimal) || !(y0 instanceof Decimal) || !(rx instanceof Decimal) || !(ry instanceof Decimal) ||
-      !(xAxisRotation instanceof Decimal) || !(x1 instanceof Decimal) || !(y1 instanceof Decimal)) {
-    throw new Error('sampleArc: all coordinate and angle parameters must be Decimal instances');
+  if (
+    !(x0 instanceof Decimal) ||
+    !(y0 instanceof Decimal) ||
+    !(rx instanceof Decimal) ||
+    !(ry instanceof Decimal) ||
+    !(xAxisRotation instanceof Decimal) ||
+    !(x1 instanceof Decimal) ||
+    !(y1 instanceof Decimal)
+  ) {
+    throw new Error(
+      "sampleArc: all coordinate and angle parameters must be Decimal instances",
+    );
   }
-  if (typeof largeArc !== 'number' || (largeArc !== 0 && largeArc !== 1)) {
+  if (typeof largeArc !== "number" || (largeArc !== 0 && largeArc !== 1)) {
     throw new Error(`sampleArc: largeArc must be 0 or 1, got ${largeArc}`);
   }
-  if (typeof sweep !== 'number' || (sweep !== 0 && sweep !== 1)) {
+  if (typeof sweep !== "number" || (sweep !== 0 && sweep !== 1)) {
     throw new Error(`sampleArc: sweep must be 0 or 1, got ${sweep}`);
   }
   if (rx.eq(0) || ry.eq(0)) {
@@ -514,7 +612,9 @@ function sampleArc(
   const n1 = ux.mul(ux).plus(uy.mul(uy)).sqrt();
   if (n1.eq(0)) {
     // Degenerate arc: center point coincides with start point
-    Logger.warn('sampleArc: degenerate arc - center coincides with start point, treating as line to end');
+    Logger.warn(
+      "sampleArc: degenerate arc - center coincides with start point, treating as line to end",
+    );
     points.push(PolygonClip.point(x1, y1));
     return;
   }
@@ -524,7 +624,9 @@ function sampleArc(
   const n2 = n1.mul(vx.mul(vx).plus(vy.mul(vy)).sqrt());
   if (n2.eq(0)) {
     // Degenerate arc: center coincides with both endpoints (zero-length arc)
-    Logger.warn('sampleArc: degenerate arc - zero length, treating as single point');
+    Logger.warn(
+      "sampleArc: degenerate arc - zero length, treating as single point",
+    );
     points.push(PolygonClip.point(x1, y1));
     return;
   }
@@ -571,7 +673,7 @@ function sampleArc(
  */
 function removeDuplicateConsecutive(points) {
   if (!Array.isArray(points)) {
-    throw new Error('removeDuplicateConsecutive: points must be an array');
+    throw new Error("removeDuplicateConsecutive: points must be an array");
   }
   if (points.length < 2) return points;
   const result = [points[0]];
@@ -625,20 +727,32 @@ export function shapeToPolygon(
   samples = DEFAULT_CURVE_SAMPLES,
   bezierArcs = 4,
 ) {
-  if (!element || typeof element !== 'object') {
-    throw new Error('shapeToPolygon: element must be an object');
+  if (!element || typeof element !== "object") {
+    throw new Error("shapeToPolygon: element must be an object");
   }
-  if (!element.type || typeof element.type !== 'string') {
-    throw new Error('shapeToPolygon: element.type must be a string');
+  if (!element.type || typeof element.type !== "string") {
+    throw new Error("shapeToPolygon: element.type must be a string");
   }
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`shapeToPolygon: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `shapeToPolygon: samples must be a positive finite number, got ${samples}`,
+    );
   }
-  if (typeof bezierArcs !== 'number' || bezierArcs <= 0 || !Number.isFinite(bezierArcs)) {
-    throw new Error(`shapeToPolygon: bezierArcs must be a positive finite number, got ${bezierArcs}`);
+  if (
+    typeof bezierArcs !== "number" ||
+    bezierArcs <= 0 ||
+    !Number.isFinite(bezierArcs)
+  ) {
+    throw new Error(
+      `shapeToPolygon: bezierArcs must be a positive finite number, got ${bezierArcs}`,
+    );
   }
   if (ctm !== null && !(ctm instanceof Matrix)) {
-    throw new Error('shapeToPolygon: ctm must be null or a Matrix instance');
+    throw new Error("shapeToPolygon: ctm must be null or a Matrix instance");
   }
   let pathData;
   switch (element.type) {
@@ -714,7 +828,9 @@ export function shapeToPolygon(
   if (element.transform) {
     const elementTransform = parseTransform(element.transform);
     if (!(elementTransform instanceof Matrix)) {
-      throw new Error(`shapeToPolygon: parseTransform must return a Matrix, got ${typeof elementTransform}`);
+      throw new Error(
+        `shapeToPolygon: parseTransform must return a Matrix, got ${typeof elementTransform}`,
+      );
     }
     pathData = transformPathData(pathData, elementTransform);
   }
@@ -785,24 +901,35 @@ export function resolveClipPath(
   ctm = null,
   options = {},
 ) {
-  if (!clipPathDef || typeof clipPathDef !== 'object') {
-    throw new Error('resolveClipPath: clipPathDef must be an object');
+  if (!clipPathDef || typeof clipPathDef !== "object") {
+    throw new Error("resolveClipPath: clipPathDef must be an object");
   }
   if (ctm !== null && !(ctm instanceof Matrix)) {
-    throw new Error('resolveClipPath: ctm must be null or a Matrix instance');
+    throw new Error("resolveClipPath: ctm must be null or a Matrix instance");
   }
-  if (typeof options !== 'object' || options === null) {
-    throw new Error('resolveClipPath: options must be an object');
+  if (typeof options !== "object" || options === null) {
+    throw new Error("resolveClipPath: options must be an object");
   }
   const { samples = DEFAULT_CURVE_SAMPLES } = options;
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`resolveClipPath: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `resolveClipPath: samples must be a positive finite number, got ${samples}`,
+    );
   }
   const clipPathUnits = clipPathDef.clipPathUnits || "userSpaceOnUse";
 
   // Validate clipPathUnits value (SVG spec: case-sensitive)
-  if (clipPathUnits !== "userSpaceOnUse" && clipPathUnits !== "objectBoundingBox") {
-    Logger.warn(`resolveClipPath: invalid clipPathUnits '${clipPathUnits}', defaulting to 'userSpaceOnUse' (valid values: 'userSpaceOnUse', 'objectBoundingBox')`);
+  if (
+    clipPathUnits !== "userSpaceOnUse" &&
+    clipPathUnits !== "objectBoundingBox"
+  ) {
+    Logger.warn(
+      `resolveClipPath: invalid clipPathUnits '${clipPathUnits}', defaulting to 'userSpaceOnUse' (valid values: 'userSpaceOnUse', 'objectBoundingBox')`,
+    );
   }
 
   let clipTransform = ctm ? ctm.clone() : Matrix.identity(3);
@@ -810,23 +937,31 @@ export function resolveClipPath(
   if (clipPathDef.transform) {
     const clipPathTransformMatrix = parseTransform(clipPathDef.transform);
     if (!(clipPathTransformMatrix instanceof Matrix)) {
-      throw new Error(`resolveClipPath: parseTransform must return a Matrix, got ${typeof clipPathTransformMatrix}`);
+      throw new Error(
+        `resolveClipPath: parseTransform must return a Matrix, got ${typeof clipPathTransformMatrix}`,
+      );
     }
     clipTransform = clipTransform.mul(clipPathTransformMatrix);
   }
 
   if (clipPathUnits === "objectBoundingBox") {
     if (!targetElement) {
-      throw new Error('resolveClipPath: targetElement required for objectBoundingBox clipPathUnits');
+      throw new Error(
+        "resolveClipPath: targetElement required for objectBoundingBox clipPathUnits",
+      );
     }
     const bbox = getElementBoundingBox(targetElement);
     if (!bbox) {
-      Logger.warn('resolveClipPath: failed to compute bounding box for objectBoundingBox clipPath');
+      Logger.warn(
+        "resolveClipPath: failed to compute bounding box for objectBoundingBox clipPath",
+      );
       return [];
     }
     // Validate bounding box dimensions - degenerate bbox clips everything
     if (bbox.width.lte(0) || bbox.height.lte(0)) {
-      Logger.warn(`resolveClipPath: degenerate bounding box (width=${bbox.width}, height=${bbox.height}), clipping entire element`);
+      Logger.warn(
+        `resolveClipPath: degenerate bounding box (width=${bbox.width}, height=${bbox.height}), clipping entire element`,
+      );
       return [];
     }
     const bboxTransform = Transforms2D.translation(bbox.x, bbox.y).mul(
@@ -838,7 +973,9 @@ export function resolveClipPath(
   // Validate children array before processing
   const children = clipPathDef.children || [];
   if (!Array.isArray(children)) {
-    throw new Error(`resolveClipPath: clipPathDef.children must be an array, got ${typeof children}`);
+    throw new Error(
+      `resolveClipPath: clipPathDef.children must be an array, got ${typeof children}`,
+    );
   }
 
   const clipPolygons = [];
@@ -849,7 +986,9 @@ export function resolveClipPath(
 
   // Empty clipPath returns empty polygon (clips everything)
   if (clipPolygons.length === 0) {
-    Logger.warn('resolveClipPath: clipPath has no valid child shapes, clipping entire element');
+    Logger.warn(
+      "resolveClipPath: clipPath has no valid child shapes, clipping entire element",
+    );
     return [];
   }
   if (clipPolygons.length === 1) return clipPolygons[0];
@@ -886,13 +1025,15 @@ export function resolveClipPath(
  */
 function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
   if (!Array.isArray(elementPolygon)) {
-    throw new Error('clipPolygonWithRule: elementPolygon must be an array');
+    throw new Error("clipPolygonWithRule: elementPolygon must be an array");
   }
   if (!Array.isArray(clipPolygon)) {
-    throw new Error('clipPolygonWithRule: clipPolygon must be an array');
+    throw new Error("clipPolygonWithRule: clipPolygon must be an array");
   }
-  if (clipRule !== 'nonzero' && clipRule !== 'evenodd') {
-    throw new Error(`clipPolygonWithRule: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`);
+  if (clipRule !== "nonzero" && clipRule !== "evenodd") {
+    throw new Error(
+      `clipPolygonWithRule: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`,
+    );
   }
   if (elementPolygon.length < 3 || clipPolygon.length < 3) {
     return [];
@@ -941,10 +1082,10 @@ function clipPolygonWithRule(elementPolygon, clipPolygon, clipRule) {
  */
 function computeCentroid(polygon) {
   if (!Array.isArray(polygon)) {
-    throw new Error('computeCentroid: polygon must be an array');
+    throw new Error("computeCentroid: polygon must be an array");
   }
   if (polygon.length === 0) {
-    throw new Error('computeCentroid: polygon must not be empty');
+    throw new Error("computeCentroid: polygon must not be empty");
   }
   let cx = new Decimal(0);
   let cy = new Decimal(0);
@@ -961,7 +1102,7 @@ function computeCentroid(polygon) {
 
   area = area.div(2);
   // Use Decimal comparison for degenerate polygon detection
-  const epsilon = new Decimal('1e-10');
+  const epsilon = new Decimal("1e-10");
   if (area.abs().lt(epsilon)) {
     // Degenerate polygon (zero area) - return average of vertices
     let sumX = new Decimal(0);
@@ -1033,24 +1174,32 @@ function computeCentroid(polygon) {
  * const clipped = applyClipPath(ellipse, clipDef, null, { samples: 50 });
  */
 export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
-  if (!element || typeof element !== 'object') {
-    throw new Error('applyClipPath: element must be an object');
+  if (!element || typeof element !== "object") {
+    throw new Error("applyClipPath: element must be an object");
   }
-  if (!clipPathDef || typeof clipPathDef !== 'object') {
-    throw new Error('applyClipPath: clipPathDef must be an object');
+  if (!clipPathDef || typeof clipPathDef !== "object") {
+    throw new Error("applyClipPath: clipPathDef must be an object");
   }
   if (ctm !== null && !(ctm instanceof Matrix)) {
-    throw new Error('applyClipPath: ctm must be null or a Matrix instance');
+    throw new Error("applyClipPath: ctm must be null or a Matrix instance");
   }
-  if (typeof options !== 'object' || options === null) {
-    throw new Error('applyClipPath: options must be an object');
+  if (typeof options !== "object" || options === null) {
+    throw new Error("applyClipPath: options must be an object");
   }
   const { samples = DEFAULT_CURVE_SAMPLES, clipRule = "nonzero" } = options;
-  if (typeof samples !== 'number' || samples <= 0 || !Number.isFinite(samples)) {
-    throw new Error(`applyClipPath: samples must be a positive finite number, got ${samples}`);
+  if (
+    typeof samples !== "number" ||
+    samples <= 0 ||
+    !Number.isFinite(samples)
+  ) {
+    throw new Error(
+      `applyClipPath: samples must be a positive finite number, got ${samples}`,
+    );
   }
-  if (clipRule !== 'nonzero' && clipRule !== 'evenodd') {
-    throw new Error(`applyClipPath: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`);
+  if (clipRule !== "nonzero" && clipRule !== "evenodd") {
+    throw new Error(
+      `applyClipPath: clipRule must be 'nonzero' or 'evenodd', got '${clipRule}' (valid values: 'nonzero', 'evenodd')`,
+    );
   }
   const clipPolygon = resolveClipPath(clipPathDef, element, ctm, options);
   if (clipPolygon.length < 3) return [];
@@ -1087,11 +1236,11 @@ export function applyClipPath(element, clipPathDef, ctm = null, options = {}) {
  * // Returns: {x: Decimal(25), y: Decimal(25), width: Decimal(50), height: Decimal(50)}
  */
 function getElementBoundingBox(element) {
-  if (!element || typeof element !== 'object') {
-    throw new Error('getElementBoundingBox: element must be an object');
+  if (!element || typeof element !== "object") {
+    throw new Error("getElementBoundingBox: element must be an object");
   }
-  if (!element.type || typeof element.type !== 'string') {
-    throw new Error('getElementBoundingBox: element.type must be a string');
+  if (!element.type || typeof element.type !== "string") {
+    throw new Error("getElementBoundingBox: element.type must be a string");
   }
   switch (element.type) {
     case "rect": {
@@ -1099,7 +1248,9 @@ function getElementBoundingBox(element) {
       const height = D(element.height || 0);
       // Negative width/height are invalid in SVG
       if (width.lt(0) || height.lt(0)) {
-        Logger.warn(`getElementBoundingBox: rect has negative dimensions (width=${width}, height=${height})`);
+        Logger.warn(
+          `getElementBoundingBox: rect has negative dimensions (width=${width}, height=${height})`,
+        );
         return null;
       }
       return {
@@ -1115,7 +1266,9 @@ function getElementBoundingBox(element) {
         r = D(element.r || 0);
       // Negative radius is invalid in SVG
       if (r.lt(0)) {
-        Logger.warn(`getElementBoundingBox: circle has negative radius (r=${r})`);
+        Logger.warn(
+          `getElementBoundingBox: circle has negative radius (r=${r})`,
+        );
         return null;
       }
       return {
@@ -1132,7 +1285,9 @@ function getElementBoundingBox(element) {
         ry = D(element.ry || 0);
       // Negative radii are invalid in SVG
       if (rx.lt(0) || ry.lt(0)) {
-        Logger.warn(`getElementBoundingBox: ellipse has negative radii (rx=${rx}, ry=${ry})`);
+        Logger.warn(
+          `getElementBoundingBox: ellipse has negative radii (rx=${rx}, ry=${ry})`,
+        );
         return null;
       }
       return {
@@ -1147,14 +1302,18 @@ function getElementBoundingBox(element) {
       if (polygon.length > 0) {
         const bbox = PolygonClip.boundingBox(polygon);
         if (!bbox || !bbox.minX || !bbox.minY || !bbox.maxX || !bbox.maxY) {
-          Logger.warn('getElementBoundingBox: failed to compute bounding box from polygon');
+          Logger.warn(
+            "getElementBoundingBox: failed to compute bounding box from polygon",
+          );
           return null;
         }
         const width = bbox.maxX.minus(bbox.minX);
         const height = bbox.maxY.minus(bbox.minY);
         // Check for degenerate bounding box
         if (width.lt(0) || height.lt(0)) {
-          Logger.warn(`getElementBoundingBox: invalid bounding box dimensions (width=${width}, height=${height})`);
+          Logger.warn(
+            `getElementBoundingBox: invalid bounding box dimensions (width=${width}, height=${height})`,
+          );
           return null;
         }
         return {
@@ -1201,10 +1360,16 @@ function getElementBoundingBox(element) {
  */
 export function polygonToPathData(polygon, precision = 6) {
   if (!Array.isArray(polygon)) {
-    throw new Error('polygonToPathData: polygon must be an array');
+    throw new Error("polygonToPathData: polygon must be an array");
   }
-  if (typeof precision !== 'number' || precision < 0 || !Number.isFinite(precision)) {
-    throw new Error(`polygonToPathData: precision must be a non-negative finite number, got ${precision}`);
+  if (
+    typeof precision !== "number" ||
+    precision < 0 ||
+    !Number.isFinite(precision)
+  ) {
+    throw new Error(
+      `polygonToPathData: precision must be a non-negative finite number, got ${precision}`,
+    );
   }
   if (polygon.length < 2) return "";
   const fmt = (n) =>
@@ -1272,20 +1437,22 @@ export function resolveNestedClipPath(
   visited = new Set(),
   options = {},
 ) {
-  if (!clipPathDef || typeof clipPathDef !== 'object') {
-    throw new Error('resolveNestedClipPath: clipPathDef must be an object');
+  if (!clipPathDef || typeof clipPathDef !== "object") {
+    throw new Error("resolveNestedClipPath: clipPathDef must be an object");
   }
   if (!(defsMap instanceof Map)) {
-    throw new Error('resolveNestedClipPath: defsMap must be a Map');
+    throw new Error("resolveNestedClipPath: defsMap must be a Map");
   }
   if (ctm !== null && !(ctm instanceof Matrix)) {
-    throw new Error('resolveNestedClipPath: ctm must be null or a Matrix instance');
+    throw new Error(
+      "resolveNestedClipPath: ctm must be null or a Matrix instance",
+    );
   }
   if (!(visited instanceof Set)) {
-    throw new Error('resolveNestedClipPath: visited must be a Set');
+    throw new Error("resolveNestedClipPath: visited must be a Set");
   }
-  if (typeof options !== 'object' || options === null) {
-    throw new Error('resolveNestedClipPath: options must be an object');
+  if (typeof options !== "object" || options === null) {
+    throw new Error("resolveNestedClipPath: options must be an object");
   }
   const clipId = clipPathDef.id;
   if (clipId && visited.has(clipId)) {
@@ -1300,7 +1467,9 @@ export function resolveNestedClipPath(
     const nestedRef = clipPathDef["clip-path"].replace(/^url\(#?|[)'"]/g, "");
     const nestedClipDef = defsMap.get(nestedRef);
     if (!nestedClipDef) {
-      Logger.warn(`resolveNestedClipPath: referenced clipPath not found: ${nestedRef}`);
+      Logger.warn(
+        `resolveNestedClipPath: referenced clipPath not found: ${nestedRef}`,
+      );
       // Continue with current clipPolygon, ignoring missing reference
     } else {
       const nestedClip = resolveNestedClipPath(
@@ -1318,7 +1487,9 @@ export function resolveNestedClipPath(
         );
         clipPolygon = intersection.length > 0 ? intersection[0] : [];
       } else {
-        Logger.warn(`resolveNestedClipPath: nested clipPath ${nestedRef} resolved to empty polygon`);
+        Logger.warn(
+          `resolveNestedClipPath: nested clipPath ${nestedRef} resolved to empty polygon`,
+        );
         clipPolygon = [];
       }
     }

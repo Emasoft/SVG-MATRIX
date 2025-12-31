@@ -134,7 +134,9 @@ export function color(r, g, b, a = 255) {
  */
 export function parseColor(colorStr, opacity = 1) {
   if (!colorStr || typeof colorStr !== "string") {
-    throw new Error(`parseColor: colorStr must be a non-empty string, got ${colorStr}`);
+    throw new Error(
+      `parseColor: colorStr must be a non-empty string, got ${colorStr}`,
+    );
   }
   if (!Number.isFinite(opacity))
     throw new Error(`parseColor: opacity must be finite, got ${opacity}`);
@@ -397,7 +399,9 @@ export function evalCubicBezier(p0, p1, p2, p3, t) {
     throw new Error(`evalCubicBezier: t must be finite, got ${t}`);
   // Warn if t is outside [0,1] - extrapolation beyond curve endpoints
   if (tDecimal.lt(0) || tDecimal.gt(1)) {
-    console.warn(`evalCubicBezier: t=${t} is outside [0,1], extrapolating beyond curve`);
+    console.warn(
+      `evalCubicBezier: t=${t} is outside [0,1], extrapolating beyond curve`,
+    );
   }
 
   const mt = D(1).minus(tDecimal);
@@ -605,16 +609,24 @@ export class CoonsPatch {
       Math.abs(Number(p1.y) - Number(p2.y)) < tolerance;
 
     if (!pointsEqual(top[0], left[0])) {
-      console.warn("CoonsPatch: top-left corner mismatch - top[0] should equal left[0]");
+      console.warn(
+        "CoonsPatch: top-left corner mismatch - top[0] should equal left[0]",
+      );
     }
     if (!pointsEqual(top[3], right[0])) {
-      console.warn("CoonsPatch: top-right corner mismatch - top[3] should equal right[0]");
+      console.warn(
+        "CoonsPatch: top-right corner mismatch - top[3] should equal right[0]",
+      );
     }
     if (!pointsEqual(bottom[0], left[3])) {
-      console.warn("CoonsPatch: bottom-left corner mismatch - bottom[0] should equal left[3]");
+      console.warn(
+        "CoonsPatch: bottom-left corner mismatch - bottom[0] should equal left[3]",
+      );
     }
     if (!pointsEqual(bottom[3], right[3])) {
-      console.warn("CoonsPatch: bottom-right corner mismatch - bottom[3] should equal right[3]");
+      console.warn(
+        "CoonsPatch: bottom-right corner mismatch - bottom[3] should equal right[3]",
+      );
     }
 
     this.top = top;
@@ -1031,8 +1043,8 @@ export function parseMeshGradient(meshGradientDef) {
   if (meshRows.length > 0) {
     throw new Error(
       "parseMeshGradient: Full mesh parsing not yet implemented. " +
-      "This stub only handles empty meshGradient definitions. " +
-      "To parse actual mesh data, implement path parsing and patch construction logic."
+        "This stub only handles empty meshGradient definitions. " +
+        "To parse actual mesh data, implement path parsing and patch construction logic.",
     );
   }
 
@@ -1305,12 +1317,8 @@ function renderPatchQuad(patch, imageData, width, height) {
       const vDenom = bbox.maxY.minus(bbox.minY);
 
       // For zero-size dimensions, treat as centered at u=0.5 or v=0.5
-      const u = uDenom.isZero()
-        ? D(0.5)
-        : D(x).minus(bbox.minX).div(uDenom);
-      const v = vDenom.isZero()
-        ? D(0.5)
-        : D(y).minus(bbox.minY).div(vDenom);
+      const u = uDenom.isZero() ? D(0.5) : D(x).minus(bbox.minX).div(uDenom);
+      const v = vDenom.isZero() ? D(0.5) : D(y).minus(bbox.minY).div(vDenom);
 
       if (u.gte(0) && u.lte(1) && v.gte(0) && v.lte(1)) {
         const { color: patchColor } = patch.evaluate(u, v);
