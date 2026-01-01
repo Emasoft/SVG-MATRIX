@@ -43,6 +43,11 @@ async function build() {
   const startTime = Date.now();
 
   try {
+    // Read version from package.json
+    const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+    const version = pkg.version;
+    const banner = `/*! svg-matrix v${version} | MIT License | https://github.com/Emasoft/svg-matrix */`;
+
     // Build 1: SVG-Matrix (math library only)
     const mathResult = await Bun.build({
       ...commonOptions,
@@ -50,6 +55,7 @@ async function build() {
       outdir: distDir,
       naming: "svg-matrix.min.js",
       external: [], // Bundle everything including decimal.js
+      banner,
     });
 
     if (!mathResult.success) {
@@ -67,6 +73,7 @@ async function build() {
       outdir: distDir,
       naming: "svg-toolbox.min.js",
       external: ["fs", "path", "url", "jsdom"], // These are Node.js only
+      banner,
     });
 
     if (!toolboxResult.success) {
@@ -83,6 +90,7 @@ async function build() {
       outdir: distDir,
       naming: "svgm.min.js",
       external: ["fs", "path", "url", "jsdom"], // These are Node.js only
+      banner,
     });
 
     if (!svgmResult.success) {
@@ -111,7 +119,6 @@ async function build() {
     console.log(`\nBuild completed in ${elapsed}ms`);
 
     // Generate version file
-    const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
     const versionInfo = {
       version: pkg.version,
       buildTime: new Date().toISOString(),
