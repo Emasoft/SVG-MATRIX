@@ -75,3 +75,4 @@ scripts_dev/
 # W3C test suite (large, downloaded separately)
 SVG 1.1 W3C Test Suit/
 tests_dev/
+test/output/browser-test/
