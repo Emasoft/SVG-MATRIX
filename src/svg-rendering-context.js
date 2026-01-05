@@ -31,10 +31,8 @@ import Decimal from "decimal.js";
 import {
   FillRule,
   pointInPolygonWithRule,
-  offsetPolygon as _offsetPolygon,
   strokeToFilledPolygon,
 } from "./svg-boolean-ops.js";
-import * as _PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });
 
@@ -353,9 +351,9 @@ export class SVGRenderingContext {
       extent = halfWidth.times(this.strokeMiterlimit);
     }
 
-    // Square linecaps extend by half stroke width beyond endpoints - Why: total extent is stroke radius + cap extension = strokeWidth
+    // Square linecaps extend strokeWidth/2 beyond endpoints - Why: total extent is base strokeWidth/2 + cap extension strokeWidth/2 = strokeWidth
     if (this.strokeLinecap === "square") {
-      const capExtent = halfWidth.times(2); // strokeWidth/2 + strokeWidth/2
+      const capExtent = halfWidth.times(2); // Total extent: strokeWidth (base halfWidth + cap halfWidth)
       if (capExtent.gt(extent)) {
         extent = capExtent;
       }

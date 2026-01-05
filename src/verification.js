@@ -15,8 +15,6 @@
  */
 
 import Decimal from "decimal.js";
-import { Matrix as _Matrix } from "./matrix.js";
-import { Vector as _Vector } from "./vector.js";
 import * as Transforms2D from "./transforms2d.js";
 
 // Use high precision for verifications

@@ -8,8 +8,6 @@
  */
 
 import Decimal from "decimal.js";
-import { Matrix as _Matrix } from "./matrix.js";
-import * as _Transforms2D from "./transforms2d.js";
 import * as PolygonClip from "./polygon-clip.js";
 
 Decimal.set({ precision: 80 });

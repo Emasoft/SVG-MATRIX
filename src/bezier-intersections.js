@@ -586,7 +586,7 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
     // Check for convergence by step size
     if (dt1.abs().lt(tol) && dt2.abs().lt(tol)) {
       // BUGFIX: Compute fresh error value instead of using stale one from previous iteration
-      // WHY: The `error` variable computed above (line 368) is from before the parameter update,
+      // WHY: The `error` variable computed above (line 553) is from before the parameter update,
       // so it may not reflect the final accuracy. We need to recompute error for the converged parameters.
       const [finalX, finalY] = bezierPoint(bez1, currentT1);
       const [finalX2, finalY2] = bezierPoint(bez2, currentT2);

@@ -667,30 +667,6 @@ export class SVGElement {
 // ============================================================================
 
 /**
- * Check if whitespace should be preserved based on xml:space attribute.
- * BUG FIX 2: Helper function to check xml:space="preserve" on element or ancestors
- * @private
- * @param {SVGElement} element - Element to check for xml:space attribute
- * @returns {boolean} True if whitespace should be preserved, false otherwise
- */
-function _shouldPreserveWhitespace(element) {
-  // Validation: Ensure element is not null/undefined
-  if (!element) {
-    throw new Error(
-      "_shouldPreserveWhitespace: element cannot be null or undefined",
-    );
-  }
-  let current = element;
-  while (current) {
-    const xmlSpace = current.getAttribute("xml:space");
-    if (xmlSpace === "preserve") return true;
-    if (xmlSpace === "default") return false;
-    current = current.parentNode;
-  }
-  return false;
-}
-
-/**
  * Parse a single element from SVG string.
  * @private
  * @param {string} str - SVG string to parse

@@ -23,15 +23,10 @@ const EPSILON = new Decimal("1e-40");
 
 const {
   point,
-  pointsEqual: _pointsEqual,
   cross,
-  polygonArea: _polygonArea,
   polygonIntersection,
   polygonUnion,
   polygonDifference,
-  isCounterClockwise: _isCounterClockwise,
-  ensureCCW: _ensureCCW,
-  segmentIntersection: _segmentIntersection,
 } = PolygonClip;
 
 // ============================================================================

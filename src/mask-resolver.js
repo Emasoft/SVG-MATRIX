@@ -44,8 +44,6 @@
  */
 
 import Decimal from "decimal.js";
-import { Matrix as _Matrix } from "./matrix.js";
-import * as _Transforms2D from "./transforms2d.js";
 import * as PolygonClip from "./polygon-clip.js";
 import * as ClipPathResolver from "./clip-path-resolver.js";
 import * as MeshGradient from "./mesh-gradient.js";
@@ -1721,10 +1719,15 @@ export function clipWithMeshGradientShape(
   }
 
   // Union all patch polygons to get the complete mesh shape
-  let meshShape = meshPolygons[0].polygon;
-  if (!meshShape || meshShape.length < 3) {
+  // Validate first polygon before use
+  if (
+    !meshPolygons[0] ||
+    !meshPolygons[0].polygon ||
+    meshPolygons[0].polygon.length < 3
+  ) {
     return [];
   }
+  let meshShape = meshPolygons[0].polygon;
 
   for (let i = 1; i < meshPolygons.length; i++) {
     if (
@@ -1817,10 +1820,15 @@ export function meshGradientToClipPath(meshData, options = {}) {
   }
 
   // Union all patches into one shape
-  let result = meshPolygons[0].polygon;
-  if (!result || result.length < 3) {
+  // Validate first polygon before use
+  if (
+    !meshPolygons[0] ||
+    !meshPolygons[0].polygon ||
+    meshPolygons[0].polygon.length < 3
+  ) {
     return [];
   }
+  let result = meshPolygons[0].polygon;
 
   for (let i = 1; i < meshPolygons.length; i++) {
     if (!meshPolygons[i] || !meshPolygons[i].polygon) continue; // Skip invalid polygons

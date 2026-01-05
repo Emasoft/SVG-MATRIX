@@ -196,6 +196,97 @@ export function matricesEqual(m1, m2, tolerance = VERIFICATION_TOLERANCE) {
   return matrixMaxDifference(m1, m2).lessThan(D(tolerance));
 }
 
+/**
+ * Compute the combined matrix from a list of transform objects.
+ * Used internally for verification that optimizations preserve the transform result.
+ *
+ * @param {Array<Object>} transforms - Array of transform objects with type and params
+ * @returns {Matrix} Combined 3x3 transformation matrix
+ *
+ * @example
+ * const transforms = [
+ *   { type: 'translate', params: { tx: 10, ty: 20 } },
+ *   { type: 'rotate', params: { angle: 0.5 } }
+ * ];
+ * const combined = computeCombinedMatrix(transforms);
+ */
+export function computeCombinedMatrix(transforms) {
+  let combined = identityMatrix();
+
+  for (const t of transforms) {
+    // Validate transform object structure
+    if (
+      !t ||
+      typeof t !== "object" ||
+      !t.type ||
+      !t.params ||
+      typeof t.params !== "object"
+    ) {
+      continue; // Skip malformed transforms
+    }
+
+    let m = null;
+    switch (t.type) {
+      case "translate":
+        if (
+          t.params.tx === null ||
+          t.params.tx === undefined ||
+          t.params.ty === null ||
+          t.params.ty === undefined
+        ) {
+          continue; // Skip transforms with missing params
+        }
+        m = translationMatrix(t.params.tx, t.params.ty);
+        break;
+      case "rotate":
+        if (t.params.angle === null || t.params.angle === undefined) {
+          continue; // Skip transforms with missing angle
+        }
+        if (
+          t.params.cx !== undefined &&
+          t.params.cx !== null &&
+          t.params.cy !== undefined &&
+          t.params.cy !== null
+        ) {
+          m = rotationMatrixAroundPoint(
+            t.params.angle,
+            t.params.cx,
+            t.params.cy,
+          );
+        } else {
+          m = rotationMatrix(t.params.angle);
+        }
+        break;
+      case "scale":
+        if (
+          t.params.sx === null ||
+          t.params.sx === undefined ||
+          t.params.sy === null ||
+          t.params.sy === undefined
+        ) {
+          continue; // Skip transforms with missing params
+        }
+        m = scaleMatrix(t.params.sx, t.params.sy);
+        break;
+      case "matrix":
+        if (!t.params.matrix) {
+          continue; // Skip transforms with missing matrix
+        }
+        m = t.params.matrix;
+        break;
+      default:
+        // Skip unknown transform types
+        continue;
+    }
+
+    if (m !== null) {
+      combined = combined.mul(m);
+    }
+  }
+
+  return combined;
+}
+
 // ============================================================================
 // Transform Merging Functions
 // ============================================================================
@@ -920,77 +1011,7 @@ export function optimizeTransformList(transforms) {
   }
 
   // Calculate original combined matrix for verification
-  let originalMatrix = identityMatrix();
-  for (const t of transforms) {
-    // Validate transform object structure
-    if (
-      !t ||
-      typeof t !== "object" ||
-      !t.type ||
-      !t.params ||
-      typeof t.params !== "object"
-    ) {
-      continue; // Skip malformed transforms
-    }
-
-    let m = null; // Initialize m to null to catch missing assignments
-    switch (t.type) {
-      case "translate":
-        if (
-          t.params.tx === null ||
-          t.params.tx === undefined ||
-          t.params.ty === null ||
-          t.params.ty === undefined
-        ) {
-          continue; // Skip transforms with missing params
-        }
-        m = translationMatrix(t.params.tx, t.params.ty);
-        break;
-      case "rotate":
-        if (t.params.angle === null || t.params.angle === undefined) {
-          continue; // Skip transforms with missing angle
-        }
-        if (
-          t.params.cx !== undefined &&
-          t.params.cx !== null &&
-          t.params.cy !== undefined &&
-          t.params.cy !== null
-        ) {
-          m = rotationMatrixAroundPoint(
-            t.params.angle,
-            t.params.cx,
-            t.params.cy,
-          );
-        } else {
-          m = rotationMatrix(t.params.angle);
-        }
-        break;
-      case "scale":
-        if (
-          t.params.sx === null ||
-          t.params.sx === undefined ||
-          t.params.sy === null ||
-          t.params.sy === undefined
-        ) {
-          continue; // Skip transforms with missing params
-        }
-        m = scaleMatrix(t.params.sx, t.params.sy);
-        break;
-      case "matrix":
-        if (!t.params.matrix) {
-          continue; // Skip transforms with missing matrix
-        }
-        m = t.params.matrix;
-        break;
-      default:
-        // Skip unknown transform types, but don't try to multiply null matrix
-        continue;
-    }
-    // Only multiply if m was successfully assigned (prevents undefined matrix multiplication)
-    if (m !== null) {
-      originalMatrix = originalMatrix.mul(m);
-    }
-  }
+  const originalMatrix = computeCombinedMatrix(transforms);
 
   // Step 1: Remove identity transforms
   const { transforms: step1, removedCount: _removedCount } =
@@ -1210,77 +1231,7 @@ export function optimizeTransformList(transforms) {
   const { transforms: final } = removeIdentityTransforms(optimized);
 
   // Calculate optimized combined matrix for verification
-  let optimizedMatrix = identityMatrix();
-  for (const t of final) {
-    // Validate transform object structure
-    if (
-      !t ||
-      typeof t !== "object" ||
-      !t.type ||
-      !t.params ||
-      typeof t.params !== "object"
-    ) {
-      continue; // Skip malformed transforms
-    }
-
-    let m = null; // Initialize m to null to catch missing assignments
-    switch (t.type) {
-      case "translate":
-        if (
-          t.params.tx === null ||
-          t.params.tx === undefined ||
-          t.params.ty === null ||
-          t.params.ty === undefined
-        ) {
-          continue; // Skip transforms with missing params
-        }
-        m = translationMatrix(t.params.tx, t.params.ty);
-        break;
-      case "rotate":
-        if (t.params.angle === null || t.params.angle === undefined) {
-          continue; // Skip transforms with missing angle
-        }
-        if (
-          t.params.cx !== undefined &&
-          t.params.cx !== null &&
-          t.params.cy !== undefined &&
-          t.params.cy !== null
-        ) {
-          m = rotationMatrixAroundPoint(
-            t.params.angle,
-            t.params.cx,
-            t.params.cy,
-          );
-        } else {
-          m = rotationMatrix(t.params.angle);
-        }
-        break;
-      case "scale":
-        if (
-          t.params.sx === null ||
-          t.params.sx === undefined ||
-          t.params.sy === null ||
-          t.params.sy === undefined
-        ) {
-          continue; // Skip transforms with missing params
-        }
-        m = scaleMatrix(t.params.sx, t.params.sy);
-        break;
-      case "matrix":
-        if (!t.params.matrix) {
-          continue; // Skip transforms with missing matrix
-        }
-        m = t.params.matrix;
-        break;
-      default:
-        // Skip unknown transform types, but don't try to multiply null matrix
-        continue;
-    }
-    // Only multiply if m was successfully assigned (prevents undefined matrix multiplication)
-    if (m !== null) {
-      optimizedMatrix = optimizedMatrix.mul(m);
-    }
-  }
+  const optimizedMatrix = computeCombinedMatrix(final);
 
   // VERIFICATION: Combined matrices must be equal
   const maxError = matrixMaxDifference(originalMatrix, optimizedMatrix);

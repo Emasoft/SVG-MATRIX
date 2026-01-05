@@ -14,7 +14,6 @@
  */
 
 import Decimal from "decimal.js";
-import { Matrix as _Matrix } from "./matrix.js";
 import * as SVGFlatten from "./svg-flatten.js";
 
 // Playwright is loaded dynamically to avoid crashes when not installed

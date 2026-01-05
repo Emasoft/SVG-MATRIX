@@ -215,8 +215,8 @@ export function getNodeTypes(element) {
   const nodeTypes = element.getAttribute("sodipodi:nodetypes");
   if (!nodeTypes) return null;
 
-  // Validate format: should only contain c, s, z, a characters
-  if (!/^[csza]+$/i.test(nodeTypes)) return null;
+  // Validate format: should only contain c, s, z, a characters (case-sensitive)
+  if (!/^[csza]+$/.test(nodeTypes)) return null;
 
   return nodeTypes;
 }

@@ -1464,7 +1464,9 @@ export function resolveNestedClipPath(
   let clipPolygon = resolveClipPath(clipPathDef, targetElement, ctm, options);
 
   if (clipPathDef["clip-path"] && clipPolygon.length >= 3) {
-    const nestedRef = clipPathDef["clip-path"].replace(/^url\(#?|[)'"]/g, "");
+    // Extract clipPath ID from url(#id), url('#id'), or url("#id") formats
+    // WHY: Robust extraction handles quoted and unquoted references correctly
+    const nestedRef = clipPathDef["clip-path"].replace(/^url\(['"]?#?|['"]?\)$/g, "");
     const nestedClipDef = defsMap.get(nestedRef);
     if (!nestedClipDef) {
       Logger.warn(

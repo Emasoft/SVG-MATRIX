@@ -459,6 +459,7 @@ export const colorsProps = new Set([
 
 /**
  * Complete list of known SVG elements
+ * Includes both canonical names and lowercase variants for case-insensitive matching
  */
 export const knownElements = new Set([
   // Structural elements
@@ -487,8 +488,13 @@ export const knownElements = new Set([
   "glyphRef",
   // Gradient elements
   "linearGradient",
+  "lineargradient", // lowercase variant for case-insensitive matching
   "radialGradient",
+  "radialgradient", // lowercase variant for case-insensitive matching
   "meshGradient",
+  "meshgradient", // lowercase variant for case-insensitive matching
+  "meshrow", // SVG 2.0 mesh gradient row
+  "meshpatch", // SVG 2.0 mesh gradient patch
   "stop",
   // Container elements
   "a",
@@ -496,6 +502,7 @@ export const knownElements = new Set([
   "mask",
   "pattern",
   "clipPath",
+  "clippath", // lowercase variant for case-insensitive matching
   "switch",
   // Filter elements
   "filter",
@@ -531,8 +538,11 @@ export const knownElements = new Set([
   // Animation elements
   "animate",
   "animateColor",
+  "animatecolor", // lowercase variant for case-insensitive matching
   "animateMotion",
+  "animatemotion", // lowercase variant for case-insensitive matching
   "animateTransform",
+  "animatetransform", // lowercase variant for case-insensitive matching
   "set",
   "mpath",
   // Other elements
@@ -542,6 +552,7 @@ export const knownElements = new Set([
   "style",
   "script",
   "solidColor",
+  "solidcolor", // lowercase variant for case-insensitive matching
   "hatch",
   "hatchpath",
 ]);

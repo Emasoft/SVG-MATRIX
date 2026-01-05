@@ -897,7 +897,7 @@ function loadConfigFile(configPath) {
       process.exit(CONSTANTS.EXIT_ERROR);
     }
     const content = readFileSync(absolutePath, "utf8");
-    // Why: Use safeLoad to prevent arbitrary code execution via YAML (security fix)
+    // Why: Use FAILSAFE_SCHEMA to prevent arbitrary code execution via YAML (security fix)
     const loadedConfig = yaml.load(content, { schema: yaml.FAILSAFE_SCHEMA });
 
     // Why: Validate loaded config is an object to prevent runtime errors
