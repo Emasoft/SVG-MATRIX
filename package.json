@@ -12,6 +12,8 @@
     "test:embed:w3c": "node test/test-embed-w3c.js",
     "test:embed:w3c:all": "node test/test-embed-w3c-all.js",
     "test:toolbox:8bits": "node test/test-toolbox-matrix-8bits.js",
+    "test:fuzz": "node test/test-path-fuzz.js",
+    "test:browser:bundles": "node test/test-browser-bundles.js",
     "test:embed:browser": "node test/test-embed-playwright.js",
     "ci-test": "npm ci && npm test",
     "lint": "node bin/svglinter.cjs",
@@ -87,7 +89,7 @@
     "svglinter": "bin/svglinter.cjs"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.0.0"
   },
   "files": [
     "src/",
