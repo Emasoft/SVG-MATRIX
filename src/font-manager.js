@@ -1,0 +1,980 @@
+/**
+ * @fileoverview Font Management Module for SVG-Matrix
+ *
+ * Core font management functionality extracted from svg-toolbox.js.
+ * Provides utilities for:
+ * - Font embedding (convert external fonts to base64 data URIs)
+ * - Font extraction (extract embedded fonts to files)
+ * - Font listing and analysis
+ * - Google Fonts character subsetting
+ * - Local system font detection
+ * - YAML replacement map processing
+ *
+ * @module font-manager
+ * @license MIT
+ */
+
+import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from "fs";
+import { join, dirname, basename, extname, resolve } from "path";
+import { homedir, platform } from "os";
+import { execSync, execFileSync } from "child_process";
+import yaml from "js-yaml";
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/**
+ * Default replacement map filename
+ * @constant {string}
+ */
+export const DEFAULT_REPLACEMENT_MAP = "svgm_replacement_map.yml";
+
+/**
+ * Environment variable for custom replacement map path
+ * @constant {string}
+ */
+export const ENV_REPLACEMENT_MAP = "SVGM_REPLACEMENT_MAP";
+
+/**
+ * Common web-safe fonts that browsers have built-in
+ * @constant {string[]}
+ */
+export const WEB_SAFE_FONTS = [
+  "Arial",
+  "Arial Black",
+  "Comic Sans MS",
+  "Courier New",
+  "Georgia",
+  "Impact",
+  "Times New Roman",
+  "Trebuchet MS",
+  "Verdana",
+  "Lucida Console",
+  "Lucida Sans Unicode",
+  "Palatino Linotype",
+  "Tahoma",
+  "Geneva",
+  "Helvetica",
+  "sans-serif",
+  "serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+];
+
+/**
+ * Font formats and their MIME types
+ * @constant {Object}
+ */
+export const FONT_FORMATS = {
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".eot": "application/vnd.ms-fontobject",
+  ".svg": "image/svg+xml",
+};
+
+/**
+ * System font directories by platform
+ * @constant {Object}
+ */
+export const SYSTEM_FONT_PATHS = {
+  darwin: [
+    "/Library/Fonts",
+    "/System/Library/Fonts",
+    join(homedir(), "Library/Fonts"),
+  ],
+  linux: [
+    "/usr/share/fonts",
+    "/usr/local/share/fonts",
+    join(homedir(), ".fonts"),
+    join(homedir(), ".local/share/fonts"),
+  ],
+  win32: [
+    join(process.env.WINDIR || "C:\\Windows", "Fonts"),
+    join(homedir(), "AppData/Local/Microsoft/Windows/Fonts"),
+  ],
+};
+
+// ============================================================================
+// FONT CHARACTER EXTRACTION
+// ============================================================================
+
+/**
+ * Extract all text content from SVG and map to fonts.
+ * Returns a Map where keys are font family names and values are Sets of characters used.
+ *
+ * @param {Object} element - SVG element to scan (DOM element or JSDOM document)
+ * @returns {Map<string, Set<string>>} Font to characters map
+ */
+export function extractFontCharacterMap(element) {
+  const fontMap = new Map();
+
+  const addCharsToFont = (fontFamily, text) => {
+    if (!fontFamily || !text) return;
+    // Normalize font family name (remove quotes, trim, take first in stack)
+    const normalizedFont = fontFamily
+      .replace(/['"]/g, "")
+      .trim()
+      .split(",")[0]
+      .trim();
+    if (!fontMap.has(normalizedFont)) {
+      fontMap.set(normalizedFont, new Set());
+    }
+    const charSet = fontMap.get(normalizedFont);
+    for (const char of text) {
+      charSet.add(char);
+    }
+  };
+
+  const walk = (el) => {
+    if (!el) return;
+
+    // Get font-family from style attribute
+    const style = el.getAttribute?.("style") || "";
+    const fontMatch = style.match(/font-family:\s*([^;]+)/i);
+    const fontFromStyle = fontMatch ? fontMatch[1] : null;
+
+    // Get font-family from font-family attribute
+    const fontFromAttr = el.getAttribute?.("font-family");
+
+    // Get font-family from CSS face attribute (for foreignObject content)
+    const faceAttr = el.getAttribute?.("face");
+
+    const fontFamily = fontFromStyle || fontFromAttr || faceAttr;
+
+    // Get text content from this element
+    // Some DOM implementations (like our svg-parser) store text directly in textContent
+    // without creating actual childNode text nodes. Handle both cases.
+    let directTextContent = "";
+
+    // First try childNodes for standard DOM implementations
+    if (el.childNodes && el.childNodes.length > 0) {
+      for (const node of el.childNodes) {
+        if (node.nodeType === 3) {
+          // TEXT_NODE
+          directTextContent += node.nodeValue || "";
+        }
+      }
+    }
+
+    // If no text found via childNodes, but this is a text/tspan element,
+    // use textContent directly (but only if it has no children to avoid double-counting)
+    const isTextElement = el.tagName === "text" || el.tagName === "tspan";
+    if (!directTextContent && isTextElement && el.textContent) {
+      // Only use textContent if there are no child elements (which would have their own fonts)
+      const hasChildElements = el.children && el.children.length > 0;
+      if (!hasChildElements) {
+        directTextContent = el.textContent;
+      }
+    }
+
+    if (fontFamily && directTextContent.trim()) {
+      addCharsToFont(fontFamily, directTextContent);
+    }
+
+    // Also check for text in <text> and <tspan> elements with inherited font
+    if (isTextElement) {
+      // Try to get inherited font from ancestors if no font on this element
+      let inheritedFont = fontFamily;
+      if (!inheritedFont && el.parentNode) {
+        const parentStyle = el.parentNode.getAttribute?.("style") || "";
+        const parentFontMatch = parentStyle.match(/font-family:\s*([^;]+)/i);
+        inheritedFont = parentFontMatch
+          ? parentFontMatch[1]
+          : el.parentNode.getAttribute?.("font-family");
+      }
+      if (inheritedFont && !fontFamily && directTextContent.trim()) {
+        addCharsToFont(inheritedFont, directTextContent);
+      }
+    }
+
+    // Recurse into children
+    if (el.children) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(element);
+  return fontMap;
+}
+
+/**
+ * Convert font character map to URL-safe text parameter.
+ * @param {Set<string>} charSet - Set of characters
+ * @returns {string} URL-encoded unique characters
+ */
+export function charsToTextParam(charSet) {
+  const uniqueChars = [...charSet].sort().join("");
+  return encodeURIComponent(uniqueChars);
+}
+
+// ============================================================================
+// GOOGLE FONTS UTILITIES
+// ============================================================================
+
+/**
+ * Check if URL is a Google Fonts URL.
+ * @param {string} url - URL to check
+ * @returns {boolean}
+ */
+export function isGoogleFontsUrl(url) {
+  return (
+    url &&
+    (url.includes("fonts.googleapis.com") || url.includes("fonts.gstatic.com"))
+  );
+}
+
+/**
+ * Extract font family name from Google Fonts URL.
+ * @param {string} url - Google Fonts URL
+ * @returns {string|null} Font family name
+ */
+export function extractFontFamilyFromGoogleUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const family = urlObj.searchParams.get("family");
+    if (family) {
+      // Handle "Fira+Mono" or "Fira Mono:400,700"
+      return family.split(":")[0].replace(/\+/g, " ");
+    }
+  } catch {
+    // Try regex fallback
+    const match = url.match(/family=([^&:]+)/);
+    if (match) {
+      return match[1].replace(/\+/g, " ");
+    }
+  }
+  return null;
+}
+
+/**
+ * Add text parameter to Google Fonts URL for character subsetting.
+ * This dramatically reduces font file size by only including needed glyphs.
+ *
+ * @param {string} url - Original Google Fonts URL
+ * @param {string} textParam - URL-encoded characters to include
+ * @returns {string} Modified URL with text parameter
+ */
+export function addTextParamToGoogleFontsUrl(url, textParam) {
+  if (!textParam) return url;
+
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set("text", decodeURIComponent(textParam));
+    return urlObj.toString();
+  } catch {
+    // Fallback: append to URL string
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}text=${textParam}`;
+  }
+}
+
+/**
+ * Build Google Fonts URL for a font family.
+ * @param {string} fontFamily - Font family name
+ * @param {Object} [options={}] - Options
+ * @param {string[]} [options.weights=['400']] - Font weights to include
+ * @param {string[]} [options.styles=['normal']] - Font styles
+ * @param {string} [options.text] - Characters to subset
+ * @param {string} [options.display='swap'] - Font-display value
+ * @returns {string} Google Fonts URL
+ */
+export function buildGoogleFontsUrl(fontFamily, options = {}) {
+  const {
+    weights = ["400"],
+    styles = ["normal"],
+    text,
+    display = "swap",
+  } = options;
+
+  const encodedFamily = fontFamily.replace(/ /g, "+");
+  const weightStr = weights.join(",");
+
+  let url = `https://fonts.googleapis.com/css2?family=${encodedFamily}:wght@${weightStr}&display=${display}`;
+
+  if (text) {
+    url += `&text=${encodeURIComponent(text)}`;
+  }
+
+  return url;
+}
+
+/**
+ * List of common Google Fonts (for heuristic matching)
+ * @constant {string[]}
+ */
+export const POPULAR_GOOGLE_FONTS = [
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Montserrat",
+  "Oswald",
+  "Source Sans Pro",
+  "Raleway",
+  "PT Sans",
+  "Merriweather",
+  "Noto Sans",
+  "Ubuntu",
+  "Playfair Display",
+  "Nunito",
+  "Poppins",
+  "Inter",
+  "Fira Code",
+  "Fira Sans",
+  "Work Sans",
+  "Quicksand",
+  "Inconsolata",
+  "Source Code Pro",
+  "JetBrains Mono",
+  "IBM Plex Sans",
+  "IBM Plex Mono",
+  "Libre Baskerville",
+  "Crimson Text",
+  "EB Garamond",
+  "Spectral",
+  "Bitter",
+  "Zilla Slab",
+];
+
+// ============================================================================
+// LOCAL FONT DETECTION
+// ============================================================================
+
+/**
+ * Get system font directories for current platform
+ * @returns {string[]} Array of font directory paths
+ */
+export function getSystemFontDirs() {
+  const os = platform();
+  return SYSTEM_FONT_PATHS[os] || [];
+}
+
+/**
+ * Check if a font is installed locally on the system.
+ * @param {string} fontFamily - Font family name to check
+ * @returns {Promise<{found: boolean, path?: string}>}
+ */
+export async function checkLocalFont(fontFamily) {
+  const fontDirs = getSystemFontDirs();
+  const normalizedName = fontFamily.toLowerCase().replace(/ /g, "");
+
+  // Common font file naming patterns
+  const patterns = [
+    fontFamily.replace(/ /g, ""),
+    fontFamily.replace(/ /g, "-"),
+    fontFamily.replace(/ /g, "_"),
+    normalizedName,
+  ];
+
+  for (const dir of fontDirs) {
+    if (!existsSync(dir)) continue;
+
+    try {
+      const { readdirSync } = await import("fs");
+      const files = readdirSync(dir, { withFileTypes: true, recursive: true });
+
+      for (const file of files) {
+        if (file.isDirectory()) continue;
+
+        const ext = extname(file.name).toLowerCase();
+        if (!FONT_FORMATS[ext]) continue;
+
+        const baseName = basename(file.name, ext).toLowerCase();
+
+        for (const pattern of patterns) {
+          if (baseName.includes(pattern.toLowerCase())) {
+            return {
+              found: true,
+              path: join(file.parentPath || dir, file.name),
+            };
+          }
+        }
+      }
+    } catch {
+      // Skip inaccessible directories
+    }
+  }
+
+  return { found: false };
+}
+
+/**
+ * List all installed system fonts.
+ * @returns {Promise<Array<{name: string, path: string, format: string}>>}
+ */
+export async function listSystemFonts() {
+  const fonts = [];
+  const fontDirs = getSystemFontDirs();
+
+  for (const dir of fontDirs) {
+    if (!existsSync(dir)) continue;
+
+    try {
+      const { readdirSync } = await import("fs");
+      const files = readdirSync(dir, { withFileTypes: true, recursive: true });
+
+      for (const file of files) {
+        if (file.isDirectory()) continue;
+
+        const ext = extname(file.name).toLowerCase();
+        const format = FONT_FORMATS[ext];
+        if (!format) continue;
+
+        const name = basename(file.name, ext);
+        fonts.push({
+          name,
+          path: join(file.parentPath || dir, file.name),
+          format: ext.slice(1),
+        });
+      }
+    } catch {
+      // Skip inaccessible directories
+    }
+  }
+
+  return fonts;
+}
+
+// ============================================================================
+// EXTERNAL TOOL INTEGRATION
+// ============================================================================
+
+/**
+ * Check if a command exists in PATH
+ * @param {string} cmd - Command name
+ * @returns {boolean}
+ */
+export function commandExists(cmd) {
+  try {
+    execSync(`which ${cmd}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Download font using FontGet (npm package)
+ * @param {string} fontFamily - Font family name
+ * @param {string} outputDir - Output directory
+ * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+ */
+export async function downloadWithFontGet(fontFamily, outputDir) {
+  if (!commandExists("fontget")) {
+    return { success: false, error: "FontGet not installed. Run: npm install -g fontget" };
+  }
+
+  try {
+    mkdirSync(outputDir, { recursive: true });
+    execFileSync("fontget", [fontFamily, "-o", outputDir], {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+
+    // Find downloaded file
+    const { readdirSync } = await import("fs");
+    const files = readdirSync(outputDir);
+    const fontFile = files.find((f) => Object.keys(FONT_FORMATS).some((ext) => f.endsWith(ext)));
+
+    if (fontFile) {
+      return { success: true, path: join(outputDir, fontFile) };
+    }
+    return { success: false, error: "No font file found after download" };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Download font using fnt (Homebrew package)
+ * @param {string} fontFamily - Font family name
+ * @param {string} outputDir - Output directory
+ * @returns {Promise<{success: boolean, path?: string, error?: string}>}
+ */
+export async function downloadWithFnt(fontFamily, outputDir) {
+  if (!commandExists("fnt")) {
+    return { success: false, error: "fnt not installed. Run: brew install alexmyczko/fnt/fnt" };
+  }
+
+  try {
+    mkdirSync(outputDir, { recursive: true });
+    execFileSync("fnt", ["install", fontFamily], {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+
+    // fnt installs to ~/.fonts by default
+    const fntFontsDir = join(homedir(), ".fonts");
+    if (existsSync(fntFontsDir)) {
+      const { readdirSync } = await import("fs");
+      const files = readdirSync(fntFontsDir);
+      const normalizedName = fontFamily.toLowerCase().replace(/ /g, "");
+      const fontFile = files.find((f) => {
+        const base = basename(f, extname(f)).toLowerCase();
+        return (
+          base.includes(normalizedName) &&
+          Object.keys(FONT_FORMATS).some((ext) => f.endsWith(ext))
+        );
+      });
+
+      if (fontFile) {
+        const srcPath = join(fntFontsDir, fontFile);
+        const destPath = join(outputDir, fontFile);
+        copyFileSync(srcPath, destPath);
+        return { success: true, path: destPath };
+      }
+    }
+    return { success: false, error: "Font installed but file not found" };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// REPLACEMENT MAP HANDLING
+// ============================================================================
+
+/**
+ * Load font replacement map from YAML file.
+ *
+ * @param {string} [mapPath] - Path to YAML file. If not provided, checks:
+ *   1. SVGM_REPLACEMENT_MAP environment variable
+ *   2. ./svgm_replacement_map.yml in current directory
+ * @returns {{replacements: Object, options: Object} | null} Parsed map or null if not found
+ */
+export function loadReplacementMap(mapPath) {
+  // Priority: explicit path > env var > default file
+  const pathsToTry = [
+    mapPath,
+    process.env[ENV_REPLACEMENT_MAP],
+    join(process.cwd(), DEFAULT_REPLACEMENT_MAP),
+    join(process.cwd(), "svgm_replacement_map_default.yml"),
+  ].filter(Boolean);
+
+  for (const p of pathsToTry) {
+    if (existsSync(p)) {
+      try {
+        const content = readFileSync(p, "utf8");
+        // Use FAILSAFE_SCHEMA for security (no function execution)
+        const parsed = yaml.load(content, { schema: yaml.FAILSAFE_SCHEMA });
+
+        return {
+          replacements: parsed.replacements || {},
+          options: parsed.options || {
+            default_embed: true,
+            default_subset: true,
+            fallback_source: "google",
+            auto_download: true,
+          },
+          path: p,
+        };
+      } catch (err) {
+        throw new Error(`Failed to parse replacement map ${p}: ${err.message}`);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Apply font replacements to an SVG document.
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @param {Object} replacements - Font replacement map {original: replacement}
+ * @returns {{modified: boolean, replaced: Array<{from: string, to: string}>}}
+ */
+export function applyFontReplacements(doc, replacements) {
+  const result = { modified: false, replaced: [] };
+
+  const replaceInStyle = (styleStr) => {
+    let modified = styleStr;
+    for (const [original, replacement] of Object.entries(replacements)) {
+      const pattern = new RegExp(
+        `(font-family:\\s*)(['"]?)${escapeRegex(original)}\\2`,
+        "gi"
+      );
+      if (pattern.test(modified)) {
+        const newValue =
+          typeof replacement === "string" ? replacement : replacement.replacement;
+        modified = modified.replace(pattern, `$1$2${newValue}$2`);
+        result.replaced.push({ from: original, to: newValue });
+        result.modified = true;
+      }
+    }
+    return modified;
+  };
+
+  const replaceInAttribute = (el, attrName) => {
+    const value = el.getAttribute(attrName);
+    if (!value) return;
+
+    for (const [original, replacement] of Object.entries(replacements)) {
+      const pattern = new RegExp(`^(['"]?)${escapeRegex(original)}\\1$`, "i");
+      if (pattern.test(value.trim())) {
+        const newValue =
+          typeof replacement === "string" ? replacement : replacement.replacement;
+        el.setAttribute(attrName, newValue);
+        result.replaced.push({ from: original, to: newValue });
+        result.modified = true;
+      }
+    }
+  };
+
+  // Walk all elements
+  const walk = (el) => {
+    if (!el) return;
+
+    // Replace in style attribute
+    const style = el.getAttribute?.("style");
+    if (style) {
+      const newStyle = replaceInStyle(style);
+      if (newStyle !== style) {
+        el.setAttribute("style", newStyle);
+      }
+    }
+
+    // Replace in font-family attribute
+    replaceInAttribute(el, "font-family");
+
+    // Replace in face attribute (for foreignObject)
+    replaceInAttribute(el, "face");
+
+    // Recurse
+    if (el.children) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    }
+  };
+
+  // Also check <style> elements
+  const styleElements = doc.querySelectorAll?.("style") || [];
+  for (const styleEl of styleElements) {
+    if (styleEl.textContent) {
+      const newContent = replaceInStyle(styleEl.textContent);
+      if (newContent !== styleEl.textContent) {
+        styleEl.textContent = newContent;
+      }
+    }
+  }
+
+  walk(doc.documentElement || doc);
+
+  return result;
+}
+
+/**
+ * Escape string for use in regex
+ * @param {string} str - String to escape
+ * @returns {string}
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// ============================================================================
+// FONT LISTING AND ANALYSIS
+// ============================================================================
+
+/**
+ * Font information structure
+ * @typedef {Object} FontInfo
+ * @property {string} family - Font family name
+ * @property {string} type - 'embedded' | 'external' | 'system'
+ * @property {string} [source] - URL or path for external fonts
+ * @property {number} [size] - Size in bytes for embedded fonts
+ * @property {Set<string>} [usedChars] - Characters used in SVG
+ */
+
+/**
+ * List all fonts used in an SVG document.
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @returns {FontInfo[]} Array of font information
+ */
+export function listFonts(doc) {
+  const fonts = new Map();
+
+  // Get character usage map
+  const charMap = extractFontCharacterMap(doc.documentElement || doc);
+
+  // Find @font-face rules in <style> elements
+  const styleElements = doc.querySelectorAll?.("style") || [];
+  for (const styleEl of styleElements) {
+    const css = styleEl.textContent || "";
+    const fontFaceRegex = /@font-face\s*\{([^}]*)\}/gi;
+    let match;
+
+    while ((match = fontFaceRegex.exec(css)) !== null) {
+      const block = match[1];
+
+      // Extract font-family
+      const familyMatch = block.match(/font-family:\s*(['"]?)([^;'"]+)\1/i);
+      const family = familyMatch ? familyMatch[2].trim() : null;
+      if (!family) continue;
+
+      // Extract src url
+      const srcMatch = block.match(/src:\s*url\((['"]?)([^)'"]+)\1\)/i);
+      const src = srcMatch ? srcMatch[2] : null;
+
+      // Determine type
+      let type = "embedded";
+      let source = null;
+
+      if (src) {
+        if (src.startsWith("data:")) {
+          type = "embedded";
+          // Calculate size from base64
+          const base64Match = src.match(/base64,(.+)/);
+          if (base64Match) {
+            const size = Math.ceil((base64Match[1].length * 3) / 4);
+            if (!fonts.has(family)) {
+              fonts.set(family, { family, type, size, usedChars: charMap.get(family) });
+            }
+            continue;
+          }
+        } else {
+          type = "external";
+          source = src;
+        }
+      }
+
+      if (!fonts.has(family)) {
+        fonts.set(family, { family, type, source, usedChars: charMap.get(family) });
+      }
+    }
+  }
+
+  // Add fonts from character map that aren't in @font-face (system fonts)
+  for (const [family, chars] of charMap) {
+    if (!fonts.has(family)) {
+      fonts.set(family, {
+        family,
+        type: WEB_SAFE_FONTS.includes(family) ? "system" : "unknown",
+        usedChars: chars,
+      });
+    }
+  }
+
+  return Array.from(fonts.values());
+}
+
+// ============================================================================
+// BACKUP SYSTEM
+// ============================================================================
+
+/**
+ * Create a backup of a file before modifying it.
+ *
+ * @param {string} filePath - Path to file to backup
+ * @param {Object} [options={}] - Options
+ * @param {boolean} [options.noBackup=false] - Skip backup creation
+ * @param {number} [options.maxBackups=100] - Maximum numbered backups
+ * @returns {string|null} Path to backup file, or null if skipped
+ */
+export function createBackup(filePath, options = {}) {
+  const { noBackup = false, maxBackups = 100 } = options;
+
+  if (noBackup || !existsSync(filePath)) {
+    return null;
+  }
+
+  const backupPath = `${filePath}.bak`;
+
+  // If backup exists, create numbered backup
+  let counter = 1;
+  let finalBackupPath = backupPath;
+
+  while (existsSync(finalBackupPath)) {
+    finalBackupPath = `${filePath}.bak.${counter++}`;
+    if (counter > maxBackups) {
+      throw new Error(`Too many backup files (>${maxBackups}). Clean up old backups.`);
+    }
+  }
+
+  copyFileSync(filePath, finalBackupPath);
+  return finalBackupPath;
+}
+
+// ============================================================================
+// VALIDATION
+// ============================================================================
+
+/**
+ * Validate SVG after font operations.
+ *
+ * @param {string} svgContent - SVG content to validate
+ * @param {string} [operation] - Operation that was performed
+ * @returns {{valid: boolean, warnings: string[], errors: string[]}}
+ */
+export async function validateSvgAfterFontOperation(svgContent, operation) {
+  const result = { valid: true, warnings: [], errors: [] };
+
+  try {
+    // Dynamic import JSDOM
+    const { JSDOM } = await import("jsdom");
+    const dom = new JSDOM(svgContent, { contentType: "image/svg+xml" });
+    const doc = dom.window.document;
+
+    // Check for parser errors
+    const parseError = doc.querySelector("parsererror");
+    if (parseError) {
+      result.valid = false;
+      result.errors.push(`Invalid SVG: ${parseError.textContent}`);
+      return result;
+    }
+
+    // Verify SVG root element exists
+    const svg = doc.querySelector("svg");
+    if (!svg) {
+      result.valid = false;
+      result.errors.push("Missing <svg> root element");
+      return result;
+    }
+
+    // Operation-specific validation
+    if (operation === "embed") {
+      // Check for remaining external font URLs
+      const styleElements = doc.querySelectorAll("style");
+      for (const style of styleElements) {
+        const css = style.textContent || "";
+        const urlMatches = css.match(/url\((['"]?)(?!data:)([^)'"]+)\1\)/gi);
+        if (urlMatches) {
+          for (const match of urlMatches) {
+            if (
+              match.includes("fonts.googleapis.com") ||
+              match.includes("fonts.gstatic.com")
+            ) {
+              result.warnings.push(`External font URL still present: ${match}`);
+            }
+          }
+        }
+      }
+    }
+
+    if (operation === "replace") {
+      // Verify font families are valid
+      const fonts = listFonts(doc);
+      for (const font of fonts) {
+        if (font.type === "unknown" && font.usedChars?.size > 0) {
+          result.warnings.push(
+            `Font "${font.family}" is used but not defined or recognized`
+          );
+        }
+      }
+    }
+
+    dom.window.close();
+  } catch (err) {
+    result.valid = false;
+    result.errors.push(`Validation failed: ${err.message}`);
+  }
+
+  return result;
+}
+
+// ============================================================================
+// TEMPLATE GENERATION
+// ============================================================================
+
+/**
+ * Generate YAML replacement map template
+ * @returns {string} YAML template content
+ */
+export function generateReplacementMapTemplate() {
+  return `# SVG Font Replacement Map
+# ========================
+# This file defines font replacements for SVG processing.
+#
+# Format:
+#   original_font: replacement_font
+#
+# Examples:
+#   "Arial": "Inter"           # Replace Arial with Inter
+#   "Times New Roman": "Noto Serif"
+#
+# Font sources (in priority order):
+#   1. Local system fonts
+#   2. Google Fonts (default, free)
+#   3. FontGet (npm: fontget)
+#   4. fnt (brew: alexmyczko/fnt/fnt)
+#
+# Options per font:
+#   embed: true                # Embed as base64 (default: true)
+#   subset: true               # Only include used glyphs (default: true)
+#   source: "google"           # Force specific source
+#   weight: "400,700"          # Specific weights to include
+#   style: "normal,italic"     # Specific styles
+#
+# Advanced format:
+#   "Arial":
+#     replacement: "Inter"
+#     embed: true
+#     subset: true
+#     source: "google"
+#     weights: ["400", "500", "700"]
+
+replacements:
+  # Add your font mappings here
+  # "Original Font": "Replacement Font"
+
+options:
+  default_embed: true
+  default_subset: true
+  fallback_source: "google"
+  auto_download: true
+`;
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export default {
+  // Character extraction
+  extractFontCharacterMap,
+  charsToTextParam,
+
+  // Google Fonts
+  isGoogleFontsUrl,
+  extractFontFamilyFromGoogleUrl,
+  addTextParamToGoogleFontsUrl,
+  buildGoogleFontsUrl,
+  POPULAR_GOOGLE_FONTS,
+
+  // Local fonts
+  getSystemFontDirs,
+  checkLocalFont,
+  listSystemFonts,
+
+  // External tools
+  commandExists,
+  downloadWithFontGet,
+  downloadWithFnt,
+
+  // Replacement map
+  loadReplacementMap,
+  applyFontReplacements,
+  generateReplacementMapTemplate,
+
+  // Font listing
+  listFonts,
+
+  // Backup and validation
+  createBackup,
+  validateSvgAfterFontOperation,
+
+  // Constants
+  DEFAULT_REPLACEMENT_MAP,
+  ENV_REPLACEMENT_MAP,
+  WEB_SAFE_FONTS,
+  FONT_FORMATS,
+  SYSTEM_FONT_PATHS,
+};

@@ -49,7 +49,11 @@
     "3d",
     "rotation",
     "translation",
-    "homogeneous"
+    "homogeneous",
+    "font",
+    "embed",
+    "google-fonts",
+    "subsetting"
   ],
   "exports": {
     ".": {
@@ -86,6 +90,7 @@
   "bin": {
     "svg-matrix": "bin/svg-matrix.js",
     "svgm": "bin/svgm.js",
+    "svgfonts": "bin/svgfonts.js",
     "svglinter": "bin/svglinter.cjs"
   },
   "engines": {
@@ -95,6 +100,7 @@
     "src/",
     "bin/",
     "scripts/",
+    "templates/",
     "dist/",
     "LICENSE",
     "README.md"

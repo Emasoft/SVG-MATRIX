@@ -1,0 +1,53 @@
+# SVG Font Replacement Map
+# ========================
+# This file defines font replacements for SVG processing.
+#
+# Format:
+#   original_font: replacement_font
+#
+# Examples:
+#   "Arial": "Inter"           # Replace Arial with Inter
+#   "Times New Roman": "Noto Serif"
+#
+# Font sources (in priority order):
+#   1. Local system fonts
+#   2. Google Fonts (default, free)
+#   3. FontGet (npm: fontget)
+#   4. fnt (brew: alexmyczko/fnt/fnt)
+#
+# Options per font:
+#   embed: true                # Embed as base64 (default: true)
+#   subset: true               # Only include used glyphs (default: true)
+#   source: "google"           # Force specific source
+#   weight: "400,700"          # Specific weights to include
+#   style: "normal,italic"     # Specific styles
+#
+# Advanced format:
+#   "Arial":
+#     replacement: "Inter"
+#     embed: true
+#     subset: true
+#     source: "google"
+#     weights: ["400", "500", "700"]
+
+replacements:
+  # Common font replacements
+  # "Arial": "Inter"
+  # "Helvetica": "Inter"
+  # "Times New Roman": "Noto Serif"
+  # "Times": "Noto Serif"
+  # "Courier New": "Fira Code"
+  # "Courier": "Fira Code"
+  # "Georgia": "Merriweather"
+  # "Verdana": "Open Sans"
+  # "Comic Sans MS": "Comic Neue"
+
+  # Icon fonts
+  # "Font Awesome": "Font Awesome 6 Free"
+  # "Material Icons": "Material Symbols Outlined"
+
+options:
+  default_embed: true
+  default_subset: true
+  fallback_source: "google"
+  auto_download: true
