@@ -604,6 +604,77 @@ function cmdTemplate() {
 // ============================================================================
 // COMMAND: INTERACTIVE
 // ============================================================================
+
+/**
+ * Box-drawing characters for consistent borders
+ */
+const BOX = {
+  tl: "┌",
+  tr: "┐",
+  bl: "└",
+  br: "┘",
+  h: "─",
+  v: "│",
+  ml: "├",
+  mr: "┤",
+  mt: "┬",
+  mb: "┴",
+  cross: "┼",
+  // Double line variants for headers
+  dh: "═",
+  dtl: "╔",
+  dtr: "╗",
+  dbl: "╚",
+  dbr: "╝",
+  dv: "║",
+  dml: "╠",
+  dmr: "╣",
+};
+
+/**
+ * Draw a horizontal line with box characters
+ */
+function drawLine(width, left = BOX.ml, fill = BOX.h, right = BOX.mr) {
+  return left + fill.repeat(width - 2) + right;
+}
+
+/**
+ * Format a table row with padding
+ */
+function tableRow(cols, widths, sep = BOX.v) {
+  return (
+    sep +
+    cols.map((col, i) => ` ${String(col).slice(0, widths[i] - 2).padEnd(widths[i] - 2)} `).join(sep) +
+    sep
+  );
+}
+
+/**
+ * Format file size for display
+ */
+function formatSize(bytes) {
+  if (!bytes) return "-";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Get status indicator for font type
+ */
+function fontTypeIcon(type) {
+  switch (type) {
+    case "embedded":
+      return `${colors.green}●${colors.reset}`;
+    case "external":
+      return `${colors.yellow}○${colors.reset}`;
+    case "system":
+      return `${colors.cyan}◆${colors.reset}`;
+    default:
+      return `${colors.dim}?${colors.reset}`;
+  }
+}
+
 async function cmdInteractive(files) {
   if (files.length === 0) {
     logError("No input files specified for interactive mode");
@@ -614,6 +685,35 @@ async function cmdInteractive(files) {
   const content = readFileSync(file, "utf8");
   let doc = parseSVG(content);
   let modified = false;
+  let filterText = "";
+  let selectedIdx = -1;
+  let scrollOffset = 0; // For scrolling through long font lists
+  let message = ""; // Status message to display
+  let messageType = "info"; // "info", "success", "error", "warn"
+
+  // Page size for font list (visible rows)
+  const PAGE_SIZE = 10;
+
+  // Undo history (stores serialized SVG states)
+  const history = [];
+  const MAX_HISTORY = 20;
+
+  const pushHistory = () => {
+    const state = serializeSVG(doc);
+    history.push(state);
+    if (history.length > MAX_HISTORY) {
+      history.shift();
+    }
+  };
+
+  const undo = () => {
+    if (history.length > 0) {
+      const prevState = history.pop();
+      doc = parseSVG(prevState);
+      return true;
+    }
+    return false;
+  };
 
   const rl = createInterface({
     input: process.stdin,
@@ -623,60 +723,317 @@ async function cmdInteractive(files) {
   const question = (prompt) =>
     new Promise((resolve) => rl.question(prompt, resolve));
 
+  /**
+   * Read single keypress (for arrow key navigation)
+   */
+  const readKey = () =>
+    new Promise((resolve) => {
+      const wasRaw = process.stdin.isRaw;
+      if (process.stdin.setRawMode) {
+        process.stdin.setRawMode(true);
+      }
+      process.stdin.resume();
+      process.stdin.once("data", (key) => {
+        if (process.stdin.setRawMode) {
+          process.stdin.setRawMode(wasRaw);
+        }
+        resolve(key.toString());
+      });
+    });
+
   // Create backup before interactive session
   if (!config.noBackup) {
     const backupPath = FontManager.createBackup(file, { noBackup: config.noBackup });
     if (backupPath) {
-      log(`Backup created: ${backupPath}`);
+      message = `Backup: ${basename(backupPath)}`;
     }
   }
 
+  // Calculate table widths
+  const TABLE_WIDTH = 76;
+  const COL_WIDTHS = [4, 26, 12, 10, 22]; // #, Font Family, Type, Size, Used Chars
+
+  /**
+   * Display help screen
+   */
+  const showHelp = async () => {
+    console.clear();
+    log(`\n${colors.bright}${BOX.dtl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dtr}${colors.reset}`);
+    log(`${colors.bright}${BOX.dv}${colors.reset} ${"INTERACTIVE MODE HELP".padStart(38).padEnd(TABLE_WIDTH - 4)} ${colors.bright}${BOX.dv}${colors.reset}`);
+    log(`${colors.bright}${BOX.dbl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dbr}${colors.reset}`);
+
+    log(`\n${colors.cyan}Navigation (for long font lists):${colors.reset}`);
+    log(`  ${colors.bright}j${colors.reset}/${colors.bright}↓${colors.reset}    Scroll down one line`);
+    log(`  ${colors.bright}k${colors.reset}/${colors.bright}↑${colors.reset}    Scroll up one line`);
+    log(`  ${colors.bright}n${colors.reset}      Page down (next page)`);
+    log(`  ${colors.bright}p${colors.reset}      Page up (previous page)`);
+    log(`  ${colors.bright}g${colors.reset}      Jump to top of list`);
+    log(`  ${colors.bright}G${colors.reset}      Jump to bottom of list`);
+
+    log(`\n${colors.cyan}Main Menu Commands:${colors.reset}`);
+    log(`  ${colors.bright}1-99${colors.reset}   Select font by number`);
+    log(`  ${colors.bright}a${colors.reset}      Apply action to all fonts`);
+    log(`  ${colors.bright}e${colors.reset}      Embed all external fonts (subset)`);
+    log(`  ${colors.bright}E${colors.reset}      Embed all external fonts (full)`);
+    log(`  ${colors.bright}/${colors.reset}      Search/filter fonts by name`);
+    log(`  ${colors.bright}c${colors.reset}      Clear filter`);
+    log(`  ${colors.bright}u${colors.reset}      Undo last change`);
+    log(`  ${colors.bright}i${colors.reset}      Show SVG info summary`);
+    log(`  ${colors.bright}s${colors.reset}      Save and exit`);
+    log(`  ${colors.bright}q${colors.reset}      Quit without saving`);
+    log(`  ${colors.bright}h${colors.reset}/${colors.bright}?${colors.reset}    Show this help`);
+
+    log(`\n${colors.cyan}Per-Font Commands:${colors.reset}`);
+    log(`  ${colors.bright}e${colors.reset}      Embed font (subset - smaller file)`);
+    log(`  ${colors.bright}E${colors.reset}      Embed font (full - all glyphs)`);
+    log(`  ${colors.bright}r${colors.reset}      Replace with another font`);
+    log(`  ${colors.bright}x${colors.reset}      Extract font to file`);
+    log(`  ${colors.bright}d${colors.reset}      Delete font from SVG`);
+    log(`  ${colors.bright}v${colors.reset}      Validate external URL`);
+    log(`  ${colors.bright}c${colors.reset}      Copy font details to clipboard`);
+    log(`  ${colors.bright}b${colors.reset}      Back to font list`);
+
+    log(`\n${colors.cyan}Legend:${colors.reset}`);
+    log(`  ${colors.green}●${colors.reset} Embedded   ${colors.yellow}○${colors.reset} External   ${colors.cyan}◆${colors.reset} System   ${colors.dim}?${colors.reset} Unknown`);
+
+    log(`\n${colors.dim}Press Enter to return...${colors.reset}`);
+    await question("");
+  };
+
+  /**
+   * Show SVG info summary
+   */
+  const showInfo = async () => {
+    console.clear();
+    const fonts = FontManager.listFonts(doc);
+
+    log(`\n${colors.bright}${BOX.dtl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dtr}${colors.reset}`);
+    log(`${colors.bright}${BOX.dv}${colors.reset} ${"SVG INFORMATION".padStart(38).padEnd(TABLE_WIDTH - 4)} ${colors.bright}${BOX.dv}${colors.reset}`);
+    log(`${colors.bright}${BOX.dbl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dbr}${colors.reset}`);
+
+    log(`\n${colors.cyan}File:${colors.reset} ${basename(file)}`);
+    log(`${colors.cyan}Path:${colors.reset} ${file}`);
+
+    const svgContent = serializeSVG(doc);
+    log(`${colors.cyan}Size:${colors.reset} ${formatSize(svgContent.length)}`);
+
+    log(`\n${colors.cyan}Font Summary:${colors.reset}`);
+    const embedded = fonts.filter((f) => f.type === "embedded").length;
+    const external = fonts.filter((f) => f.type === "external").length;
+    const system = fonts.filter((f) => f.type === "system").length;
+    const unknown = fonts.filter((f) => f.type === "unknown").length;
+
+    log(`  Total fonts:   ${fonts.length}`);
+    log(`  ${colors.green}●${colors.reset} Embedded:    ${embedded}`);
+    log(`  ${colors.yellow}○${colors.reset} External:    ${external}`);
+    log(`  ${colors.cyan}◆${colors.reset} System:      ${system}`);
+    if (unknown > 0) log(`  ${colors.dim}?${colors.reset} Unknown:     ${unknown}`);
+
+    // Calculate total embedded font size
+    const totalEmbedSize = fonts
+      .filter((f) => f.type === "embedded" && f.size)
+      .reduce((sum, f) => sum + f.size, 0);
+
+    if (totalEmbedSize > 0) {
+      log(`\n${colors.cyan}Embedded Font Size:${colors.reset} ${formatSize(totalEmbedSize)}`);
+    }
+
+    // List unique characters used
+    const allChars = new Set();
+    fonts.forEach((f) => {
+      if (f.usedChars) {
+        for (const c of f.usedChars) allChars.add(c);
+      }
+    });
+    log(`${colors.cyan}Unique Characters:${colors.reset} ${allChars.size}`);
+
+    log(`\n${colors.dim}Press Enter to return...${colors.reset}`);
+    await question("");
+  };
+
+  /**
+   * Main interactive loop
+   */
   while (true) {
     console.clear();
     const fonts = FontManager.listFonts(doc);
 
-    log(`\n${colors.bright}Fonts in: ${basename(file)}${colors.reset}`);
-    log("━".repeat(60));
-    log(
-      `  ${colors.cyan}${"#".padEnd(4)}${"Font Family".padEnd(25)}${"Type".padEnd(12)}${"Size".padEnd(12)}Used Chars${colors.reset}`
-    );
-    log("━".repeat(60));
+    // Apply filter
+    const filteredFonts = filterText
+      ? fonts.filter((f) => f.family.toLowerCase().includes(filterText.toLowerCase()))
+      : fonts;
 
-    if (fonts.length === 0) {
-      log(`  ${colors.dim}No fonts found${colors.reset}`);
-    } else {
-      fonts.forEach((font, idx) => {
-        const num = `${idx + 1}.`.padEnd(4);
-        const family = font.family.slice(0, 24).padEnd(25);
-        const type = font.type.padEnd(12);
-        const size = font.size
-          ? `${(font.size / 1024).toFixed(1)} KB`.padEnd(12)
-          : "".padEnd(12);
-        const chars = font.usedChars
-          ? [...font.usedChars].slice(0, 15).join("") +
-            (font.usedChars.size > 15 ? "..." : "")
-          : "";
-        log(`  ${num}${family}${type}${size}${chars}`);
-      });
+    // Header
+    log(`${colors.bright}${BOX.dtl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dtr}${colors.reset}`);
+    const title = ` SVGFONTS INTERACTIVE `;
+    const modIndicator = modified ? `${colors.yellow}[MODIFIED]${colors.reset}` : "";
+    const headerText = `${title}${modIndicator}`.padEnd(TABLE_WIDTH - 4 + (modified ? 14 : 0));
+    log(`${colors.bright}${BOX.dv}${colors.reset}${headerText}${colors.bright}${BOX.dv}${colors.reset}`);
+    log(`${colors.bright}${BOX.dml}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dmr}${colors.reset}`);
+
+    // File info row
+    const fileInfo = ` File: ${basename(file)} `;
+    const fontCount = ` Fonts: ${filteredFonts.length}${filterText ? ` (filtered)` : ``} `;
+    const undoCount = history.length > 0 ? ` Undo: ${history.length} ` : "";
+    log(
+      `${BOX.v}${fileInfo.padEnd(40)}${fontCount.padEnd(20)}${undoCount.padEnd(TABLE_WIDTH - 62)}${BOX.v}`
+    );
+    log(drawLine(TABLE_WIDTH, BOX.ml, BOX.h, BOX.mr));
+
+    // Filter indicator
+    if (filterText) {
+      log(`${BOX.v} ${colors.magenta}Filter: "${filterText}"${colors.reset}${" ".repeat(TABLE_WIDTH - filterText.length - 14)}${BOX.v}`);
+      log(drawLine(TABLE_WIDTH, BOX.ml, BOX.h, BOX.mr));
     }
 
-    log("━".repeat(60));
-    log(`\n${colors.cyan}Actions:${colors.reset}`);
-    log("  [1-9] Select font by number");
-    log("  [a]   Apply to all fonts");
-    log("  [e]   Embed all external fonts");
-    log("  [s]   Save and exit");
-    log("  [q]   Quit without saving");
+    // Column headers
+    log(
+      tableRow(
+        [
+          `${colors.cyan}#${colors.reset}`,
+          `${colors.cyan}Font Family${colors.reset}`,
+          `${colors.cyan}Type${colors.reset}`,
+          `${colors.cyan}Size${colors.reset}`,
+          `${colors.cyan}Used Chars${colors.reset}`,
+        ],
+        COL_WIDTHS
+      )
+    );
+    log(drawLine(TABLE_WIDTH, BOX.ml, BOX.h, BOX.mr));
+
+    // Font rows with pagination
+    if (filteredFonts.length === 0) {
+      const emptyMsg = filterText ? "No fonts match filter" : "No fonts found";
+      log(`${BOX.v} ${colors.dim}${emptyMsg.padEnd(TABLE_WIDTH - 4)}${colors.reset} ${BOX.v}`);
+    } else {
+      // Ensure scroll offset is valid
+      const maxOffset = Math.max(0, filteredFonts.length - PAGE_SIZE);
+      if (scrollOffset > maxOffset) scrollOffset = maxOffset;
+      if (scrollOffset < 0) scrollOffset = 0;
+
+      // Show visible fonts based on scroll position
+      const visibleFonts = filteredFonts.slice(scrollOffset, scrollOffset + PAGE_SIZE);
+      const hasMore = filteredFonts.length > PAGE_SIZE;
+
+      // Show scroll indicator if there are fonts above
+      if (scrollOffset > 0) {
+        log(`${BOX.v} ${colors.dim}  ↑ ${scrollOffset} more above...${" ".repeat(TABLE_WIDTH - 24)}${colors.reset} ${BOX.v}`);
+      }
+
+      visibleFonts.forEach((font, visibleIdx) => {
+        const actualIdx = scrollOffset + visibleIdx;
+        const num = `${actualIdx + 1}.`;
+        const icon = fontTypeIcon(font.type);
+        const family = font.family.slice(0, 22);
+        const typeStr = `${icon} ${font.type}`;
+        const size = formatSize(font.size);
+        const chars = font.usedChars
+          ? [...font.usedChars].slice(0, 18).join("") + (font.usedChars.size > 18 ? "..." : "")
+          : "-";
+
+        // Highlight selected font
+        const isSelected = actualIdx === selectedIdx;
+        const highlight = isSelected ? colors.bright : "";
+        const resetH = isSelected ? colors.reset : "";
+        const selectMarker = isSelected ? "▶" : " ";
+
+        log(
+          `${BOX.v}${selectMarker}${highlight}${num.padEnd(3)}${resetH} ${BOX.v} ${highlight}${family.padEnd(24)}${resetH} ${BOX.v} ${typeStr.padEnd(10 + 9)} ${BOX.v} ${size.padEnd(8)} ${BOX.v} ${chars.padEnd(20)} ${BOX.v}`
+        );
+      });
+
+      // Show scroll indicator if there are fonts below
+      const remaining = filteredFonts.length - scrollOffset - PAGE_SIZE;
+      if (remaining > 0) {
+        log(`${BOX.v} ${colors.dim}  ↓ ${remaining} more below...${" ".repeat(TABLE_WIDTH - 24)}${colors.reset} ${BOX.v}`);
+      }
+
+      // Show pagination info if list is long
+      if (hasMore) {
+        const currentPage = Math.floor(scrollOffset / PAGE_SIZE) + 1;
+        const totalPages = Math.ceil(filteredFonts.length / PAGE_SIZE);
+        const pageInfo = `Page ${currentPage}/${totalPages}`;
+        log(drawLine(TABLE_WIDTH, BOX.ml, BOX.h, BOX.mr));
+        log(`${BOX.v} ${colors.dim}${pageInfo}${colors.reset}${" ".repeat(TABLE_WIDTH - pageInfo.length - 4)} ${BOX.v}`);
+      }
+    }
+
+    // Footer
+    log(`${BOX.bl}${BOX.h.repeat(TABLE_WIDTH - 2)}${BOX.br}`);
+
+    // Status message
+    if (message) {
+      const msgColor =
+        messageType === "success"
+          ? colors.green
+          : messageType === "error"
+            ? colors.red
+            : messageType === "warn"
+              ? colors.yellow
+              : colors.dim;
+      log(`\n${msgColor}${message}${colors.reset}`);
+      message = "";
+    }
+
+    // Action menu - show arrow keys if list is long
+    const hasMoreFonts = filteredFonts.length > PAGE_SIZE;
+    if (hasMoreFonts) {
+      log(`\n${colors.cyan}Navigation:${colors.reset} ${colors.dim}[↑/↓]${colors.reset} scroll  ${colors.dim}[j/k]${colors.reset} up/down  ${colors.dim}[PgUp/PgDn]${colors.reset} page  ${colors.dim}[g/G]${colors.reset} top/bottom`);
+    }
+    log(`${colors.cyan}Commands:${colors.reset} ${colors.dim}[1-99]${colors.reset} select  ${colors.dim}[a]${colors.reset} all  ${colors.dim}[e/E]${colors.reset} embed  ${colors.dim}[/]${colors.reset} filter  ${colors.dim}[u]${colors.reset} undo  ${colors.dim}[s]${colors.reset} save  ${colors.dim}[q]${colors.reset} quit  ${colors.dim}[h]${colors.reset} help`);
 
     const choice = await question(`\n${colors.bright}>${colors.reset} `);
 
-    if (choice === "q") {
+    // Handle vim-style navigation keys
+    if (choice === "j" || choice === "\x1b[B") {
+      // Down arrow or j - scroll down
+      scrollOffset = Math.min(scrollOffset + 1, Math.max(0, filteredFonts.length - PAGE_SIZE));
+      continue;
+    }
+    if (choice === "k" || choice === "\x1b[A") {
+      // Up arrow or k - scroll up
+      scrollOffset = Math.max(0, scrollOffset - 1);
+      continue;
+    }
+    if (choice === "g") {
+      // Go to top
+      scrollOffset = 0;
+      message = "Jumped to top";
+      messageType = "info";
+      continue;
+    }
+    if (choice === "G") {
+      // Go to bottom
+      scrollOffset = Math.max(0, filteredFonts.length - PAGE_SIZE);
+      message = "Jumped to bottom";
+      messageType = "info";
+      continue;
+    }
+    if (choice === "n" || choice === "\x1b[6~") {
+      // Page down (n or PgDn)
+      scrollOffset = Math.min(scrollOffset + PAGE_SIZE, Math.max(0, filteredFonts.length - PAGE_SIZE));
+      continue;
+    }
+    if (choice === "p" || choice === "\x1b[5~") {
+      // Page up (p or PgUp)
+      scrollOffset = Math.max(0, scrollOffset - PAGE_SIZE);
+      continue;
+    }
+
+    // Handle commands
+    if (choice === "q" || choice === "Q") {
+      if (modified) {
+        const confirm = await question(
+          `${colors.yellow}Unsaved changes! Quit anyway? [y/N]${colors.reset} `
+        );
+        if (confirm.toLowerCase() !== "y") continue;
+      }
       log("\nExiting without saving.");
       rl.close();
       return;
     }
 
-    if (choice === "s") {
+    if (choice === "s" || choice === "S") {
       if (modified) {
         const output = serializeSVG(doc);
         const outputPath = config.output || file;
@@ -689,8 +1046,46 @@ async function cmdInteractive(files) {
       return;
     }
 
+    if (choice === "h" || choice === "?" || choice === "H") {
+      await showHelp();
+      continue;
+    }
+
+    if (choice === "i" || choice === "I") {
+      await showInfo();
+      continue;
+    }
+
+    if (choice === "/") {
+      const searchTerm = await question(`${colors.cyan}Filter fonts:${colors.reset} `);
+      filterText = searchTerm.trim();
+      message = filterText ? `Filtering by: "${filterText}"` : "Filter cleared";
+      messageType = "info";
+      continue;
+    }
+
+    if (choice === "c" || choice === "C") {
+      filterText = "";
+      message = "Filter cleared";
+      messageType = "info";
+      continue;
+    }
+
+    if (choice === "u" || choice === "U") {
+      if (undo()) {
+        modified = history.length > 0;
+        message = "Undo successful";
+        messageType = "success";
+      } else {
+        message = "Nothing to undo";
+        messageType = "warn";
+      }
+      continue;
+    }
+
     if (choice === "e") {
-      log("\nEmbedding all external fonts...");
+      log("\nEmbedding all external fonts (subset)...");
+      pushHistory();
       doc = await SVGToolbox.embedExternalDependencies(doc, {
         embedFonts: true,
         embedImages: false,
@@ -699,21 +1094,40 @@ async function cmdInteractive(files) {
         verbose: config.verbose,
       });
       modified = true;
-      logSuccess("Done!");
-      await question("\nPress Enter to continue...");
+      message = "All fonts embedded (subset)";
+      messageType = "success";
       continue;
     }
 
-    if (choice === "a") {
+    if (choice === "E") {
+      log("\nEmbedding all external fonts (full)...");
+      pushHistory();
+      doc = await SVGToolbox.embedExternalDependencies(doc, {
+        embedFonts: true,
+        embedImages: false,
+        embedCSS: true,
+        subsetFonts: false,
+        verbose: config.verbose,
+      });
+      modified = true;
+      message = "All fonts embedded (full)";
+      messageType = "success";
+      continue;
+    }
+
+    if (choice === "a" || choice === "A") {
       log(`\n${colors.cyan}Apply to all fonts:${colors.reset}`);
-      log("  [e] Embed all (subset)");
-      log("  [E] Embed all (full)");
-      log("  [b] Back");
+      log(`  ${colors.dim}[e]${colors.reset} Embed all (subset)`);
+      log(`  ${colors.dim}[E]${colors.reset} Embed all (full)`);
+      log(`  ${colors.dim}[r]${colors.reset} Replace all with mapping`);
+      log(`  ${colors.dim}[d]${colors.reset} Delete all fonts`);
+      log(`  ${colors.dim}[b]${colors.reset} Back`);
 
       const subChoice = await question(`\n${colors.bright}>${colors.reset} `);
 
       if (subChoice === "e" || subChoice === "E") {
         log("\nEmbedding all fonts...");
+        pushHistory();
         doc = await SVGToolbox.embedExternalDependencies(doc, {
           embedFonts: true,
           embedImages: false,
@@ -722,32 +1136,87 @@ async function cmdInteractive(files) {
           verbose: config.verbose,
         });
         modified = true;
-        logSuccess("Done!");
-        await question("\nPress Enter to continue...");
+        message = `All fonts embedded (${subChoice === "e" ? "subset" : "full"})`;
+        messageType = "success";
+      } else if (subChoice === "r") {
+        const mapFile = await question(`${colors.cyan}Replacement map file (or Enter for default):${colors.reset} `);
+        const map = FontManager.loadReplacementMap(mapFile.trim() || null);
+        if (map) {
+          pushHistory();
+          const result = FontManager.applyFontReplacements(doc, map.replacements);
+          if (result.modified) {
+            modified = true;
+            message = `Replaced ${result.replaced.length} font(s)`;
+            messageType = "success";
+          } else {
+            message = "No fonts matched replacement map";
+            messageType = "warn";
+          }
+        } else {
+          message = "No replacement map found";
+          messageType = "error";
+        }
+      } else if (subChoice === "d") {
+        const confirm = await question(
+          `${colors.red}Delete ALL fonts? This cannot be undone! [y/N]${colors.reset} `
+        );
+        if (confirm.toLowerCase() === "y") {
+          pushHistory();
+          // Remove all @font-face rules and font references
+          const styleEls = doc.querySelectorAll?.("style") || [];
+          for (const styleEl of styleEls) {
+            if (styleEl.textContent) {
+              styleEl.textContent = styleEl.textContent.replace(/@font-face\s*\{[^}]*\}/gi, "");
+            }
+          }
+          modified = true;
+          message = "All fonts deleted";
+          messageType = "success";
+        }
       }
       continue;
     }
 
+    // Font selection by number
     const fontIdx = parseInt(choice, 10) - 1;
-    if (fontIdx >= 0 && fontIdx < fonts.length) {
-      const selectedFont = fonts[fontIdx];
+    if (fontIdx >= 0 && fontIdx < filteredFonts.length) {
+      const selectedFont = filteredFonts[fontIdx];
+      selectedIdx = fontIdx;
 
-      log(`\n${colors.bright}Selected: ${selectedFont.family}${colors.reset}`);
-      log(`Type: ${selectedFont.type}`);
-      if (selectedFont.source) log(`Source: ${selectedFont.source}`);
-      if (selectedFont.size) log(`Size: ${(selectedFont.size / 1024).toFixed(1)} KB`);
+      console.clear();
+      log(`\n${colors.bright}${BOX.dtl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dtr}${colors.reset}`);
+      log(`${colors.bright}${BOX.dv}${colors.reset} FONT DETAILS${" ".repeat(TABLE_WIDTH - 16)}${colors.bright}${BOX.dv}${colors.reset}`);
+      log(`${colors.bright}${BOX.dbl}${BOX.dh.repeat(TABLE_WIDTH - 2)}${BOX.dbr}${colors.reset}`);
+
+      log(`\n${colors.cyan}Family:${colors.reset}  ${selectedFont.family}`);
+      log(`${colors.cyan}Type:${colors.reset}    ${fontTypeIcon(selectedFont.type)} ${selectedFont.type}`);
+      if (selectedFont.source) {
+        const srcDisplay =
+          selectedFont.source.length > 60
+            ? selectedFont.source.slice(0, 57) + "..."
+            : selectedFont.source;
+        log(`${colors.cyan}Source:${colors.reset}  ${srcDisplay}`);
+      }
+      if (selectedFont.size) {
+        log(`${colors.cyan}Size:${colors.reset}    ${formatSize(selectedFont.size)}`);
+      }
+      if (selectedFont.usedChars && selectedFont.usedChars.size > 0) {
+        const chars = [...selectedFont.usedChars].sort().join("");
+        const charsDisplay = chars.length > 60 ? chars.slice(0, 57) + "..." : chars;
+        log(`${colors.cyan}Chars:${colors.reset}   ${charsDisplay} (${selectedFont.usedChars.size} unique)`);
+      }
 
       log(`\n${colors.cyan}Actions:${colors.reset}`);
-      log("  [e] Embed (subset)");
-      log("  [E] Embed (full)");
-      log("  [r] Replace with another font");
-      log("  [v] Validate font link");
-      log("  [b] Back to list");
+      log(`  ${colors.dim}[e]${colors.reset} Embed (subset)    ${colors.dim}[E]${colors.reset} Embed (full)`);
+      log(`  ${colors.dim}[r]${colors.reset} Replace font      ${colors.dim}[x]${colors.reset} Extract to file`);
+      log(`  ${colors.dim}[d]${colors.reset} Delete font       ${colors.dim}[v]${colors.reset} Validate URL`);
+      log(`  ${colors.dim}[c]${colors.reset} Copy details      ${colors.dim}[b]${colors.reset} Back to list`);
 
       const action = await question(`\n${colors.bright}>${colors.reset} `);
 
       if (action === "e" || action === "E") {
-        log(`\nEmbedding ${selectedFont.family}...`);
+        log(`\n${colors.dim}Embedding ${selectedFont.family}...${colors.reset}`);
+        pushHistory();
         doc = await SVGToolbox.embedExternalDependencies(doc, {
           embedFonts: true,
           embedImages: false,
@@ -756,38 +1225,120 @@ async function cmdInteractive(files) {
           verbose: config.verbose,
         });
         modified = true;
-        logSuccess("Done!");
-        await question("\nPress Enter to continue...");
+        message = `Embedded: ${selectedFont.family} (${action === "e" ? "subset" : "full"})`;
+        messageType = "success";
       } else if (action === "r") {
-        const newFont = await question("Enter replacement font name: ");
+        const newFont = await question(`${colors.cyan}Replace with:${colors.reset} `);
         if (newFont.trim()) {
+          pushHistory();
           const replaceResult = FontManager.applyFontReplacements(doc, {
             [selectedFont.family]: newFont.trim(),
           });
           if (replaceResult.modified) {
             modified = true;
-            logSuccess(`Replaced: ${selectedFont.family} -> ${newFont.trim()}`);
+            message = `Replaced: ${selectedFont.family} -> ${newFont.trim()}`;
+            messageType = "success";
+          } else {
+            message = "Font not found in document";
+            messageType = "warn";
           }
         }
-        await question("\nPress Enter to continue...");
+      } else if (action === "x") {
+        if (selectedFont.type === "embedded" && selectedFont.size) {
+          const extractDir = await question(
+            `${colors.cyan}Extract to directory [./fonts]:${colors.reset} `
+          );
+          const dir = extractDir.trim() || "./fonts";
+          mkdirSync(dir, { recursive: true });
+
+          // Extract using svg-toolbox
+          await SVGToolbox.exportEmbeddedResources(doc, {
+            outputDir: dir,
+            extractFonts: true,
+            extractImages: false,
+          });
+          message = `Font extracted to: ${dir}`;
+          messageType = "success";
+        } else {
+          message = "Only embedded fonts can be extracted";
+          messageType = "warn";
+        }
+      } else if (action === "d") {
+        const confirm = await question(
+          `${colors.red}Delete ${selectedFont.family}? [y/N]${colors.reset} `
+        );
+        if (confirm.toLowerCase() === "y") {
+          pushHistory();
+          // Remove @font-face for this font
+          const styleEls = doc.querySelectorAll?.("style") || [];
+          for (const styleEl of styleEls) {
+            if (styleEl.textContent) {
+              const pattern = new RegExp(
+                `@font-face\\s*\\{[^}]*font-family:\\s*['"]?${selectedFont.family.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}['"]?[^}]*\\}`,
+                "gi"
+              );
+              styleEl.textContent = styleEl.textContent.replace(pattern, "");
+            }
+          }
+          modified = true;
+          message = `Deleted: ${selectedFont.family}`;
+          messageType = "success";
+        }
       } else if (action === "v") {
-        if (selectedFont.source) {
-          log(`\nValidating: ${selectedFont.source}`);
+        if (selectedFont.source && !selectedFont.source.startsWith("data:")) {
+          log(`\n${colors.dim}Validating: ${selectedFont.source}${colors.reset}`);
           try {
             const response = await fetch(selectedFont.source, { method: "HEAD" });
             if (response.ok) {
-              logSuccess("Font link is valid!");
+              message = `Valid: ${response.status} ${response.statusText}`;
+              messageType = "success";
             } else {
-              logError(`HTTP ${response.status}: ${response.statusText}`);
+              message = `Invalid: HTTP ${response.status}`;
+              messageType = "error";
             }
           } catch (err) {
-            logError(`Failed to validate: ${err.message}`);
+            message = `Error: ${err.message}`;
+            messageType = "error";
           }
         } else {
-          log("No external URL to validate.");
+          message = "No external URL to validate";
+          messageType = "warn";
         }
-        await question("\nPress Enter to continue...");
+      } else if (action === "c") {
+        // Copy font details to clipboard (platform-specific)
+        const details = [
+          `Font Family: ${selectedFont.family}`,
+          `Type: ${selectedFont.type}`,
+          selectedFont.source ? `Source: ${selectedFont.source}` : null,
+          selectedFont.size ? `Size: ${formatSize(selectedFont.size)}` : null,
+          selectedFont.usedChars
+            ? `Characters: ${[...selectedFont.usedChars].join("")}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        try {
+          // Try pbcopy (macOS), xclip (Linux), clip (Windows)
+          const clipCmd =
+            process.platform === "darwin"
+              ? "pbcopy"
+              : process.platform === "win32"
+                ? "clip"
+                : "xclip -selection clipboard";
+          const { execSync } = await import("child_process");
+          execSync(clipCmd, { input: details });
+          message = "Font details copied to clipboard";
+          messageType = "success";
+        } catch {
+          // Fallback: just show the details
+          log(`\n${colors.dim}${details}${colors.reset}`);
+          message = "Could not copy to clipboard (shown above)";
+          messageType = "warn";
+        }
       }
+      // 'b' or any other key returns to list
+      selectedIdx = -1;
     }
   }
 }
