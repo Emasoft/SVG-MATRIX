@@ -13,6 +13,7 @@
   <a href="#part-1-core-math-library">Core Math</a> &#8226;
   <a href="#part-2-svg-toolbox">SVG Toolbox</a> &#8226;
   <a href="#svgm---svgo-compatible-optimizer-drop-in-replacement">svgm (SVGO replacement)</a> &#8226;
+  <a href="#svgfonts---font-management-cli">svgfonts</a> &#8226;
   <a href="#installation">Install</a> &#8226;
   <a href="API.md">API Reference</a>
 </p>
@@ -455,6 +456,80 @@ svglinter --errors-only icons/ # Only show errors
 Finds: broken references, invalid colors, typos in element names, missing attributes.
 
 See [full svglinter documentation](docs/SVGLINTER.md).
+
+---
+
+### `svgfonts` - Font Management CLI
+
+Dedicated tool for SVG font operations: embedding, extraction, replacement, and analysis.
+
+```bash
+# List all fonts used in an SVG
+svgfonts list icon.svg
+
+# Embed external fonts as base64 data URIs
+svgfonts embed icon.svg -o icon-embedded.svg
+
+# Embed with character subsetting (smaller file size)
+svgfonts embed --subset icon.svg -o icon-embedded.svg
+
+# Apply font replacement map
+svgfonts replace --map fonts.yml icons/*.svg
+
+# Interactive font management mode
+svgfonts interactive document.svg
+
+# Generate YAML replacement map template
+svgfonts template > svgm_replacement_map.yml
+
+# Extract embedded fonts to files
+svgfonts extract --extract-dir ./fonts/ document.svg
+```
+
+**Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `list` | List fonts in SVG (family, type, size, used characters) |
+| `embed` | Embed external fonts as base64 data URIs |
+| `extract` | Extract embedded fonts to files |
+| `replace` | Apply font replacement map from YAML |
+| `interactive` | Interactive font management mode |
+| `template` | Generate YAML replacement map template |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `-o, --output <file>` | Output file (default: overwrite input) |
+| `-r, --recursive` | Process directories recursively |
+| `--subset` | Only embed glyphs used in SVG (default) |
+| `--full` | Embed complete font files |
+| `--map <file>` | Path to replacement YAML |
+| `--extract-dir <dir>` | Directory for extracted fonts |
+| `--no-backup` | Skip backup creation |
+| `--validate` | Validate SVG after operations |
+| `--dry-run` | Preview changes without writing |
+
+**Font Replacement Map (YAML):**
+
+```yaml
+# svgm_replacement_map.yml
+replacements:
+  "Arial": "Inter"
+  "Times New Roman": "Noto Serif"
+  "Courier New": "Fira Code"
+
+options:
+  default_embed: true
+  default_subset: true
+  fallback_source: "google"
+  auto_download: true
+```
+
+Use environment variable `SVGM_REPLACEMENT_MAP` to set default map path.
+
+Run `svgfonts --help` for all options.
 
 ---
 

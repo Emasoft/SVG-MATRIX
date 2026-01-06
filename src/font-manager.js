@@ -14,7 +14,7 @@
  * @license MIT
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, readdirSync } from "fs";
 import { join, dirname, basename, extname, resolve } from "path";
 import { homedir, platform } from "os";
 import { execSync, execFileSync } from "child_process";
@@ -356,6 +356,40 @@ export function getSystemFontDirs() {
 }
 
 /**
+ * Recursively read directory, compatible with Node 18.0+
+ * Node 18.17+ has native recursive support, older versions need manual recursion
+ * @private
+ * @param {string} dir - Directory to read
+ * @returns {Array<{name: string, path: string, isDirectory: () => boolean}>}
+ */
+function readdirRecursive(dir) {
+  const results = [];
+
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recurse into subdirectory
+        results.push(...readdirRecursive(fullPath));
+      } else {
+        results.push({
+          name: entry.name,
+          path: fullPath,
+          isDirectory: () => false,
+        });
+      }
+    }
+  } catch {
+    // Skip inaccessible directories
+  }
+
+  return results;
+}
+
+/**
  * Check if a font is installed locally on the system.
  * @param {string} fontFamily - Font family name to check
  * @returns {Promise<{found: boolean, path?: string}>}
@@ -376,8 +410,7 @@ export async function checkLocalFont(fontFamily) {
     if (!existsSync(dir)) continue;
 
     try {
-      const { readdirSync } = await import("fs");
-      const files = readdirSync(dir, { withFileTypes: true, recursive: true });
+      const files = readdirRecursive(dir);
 
       for (const file of files) {
         if (file.isDirectory()) continue;
@@ -391,7 +424,7 @@ export async function checkLocalFont(fontFamily) {
           if (baseName.includes(pattern.toLowerCase())) {
             return {
               found: true,
-              path: join(file.parentPath || dir, file.name),
+              path: file.path,
             };
           }
         }
@@ -416,8 +449,7 @@ export async function listSystemFonts() {
     if (!existsSync(dir)) continue;
 
     try {
-      const { readdirSync } = await import("fs");
-      const files = readdirSync(dir, { withFileTypes: true, recursive: true });
+      const files = readdirRecursive(dir);
 
       for (const file of files) {
         if (file.isDirectory()) continue;
@@ -429,7 +461,7 @@ export async function listSystemFonts() {
         const name = basename(file.name, ext);
         fonts.push({
           name,
-          path: join(file.parentPath || dir, file.name),
+          path: file.path,
           format: ext.slice(1),
         });
       }
@@ -447,12 +479,15 @@ export async function listSystemFonts() {
 
 /**
  * Check if a command exists in PATH
+ * Cross-platform: uses 'where' on Windows, 'which' on Unix
  * @param {string} cmd - Command name
  * @returns {boolean}
  */
 export function commandExists(cmd) {
   try {
-    execSync(`which ${cmd}`, { stdio: "ignore" });
+    // Windows uses 'where', Unix uses 'which'
+    const checkCmd = platform() === "win32" ? "where" : "which";
+    execSync(`${checkCmd} ${cmd}`, { stdio: "ignore" });
     return true;
   } catch {
     return false;
@@ -478,7 +513,6 @@ export async function downloadWithFontGet(fontFamily, outputDir) {
     });
 
     // Find downloaded file
-    const { readdirSync } = await import("fs");
     const files = readdirSync(outputDir);
     const fontFile = files.find((f) => Object.keys(FONT_FORMATS).some((ext) => f.endsWith(ext)));
 
@@ -512,7 +546,6 @@ export async function downloadWithFnt(fontFamily, outputDir) {
     // fnt installs to ~/.fonts by default
     const fntFontsDir = join(homedir(), ".fonts");
     if (existsSync(fntFontsDir)) {
-      const { readdirSync } = await import("fs");
       const files = readdirSync(fntFontsDir);
       const normalizedName = fontFamily.toLowerCase().replace(/ /g, "");
       const fontFile = files.find((f) => {
