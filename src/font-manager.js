@@ -99,6 +99,865 @@ export const SYSTEM_FONT_PATHS = {
   ],
 };
 
+/**
+ * Font cache directory path
+ * @constant {string}
+ */
+export const FONT_CACHE_DIR = join(homedir(), ".cache", "svgm-fonts");
+
+/**
+ * Font cache index filename
+ * @constant {string}
+ */
+export const FONT_CACHE_INDEX = "cache-index.json";
+
+/**
+ * Maximum cache age in milliseconds (30 days)
+ * @constant {number}
+ */
+export const FONT_CACHE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+
+// ============================================================================
+// FONT CACHING SYSTEM
+// ============================================================================
+
+/**
+ * Initialize font cache directory and index
+ * @returns {{cacheDir: string, indexPath: string}}
+ */
+export function initFontCache() {
+  mkdirSync(FONT_CACHE_DIR, { recursive: true });
+  const indexPath = join(FONT_CACHE_DIR, FONT_CACHE_INDEX);
+  if (!existsSync(indexPath)) {
+    writeFileSync(indexPath, JSON.stringify({ fonts: {}, lastCleanup: Date.now() }, null, 2));
+  }
+  return { cacheDir: FONT_CACHE_DIR, indexPath };
+}
+
+/**
+ * Get cached font if available and not expired
+ * @param {string} fontKey - Unique key for the font (URL or family+style+weight hash)
+ * @param {Object} [options={}] - Options
+ * @param {boolean} [options.subsetted=false] - Whether to look for subsetted version
+ * @param {string} [options.chars] - Characters for subset matching
+ * @returns {{found: boolean, path?: string, format?: string, age?: number}}
+ */
+export function getCachedFont(fontKey, options = {}) {
+  const { subsetted = false, chars = "" } = options;
+  const { indexPath } = initFontCache();
+
+  try {
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    const cacheKey = subsetted ? `${fontKey}:subset:${hashString(chars)}` : fontKey;
+    const entry = index.fonts[cacheKey];
+
+    if (!entry) return { found: false };
+
+    // Check if expired
+    const age = Date.now() - entry.timestamp;
+    if (age > FONT_CACHE_MAX_AGE) {
+      return { found: false, expired: true };
+    }
+
+    // Check if file still exists
+    if (!existsSync(entry.path)) {
+      return { found: false, missing: true };
+    }
+
+    return {
+      found: true,
+      path: entry.path,
+      format: entry.format,
+      age,
+      size: entry.size,
+    };
+  } catch {
+    return { found: false };
+  }
+}
+
+/**
+ * Store font in cache
+ * @param {string} fontKey - Unique key for the font
+ * @param {Buffer|string} content - Font content
+ * @param {Object} options - Options
+ * @param {string} options.format - Font format (woff2, woff, ttf, otf)
+ * @param {string} [options.family] - Font family name
+ * @param {boolean} [options.subsetted=false] - Whether this is a subsetted version
+ * @param {string} [options.chars] - Characters included in subset
+ * @returns {{success: boolean, path?: string, error?: string}}
+ */
+export function cacheFontData(fontKey, content, options) {
+  const { format, family = "unknown", subsetted = false, chars = "" } = options;
+  const { cacheDir, indexPath } = initFontCache();
+
+  try {
+    // Generate unique filename
+    const hash = hashString(fontKey + (subsetted ? chars : ""));
+    const ext = format.startsWith(".") ? format : `.${format}`;
+    const filename = `${sanitizeFilename(family)}_${hash.slice(0, 8)}${subsetted ? "_subset" : ""}${ext}`;
+    const fontPath = join(cacheDir, filename);
+
+    // Write font file
+    const buffer = typeof content === "string" ? Buffer.from(content, "base64") : content;
+    writeFileSync(fontPath, buffer);
+
+    // Update index
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    const cacheKey = subsetted ? `${fontKey}:subset:${hashString(chars)}` : fontKey;
+    index.fonts[cacheKey] = {
+      path: fontPath,
+      format: ext.slice(1),
+      family,
+      timestamp: Date.now(),
+      size: buffer.length,
+      subsetted,
+      charsHash: subsetted ? hashString(chars) : null,
+    };
+    writeFileSync(indexPath, JSON.stringify(index, null, 2));
+
+    return { success: true, path: fontPath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Clean up expired cache entries
+ * @returns {{removed: number, freedBytes: number}}
+ */
+export function cleanupFontCache() {
+  const { cacheDir, indexPath } = initFontCache();
+  let removed = 0;
+  let freedBytes = 0;
+
+  try {
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    const now = Date.now();
+    const keysToRemove = [];
+
+    for (const [key, entry] of Object.entries(index.fonts)) {
+      const age = now - entry.timestamp;
+      if (age > FONT_CACHE_MAX_AGE) {
+        keysToRemove.push(key);
+        if (existsSync(entry.path)) {
+          freedBytes += entry.size || 0;
+          try {
+            require("fs").unlinkSync(entry.path);
+          } catch {
+            // File may already be deleted
+          }
+        }
+        removed++;
+      }
+    }
+
+    // Remove from index
+    for (const key of keysToRemove) {
+      delete index.fonts[key];
+    }
+
+    index.lastCleanup = now;
+    writeFileSync(indexPath, JSON.stringify(index, null, 2));
+
+    return { removed, freedBytes };
+  } catch {
+    return { removed: 0, freedBytes: 0 };
+  }
+}
+
+/**
+ * Get cache statistics
+ * @returns {{totalFonts: number, totalSize: number, oldestAge: number, newestAge: number}}
+ */
+export function getFontCacheStats() {
+  const { indexPath } = initFontCache();
+
+  try {
+    const index = JSON.parse(readFileSync(indexPath, "utf8"));
+    const fonts = Object.values(index.fonts);
+    const now = Date.now();
+
+    if (fonts.length === 0) {
+      return { totalFonts: 0, totalSize: 0, oldestAge: 0, newestAge: 0 };
+    }
+
+    const ages = fonts.map((f) => now - f.timestamp);
+    return {
+      totalFonts: fonts.length,
+      totalSize: fonts.reduce((sum, f) => sum + (f.size || 0), 0),
+      oldestAge: Math.max(...ages),
+      newestAge: Math.min(...ages),
+    };
+  } catch {
+    return { totalFonts: 0, totalSize: 0, oldestAge: 0, newestAge: 0 };
+  }
+}
+
+/**
+ * Simple string hash for cache keys
+ * @param {string} str - String to hash
+ * @returns {string} Hex hash
+ */
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, "0");
+}
+
+/**
+ * Sanitize filename for cache storage
+ * @param {string} name - Original name
+ * @returns {string} Safe filename
+ */
+function sanitizeFilename(name) {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 32);
+}
+
+// ============================================================================
+// FONT SUBSETTING (using fonttools/pyftsubset)
+// ============================================================================
+
+/**
+ * Check if fonttools (pyftsubset) is available
+ * @returns {boolean}
+ */
+export function isFonttoolsAvailable() {
+  return commandExists("pyftsubset");
+}
+
+/**
+ * Subset a font file to include only specified characters
+ * Uses fonttools/pyftsubset when available
+ *
+ * @param {string} fontPath - Path to input font file (TTF/OTF/WOFF/WOFF2)
+ * @param {string} chars - Characters to include in subset
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.outputPath] - Output path (default: auto-generated)
+ * @param {string} [options.outputFormat] - Output format (woff2, woff, ttf)
+ * @param {boolean} [options.layoutFeatures=true] - Include OpenType layout features
+ * @returns {Promise<{success: boolean, path?: string, size?: number, originalSize?: number, error?: string}>}
+ */
+export async function subsetFont(fontPath, chars, options = {}) {
+  const { outputFormat = "woff2", layoutFeatures = true } = options;
+
+  if (!existsSync(fontPath)) {
+    return { success: false, error: `Font file not found: ${fontPath}` };
+  }
+
+  if (!isFonttoolsAvailable()) {
+    return { success: false, error: "fonttools not installed. Install with: pip install fonttools brotli" };
+  }
+
+  if (!chars || chars.length === 0) {
+    return { success: false, error: "No characters specified for subsetting" };
+  }
+
+  // Get original size
+  const originalSize = require("fs").statSync(fontPath).size;
+
+  // Generate output path
+  const inputExt = extname(fontPath);
+  const inputBase = basename(fontPath, inputExt);
+  const outputExt = outputFormat.startsWith(".") ? outputFormat : `.${outputFormat}`;
+  const outputPath = options.outputPath || join(dirname(fontPath), `${inputBase}_subset${outputExt}`);
+
+  try {
+    // Build pyftsubset command
+    const args = [
+      fontPath,
+      `--text=${chars}`,
+      `--output-file=${outputPath}`,
+      `--flavor=${outputFormat.replace(".", "")}`,
+    ];
+
+    // Add layout features if requested
+    if (layoutFeatures) {
+      args.push("--layout-features=*");
+    }
+
+    // Add options for better compression
+    if (outputFormat === "woff2" || outputFormat === ".woff2") {
+      args.push("--with-zopfli");
+    }
+
+    // Execute pyftsubset
+    execFileSync("pyftsubset", args, {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+
+    if (!existsSync(outputPath)) {
+      return { success: false, error: "Subsetting completed but output file not created" };
+    }
+
+    const newSize = require("fs").statSync(outputPath).size;
+    const savings = ((originalSize - newSize) / originalSize * 100).toFixed(1);
+
+    return {
+      success: true,
+      path: outputPath,
+      size: newSize,
+      originalSize,
+      savings: `${savings}%`,
+      chars: chars.length,
+    };
+  } catch (err) {
+    return { success: false, error: `Subsetting failed: ${err.message}` };
+  }
+}
+
+/**
+ * Subset font from buffer/base64 data
+ * Writes to temp file, subsets, and returns result
+ *
+ * @param {Buffer|string} fontData - Font data (Buffer or base64 string)
+ * @param {string} chars - Characters to include
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.inputFormat] - Input format hint (ttf, otf, woff, woff2)
+ * @param {string} [options.outputFormat='woff2'] - Output format
+ * @returns {Promise<{success: boolean, data?: Buffer, size?: number, originalSize?: number, error?: string}>}
+ */
+export async function subsetFontData(fontData, chars, options = {}) {
+  const { inputFormat = "ttf", outputFormat = "woff2" } = options;
+  const tmpDir = join(FONT_CACHE_DIR, "tmp");
+  mkdirSync(tmpDir, { recursive: true });
+
+  const tmpId = `subset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const inputExt = inputFormat.startsWith(".") ? inputFormat : `.${inputFormat}`;
+  const tmpInput = join(tmpDir, `${tmpId}_input${inputExt}`);
+  const outputExt = outputFormat.startsWith(".") ? outputFormat : `.${outputFormat}`;
+  const tmpOutput = join(tmpDir, `${tmpId}_output${outputExt}`);
+
+  try {
+    // Write input file
+    const buffer = typeof fontData === "string" ? Buffer.from(fontData, "base64") : fontData;
+    writeFileSync(tmpInput, buffer);
+
+    // Subset
+    const result = await subsetFont(tmpInput, chars, {
+      outputPath: tmpOutput,
+      outputFormat,
+    });
+
+    if (!result.success) {
+      return result;
+    }
+
+    // Read output
+    const outputData = readFileSync(tmpOutput);
+
+    // Cleanup temp files
+    try {
+      require("fs").unlinkSync(tmpInput);
+      require("fs").unlinkSync(tmpOutput);
+    } catch {
+      // Ignore cleanup errors
+    }
+
+    return {
+      success: true,
+      data: outputData,
+      size: outputData.length,
+      originalSize: buffer.length,
+      savings: result.savings,
+    };
+  } catch (err) {
+    // Cleanup on error
+    try {
+      if (existsSync(tmpInput)) require("fs").unlinkSync(tmpInput);
+      if (existsSync(tmpOutput)) require("fs").unlinkSync(tmpOutput);
+    } catch {
+      // Ignore cleanup errors
+    }
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// WOFF2 COMPRESSION
+// ============================================================================
+
+/**
+ * Convert font to WOFF2 format using fonttools
+ *
+ * @param {string} fontPath - Path to input font (TTF/OTF/WOFF)
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.outputPath] - Output path (default: same dir with .woff2 ext)
+ * @returns {Promise<{success: boolean, path?: string, size?: number, originalSize?: number, error?: string}>}
+ */
+export async function convertToWoff2(fontPath, options = {}) {
+  if (!existsSync(fontPath)) {
+    return { success: false, error: `Font file not found: ${fontPath}` };
+  }
+
+  if (!isFonttoolsAvailable()) {
+    return { success: false, error: "fonttools not installed. Install with: pip install fonttools brotli" };
+  }
+
+  const originalSize = require("fs").statSync(fontPath).size;
+  const inputExt = extname(fontPath);
+  const inputBase = basename(fontPath, inputExt);
+  const outputPath = options.outputPath || join(dirname(fontPath), `${inputBase}.woff2`);
+
+  // Skip if already WOFF2
+  if (inputExt.toLowerCase() === ".woff2") {
+    copyFileSync(fontPath, outputPath);
+    return { success: true, path: outputPath, size: originalSize, originalSize, alreadyWoff2: true };
+  }
+
+  try {
+    // Use fonttools ttx to convert
+    execFileSync("fonttools", ["ttLib.woff2", "compress", fontPath, "-o", outputPath], {
+      stdio: "pipe",
+      timeout: 60000,
+    });
+
+    if (!existsSync(outputPath)) {
+      return { success: false, error: "Conversion completed but output file not created" };
+    }
+
+    const newSize = require("fs").statSync(outputPath).size;
+    const savings = ((originalSize - newSize) / originalSize * 100).toFixed(1);
+
+    return {
+      success: true,
+      path: outputPath,
+      size: newSize,
+      originalSize,
+      savings: `${savings}%`,
+    };
+  } catch (err) {
+    return { success: false, error: `WOFF2 conversion failed: ${err.message}` };
+  }
+}
+
+/**
+ * Convert font buffer to WOFF2
+ *
+ * @param {Buffer|string} fontData - Font data (Buffer or base64)
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.inputFormat='ttf'] - Input format hint
+ * @returns {Promise<{success: boolean, data?: Buffer, size?: number, originalSize?: number, error?: string}>}
+ */
+export async function convertDataToWoff2(fontData, options = {}) {
+  const { inputFormat = "ttf" } = options;
+  const tmpDir = join(FONT_CACHE_DIR, "tmp");
+  mkdirSync(tmpDir, { recursive: true });
+
+  const tmpId = `woff2_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const inputExt = inputFormat.startsWith(".") ? inputFormat : `.${inputFormat}`;
+  const tmpInput = join(tmpDir, `${tmpId}_input${inputExt}`);
+  const tmpOutput = join(tmpDir, `${tmpId}_output.woff2`);
+
+  try {
+    // Write input
+    const buffer = typeof fontData === "string" ? Buffer.from(fontData, "base64") : fontData;
+    writeFileSync(tmpInput, buffer);
+
+    // Convert
+    const result = await convertToWoff2(tmpInput, { outputPath: tmpOutput });
+
+    if (!result.success) {
+      return result;
+    }
+
+    // Read output
+    const outputData = readFileSync(tmpOutput);
+
+    // Cleanup
+    try {
+      require("fs").unlinkSync(tmpInput);
+      require("fs").unlinkSync(tmpOutput);
+    } catch {
+      // Ignore
+    }
+
+    return {
+      success: true,
+      data: outputData,
+      size: outputData.length,
+      originalSize: buffer.length,
+      savings: result.savings,
+    };
+  } catch (err) {
+    try {
+      if (existsSync(tmpInput)) require("fs").unlinkSync(tmpInput);
+      if (existsSync(tmpOutput)) require("fs").unlinkSync(tmpOutput);
+    } catch {
+      // Ignore
+    }
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// DUPLICATE @FONT-FACE DETECTION
+// ============================================================================
+
+/**
+ * Detect duplicate @font-face rules in SVG document
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @returns {{duplicates: Array<{family: string, weight: string, style: string, count: number, indices: number[]}>, total: number}}
+ */
+export function detectDuplicateFontFaces(doc) {
+  const styleElements = doc.querySelectorAll?.("style") || [];
+  const fontFaces = [];
+  let index = 0;
+
+  // Extract all @font-face rules
+  for (const styleEl of styleElements) {
+    const css = styleEl.textContent || "";
+    const fontFaceRegex = /@font-face\s*\{([^}]*)\}/gi;
+    let match;
+
+    while ((match = fontFaceRegex.exec(css)) !== null) {
+      const block = match[1];
+
+      // Extract properties
+      const familyMatch = block.match(/font-family:\s*(['"]?)([^;'"]+)\1/i);
+      const weightMatch = block.match(/font-weight:\s*([^;]+)/i);
+      const styleMatch = block.match(/font-style:\s*([^;]+)/i);
+      const srcMatch = block.match(/src:\s*([^;]+)/i);
+
+      const family = familyMatch ? familyMatch[2].trim() : "";
+      const weight = weightMatch ? weightMatch[1].trim() : "400";
+      const style = styleMatch ? styleMatch[1].trim() : "normal";
+      const src = srcMatch ? srcMatch[1].trim() : "";
+
+      fontFaces.push({
+        family,
+        weight,
+        style,
+        src,
+        index: index++,
+        fullMatch: match[0],
+        styleElement: styleEl,
+      });
+    }
+  }
+
+  // Group by family+weight+style
+  const groups = new Map();
+  for (const ff of fontFaces) {
+    const key = `${ff.family}|${ff.weight}|${ff.style}`;
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(ff);
+  }
+
+  // Find duplicates
+  const duplicates = [];
+  for (const [key, entries] of groups) {
+    if (entries.length > 1) {
+      const [family, weight, style] = key.split("|");
+      duplicates.push({
+        family,
+        weight,
+        style,
+        count: entries.length,
+        indices: entries.map((e) => e.index),
+        entries,
+      });
+    }
+  }
+
+  return { duplicates, total: fontFaces.length };
+}
+
+/**
+ * Merge duplicate @font-face rules, keeping the first occurrence
+ *
+ * @param {Object} doc - Parsed SVG document
+ * @returns {{modified: boolean, removed: number, keptIndices: number[]}}
+ */
+export function mergeDuplicateFontFaces(doc) {
+  const { duplicates, total } = detectDuplicateFontFaces(doc);
+
+  if (duplicates.length === 0) {
+    return { modified: false, removed: 0, keptIndices: [] };
+  }
+
+  let removed = 0;
+  const keptIndices = [];
+
+  for (const dup of duplicates) {
+    // Keep the first entry, remove the rest
+    const [keep, ...toRemove] = dup.entries;
+    keptIndices.push(keep.index);
+
+    for (const entry of toRemove) {
+      // Remove from style element
+      const styleEl = entry.styleElement;
+      if (styleEl && styleEl.textContent) {
+        styleEl.textContent = styleEl.textContent.replace(entry.fullMatch, "");
+        removed++;
+      }
+    }
+  }
+
+  return { modified: removed > 0, removed, keptIndices };
+}
+
+// ============================================================================
+// INTELLIGENT FONT SEARCH
+// ============================================================================
+
+/**
+ * Calculate string similarity using Levenshtein distance
+ * @param {string} a - First string
+ * @param {string} b - Second string
+ * @returns {number} Similarity score 0-1 (1 = identical)
+ */
+export function stringSimilarity(a, b) {
+  const aLower = a.toLowerCase().trim();
+  const bLower = b.toLowerCase().trim();
+
+  if (aLower === bLower) return 1;
+  if (aLower.length === 0 || bLower.length === 0) return 0;
+
+  // Check if one contains the other
+  if (aLower.includes(bLower) || bLower.includes(aLower)) {
+    return 0.8;
+  }
+
+  // Levenshtein distance
+  const matrix = [];
+  for (let i = 0; i <= bLower.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= aLower.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= bLower.length; i++) {
+    for (let j = 1; j <= aLower.length; j++) {
+      if (bLower[i - 1] === aLower[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+
+  const distance = matrix[bLower.length][aLower.length];
+  const maxLen = Math.max(aLower.length, bLower.length);
+  return 1 - distance / maxLen;
+}
+
+/**
+ * Normalize font family name for comparison
+ * @param {string} name - Font family name
+ * @returns {string} Normalized name
+ */
+export function normalizeFontName(name) {
+  return name
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\s*(regular|normal|book|roman|medium|text)\s*$/i, "")
+    .trim();
+}
+
+/**
+ * Search for similar fonts across available sources
+ *
+ * @param {string} fontFamily - Font family name to search for
+ * @param {Object} [options={}] - Options
+ * @param {boolean} [options.includeGoogle=true] - Search Google Fonts
+ * @param {boolean} [options.includeLocal=true] - Search local system fonts
+ * @param {number} [options.maxResults=10] - Maximum results to return
+ * @param {number} [options.minSimilarity=0.3] - Minimum similarity threshold
+ * @returns {Promise<Array<{name: string, source: string, similarity: number, weight?: string, path?: string}>>}
+ */
+export async function searchSimilarFonts(fontFamily, options = {}) {
+  const {
+    includeGoogle = true,
+    includeLocal = true,
+    maxResults = 10,
+    minSimilarity = 0.3,
+  } = options;
+
+  const normalizedQuery = normalizeFontName(fontFamily);
+  const results = [];
+
+  // Search Google Fonts
+  if (includeGoogle) {
+    for (const googleFont of POPULAR_GOOGLE_FONTS) {
+      const similarity = stringSimilarity(normalizedQuery, normalizeFontName(googleFont));
+      if (similarity >= minSimilarity) {
+        results.push({
+          name: googleFont,
+          source: "google",
+          similarity,
+          url: buildGoogleFontsUrl(googleFont),
+        });
+      }
+    }
+  }
+
+  // Search local system fonts
+  if (includeLocal) {
+    const systemFonts = await listSystemFonts();
+    for (const font of systemFonts) {
+      const similarity = stringSimilarity(normalizedQuery, normalizeFontName(font.name));
+      if (similarity >= minSimilarity) {
+        results.push({
+          name: font.name,
+          source: "local",
+          similarity,
+          path: font.path,
+          format: font.format,
+        });
+      }
+    }
+  }
+
+  // Sort by similarity descending
+  results.sort((a, b) => b.similarity - a.similarity);
+
+  // Remove duplicates (same name from different sources)
+  const seen = new Set();
+  const uniqueResults = results.filter((r) => {
+    const key = normalizeFontName(r.name);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniqueResults.slice(0, maxResults);
+}
+
+/**
+ * Search and suggest font alternatives when original is unavailable
+ *
+ * @param {string} fontFamily - Original font family
+ * @param {string} [originalUrl] - Original font URL that failed
+ * @param {Object} [options={}] - Options
+ * @returns {Promise<{found: boolean, alternatives: Array, recommendation?: Object}>}
+ */
+export async function findFontAlternatives(fontFamily, originalUrl, options = {}) {
+  const alternatives = await searchSimilarFonts(fontFamily, {
+    maxResults: 10,
+    minSimilarity: 0.4,
+    ...options,
+  });
+
+  if (alternatives.length === 0) {
+    return { found: false, alternatives: [] };
+  }
+
+  // Recommend the best match
+  const recommendation = alternatives[0];
+
+  return {
+    found: true,
+    alternatives,
+    recommendation,
+    originalUrl,
+    message: `Font "${fontFamily}" not found. Best match: "${recommendation.name}" (${Math.round(recommendation.similarity * 100)}% match) from ${recommendation.source}`,
+  };
+}
+
+/**
+ * Try to download a font from available sources
+ *
+ * @param {string} fontFamily - Font family name
+ * @param {Object} [options={}] - Options
+ * @param {string} [options.preferredSource] - Preferred source (google, local, fontget, fnt)
+ * @param {string} [options.outputDir] - Output directory for downloaded font
+ * @param {string[]} [options.weights=['400']] - Font weights to download
+ * @returns {Promise<{success: boolean, path?: string, source?: string, error?: string}>}
+ */
+export async function downloadFont(fontFamily, options = {}) {
+  const {
+    preferredSource,
+    outputDir = join(FONT_CACHE_DIR, "downloads"),
+    weights = ["400"],
+  } = options;
+
+  mkdirSync(outputDir, { recursive: true });
+
+  // Try preferred source first
+  const sources = preferredSource
+    ? [preferredSource, "google", "local", "fontget", "fnt"].filter((s, i, a) => a.indexOf(s) === i)
+    : ["google", "local", "fontget", "fnt"];
+
+  for (const source of sources) {
+    try {
+      switch (source) {
+        case "local": {
+          const localResult = await checkLocalFont(fontFamily);
+          if (localResult.found) {
+            return { success: true, path: localResult.path, source: "local" };
+          }
+          break;
+        }
+
+        case "google": {
+          // Try Google Fonts CSS API
+          const url = buildGoogleFontsUrl(fontFamily, { weights });
+          try {
+            const response = await fetch(url, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; svgm/1.0)" },
+            });
+            if (response.ok) {
+              const css = await response.text();
+              // Extract WOFF2 URL from CSS
+              const woff2Match = css.match(/url\(([^)]+\.woff2[^)]*)\)/i);
+              if (woff2Match) {
+                const fontUrl = woff2Match[1].replace(/['"]/g, "");
+                const fontResponse = await fetch(fontUrl);
+                if (fontResponse.ok) {
+                  const buffer = Buffer.from(await fontResponse.arrayBuffer());
+                  const filename = `${sanitizeFilename(fontFamily)}.woff2`;
+                  const fontPath = join(outputDir, filename);
+                  writeFileSync(fontPath, buffer);
+                  return { success: true, path: fontPath, source: "google" };
+                }
+              }
+            }
+          } catch {
+            // Try next source
+          }
+          break;
+        }
+
+        case "fontget": {
+          const result = await downloadWithFontGet(fontFamily, outputDir);
+          if (result.success) {
+            return { success: true, path: result.path, source: "fontget" };
+          }
+          break;
+        }
+
+        case "fnt": {
+          const result = await downloadWithFnt(fontFamily, outputDir);
+          if (result.success) {
+            return { success: true, path: result.path, source: "fnt" };
+          }
+          break;
+        }
+      }
+    } catch {
+      // Continue to next source
+    }
+  }
+
+  return { success: false, error: `Could not download font "${fontFamily}" from any source` };
+}
+
 // ============================================================================
 // FONT CHARACTER EXTRACTION
 // ============================================================================
@@ -1004,10 +1863,40 @@ export default {
   createBackup,
   validateSvgAfterFontOperation,
 
+  // Font caching
+  initFontCache,
+  getCachedFont,
+  cacheFontData,
+  cleanupFontCache,
+  getFontCacheStats,
+
+  // Font subsetting (requires fonttools/pyftsubset)
+  isFonttoolsAvailable,
+  subsetFont,
+  subsetFontData,
+
+  // WOFF2 compression (requires fonttools)
+  convertToWoff2,
+  convertDataToWoff2,
+
+  // Duplicate detection
+  detectDuplicateFontFaces,
+  mergeDuplicateFontFaces,
+
+  // Intelligent font search
+  stringSimilarity,
+  normalizeFontName,
+  searchSimilarFonts,
+  findFontAlternatives,
+  downloadFont,
+
   // Constants
   DEFAULT_REPLACEMENT_MAP,
   ENV_REPLACEMENT_MAP,
   WEB_SAFE_FONTS,
   FONT_FORMATS,
   SYSTEM_FONT_PATHS,
+  FONT_CACHE_DIR,
+  FONT_CACHE_INDEX,
+  FONT_CACHE_MAX_AGE,
 };

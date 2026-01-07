@@ -84,8 +84,11 @@ const DEFAULT_CONFIG = {
   // Embed options
   subset: true,
   full: false,
+  woff2: false,
   source: null, // 'google' | 'local' | 'fontget' | 'fnt'
   timeout: CONSTANTS.DEFAULT_TIMEOUT,
+  useCache: true,
+  searchAlternatives: false,
   // Replace options
   mapFile: null,
   autoDownload: true,
@@ -94,6 +97,13 @@ const DEFAULT_CONFIG = {
   restoreLinks: false,
   // Template options
   templateOutput: null,
+  // Cache options
+  cacheAction: "stats", // 'stats' | 'clean' | 'list'
+  maxAge: 30, // days
+  // Search options
+  query: null,
+  limit: 10,
+  threshold: 0.3,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -139,6 +149,9 @@ ${colors.cyan}COMMANDS:${colors.reset}
   list        List fonts in SVG
   interactive Interactive font management mode
   template    Generate replacement map template
+  cache       Manage font cache (stats, clean)
+  search      Search for fonts by name with similarity matching
+  dedupe      Detect and merge duplicate @font-face rules
 
 ${colors.cyan}GLOBAL OPTIONS:${colors.reset}
   -i, --input <file>       Input SVG file(s)
@@ -156,8 +169,11 @@ ${colors.cyan}GLOBAL OPTIONS:${colors.reset}
 ${colors.cyan}EMBED OPTIONS:${colors.reset}
   --subset                 Only embed glyphs used in SVG (default)
   --full                   Embed complete font files
+  --woff2                  Convert fonts to WOFF2 format (~30% smaller)
   --source <name>          Preferred font source (google|local|fontget|fnt)
   --timeout <ms>           Download timeout (default: 30000)
+  --no-cache               Disable font caching (enabled by default)
+  --search-alternatives    If font unavailable, search for alternatives
 
 ${colors.cyan}REPLACE OPTIONS:${colors.reset}
   --map <file>             Path to replacement YAML
@@ -170,14 +186,28 @@ ${colors.cyan}EXTRACT OPTIONS:${colors.reset}
 ${colors.cyan}TEMPLATE OPTIONS:${colors.reset}
   --template-output <file> Output path for template (default: stdout)
 
+${colors.cyan}CACHE OPTIONS:${colors.reset}
+  --cache-action <action>  Cache action: stats, clean, list (default: stats)
+  --max-age <days>         Max cache age in days for clean (default: 30)
+
+${colors.cyan}SEARCH OPTIONS:${colors.reset}
+  --query <name>           Font name to search for (required)
+  --limit <n>              Max results to show (default: 10)
+  --threshold <0-1>        Minimum similarity (default: 0.3)
+
 ${colors.cyan}EXAMPLES:${colors.reset}
   svgfonts embed icon.svg              # Embed fonts with subsetting
   svgfonts embed --full icon.svg       # Embed complete fonts
+  svgfonts embed --woff2 icon.svg      # Embed with WOFF2 compression
   svgfonts list document.svg           # List all fonts in SVG
   svgfonts replace --map fonts.yml *.svg  # Apply replacement map
   svgfonts extract -o ./fonts doc.svg  # Extract embedded fonts
   svgfonts interactive icon.svg        # Interactive mode
   svgfonts template > fonts.yml        # Generate template
+  svgfonts cache                       # Show font cache stats
+  svgfonts cache --cache-action clean  # Clean old cached fonts
+  svgfonts search --query "roboto"     # Search for fonts by name
+  svgfonts dedupe icon.svg             # Merge duplicate @font-face rules
 
 ${colors.cyan}ENVIRONMENT:${colors.reset}
   SVGM_REPLACEMENT_MAP     Path to default replacement map YAML
@@ -215,6 +245,9 @@ function parseArgs(args) {
       case "list":
       case "interactive":
       case "template":
+      case "cache":
+      case "search":
+      case "dedupe":
         if (!result.command) {
           result.command = arg;
         } else {
@@ -305,6 +338,41 @@ function parseArgs(args) {
       // Template options
       case "--template-output":
         result.templateOutput = args[++i];
+        break;
+
+      // Embed new options
+      case "--woff2":
+        result.woff2 = true;
+        break;
+
+      case "--no-cache":
+        result.useCache = false;
+        break;
+
+      case "--search-alternatives":
+        result.searchAlternatives = true;
+        break;
+
+      // Cache options
+      case "--cache-action":
+        result.cacheAction = args[++i];
+        break;
+
+      case "--max-age":
+        result.maxAge = parseInt(args[++i], 10);
+        break;
+
+      // Search options
+      case "--query":
+        result.query = args[++i];
+        break;
+
+      case "--limit":
+        result.limit = parseInt(args[++i], 10);
+        break;
+
+      case "--threshold":
+        result.threshold = parseFloat(args[++i]);
         break;
 
       default:
@@ -598,6 +666,176 @@ function cmdTemplate() {
     logSuccess(`Template written to: ${config.templateOutput}`);
   } else {
     console.log(template);
+  }
+}
+
+// ============================================================================
+// COMMAND: CACHE
+// ============================================================================
+function cmdCache() {
+  // Initialize cache if needed
+  const cacheInfo = FontManager.initFontCache();
+
+  switch (config.cacheAction) {
+    case "stats": {
+      const stats = FontManager.getFontCacheStats();
+      log(`\n${colors.bright}Font Cache Statistics${colors.reset}`);
+      log(`${"─".repeat(40)}`);
+      log(`  Location:     ${FontManager.FONT_CACHE_DIR}`);
+      log(`  Total fonts:  ${stats.totalFonts}`);
+      log(`  Total size:   ${formatSize(stats.totalSize)}`);
+      if (stats.oldestAge > 0) {
+        const oldestDays = Math.floor(stats.oldestAge / (24 * 60 * 60 * 1000));
+        const newestDays = Math.floor(stats.newestAge / (24 * 60 * 60 * 1000));
+        log(`  Oldest entry: ${oldestDays} days ago`);
+        log(`  Newest entry: ${newestDays} days ago`);
+      } else {
+        log(`  Oldest entry: N/A`);
+        log(`  Newest entry: N/A`);
+      }
+      break;
+    }
+
+    case "clean": {
+      const maxAgeMs = config.maxAge * 24 * 60 * 60 * 1000;
+      const result = FontManager.cleanupFontCache(maxAgeMs);
+      if (result.removed > 0) {
+        logSuccess(`Cleaned ${result.removed} old cached fonts (${formatSize(result.freedBytes)})`);
+      } else {
+        log("No fonts to clean (all within max age)");
+      }
+      break;
+    }
+
+    case "list": {
+      // Read the cache index directly to get list
+      const indexPath = join(FontManager.FONT_CACHE_DIR, FontManager.FONT_CACHE_INDEX);
+      log(`\n${colors.bright}Cached Fonts${colors.reset}`);
+      log(`${"─".repeat(60)}`);
+      if (existsSync(indexPath)) {
+        try {
+          const index = JSON.parse(readFileSync(indexPath, "utf8"));
+          const entries = Object.entries(index.fonts);
+          if (entries.length > 0) {
+            for (const [key, data] of entries) {
+              const age = Math.floor((Date.now() - data.timestamp) / (24 * 60 * 60 * 1000));
+              log(`  ${key.slice(0, 30).padEnd(30)} ${formatSize(data.size || 0).padStart(10)} ${age}d ago`);
+            }
+          } else {
+            log("  No cached fonts");
+          }
+        } catch {
+          log("  No cached fonts");
+        }
+      } else {
+        log("  No cached fonts");
+      }
+      break;
+    }
+
+    default:
+      logError(`Unknown cache action: ${config.cacheAction}`);
+      process.exit(CONSTANTS.EXIT_ERROR);
+  }
+}
+
+// ============================================================================
+// COMMAND: SEARCH
+// ============================================================================
+async function cmdSearch() {
+  if (!config.query) {
+    logError("Missing --query option. Usage: svgfonts search --query <font-name>");
+    process.exit(CONSTANTS.EXIT_ERROR);
+  }
+
+  log(`\n${colors.bright}Searching for fonts matching: "${config.query}"${colors.reset}`);
+  log(`${"─".repeat(60)}`);
+
+  const results = await FontManager.searchSimilarFonts(config.query, {
+    limit: config.limit,
+    threshold: config.threshold,
+  });
+
+  if (results.length === 0) {
+    log(`No fonts found matching "${config.query}" with similarity >= ${config.threshold}`);
+    return;
+  }
+
+  log(`\n${colors.cyan}#   Similarity  Font Name${" ".repeat(25)}Source${colors.reset}`);
+  log(`${"─".repeat(60)}`);
+
+  results.forEach((result, idx) => {
+    const simPercent = Math.round(result.similarity * 100);
+    const simBar = "█".repeat(Math.round(simPercent / 10)) + "░".repeat(10 - Math.round(simPercent / 10));
+    const simColor = simPercent >= 80 ? colors.green : simPercent >= 50 ? colors.yellow : colors.dim;
+    log(
+      `${(idx + 1).toString().padStart(2)}. ${simColor}${simBar}${colors.reset} ${simPercent.toString().padStart(3)}%  ${result.name.padEnd(28)} ${colors.dim}${result.source}${colors.reset}`
+    );
+  });
+
+  log(`\n${colors.dim}Use 'svgfonts embed --source google <svg>' to embed a font${colors.reset}`);
+}
+
+// ============================================================================
+// COMMAND: DEDUPE
+// ============================================================================
+async function cmdDedupe(files) {
+  for (const file of files) {
+    logVerbose(`Processing: ${file}`);
+
+    const content = readFileSync(file, "utf8");
+
+    // Create backup
+    if (!config.noBackup && !config.dryRun) {
+      const backupPath = FontManager.createBackup(file, { noBackup: config.noBackup });
+      if (backupPath) {
+        logVerbose(`Backup created: ${backupPath}`);
+      }
+    }
+
+    const doc = parseSVG(content);
+
+    // Detect duplicates first
+    const { duplicates, total } = FontManager.detectDuplicateFontFaces(doc);
+
+    if (duplicates.length === 0) {
+      log(`${basename(file)}: No duplicate @font-face rules found (${total} total)`);
+      continue;
+    }
+
+    if (config.dryRun) {
+      log(`[dry-run] Would merge ${duplicates.length} duplicate font group(s) in: ${file}`);
+      for (const dup of duplicates) {
+        log(`  - "${dup.family}" (${dup.weight}/${dup.style}): ${dup.count} occurrences`);
+      }
+      continue;
+    }
+
+    // Merge duplicates
+    const result = FontManager.mergeDuplicateFontFaces(doc);
+
+    if (result.removed > 0) {
+      const output = serializeSVG(doc);
+
+      // Validate if requested
+      if (config.validate) {
+        const validation = await FontManager.validateSvgAfterFontOperation(output, "dedupe");
+        if (!validation.valid) {
+          logError(`Validation failed for ${file}: ${validation.errors.join(", ")}`);
+          continue;
+        }
+      }
+
+      const outputPath = config.output || file;
+      writeFileSync(outputPath, output);
+
+      logSuccess(`Merged ${result.removed} duplicate @font-face rule(s): ${outputPath}`);
+      for (const dup of duplicates) {
+        log(`  - "${dup.family}" (${dup.weight}/${dup.style})`);
+      }
+    } else {
+      log(`${basename(file)}: No duplicates merged`);
+    }
   }
 }
 
@@ -1361,6 +1599,18 @@ async function main() {
     process.exit(CONSTANTS.EXIT_SUCCESS);
   }
 
+  // Handle cache command (no inputs needed)
+  if (config.command === "cache") {
+    cmdCache();
+    process.exit(CONSTANTS.EXIT_SUCCESS);
+  }
+
+  // Handle search command (no inputs needed)
+  if (config.command === "search") {
+    await cmdSearch();
+    process.exit(CONSTANTS.EXIT_SUCCESS);
+  }
+
   // Collect files
   const files = collectSvgFiles(config.inputs, config.recursive);
 
@@ -1392,6 +1642,10 @@ async function main() {
 
       case "interactive":
         await cmdInteractive(files);
+        break;
+
+      case "dedupe":
+        await cmdDedupe(files);
         break;
 
       default:
