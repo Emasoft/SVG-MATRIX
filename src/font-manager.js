@@ -14,7 +14,7 @@
  * @license MIT
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, readdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from "fs";
 import { join, dirname, basename, extname, resolve } from "path";
 import { homedir, platform } from "os";
 import { execSync, execFileSync } from "child_process";
@@ -243,7 +243,7 @@ export function cleanupFontCache() {
         if (existsSync(entry.path)) {
           freedBytes += entry.size || 0;
           try {
-            require("fs").unlinkSync(entry.path);
+            unlinkSync(entry.path);
           } catch {
             // File may already be deleted
           }
@@ -358,7 +358,7 @@ export async function subsetFont(fontPath, chars, options = {}) {
   }
 
   // Get original size
-  const originalSize = require("fs").statSync(fontPath).size;
+  const originalSize = statSync(fontPath).size;
 
   // Generate output path
   const inputExt = extname(fontPath);
@@ -395,7 +395,7 @@ export async function subsetFont(fontPath, chars, options = {}) {
       return { success: false, error: "Subsetting completed but output file not created" };
     }
 
-    const newSize = require("fs").statSync(outputPath).size;
+    const newSize = statSync(outputPath).size;
     const savings = ((originalSize - newSize) / originalSize * 100).toFixed(1);
 
     return {
@@ -453,8 +453,8 @@ export async function subsetFontData(fontData, chars, options = {}) {
 
     // Cleanup temp files
     try {
-      require("fs").unlinkSync(tmpInput);
-      require("fs").unlinkSync(tmpOutput);
+      unlinkSync(tmpInput);
+      unlinkSync(tmpOutput);
     } catch {
       // Ignore cleanup errors
     }
@@ -469,8 +469,8 @@ export async function subsetFontData(fontData, chars, options = {}) {
   } catch (err) {
     // Cleanup on error
     try {
-      if (existsSync(tmpInput)) require("fs").unlinkSync(tmpInput);
-      if (existsSync(tmpOutput)) require("fs").unlinkSync(tmpOutput);
+      if (existsSync(tmpInput)) unlinkSync(tmpInput);
+      if (existsSync(tmpOutput)) unlinkSync(tmpOutput);
     } catch {
       // Ignore cleanup errors
     }
@@ -499,7 +499,7 @@ export async function convertToWoff2(fontPath, options = {}) {
     return { success: false, error: "fonttools not installed. Install with: pip install fonttools brotli" };
   }
 
-  const originalSize = require("fs").statSync(fontPath).size;
+  const originalSize = statSync(fontPath).size;
   const inputExt = extname(fontPath);
   const inputBase = basename(fontPath, inputExt);
   const outputPath = options.outputPath || join(dirname(fontPath), `${inputBase}.woff2`);
@@ -521,7 +521,7 @@ export async function convertToWoff2(fontPath, options = {}) {
       return { success: false, error: "Conversion completed but output file not created" };
     }
 
-    const newSize = require("fs").statSync(outputPath).size;
+    const newSize = statSync(outputPath).size;
     const savings = ((originalSize - newSize) / originalSize * 100).toFixed(1);
 
     return {
@@ -571,8 +571,8 @@ export async function convertDataToWoff2(fontData, options = {}) {
 
     // Cleanup
     try {
-      require("fs").unlinkSync(tmpInput);
-      require("fs").unlinkSync(tmpOutput);
+      unlinkSync(tmpInput);
+      unlinkSync(tmpOutput);
     } catch {
       // Ignore
     }
@@ -586,8 +586,8 @@ export async function convertDataToWoff2(fontData, options = {}) {
     };
   } catch (err) {
     try {
-      if (existsSync(tmpInput)) require("fs").unlinkSync(tmpInput);
-      if (existsSync(tmpOutput)) require("fs").unlinkSync(tmpOutput);
+      if (existsSync(tmpInput)) unlinkSync(tmpInput);
+      if (existsSync(tmpOutput)) unlinkSync(tmpOutput);
     } catch {
       // Ignore
     }
