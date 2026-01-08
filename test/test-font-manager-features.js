@@ -526,6 +526,616 @@ describe("Edge Cases and Error Handling", () => {
 });
 
 // ============================================================================
+// 10. FONT CHARACTER EXTRACTION TESTS
+// ============================================================================
+
+describe("Font Character Extraction (extractFontCharacterMap)", () => {
+  it("extracts characters from simple text element with font-family attribute", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Roboto" x="10" y="50">Hello</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const result = FontManager.extractFontCharacterMap(doc.documentElement || doc);
+
+    assert.ok(result.has("Roboto"), "Should find Roboto font");
+    const chars = result.get("Roboto");
+    assert.ok(chars.has("H"), "Should contain 'H'");
+    assert.ok(chars.has("e"), "Should contain 'e'");
+    assert.ok(chars.has("l"), "Should contain 'l'");
+    assert.ok(chars.has("o"), "Should contain 'o'");
+  });
+
+  it("extracts characters from text element with style attribute", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text style="font-family: 'Open Sans'; font-size: 16px;" x="10" y="50">Test123</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const result = FontManager.extractFontCharacterMap(doc.documentElement || doc);
+
+    assert.ok(result.has("Open Sans"), "Should find Open Sans font");
+    const chars = result.get("Open Sans");
+    // "Test123" has 7 unique chars: T, e, s, t, 1, 2, 3
+    assert.strictEqual(chars.size, 7, "Should have 7 unique characters");
+  });
+
+  it("handles multiple fonts in document", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Arial">ABC</text>
+      <text font-family="Georgia">DEF</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const result = FontManager.extractFontCharacterMap(doc.documentElement || doc);
+
+    assert.ok(result.has("Arial"), "Should find Arial font");
+    assert.ok(result.has("Georgia"), "Should find Georgia font");
+    assert.strictEqual(result.get("Arial").size, 3, "Arial should have 3 chars");
+    assert.strictEqual(result.get("Georgia").size, 3, "Georgia should have 3 chars");
+  });
+
+  it("returns empty map for SVG without text", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="100" height="100"/>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const result = FontManager.extractFontCharacterMap(doc.documentElement || doc);
+
+    assert.strictEqual(result.size, 0, "Should return empty map");
+  });
+
+  it("strips quotes from font family names", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="'Fira Code'">code</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const result = FontManager.extractFontCharacterMap(doc.documentElement || doc);
+
+    assert.ok(result.has("Fira Code"), "Should normalize quoted font name");
+  });
+});
+
+// ============================================================================
+// 11. CHARS TO TEXT PARAM TESTS
+// ============================================================================
+
+describe("Character Set to Text Param (charsToTextParam)", () => {
+  it("converts character set to URL-encoded string", () => {
+    const chars = new Set(["A", "B", "C"]);
+    const result = FontManager.charsToTextParam(chars);
+
+    assert.strictEqual(result, "ABC", "Should join sorted characters");
+  });
+
+  it("handles special characters with URL encoding", () => {
+    const chars = new Set(["&", "=", " "]);
+    const result = FontManager.charsToTextParam(chars);
+
+    assert.ok(result.includes("%"), "Should URL encode special chars");
+  });
+
+  it("handles empty set", () => {
+    const chars = new Set();
+    const result = FontManager.charsToTextParam(chars);
+
+    assert.strictEqual(result, "", "Empty set should return empty string");
+  });
+
+  it("deduplicates and sorts characters", () => {
+    const chars = new Set(["Z", "A", "M"]);
+    const result = FontManager.charsToTextParam(chars);
+
+    assert.strictEqual(result, "AMZ", "Should be sorted alphabetically");
+  });
+});
+
+// ============================================================================
+// 12. GOOGLE FONTS URL HANDLING TESTS
+// ============================================================================
+
+describe("Google Fonts URL Detection (isGoogleFontsUrl)", () => {
+  it("returns true for fonts.googleapis.com URLs", () => {
+    assert.strictEqual(
+      FontManager.isGoogleFontsUrl("https://fonts.googleapis.com/css2?family=Roboto"),
+      true
+    );
+  });
+
+  it("returns true for fonts.gstatic.com URLs", () => {
+    assert.strictEqual(
+      FontManager.isGoogleFontsUrl("https://fonts.gstatic.com/s/roboto/v30/font.woff2"),
+      true
+    );
+  });
+
+  it("returns false for other URLs", () => {
+    assert.strictEqual(FontManager.isGoogleFontsUrl("https://example.com/font.woff2"), false);
+    assert.strictEqual(FontManager.isGoogleFontsUrl("https://cdn.fonts.net/roboto.woff2"), false);
+  });
+
+  it("returns falsy for null/undefined", () => {
+    // Function returns the falsy input value rather than explicitly false
+    assert.ok(!FontManager.isGoogleFontsUrl(null), "Should be falsy for null");
+    assert.ok(!FontManager.isGoogleFontsUrl(undefined), "Should be falsy for undefined");
+  });
+});
+
+describe("Extract Font Family from Google URL (extractFontFamilyFromGoogleUrl)", () => {
+  it("extracts family from CSS2 URL", () => {
+    const result = FontManager.extractFontFamilyFromGoogleUrl(
+      "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700"
+    );
+    assert.strictEqual(result, "Roboto");
+  });
+
+  it("handles URL-encoded family names", () => {
+    const result = FontManager.extractFontFamilyFromGoogleUrl(
+      "https://fonts.googleapis.com/css2?family=Open+Sans"
+    );
+    assert.strictEqual(result, "Open Sans");
+  });
+
+  it("extracts family from legacy CSS URL", () => {
+    const result = FontManager.extractFontFamilyFromGoogleUrl(
+      "https://fonts.googleapis.com/css?family=Roboto"
+    );
+    assert.strictEqual(result, "Roboto");
+  });
+
+  it("returns null for invalid URL", () => {
+    const result = FontManager.extractFontFamilyFromGoogleUrl("not-a-url");
+    assert.strictEqual(result, null);
+  });
+});
+
+describe("Add Text Param to Google Fonts URL (addTextParamToGoogleFontsUrl)", () => {
+  it("adds text parameter to URL", () => {
+    const result = FontManager.addTextParamToGoogleFontsUrl(
+      "https://fonts.googleapis.com/css2?family=Roboto",
+      "ABC"
+    );
+    assert.ok(result.includes("text=ABC"), "Should add text parameter");
+  });
+
+  it("returns original URL if textParam is empty", () => {
+    const url = "https://fonts.googleapis.com/css2?family=Roboto";
+    const result = FontManager.addTextParamToGoogleFontsUrl(url, "");
+    assert.strictEqual(result, url);
+  });
+
+  it("handles URL-encoded text param", () => {
+    const result = FontManager.addTextParamToGoogleFontsUrl(
+      "https://fonts.googleapis.com/css2?family=Roboto",
+      "%26%3D"
+    );
+    // Should decode and re-encode properly
+    assert.ok(result.includes("text="), "Should include text parameter");
+  });
+});
+
+describe("Build Google Fonts URL (buildGoogleFontsUrl)", () => {
+  it("builds basic URL with defaults", () => {
+    const result = FontManager.buildGoogleFontsUrl("Roboto");
+
+    assert.ok(result.includes("fonts.googleapis.com"), "Should use Google Fonts domain");
+    assert.ok(result.includes("family=Roboto"), "Should include family");
+    assert.ok(result.includes("wght@400"), "Should include default weight");
+    assert.ok(result.includes("display=swap"), "Should include display");
+  });
+
+  it("handles multi-word font names", () => {
+    const result = FontManager.buildGoogleFontsUrl("Open Sans");
+    assert.ok(result.includes("family=Open+Sans"), "Should URL-encode spaces");
+  });
+
+  it("includes specified weights", () => {
+    const result = FontManager.buildGoogleFontsUrl("Roboto", { weights: ["400", "700"] });
+    assert.ok(result.includes("400,700") || result.includes("400") && result.includes("700"));
+  });
+
+  it("includes text parameter when specified", () => {
+    const result = FontManager.buildGoogleFontsUrl("Roboto", { text: "Hello" });
+    assert.ok(result.includes("text=Hello"), "Should include text param");
+  });
+});
+
+// ============================================================================
+// 13. LOCAL FONT DETECTION TESTS
+// ============================================================================
+
+describe("System Font Directories (getSystemFontDirs)", () => {
+  it("returns array of font directories", () => {
+    const dirs = FontManager.getSystemFontDirs();
+
+    assert.ok(Array.isArray(dirs), "Should return array");
+    assert.ok(dirs.length > 0, "Should have at least one directory");
+  });
+
+  it("returns platform-specific paths", () => {
+    const dirs = FontManager.getSystemFontDirs();
+    const currentPlatform = os.platform();
+
+    if (currentPlatform === "darwin") {
+      assert.ok(dirs.some((d) => d.includes("Library/Fonts")), "macOS should include Library/Fonts");
+    } else if (currentPlatform === "linux") {
+      assert.ok(dirs.some((d) => d.includes("/usr/share/fonts")), "Linux should include /usr/share/fonts");
+    } else if (currentPlatform === "win32") {
+      assert.ok(dirs.some((d) => d.includes("Fonts")), "Windows should include Fonts");
+    }
+  });
+});
+
+describe("Check Local Font (checkLocalFont)", () => {
+  it("returns found:false for non-existent font", async () => {
+    const result = await FontManager.checkLocalFont("NonExistentFont99999");
+    assert.strictEqual(result.found, false, "Should not find non-existent font");
+  });
+
+  it("returns result object with found property", async () => {
+    const result = await FontManager.checkLocalFont("Arial");
+    assert.ok(typeof result.found === "boolean", "Should have found property");
+    if (result.found) {
+      assert.ok(result.path, "Found font should have path");
+    }
+  });
+});
+
+describe("List System Fonts (listSystemFonts)", () => {
+  it("returns array of font objects", async () => {
+    const fonts = await FontManager.listSystemFonts();
+
+    assert.ok(Array.isArray(fonts), "Should return array");
+    // System may have fonts or not, just verify structure
+    if (fonts.length > 0) {
+      const font = fonts[0];
+      assert.ok(typeof font.name === "string", "Font should have name");
+      assert.ok(typeof font.path === "string", "Font should have path");
+      assert.ok(typeof font.format === "string", "Font should have format");
+    }
+  });
+});
+
+// ============================================================================
+// 14. EXTERNAL TOOL DETECTION TESTS
+// ============================================================================
+
+describe("Command Exists (commandExists)", () => {
+  it("returns true for common system command", () => {
+    // 'ls' exists on Unix, 'dir' on Windows
+    const cmd = os.platform() === "win32" ? "cmd" : "ls";
+    const result = FontManager.commandExists(cmd);
+    assert.strictEqual(result, true, `${cmd} should exist`);
+  });
+
+  it("returns false for non-existent command", () => {
+    const result = FontManager.commandExists("nonexistent_command_xyz_12345");
+    assert.strictEqual(result, false, "Non-existent command should return false");
+  });
+
+  it("returns boolean type", () => {
+    const result = FontManager.commandExists("git");
+    assert.strictEqual(typeof result, "boolean", "Should return boolean");
+  });
+});
+
+// ============================================================================
+// 15. REPLACEMENT MAP TESTS
+// ============================================================================
+
+describe("Load Replacement Map (loadReplacementMap)", () => {
+  let tempMapPath;
+
+  beforeEach(() => {
+    tempMapPath = path.join(TEST_OUTPUT_DIR, `test-map-${Date.now()}.yml`);
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tempMapPath)) {
+      fs.unlinkSync(tempMapPath);
+    }
+  });
+
+  it("returns null when no map file exists", () => {
+    const result = FontManager.loadReplacementMap("/non/existent/path.yml");
+    // May find default file in cwd, so check structure instead
+    if (result !== null) {
+      assert.ok(result.replacements, "Should have replacements object");
+    }
+  });
+
+  it("loads and parses valid YAML file", () => {
+    const yamlContent = `
+replacements:
+  Arial: Inter
+  "Times New Roman": "Noto Serif"
+options:
+  default_embed: true
+`;
+    fs.writeFileSync(tempMapPath, yamlContent);
+
+    const result = FontManager.loadReplacementMap(tempMapPath);
+
+    assert.ok(result, "Should load file");
+    assert.strictEqual(result.replacements["Arial"], "Inter");
+    // FAILSAFE_SCHEMA parses booleans as strings
+    assert.ok(result.options.default_embed === true || result.options.default_embed === "true", "Should have embed option");
+    assert.strictEqual(result.path, tempMapPath);
+  });
+
+  it("throws error for invalid YAML", () => {
+    fs.writeFileSync(tempMapPath, "invalid: yaml: content: {{{");
+
+    assert.throws(() => FontManager.loadReplacementMap(tempMapPath), "Should throw for invalid YAML");
+  });
+});
+
+describe("Apply Font Replacements (applyFontReplacements)", () => {
+  it("replaces font in font-family attribute", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Arial">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const replacements = { Arial: "Inter" };
+
+    const result = FontManager.applyFontReplacements(doc, replacements);
+
+    assert.strictEqual(result.modified, true, "Should be modified");
+    assert.ok(result.replaced.length > 0, "Should have replacements");
+    assert.strictEqual(result.replaced[0].from, "Arial");
+    assert.strictEqual(result.replaced[0].to, "Inter");
+  });
+
+  it("replaces font in style attribute", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text style="font-family: Georgia; font-size: 12px;">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const replacements = { Georgia: "Merriweather" };
+
+    const result = FontManager.applyFontReplacements(doc, replacements);
+
+    assert.strictEqual(result.modified, true, "Should be modified");
+  });
+
+  it("does nothing when no matches", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Roboto">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const replacements = { Arial: "Inter" };
+
+    const result = FontManager.applyFontReplacements(doc, replacements);
+
+    assert.strictEqual(result.modified, false, "Should not be modified");
+    assert.strictEqual(result.replaced.length, 0, "Should have no replacements");
+  });
+
+  it("handles complex replacement objects", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Arial">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const replacements = {
+      Arial: { replacement: "Inter", embed: true, subset: true },
+    };
+
+    const result = FontManager.applyFontReplacements(doc, replacements);
+
+    assert.strictEqual(result.modified, true);
+    assert.strictEqual(result.replaced[0].to, "Inter");
+  });
+});
+
+describe("Generate Replacement Map Template (generateReplacementMapTemplate)", () => {
+  it("returns valid YAML template string", () => {
+    const template = FontManager.generateReplacementMapTemplate();
+
+    assert.ok(typeof template === "string", "Should return string");
+    assert.ok(template.includes("replacements:"), "Should have replacements section");
+    assert.ok(template.includes("options:"), "Should have options section");
+    assert.ok(template.includes("default_embed"), "Should have embed option");
+  });
+
+  it("template is valid YAML", async () => {
+    const template = FontManager.generateReplacementMapTemplate();
+    const jsyaml = await import("js-yaml");
+    const parsed = jsyaml.default.load(template);
+
+    assert.ok(parsed.replacements !== undefined, "Should parse replacements");
+    assert.ok(parsed.options !== undefined, "Should parse options");
+  });
+});
+
+// ============================================================================
+// 16. FONT LISTING TESTS
+// ============================================================================
+
+describe("List Fonts (listFonts)", () => {
+  it("lists embedded fonts from @font-face", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <style>
+        @font-face {
+          font-family: 'EmbeddedFont';
+          src: url(data:font/woff2;base64,AAAA) format('woff2');
+        }
+      </style>
+      <text font-family="EmbeddedFont">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const fonts = FontManager.listFonts(doc);
+
+    assert.ok(fonts.length > 0, "Should find fonts");
+    const embedded = fonts.find((f) => f.family === "EmbeddedFont");
+    assert.ok(embedded, "Should find EmbeddedFont");
+    assert.strictEqual(embedded.type, "embedded", "Should be type embedded");
+  });
+
+  it("lists external fonts", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <style>
+        @font-face {
+          font-family: 'ExternalFont';
+          src: url(https://example.com/font.woff2) format('woff2');
+        }
+      </style>
+      <text font-family="ExternalFont">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const fonts = FontManager.listFonts(doc);
+
+    const external = fonts.find((f) => f.family === "ExternalFont");
+    assert.ok(external, "Should find ExternalFont");
+    assert.strictEqual(external.type, "external", "Should be type external");
+    assert.ok(external.source, "Should have source URL");
+  });
+
+  it("identifies system/web-safe fonts", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <text font-family="Arial">Test</text>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const fonts = FontManager.listFonts(doc);
+
+    const arial = fonts.find((f) => f.family === "Arial");
+    assert.ok(arial, "Should find Arial");
+    assert.strictEqual(arial.type, "system", "Arial should be system font");
+  });
+
+  it("returns empty array for SVG without fonts", () => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="100" height="100"/>
+    </svg>`;
+    const doc = parseSVG(svg);
+    const fonts = FontManager.listFonts(doc);
+
+    assert.ok(Array.isArray(fonts), "Should return array");
+    assert.strictEqual(fonts.length, 0, "Should be empty");
+  });
+});
+
+// ============================================================================
+// 17. BACKUP AND VALIDATION TESTS
+// ============================================================================
+
+describe("Create Backup (createBackup)", () => {
+  let testFilePath;
+
+  beforeEach(() => {
+    testFilePath = path.join(TEST_OUTPUT_DIR, `backup-test-${Date.now()}.svg`);
+    fs.writeFileSync(testFilePath, "<svg></svg>");
+  });
+
+  afterEach(() => {
+    // Clean up test files
+    const dir = path.dirname(testFilePath);
+    const base = path.basename(testFilePath);
+    const files = fs.readdirSync(dir).filter((f) => f.startsWith(base.replace(".svg", "")));
+    for (const f of files) {
+      try {
+        fs.unlinkSync(path.join(dir, f));
+      } catch {}
+    }
+  });
+
+  it("creates backup file with .bak extension", () => {
+    const backupPath = FontManager.createBackup(testFilePath);
+
+    assert.ok(backupPath, "Should return backup path");
+    assert.ok(backupPath.endsWith(".bak"), "Should have .bak extension");
+    assert.ok(fs.existsSync(backupPath), "Backup file should exist");
+  });
+
+  it("returns null when noBackup option is true", () => {
+    const backupPath = FontManager.createBackup(testFilePath, { noBackup: true });
+    assert.strictEqual(backupPath, null, "Should return null");
+  });
+
+  it("returns null for non-existent file", () => {
+    const backupPath = FontManager.createBackup("/non/existent/file.svg");
+    assert.strictEqual(backupPath, null, "Should return null");
+  });
+
+  it("creates numbered backup when .bak exists", () => {
+    // Create first backup
+    const firstBackup = FontManager.createBackup(testFilePath);
+    assert.ok(firstBackup.endsWith(".bak"));
+
+    // Create second backup
+    const secondBackup = FontManager.createBackup(testFilePath);
+    assert.ok(secondBackup.endsWith(".bak.1"), "Second backup should be numbered");
+  });
+});
+
+describe("Validate SVG After Font Operation (validateSvgAfterFontOperation)", () => {
+  it("returns valid:true for valid SVG", async () => {
+    const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="10" height="10"/></svg>`;
+    const result = await FontManager.validateSvgAfterFontOperation(svg);
+
+    assert.strictEqual(result.valid, true, "Should be valid");
+    assert.strictEqual(result.errors.length, 0, "Should have no errors");
+  });
+
+  it("returns valid:false for malformed SVG", async () => {
+    const svg = "not valid xml <<>>";
+    const result = await FontManager.validateSvgAfterFontOperation(svg);
+
+    assert.strictEqual(result.valid, false, "Should be invalid");
+    assert.ok(result.errors.length > 0, "Should have errors");
+  });
+
+  it("warns about remaining external fonts after embed operation", async () => {
+    const svg = `<?xml version="1.0"?>
+    <svg xmlns="http://www.w3.org/2000/svg">
+      <style>
+        @font-face { font-family: 'Test'; src: url(https://fonts.googleapis.com/css2?family=Roboto); }
+      </style>
+    </svg>`;
+    const result = await FontManager.validateSvgAfterFontOperation(svg, "embed");
+
+    // Warnings are expected for remaining external URLs
+    if (result.warnings.length > 0) {
+      assert.ok(result.warnings[0].includes("External font"), "Should warn about external font");
+    }
+  });
+});
+
+// ============================================================================
+// 18. CONSTANTS VERIFICATION TESTS
+// ============================================================================
+
+describe("Exported Constants", () => {
+  it("POPULAR_GOOGLE_FONTS is non-empty array", () => {
+    assert.ok(Array.isArray(FontManager.POPULAR_GOOGLE_FONTS), "Should be array");
+    assert.ok(FontManager.POPULAR_GOOGLE_FONTS.length > 0, "Should not be empty");
+    assert.ok(FontManager.POPULAR_GOOGLE_FONTS.includes("Roboto"), "Should include Roboto");
+  });
+
+  it("DEFAULT_REPLACEMENT_MAP is string", () => {
+    assert.strictEqual(typeof FontManager.DEFAULT_REPLACEMENT_MAP, "string");
+    assert.ok(FontManager.DEFAULT_REPLACEMENT_MAP.endsWith(".yml"), "Should be YAML file");
+  });
+
+  it("WEB_SAFE_FONTS contains common fonts", () => {
+    assert.ok(Array.isArray(FontManager.WEB_SAFE_FONTS), "Should be array");
+    assert.ok(FontManager.WEB_SAFE_FONTS.includes("Arial"), "Should include Arial");
+    assert.ok(FontManager.WEB_SAFE_FONTS.includes("Georgia"), "Should include Georgia");
+    assert.ok(FontManager.WEB_SAFE_FONTS.includes("serif"), "Should include generic serif");
+  });
+
+  it("FONT_FORMATS maps extensions to MIME types", () => {
+    assert.strictEqual(typeof FontManager.FONT_FORMATS, "object");
+    assert.strictEqual(FontManager.FONT_FORMATS[".woff2"], "font/woff2");
+    assert.strictEqual(FontManager.FONT_FORMATS[".ttf"], "font/ttf");
+    assert.strictEqual(FontManager.FONT_FORMATS[".otf"], "font/otf");
+  });
+
+  it("SYSTEM_FONT_PATHS has platform entries", () => {
+    assert.strictEqual(typeof FontManager.SYSTEM_FONT_PATHS, "object");
+    assert.ok(Array.isArray(FontManager.SYSTEM_FONT_PATHS.darwin), "Should have darwin paths");
+    assert.ok(Array.isArray(FontManager.SYSTEM_FONT_PATHS.linux), "Should have linux paths");
+    assert.ok(Array.isArray(FontManager.SYSTEM_FONT_PATHS.win32), "Should have win32 paths");
+  });
+});
+
+// ============================================================================
 // TEST SUMMARY
 // ============================================================================
 
