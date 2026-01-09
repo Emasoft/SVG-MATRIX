@@ -21,7 +21,8 @@ Thank you for your interest in contributing to SVG-MATRIX. This document provide
    - [Handling Matrix Failures](#handling-matrix-failures)
 8. [Commit Message Format](#commit-message-format)
 9. [Pull Request Process](#pull-request-process)
-10. [Review Criteria](#review-criteria)
+10. [Release and Publishing Procedure](#release-and-publishing-procedure)
+11. [Review Criteria](#review-criteria)
 
 ---
 
@@ -1158,6 +1159,197 @@ Related to #456
 
 ---
 
+## Release and Publishing Procedure
+
+This project uses **GitHub Actions with npm OIDC trusted publishing**. Maintainers should follow this procedure for releases.
+
+### Important: Do NOT Use Local npm publish
+
+The project is configured for trusted publishing via GitHub Actions. Local `npm publish` will fail because no npm tokens are stored locally. All publishing happens automatically when you push a version tag.
+
+### Step-by-Step Release Process
+
+#### 1. Ensure All Tests Pass
+
+```bash
+# Run the main test suite
+npm test
+
+# Run the SVG-Toolbox matrix test (MANDATORY before release)
+node test/test-toolbox-matrix-8bits.js
+
+# Both must show 100% pass rate
+```
+
+#### 2. Lint and Fix Code Issues
+
+```bash
+# Run ESLint with auto-fix
+npx eslint src/ bin/ scripts/ --fix
+
+# Commit any fixes
+git add -A && git commit -m "chore: fix eslint errors"
+```
+
+#### 3. Bump Version Number
+
+```bash
+# For bug fixes and minor improvements
+npm version patch
+
+# For new features (backwards compatible)
+npm version minor
+
+# For breaking changes
+npm version major
+```
+
+This command automatically:
+- Runs `preversion` hook (syncs versions across all files)
+- Updates `package.json` version
+- Runs `version` hook (syncs + stages all 5 version files)
+- Creates a git commit with message "vX.X.X"
+- Creates a git tag "vX.X.X"
+
+#### 4. Push to GitHub (Triggers Publish)
+
+```bash
+# Push both commits and tags
+git push origin main --tags
+```
+
+This triggers two GitHub Actions workflows:
+- **CI Test**: Runs tests on the main branch
+- **Publish to npm**: Publishes to npm using OIDC trusted publishing
+
+#### 5. Create GitHub Release
+
+```bash
+gh release create vX.X.X \
+  --title "vX.X.X: Brief Description" \
+  --notes "$(cat <<'EOF'
+## What's New
+
+- Feature 1
+- Feature 2
+
+## Bug Fixes
+
+- Fix 1
+- Fix 2
+
+## Full Changelog
+
+https://github.com/Emasoft/SVG-MATRIX/compare/vPREVIOUS...vX.X.X
+EOF
+)"
+```
+
+#### 6. Verify Publication
+
+```bash
+# Check GitHub Actions workflow status
+gh run list --limit 3
+
+# Verify the "Publish to npm" workflow shows "success"
+# If it shows "failure", check logs:
+gh run view <run-id> --log-failed
+
+# Verify npm shows the new version
+npm view @emasoft/svg-matrix version
+```
+
+### Version Files (Automatically Synced)
+
+The `scripts/version-sync.js` script keeps these files in sync:
+
+| File | Version Location |
+|------|------------------|
+| `package.json` | `"version": "X.X.X"` (canonical source) |
+| `package-lock.json` | `"version": "X.X.X"` |
+| `src/index.js` | `export const VERSION = "X.X.X"` and `@version X.X.X` |
+| `src/svg-matrix-lib.js` | `export const VERSION = "X.X.X"` |
+| `src/svg-toolbox-lib.js` | `export const VERSION = "X.X.X"` |
+| `src/svgm-lib.js` | `export const VERSION = "X.X.X"` |
+
+### npm Version Hooks
+
+| Hook | Script | When It Runs |
+|------|--------|--------------|
+| `preversion` | `npm run version:sync` | Before version bump |
+| `version` | `node scripts/version-sync.js && git add ...` | After bump, before commit |
+| `prepublishOnly` | `npm run build && npm run version:check && npm test` | In CI before publish |
+
+### Troubleshooting
+
+#### Version Mismatch Error in CI
+
+If the publish workflow fails with "Version mismatch detected":
+
+```bash
+# 1. Check which files are mismatched
+node scripts/version-sync.js --check
+
+# 2. Sync versions locally
+node scripts/version-sync.js
+
+# 3. Commit the sync
+git add -A && git commit -m "chore: sync version numbers to X.X.X"
+
+# 4. Delete the old tag (locally and remotely)
+git tag -d vX.X.X
+git push origin :refs/tags/vX.X.X
+
+# 5. Create new tag on correct commit
+git tag -a vX.X.X -m "vX.X.X: description"
+
+# 6. Push again
+git push origin main --tags
+```
+
+#### Publish Workflow Failed
+
+```bash
+# View failed workflow logs
+gh run view <run-id> --log-failed
+
+# Common issues:
+# - Version mismatch: See above
+# - Test failure: Fix tests and retry
+# - Build failure: Check build.js output
+```
+
+#### Need to Republish Same Version
+
+You cannot republish the same version to npm. If you need to fix something:
+
+1. Bump to next patch version: `npm version patch`
+2. Push and let it publish the new version
+3. Deprecate the broken version if needed: `npm deprecate @emasoft/svg-matrix@X.X.X "Use X.X.Y instead"`
+
+### Pre-Release Checklist
+
+Before running `npm version`:
+
+- [ ] All tests pass (`npm test`)
+- [ ] SVG-Toolbox matrix test passes (`node test/test-toolbox-matrix-8bits.js`)
+- [ ] ESLint passes (`npx eslint src/ bin/ scripts/`)
+- [ ] No uncommitted changes (`git status`)
+- [ ] On main branch (`git branch --show-current`)
+- [ ] Up to date with remote (`git pull origin main`)
+- [ ] CHANGELOG or release notes prepared
+
+### Semantic Versioning Guide
+
+| Change Type | Version Bump | Example |
+|-------------|--------------|---------|
+| Bug fix, security patch | `patch` | 1.3.0 → 1.3.1 |
+| New feature (backwards compatible) | `minor` | 1.3.1 → 1.4.0 |
+| Breaking change | `major` | 1.4.0 → 2.0.0 |
+| Pre-release | `prerelease` | 2.0.0 → 2.0.1-0 |
+
+---
+
 ## Review Criteria
 
 PRs are evaluated on:
@@ -1198,4 +1390,4 @@ Open an issue with the `question` label or reach out to maintainers.
 
 ---
 
-*Last updated: 2025-12-15*
+*Last updated: 2026-01-09*
