@@ -14,7 +14,6 @@
  */
 
 import Decimal from "decimal.js";
-import { Matrix as _Matrix } from "./matrix.js";
 import * as Transforms2D from "./transforms2d.js";
 import * as SVGFlatten from "./svg-flatten.js";
 import * as ClipPathResolver from "./clip-path-resolver.js";
@@ -22,7 +21,6 @@ import * as MaskResolver from "./mask-resolver.js";
 import * as UseSymbolResolver from "./use-symbol-resolver.js";
 import * as PatternResolver from "./pattern-resolver.js";
 import * as MarkerResolver from "./marker-resolver.js";
-import * as _MeshGradient from "./mesh-gradient.js";
 import * as GeometryToPath from "./geometry-to-path.js";
 import {
   parseSVG,
@@ -32,7 +30,6 @@ import {
   serializeSVG,
   findElementsWithAttribute,
 } from "./svg-parser.js";
-import { Logger as _Logger } from "./logger.js";
 import * as Verification from "./verification.js";
 import { parseCSSIds } from "./animation-references.js";
 import * as PolygonClip from "./polygon-clip.js";

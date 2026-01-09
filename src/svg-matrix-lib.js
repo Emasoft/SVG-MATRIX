@@ -56,7 +56,8 @@ export const scale3D = Transforms3D.scale;
 export const applyTransform3D = Transforms3D.applyTransform;
 
 /**
- * Default export for browser global (window.SVGMatrix)
+ * Default export for browser global (window.SVGMatrixLib)
+ * Note: Named SVGMatrixLib to avoid conflict with native browser SVGMatrix
  */
 const SVGMatrix = {
   VERSION,

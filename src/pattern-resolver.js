@@ -19,6 +19,7 @@ import { Matrix } from "./matrix.js";
 import * as Transforms2D from "./transforms2d.js";
 import * as PolygonClip from "./polygon-clip.js";
 import * as ClipPathResolver from "./clip-path-resolver.js";
+import { parseTransformAttribute } from "./svg-flatten.js";
 
 Decimal.set({ precision: 80 });
 
@@ -1229,8 +1230,8 @@ export function parsePatternTransform(transformStr) {
     return Matrix.identity(3);
   }
 
-  // Use ClipPathResolver's transform parser
-  return ClipPathResolver.parseTransform(transformStr);
+  // Use svg-flatten's transform parser (parseTransformAttribute)
+  return parseTransformAttribute(transformStr);
 }
 
 export default {

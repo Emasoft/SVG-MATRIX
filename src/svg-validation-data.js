@@ -606,7 +606,7 @@ export const VALID_CHILDREN = {
     "set",
     "title",
   ],
-  font: ["desc", "glyph", "hkern", "metadata", "title", "vkern"],
+  font: ["desc", "font-face", "glyph", "hkern", "metadata", "missing-glyph", "title", "vkern"],
   "font-face": ["desc", "font-face-src", "metadata", "title"],
   "font-face-src": ["font-face-name", "font-face-uri"],
   "font-face-uri": ["font-face-format"],

@@ -15,9 +15,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, copyFileSync, mkdirSync, readdirSync, statSync, unlinkSync } from "fs";
-import { join, dirname, basename, extname, resolve } from "path";
+import { join, dirname, basename, extname } from "path";
 import { homedir, platform } from "os";
-import { execSync, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 import yaml from "js-yaml";
 
 // ============================================================================
@@ -1344,9 +1344,10 @@ export async function listSystemFonts() {
  */
 export function commandExists(cmd) {
   try {
+    // Security: use execFileSync with array args to prevent command injection
     // Windows uses 'where', Unix uses 'which'
     const checkCmd = platform() === "win32" ? "where" : "which";
-    execSync(`${checkCmd} ${cmd}`, { stdio: "ignore" });
+    execFileSync(checkCmd, [cmd], { stdio: "ignore" });
     return true;
   } catch {
     return false;

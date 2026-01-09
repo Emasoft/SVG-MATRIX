@@ -147,10 +147,10 @@ function updateIndexVersion(version) {
   let content = readFileSync(filePath, "utf8");
   const original = content;
 
-  // Update VERSION constant
+  // WHY: Update VERSION constant, using double quotes for consistency with updateLibVersion()
   content = content.replace(
     /export const VERSION = ['"][^'"]+['"]/,
-    `export const VERSION = '${version}'`,
+    `export const VERSION = "${version}"`,
   );
 
   // Update @version in jsdoc

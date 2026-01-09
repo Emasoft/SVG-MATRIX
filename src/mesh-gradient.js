@@ -499,6 +499,49 @@ export function splitBezier(curve) {
   ];
 }
 
+/**
+ * Sample a cubic Bezier curve at regular intervals to generate an array of points.
+ *
+ * Evaluates the curve at `samples` evenly-spaced t values from 0 to 1,
+ * producing a polyline approximation of the curve. This is useful for
+ * converting bezier curves to polygon representations for clipping operations.
+ *
+ * @param {Array<{x: Decimal, y: Decimal}>} curve - Array of 4 control points [p0, p1, p2, p3]
+ * @param {number} [samples=20] - Number of sample points to generate (minimum 2)
+ * @returns {Array<{x: Decimal, y: Decimal}>} Array of points sampled along the curve
+ *
+ * @example
+ * // Sample a curve with 10 points
+ * const curve = [point(0,0), point(100,200), point(200,200), point(300,0)];
+ * const points = sampleBezierCurve(curve, 10);
+ * // Returns: 10 points evenly distributed along the curve from t=0 to t=1
+ *
+ * @example
+ * // High-resolution sampling for smooth approximation
+ * const points = sampleBezierCurve(curve, 50);
+ * // Returns: 50 points for a smoother polyline representation
+ */
+export function sampleBezierCurve(curve, samples = 20) {
+  if (!Array.isArray(curve))
+    throw new Error("sampleBezierCurve: curve must be an array");
+  if (curve.length !== 4)
+    throw new Error(
+      `sampleBezierCurve: curve must have exactly 4 points, got ${curve.length}`,
+    );
+  if (typeof samples !== "number" || samples < 2)
+    throw new Error("sampleBezierCurve: samples must be a number >= 2");
+
+  const [p0, p1, p2, p3] = curve;
+  const points = [];
+
+  for (let i = 0; i < samples; i++) {
+    const t = i / (samples - 1); // t goes from 0 to 1 inclusive
+    points.push(evalCubicBezier(p0, p1, p2, p3, t));
+  }
+
+  return points;
+}
+
 // ============================================================================
 // Coons Patch Evaluation
 // ============================================================================

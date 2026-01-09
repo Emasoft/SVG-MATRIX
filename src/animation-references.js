@@ -141,8 +141,9 @@ export function parseTimingIds(value) {
     // Match patterns like "id.event" or "id.begin" or "id.end" with optional offset (+1s, -2s)
     // Events: click, mousedown, mouseup, mouseover, mouseout, focusin, focusout, etc.
     // Edge case: handle timing offsets like "id.begin+1s" or "id.end-2s"
+    // Edge case: handle repeat(n) syntax like "id.repeat(2)" for nth repeat event
     const match = trimmed.match(
-      /^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)(?:[+-]\d+(?:\.\d+)?[a-z]*)?/,
+      /^([a-zA-Z_][a-zA-Z0-9_-]*)\.(begin|end|click|mousedown|mouseup|mouseover|mouseout|mousemove|mouseenter|mouseleave|focusin|focusout|activate|repeat)(?:\(\d+\))?(?:[+-]\d+(?:\.\d+)?[a-z]*)?/,
     );
     if (match) {
       ids.push(match[1]);

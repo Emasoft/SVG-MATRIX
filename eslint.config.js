@@ -181,13 +181,19 @@ export default [
   {
     ignores: [
       'node_modules/**',
+      'dist/**',           // Build outputs (minified bundles)
+      'coverage/**',       // Test coverage reports
       'svgo/**',
       'svgo_shallow/**',
       'docs/**',
       'docs_dev/**',
       'test/output/**',
+      'test-reports/**',   // Test reports
       'samples/**',
       'src/vendor/**',
+      'libs_dev/**',       // Dev libraries
+      'scripts_dev/**',    // Dev scripts
+      'tests_dev/**',      // Dev tests
     ],
   },
 ];

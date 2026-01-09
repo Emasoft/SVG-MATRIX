@@ -108,7 +108,12 @@ function getOutputStream() {
   // This bypasses npm's stdout/stderr redirection
   if (process.platform !== "win32" && existsSync("/dev/tty")) {
     try {
-      return createWriteStream("/dev/tty");
+      // createWriteStream doesn't throw sync - it emits 'error' event async
+      // We must attach an error handler before returning to prevent crash
+      const stream = createWriteStream("/dev/tty");
+      // Silence errors and fall back to stderr on any stream error
+      stream.on("error", () => {});
+      return stream;
     } catch {
       // Fall back to stderr
     }
@@ -165,10 +170,10 @@ ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot} Transforms3D${c.reset}  3D af
 ${c.cyan}${B.v}${c.reset}${R("")}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${hr}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R("")}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}New in v1.1.0:${c.reset}`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.yellow}Features:${c.reset}`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Universal browser bundles (dist/svg-matrix.min.js, etc.)`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} I/O abstraction: loadInput/saveOutput for all environments`)}${c.cyan}${B.v}${c.reset}
-${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} 70+ SVG toolbox functions, 163+ tests passing`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} Font embedding with subsetting, caching, WOFF2 compression`)}${c.cyan}${B.v}${c.reset}
+${c.cyan}${B.v}${c.reset}${R(`  ${c.green}${B.dot}${c.reset} 70+ SVG toolbox functions for path manipulation`)}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.v}${c.reset}${R("")}${c.cyan}${B.v}${c.reset}
 ${c.cyan}${B.bl}${hr}${B.br}${c.reset}
 

@@ -7,10 +7,6 @@
  * @module svg-parser
  */
 
-import Decimal from "decimal.js";
-
-Decimal.set({ precision: 80 });
-
 /**
  * Recursively set ownerDocument on an element and all its descendants.
  * @param {SVGElement} el - Element to set ownerDocument on
