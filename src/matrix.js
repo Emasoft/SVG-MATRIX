@@ -96,7 +96,7 @@ export class Matrix {
       throw new Error("size must be a positive integer");
     const out = Array.from({ length: n }, (_, i) =>
       Array.from({ length: n }, (_, j) =>
-        i === j ? new Decimal(1) : new Decimal(0),
+        (i === j ? new Decimal(1) : new Decimal(0)),
       ),
     );
     return new Matrix(out);
@@ -400,11 +400,11 @@ export class Matrix {
     // Create augmented matrix [A | I]
     const aug = Array.from({ length: n }, (_, i) =>
       Array.from({ length: 2 * n }, (_, j) =>
-        j < n
+        (j < n
           ? new Decimal(this.data[i][j])
           : j - n === i
             ? new Decimal(1)
-            : new Decimal(0),
+            : new Decimal(0)),
       ),
     );
     // Gauss-Jordan elimination

@@ -227,7 +227,7 @@ export function cacheFontData(fontKey, content, options) {
  * @returns {{removed: number, freedBytes: number}}
  */
 export function cleanupFontCache() {
-  const { cacheDir, indexPath } = initFontCache();
+  const { indexPath } = initFontCache();
   let removed = 0;
   let freedBytes = 0;
 
@@ -678,7 +678,7 @@ export function detectDuplicateFontFaces(doc) {
  * @returns {{modified: boolean, removed: number, keptIndices: number[]}}
  */
 export function mergeDuplicateFontFaces(doc) {
-  const { duplicates, total } = detectDuplicateFontFaces(doc);
+  const { duplicates } = detectDuplicateFontFaces(doc);
 
   if (duplicates.length === 0) {
     return { modified: false, removed: 0, keptIndices: [] };
@@ -769,6 +769,43 @@ export function normalizeFontName(name) {
     .replace(/\s*(regular|normal|book|roman|medium|text)\s*$/i, "")
     .trim();
 }
+
+/**
+ * List of common Google Fonts (for heuristic matching)
+ * @constant {string[]}
+ */
+export const POPULAR_GOOGLE_FONTS = [
+  "Roboto",
+  "Open Sans",
+  "Lato",
+  "Montserrat",
+  "Oswald",
+  "Source Sans Pro",
+  "Raleway",
+  "PT Sans",
+  "Merriweather",
+  "Noto Sans",
+  "Ubuntu",
+  "Playfair Display",
+  "Nunito",
+  "Poppins",
+  "Inter",
+  "Fira Code",
+  "Fira Sans",
+  "Work Sans",
+  "Quicksand",
+  "Inconsolata",
+  "Source Code Pro",
+  "JetBrains Mono",
+  "IBM Plex Sans",
+  "IBM Plex Mono",
+  "Libre Baskerville",
+  "Crimson Text",
+  "EB Garamond",
+  "Spectral",
+  "Bitter",
+  "Zilla Slab",
+];
 
 /**
  * Search for similar fonts across available sources
@@ -949,6 +986,9 @@ export async function downloadFont(fontFamily, options = {}) {
           }
           break;
         }
+        default:
+          // Unknown source, skip
+          break;
       }
     } catch {
       // Continue to next source
@@ -1147,7 +1187,7 @@ export function addTextParamToGoogleFontsUrl(url, textParam) {
 export function buildGoogleFontsUrl(fontFamily, options = {}) {
   const {
     weights = ["400"],
-    styles = ["normal"],
+    styles: _styles = ["normal"],
     text,
     display = "swap",
   } = options;
@@ -1163,43 +1203,6 @@ export function buildGoogleFontsUrl(fontFamily, options = {}) {
 
   return url;
 }
-
-/**
- * List of common Google Fonts (for heuristic matching)
- * @constant {string[]}
- */
-export const POPULAR_GOOGLE_FONTS = [
-  "Roboto",
-  "Open Sans",
-  "Lato",
-  "Montserrat",
-  "Oswald",
-  "Source Sans Pro",
-  "Raleway",
-  "PT Sans",
-  "Merriweather",
-  "Noto Sans",
-  "Ubuntu",
-  "Playfair Display",
-  "Nunito",
-  "Poppins",
-  "Inter",
-  "Fira Code",
-  "Fira Sans",
-  "Work Sans",
-  "Quicksand",
-  "Inconsolata",
-  "Source Code Pro",
-  "JetBrains Mono",
-  "IBM Plex Sans",
-  "IBM Plex Mono",
-  "Libre Baskerville",
-  "Crimson Text",
-  "EB Garamond",
-  "Spectral",
-  "Bitter",
-  "Zilla Slab",
-];
 
 // ============================================================================
 // LOCAL FONT DETECTION

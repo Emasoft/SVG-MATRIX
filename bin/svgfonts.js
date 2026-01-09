@@ -21,7 +21,7 @@ import {
   statSync,
   realpathSync,
 } from "fs";
-import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
+import { join, basename, extname, resolve, isAbsolute } from "path";
 import { createInterface } from "readline";
 
 // Import library modules
@@ -674,7 +674,7 @@ function cmdTemplate() {
 // ============================================================================
 function cmdCache() {
   // Initialize cache if needed
-  const cacheInfo = FontManager.initFontCache();
+  FontManager.initFontCache();
 
   switch (config.cacheAction) {
     case "stats": {
@@ -959,13 +959,13 @@ async function cmdInteractive(files) {
   });
 
   const question = (prompt) =>
-    new Promise((resolve) => rl.question(prompt, resolve));
+    new Promise((res) => rl.question(prompt, res));
 
   /**
    * Read single keypress (for arrow key navigation)
    */
-  const readKey = () =>
-    new Promise((resolve) => {
+  const _readKey = () =>
+    new Promise((res) => {
       const wasRaw = process.stdin.isRaw;
       if (process.stdin.setRawMode) {
         process.stdin.setRawMode(true);
@@ -975,7 +975,7 @@ async function cmdInteractive(files) {
         if (process.stdin.setRawMode) {
           process.stdin.setRawMode(wasRaw);
         }
-        resolve(key.toString());
+        res(key.toString());
       });
     });
 
