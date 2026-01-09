@@ -845,10 +845,22 @@ svg-matrix vs standard JavaScript (float64):
 
 ## Installation
 
-**Requires Node.js 24+** (released 2025)
+**Requires Node.js 24+** or **Bun 1.0+**
+
+### Package Managers
 
 ```bash
+# Bun (recommended - fastest)
+bun add @emasoft/svg-matrix
+
+# npm
 npm install @emasoft/svg-matrix
+
+# pnpm
+pnpm add @emasoft/svg-matrix
+
+# yarn
+yarn add @emasoft/svg-matrix
 ```
 
 ### In JavaScript/TypeScript
