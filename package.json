@@ -24,7 +24,7 @@
     "version:sync": "node scripts/version-sync.js",
     "version:check": "node scripts/version-sync.js --check",
     "preversion": "npm run version:sync",
-    "version": "node scripts/version-sync.js && git add src/index.js package-lock.json",
+    "version": "node scripts/version-sync.js && git add src/index.js package-lock.json src/svg-matrix-lib.js src/svg-toolbox-lib.js src/svgm-lib.js",
     "prepublishOnly": "npm run build && npm run version:check && npm test",
     "postinstall": "node scripts/postinstall.js || true"
   },
