@@ -81,7 +81,8 @@ A detailed technical comparison between **@emasoft/svg-matrix** (JavaScript) and
 | Curvature | NO | YES | |
 | Derivatives | NO | YES | Nth-order derivatives |
 | Area (closed path) | NO | YES | Green's theorem |
-| Intersection detection | YES | YES | GJK vs subdivision |
+| Intersection detection | YES | YES | Both use subdivision + Newton refinement |
+| Configurable tolerance | YES | NO | svg-matrix has DEFAULT_INTERSECTION_TOLERANCE (1e-10) and SVGPATHTOOLS_COMPATIBLE_TOLERANCE (1e-6) |
 
 ### Linear Algebra
 
@@ -182,6 +183,26 @@ svg-matrix provides **10^65x more precision** than svgpathtools for typical oper
 | 6-level transform hierarchy | 1.14e-13 | 1e-77 | 10^64x |
 | 1000 round-trip transforms | 5.41e-14 | 0 | 10^86x |
 | Circle kappa constant | 2.22e-16 | 0 | Exact |
+| Bezier-Bezier intersection | 4e-7 | 2.3e-10 | ~1700x more precise |
+
+### Bezier Intersection Compatibility
+
+svg-matrix provides **configurable tolerance constants** for intersection detection:
+
+```javascript
+import {
+  bezierBezierIntersection,
+  DEFAULT_INTERSECTION_TOLERANCE,      // "1e-10" - high precision default
+  SVGPATHTOOLS_COMPATIBLE_TOLERANCE    // "1e-6" - matches svgpathtools behavior
+} from '@emasoft/svg-matrix';
+
+// For svgpathtools-compatible results:
+const intersections = bezierBezierIntersection(curve1, curve2, {
+  tolerance: SVGPATHTOOLS_COMPATIBLE_TOLERANCE
+});
+```
+
+Both libraries use subdivision + Newton-Raphson refinement, producing **identical intersection counts** when using compatible tolerances.
 
 ### When Precision Matters
 
@@ -431,6 +452,6 @@ rot = np.array([[np.cos(theta), -np.sin(theta)],
 
 ---
 
-*Report generated: 2024*
-*svg-matrix version: 1.0.19*
+*Report generated: 2025*
+*svg-matrix version: 1.3.2*
 *svgpathtools version: 1.7.2*

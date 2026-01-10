@@ -840,6 +840,7 @@ svg-matrix vs standard JavaScript (float64):
 | Arc length | `2.8e-13` | `< 1e-50` | 37+ digits |
 | Bounding box | `1.1e-13` | `0` (exact) | 13+ digits |
 | Self-intersection | Boolean only | `1.4e-58` | 58+ digits |
+| Bezier-Bezier intersection | `4e-7` | `2.3e-10` | svgpathtools compatible |
 
 ---
 
