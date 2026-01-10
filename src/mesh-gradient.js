@@ -161,16 +161,25 @@ export function parseColor(colorStr, opacity = 1) {
     return color(r, g, b, alphaClamped * 255 * opacity);
   }
 
-  // Handle hex colors
+  // Handle hex colors: #RGB, #RGBA, #RRGGBB, #RRGGBBAA (CSS Color Level 4)
   const hexMatch = colorStr.match(/^#([0-9a-f]{3,8})$/i);
   if (hexMatch) {
     const hex = hexMatch[1];
     if (hex.length === 3) {
+      // #RGB format - expand each digit to two (e.g., #F00 -> #FF0000)
       return color(
         parseInt(hex[0] + hex[0], 16),
         parseInt(hex[1] + hex[1], 16),
         parseInt(hex[2] + hex[2], 16),
         255 * opacity,
+      );
+    } else if (hex.length === 4) {
+      // #RGBA format (CSS4) - expand each digit to two (e.g., #F00A -> #FF0000AA)
+      return color(
+        parseInt(hex[0] + hex[0], 16),
+        parseInt(hex[1] + hex[1], 16),
+        parseInt(hex[2] + hex[2], 16),
+        parseInt(hex[3] + hex[3], 16) * opacity,
       );
     } else if (hex.length === 6) {
       return color(

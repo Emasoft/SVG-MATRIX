@@ -24,7 +24,7 @@
  * @module build
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, watch } from "fs";
 import { join } from "path";
 import { gzipSync } from "zlib";
 
@@ -276,12 +276,11 @@ async function build() {
 // Run build
 await build();
 
-// Watch mode
+// Watch mode - uses watch() imported at top of file
 if (isWatch) {
   console.log("\nWatching for changes in ./src ...");
-  const fs = await import("fs");
 
-  fs.watch("./src", { recursive: true }, async (eventType, filename) => {
+  watch("./src", { recursive: true }, async (eventType, filename) => {
     if (filename && filename.endsWith(".js")) {
       console.log(`\nFile changed: ${filename}`);
       console.log("Rebuilding...");

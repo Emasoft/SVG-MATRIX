@@ -511,8 +511,8 @@ export async function convertToWoff2(fontPath, options = {}) {
   }
 
   try {
-    // Use fonttools ttx to convert
-    execFileSync("fonttools", ["ttLib.woff2", "compress", fontPath, "-o", outputPath], {
+    // Use fonttools woff2 compress - output is positional argument, not -o flag
+    execFileSync("fonttools", ["ttLib.woff2", "compress", fontPath, outputPath], {
       stdio: "pipe",
       timeout: 60000,
     });

@@ -528,11 +528,12 @@ export function cloneElement(element) {
   }
 
   // Create proper SVGElement with serialize() method
+  // Note: SVGElement constructor requires textContent to be a string, not null
   const clone = new SVGElement(
     element.tagName,
     attrs,
     clonedChildren,
-    element.textContent || null,
+    element.textContent || "",
   );
 
   return clone;

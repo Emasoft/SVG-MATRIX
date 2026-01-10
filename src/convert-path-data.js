@@ -12,9 +12,8 @@
  * @module convert-path-data
  */
 
-import Decimal from "decimal.js";
-
-Decimal.set({ precision: 80 });
+// NOTE: This module uses native JavaScript Number/Math for all calculations.
+// For arbitrary-precision needs, see the main svg-matrix library.
 
 // SVG path command parameters count
 const COMMAND_PARAMS = {

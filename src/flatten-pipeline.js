@@ -1659,6 +1659,8 @@ function getElementBBox(el) {
 
     return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
   } catch {
+    // Error is intentionally swallowed - invalid path data or polygon conversion
+    // failures are expected for some edge cases and should return null
     return null;
   }
 }

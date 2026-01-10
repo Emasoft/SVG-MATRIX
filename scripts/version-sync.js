@@ -172,18 +172,24 @@ function updateLockfileVersion(version) {
   const filePath = join(ROOT, "package-lock.json");
   try {
     const lock = JSON.parse(readFileSync(filePath, "utf8"));
-    const original = JSON.stringify(lock);
+
+    // WHY: Compare version values directly instead of stringified JSON
+    // The old approach compared compact JSON vs pretty-printed JSON which always differed
+    const rootVersionMatch = lock.version === version;
+    const packageVersionMatch =
+      !lock.packages?.[""] || lock.packages[""].version === version;
+
+    if (rootVersionMatch && packageVersionMatch) {
+      return false; // No update needed
+    }
 
     lock.version = version;
     if (lock.packages && lock.packages[""]) {
       lock.packages[""].version = version;
     }
 
-    const updated = JSON.stringify(lock, null, 2) + "\n";
-    if (updated !== original) {
-      writeFileSync(filePath, updated, "utf8");
-      return true;
-    }
+    writeFileSync(filePath, JSON.stringify(lock, null, 2) + "\n", "utf8");
+    return true;
   } catch {
     // Lockfile might not exist
   }

@@ -221,11 +221,8 @@ export function scale(sx, sy = null, sz = null) {
   const syD = D(syValue);
   const szD = D(szValue);
 
-  // Warn about zero scale factors creating singular matrices
-  if (sxD.isZero() || syD.isZero() || szD.isZero()) {
-    // Zero scale is mathematically valid but creates non-invertible matrix
-    // We allow it but document the behavior in JSDoc above
-  }
+  // Note: Zero scale factors create singular (non-invertible) matrices
+  // This is mathematically valid but cannot be reversed - documented in JSDoc above
 
   return Matrix.from([
     [sxD, new Decimal(0), new Decimal(0), new Decimal(0)],
