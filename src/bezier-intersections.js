@@ -40,6 +40,23 @@ const SINGULARITY_THRESHOLD = "1e-50"; // Below this, Jacobian considered singul
 const INTERSECTION_VERIFY_FACTOR = 100; // Multiplier for intersection verification
 const DEDUP_TOLERANCE_FACTOR = 1000; // Multiplier for duplicate detection
 
+/**
+ * Default tolerance for intersection detection.
+ * WHY: 1e-10 provides high precision while being practical for real-world use.
+ * This is much more lenient than the theoretical 1e-30 but still far more precise
+ * than float64 operations (~1e-15).
+ * @type {string}
+ */
+export const DEFAULT_INTERSECTION_TOLERANCE = "1e-10";
+
+/**
+ * Tolerance for svgpathtools-compatible behavior.
+ * WHY: svgpathtools uses float64 (15 digits) and typically finds intersections
+ * with ~4e-7 distance error. This tolerance ensures compatible results.
+ * @type {string}
+ */
+export const SVGPATHTOOLS_COMPATIBLE_TOLERANCE = "1e-6";
+
 /** Maximum Newton iterations for intersection refinement */
 const MAX_NEWTON_ITERATIONS = 30;
 
@@ -382,14 +399,18 @@ function refineBezierLineRoot(bezier, line, t0, t1, tol) {
  * @param {Array} bezier1 - First Bezier control points [[x,y], ...]
  * @param {Array} bezier2 - Second Bezier control points [[x,y], ...]
  * @param {Object} [options] - Options
- * @param {string} [options.tolerance='1e-30'] - Intersection tolerance
+ * @param {string} [options.tolerance=DEFAULT_INTERSECTION_TOLERANCE] - Intersection tolerance.
+ *   Use DEFAULT_INTERSECTION_TOLERANCE (1e-10) for high precision,
+ *   SVGPATHTOOLS_COMPATIBLE_TOLERANCE (1e-6) for svgpathtools-compatible results.
  * @param {number} [options.maxDepth=50] - Maximum recursion depth
  * @returns {Array} Intersections [{t1, t2, point, error}]
  */
 export function bezierBezierIntersection(bezier1, bezier2, options = {}) {
-  // WHY: Use named constant as default instead of hardcoded 50 for clarity
-  const { tolerance = "1e-30", maxDepth = MAX_INTERSECTION_RECURSION_DEPTH } =
-    options;
+  // WHY: Use named constants as defaults for clarity and easy configuration
+  const {
+    tolerance = DEFAULT_INTERSECTION_TOLERANCE,
+    maxDepth = MAX_INTERSECTION_RECURSION_DEPTH,
+  } = options;
 
   // Input validation
   if (!bezier1 || !Array.isArray(bezier1) || bezier1.length < 2) {
@@ -573,21 +594,24 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
       break;
     }
 
-    // Solve: J * [dt1, dt2]^T = -[fx, fy]^T
-    // dt1 = (-(-dy2)*(-fx) - (-dx2)*(-fy)) / det = (-dy2*fx + dx2*fy) / det
-    // dt2 = (dx1*(-fy) - dy1*(-fx)) / det = (-dx1*fy + dy1*fx) / det
+    // Solve: J * [dt1, dt2]^T = -[fx, fy]^T using Cramer's rule
+    // The Jacobian J = [[dx1, -dx2], [dy1, -dy2]], det(J) = dx2*dy1 - dx1*dy2
+    // For J^-1 * [-fx, -fy]^T:
+    // dt1 = (dy2*fx - dx2*fy) / det
+    // dt2 = (dy1*fx - dx1*fy) / det
+    // WHY: This is the correct Cramer's rule solution for the 2x2 linear system.
 
-    const dt1 = dy2.neg().times(fx).plus(dx2.times(fy)).div(det);
-    const dt2 = dx1.neg().times(fy).plus(dy1.times(fx)).div(det);
+    const dt1 = dy2.times(fx).minus(dx2.times(fy)).div(det);
+    const dt2 = dy1.times(fx).minus(dx1.times(fy)).div(det);
 
     currentT1 = currentT1.plus(dt1);
     currentT2 = currentT2.plus(dt2);
 
     // Check for convergence by step size
     if (dt1.abs().lt(tol) && dt2.abs().lt(tol)) {
-      // BUGFIX: Compute fresh error value instead of using stale one from previous iteration
-      // WHY: The `error` variable computed above (line 553) is from before the parameter update,
-      // so it may not reflect the final accuracy. We need to recompute error for the converged parameters.
+      // BUGFIX: Compute fresh error value and verify it's within tolerance
+      // WHY: Step size convergence doesn't guarantee point accuracy.
+      // We must verify the final error meets the tolerance requirement.
       const [finalX, finalY] = bezierPoint(bez1, currentT1);
       const [finalX2, finalY2] = bezierPoint(bez2, currentT2);
       const finalError = D(finalX)
@@ -595,12 +619,19 @@ function refineIntersection(bez1, bez2, t1, t2, tol) {
         .pow(2)
         .plus(D(finalY).minus(D(finalY2)).pow(2))
         .sqrt();
-      return {
-        t1: currentT1,
-        t2: currentT2,
-        point: [finalX, finalY],
-        error: finalError,
-      };
+
+      // WHY: Only return if final error is within tolerance.
+      // This prevents returning false positives where Newton converged
+      // in parameter space but not in point distance space.
+      if (finalError.lt(tol)) {
+        return {
+          t1: currentT1,
+          t2: currentT2,
+          point: [finalX, finalY],
+          error: finalError,
+        };
+      }
+      // Step size converged but error too large - continue iterating
     }
   }
 
@@ -1953,6 +1984,10 @@ export function verifyAllIntersectionFunctions(tolerance = "1e-30") {
 // ============================================================================
 
 export default {
+  // Tolerance constants for configurable precision
+  DEFAULT_INTERSECTION_TOLERANCE,
+  SVGPATHTOOLS_COMPATIBLE_TOLERANCE,
+
   // Line-line
   lineLineIntersection,
 
