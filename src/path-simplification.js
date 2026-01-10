@@ -1361,11 +1361,11 @@ export function removeZeroLengthSegments(pathData, tolerance = EPSILON) {
     currentY = D(0);
   let startX = D(0),
     startY = D(0);
-  // Track previous control points for S and T commands (reserved for future S/T command handling)
+  // Track previous control points for S and T commands (smooth Bezier continuity)
   let prevCp2X = null,
-    prevCp2Y = null; // For S command (cubic)
+    prevCp2Y = null; // For S command (cubic) - tracks 2nd control point of previous C/S
   let prevCpX = null,
-    prevCpY = null; // For T command (quadratic)
+    prevCpY = null; // For T command (quadratic) - tracks control point of previous Q/T
 
   for (let idx = 0; idx < pathData.length; idx++) {
     const item = pathData[idx];

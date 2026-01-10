@@ -63,17 +63,9 @@ function normalizeAngle(theta) {
 
   // For large angles, normalize to [-2π, 2π] to reduce precision loss
   // Using modulo with 2π (tau) to find equivalent angle in standard range
+  // Note: modulo already guarantees result in (-2π, 2π) exclusive
   const TWO_PI = 6.283185307179586;
-  let normalized = tNum % TWO_PI;
-
-  // Ensure result is in [-2π, 2π] range
-  if (normalized > TWO_PI) {
-    normalized -= TWO_PI;
-  } else if (normalized < -TWO_PI) {
-    normalized += TWO_PI;
-  }
-
-  return normalized;
+  return tNum % TWO_PI;
 }
 
 /**

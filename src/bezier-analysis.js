@@ -1589,7 +1589,8 @@ export function verifyCurvature(points, t, tolerance = "1e-10") {
 
   const t1 = Decimal.max(D(0), tD.minus(h));
   const t2 = Decimal.min(D(1), tD.plus(h));
-  const _actualH = t2.minus(t1);
+  // NOTE: Actual step size differs at boundaries, but curvature comparison
+  // uses arc length directly rather than parameter difference
 
   const tan1 = bezierTangent(points, t1);
   const tan2 = bezierTangent(points, t2);

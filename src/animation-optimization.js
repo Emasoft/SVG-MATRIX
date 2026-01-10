@@ -76,9 +76,10 @@ export function formatSplineValue(value, precision = 3) {
   // Convert to string
   let str = rounded.toString();
 
-  // Remove trailing zeros after decimal point
+  // Remove trailing zeros after decimal point (two-step to avoid "10.0" -> "1" bug)
   if (str.includes(".")) {
-    str = str.replace(/\.?0+$/, "");
+    str = str.replace(/0+$/, ""); // First remove trailing zeros
+    str = str.replace(/\.$/, ""); // Then remove orphan decimal point
   }
 
   // Remove leading zero for values between -1 and 1 (exclusive)
