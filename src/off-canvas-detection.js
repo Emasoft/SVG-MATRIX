@@ -1564,8 +1564,10 @@ export function clipPathToViewBox(pathCommands, viewBox) {
             continue;
           }
 
-          const x = D(cmd.x);
-          const y = D(cmd.y);
+          // BUG FIX: Handle relative coordinates (lowercase 'm')
+          const isRelative = cmd.type === cmd.type.toLowerCase();
+          const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
+          const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
 
           // Only add move if point is inside bounds
           if (pointInBBox({ x, y }, bounds)) {
@@ -1587,8 +1589,10 @@ export function clipPathToViewBox(pathCommands, viewBox) {
             continue;
           }
 
-          const x = D(cmd.x);
-          const y = D(cmd.y);
+          // BUG FIX: Handle relative coordinates (lowercase 'l')
+          const isRelative = cmd.type === cmd.type.toLowerCase();
+          const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
+          const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
 
           // Clip line segment
           const clipped = clipLine(
@@ -1629,7 +1633,9 @@ export function clipPathToViewBox(pathCommands, viewBox) {
             continue;
           }
 
-          const x = D(cmd.x);
+          // BUG FIX: Handle relative coordinates (lowercase 'h')
+          const isRelative = cmd.type === cmd.type.toLowerCase();
+          const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
           const clipped = clipLine(
             { x: currentX, y: currentY },
             { x, y: currentY },
@@ -1665,7 +1671,9 @@ export function clipPathToViewBox(pathCommands, viewBox) {
             continue;
           }
 
-          const y = D(cmd.y);
+          // BUG FIX: Handle relative coordinates (lowercase 'v')
+          const isRelative = cmd.type === cmd.type.toLowerCase();
+          const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
           const clipped = clipLine(
             { x: currentX, y: currentY },
             { x: currentX, y },
@@ -1708,8 +1716,10 @@ export function clipPathToViewBox(pathCommands, viewBox) {
           // BUG FIX: Sample the curve to better approximate clipping
           // A full implementation would clip curves exactly, but sampling provides
           // a reasonable approximation (WHY: curves can extend outside bounds even if endpoints are inside)
-          const x = D(cmd.x);
-          const y = D(cmd.y);
+          // BUG FIX: Handle relative coordinates (lowercase 'c', 's', 'q', 't', 'a')
+          const isRelative = cmd.type === cmd.type.toLowerCase();
+          const x = isRelative ? currentX.plus(D(cmd.x)) : D(cmd.x);
+          const y = isRelative ? currentY.plus(D(cmd.y)) : D(cmd.y);
 
           // Sample 10 points along the curve path from current to end
           const samples = 10;
