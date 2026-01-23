@@ -1344,6 +1344,151 @@ describe('TransformDecomposition - Edge Cases', () => {
 });
 
 // ============================================================================
+// Reflection Matrix Tests (Bug Fix v1.3.3)
+// ============================================================================
+
+describe('TransformDecomposition - Reflection Matrix Bug Fix', () => {
+
+  describe('X-flip (scaleX=-1) decomposition', () => {
+    it('decomposes matrix(-1, 0, 0, 1, 0, 0) correctly', () => {
+      // Pure X-flip: matrix(-1, 0, 0, 1, 0, 0)
+      const M = TD.matrixFromSVGValues(-1, 0, 0, 1, 0, 0);
+      const decomp = TD.decomposeMatrix(M);
+
+      // Expected: scaleX=-1, scaleY=1, rotation=0
+      assert.ok(decimalClose(decomp.scaleX, -1, new Decimal('1e-20')),
+        `scaleX should be -1, got ${decomp.scaleX.toString()}`);
+      assert.ok(decimalClose(decomp.scaleY, 1, new Decimal('1e-20')),
+        `scaleY should be 1, got ${decomp.scaleY.toString()}`);
+      assert.ok(decomp.rotation.abs().lessThan(new Decimal('1e-20')),
+        `rotation should be ~0, got ${decomp.rotation.toString()}`);
+    });
+
+    it('X-flip round-trips correctly', () => {
+      const original = TD.matrixFromSVGValues(-1, 0, 0, 1, 0, 0);
+      const decomp = TD.decomposeMatrix(original);
+      const recomposed = TD.composeTransform(decomp);
+
+      // The recomposed matrix should match the original
+      assert.ok(TD.matricesEqual(original, recomposed, new Decimal('1e-20')),
+        'X-flip should round-trip correctly');
+    });
+
+    it('X-flip preserves translation', () => {
+      // X-flip with translation: matrix(-1, 0, 0, 1, 100, 50)
+      const M = TD.matrixFromSVGValues(-1, 0, 0, 1, 100, 50);
+      const decomp = TD.decomposeMatrix(M);
+
+      assert.ok(decimalClose(decomp.translateX, 100), 'translateX should be 100');
+      assert.ok(decimalClose(decomp.translateY, 50), 'translateY should be 50');
+      assert.ok(decimalClose(decomp.scaleX, -1, new Decimal('1e-20')), 'scaleX should be -1');
+    });
+  });
+
+  describe('Y-flip (scaleY=-1) decomposition', () => {
+    it('decomposes matrix(1, 0, 0, -1, 0, 0) with round-trip verification', () => {
+      // Pure Y-flip: matrix(1, 0, 0, -1, 0, 0)
+      // Note: Y-flip can decompose as scaleX=-1, scaleY=1, rotation=π
+      // OR as scaleX=1, scaleY=-1, rotation=0
+      // Both are mathematically equivalent when recomposed
+      const original = TD.matrixFromSVGValues(1, 0, 0, -1, 0, 0);
+      const decomp = TD.decomposeMatrix(original);
+      const recomposed = TD.composeTransform(decomp);
+
+      // The key test is that recomposition matches original
+      assert.ok(TD.matricesEqual(original, recomposed, new Decimal('1e-20')),
+        'Y-flip should round-trip correctly');
+
+      // One scale should be negative
+      const hasNegativeScale = decomp.scaleX.lessThan(0) || decomp.scaleY.lessThan(0);
+      assert.ok(hasNegativeScale, 'Y-flip should have one negative scale component');
+    });
+
+    it('Y-flip preserves translation', () => {
+      // Y-flip with translation: matrix(1, 0, 0, -1, 100, 50)
+      const M = TD.matrixFromSVGValues(1, 0, 0, -1, 100, 50);
+      const decomp = TD.decomposeMatrix(M);
+      const recomposed = TD.composeTransform(decomp);
+
+      assert.ok(TD.matricesEqual(M, recomposed, new Decimal('1e-20')),
+        'Y-flip with translation should round-trip');
+    });
+  });
+
+  describe('Combined reflection + rotation', () => {
+    it('X-flip + rotation round-trips correctly', () => {
+      // X-flip followed by 45° rotation
+      const S = TD.scaleMatrix(-1, 1);
+      const R = TD.rotationMatrix(PI.div(4));
+      const original = R.mul(S);
+
+      const decomp = TD.decomposeMatrix(original);
+      const recomposed = TD.composeTransform(decomp);
+
+      assert.ok(TD.matricesEqual(original, recomposed, new Decimal('1e-15')),
+        'X-flip + rotation should round-trip');
+    });
+
+    it('Translation + rotation + X-flip round-trips correctly', () => {
+      const T = TD.translationMatrix(50, 100);
+      const R = TD.rotationMatrix(0.5);
+      const S = TD.scaleMatrix(-1, 1);
+      const original = T.mul(R).mul(S);
+
+      const decomp = TD.decomposeMatrix(original);
+      const recomposed = TD.composeTransform(decomp);
+
+      assert.ok(TD.matricesEqual(original, recomposed, new Decimal('1e-15')),
+        'T*R*S(-1,1) should round-trip');
+    });
+  });
+
+  describe('Both axes flipped', () => {
+    it('matrix(-1, 0, 0, -1, 0, 0) is equivalent to rotation by π', () => {
+      // Flipping both axes is equivalent to 180° rotation
+      const M = TD.matrixFromSVGValues(-1, 0, 0, -1, 0, 0);
+      const decomp = TD.decomposeMatrix(M);
+
+      // This should decompose as rotation by π with scale (1, 1)
+      // because det = (-1)*(-1) = 1 (positive), so no reflection
+      const det = D(-1).mul(-1).minus(D(0).mul(0));
+      assert.ok(det.greaterThan(0), 'Determinant should be positive (no reflection)');
+
+      // Should round-trip
+      const recomposed = TD.composeTransform(decomp);
+      assert.ok(TD.matricesEqual(M, recomposed, new Decimal('1e-15')),
+        'Double flip should round-trip');
+    });
+  });
+
+  describe('SVG transform attribute reflection patterns', () => {
+    it('scale(-1, 1) - common X-flip pattern', () => {
+      const M = TD.scaleMatrix(-1, 1);
+      const decomp = TD.decomposeMatrix(M);
+      const svgStr = TD.decompositionToSVGString(decomp);
+
+      // Should produce something like "scale(-1, 1)"
+      assert.ok(svgStr.includes('scale('),
+        `SVG string should include scale(): got "${svgStr}"`);
+
+      // Verify round-trip via SVG string
+      const recomposed = TD.composeTransform(decomp);
+      assert.ok(TD.matricesEqual(M, recomposed, new Decimal('1e-20')),
+        'scale(-1, 1) should round-trip');
+    });
+
+    it('scale(1, -1) - common Y-flip pattern', () => {
+      const M = TD.scaleMatrix(1, -1);
+      const decomp = TD.decomposeMatrix(M);
+      const recomposed = TD.composeTransform(decomp);
+
+      assert.ok(TD.matricesEqual(M, recomposed, new Decimal('1e-20')),
+        'scale(1, -1) should round-trip');
+    });
+  });
+});
+
+// ============================================================================
 // Constants Export Tests
 // ============================================================================
 

@@ -294,7 +294,15 @@ export function decomposeMatrix(matrix) {
   }
 
   // Calculate rotation angle from first column
-  const rotation = Decimal.atan2(b, a);
+  // BUG FIX: When scaleX is negative (reflection), we must compute rotation from negated
+  // column vector to separate the reflection component from the rotation component.
+  // Without this fix, X-flip matrix(-1,0,0,1,0,0) gives rotation=π instead of 0.
+  let rotation;
+  if (scaleX.lessThan(0)) {
+    rotation = Decimal.atan2(b.neg(), a.neg());
+  } else {
+    rotation = Decimal.atan2(b, a);
+  }
 
   // Calculate skew
   // After removing rotation and scale, we get the skew
