@@ -57,6 +57,14 @@ const EASING_TEST_FILES = [
 async function testEasingPreservation() {
   console.log('\n=== Easing Curve Preservation Test ===\n');
 
+  // Check if W3C test suite is available
+  if (!fs.existsSync(TEST_SUITE_PATH)) {
+    console.log('⚠ SKIPPED: W3C SVG 1.1 Test Suite not found at:', TEST_SUITE_PATH);
+    console.log('  Download from: https://www.w3.org/Graphics/SVG/Test/20110816/');
+    console.log('  Extract to project root as "SVG 1.1 W3C Test Suit/svg/"');
+    return { skipped: true, reason: 'W3C test suite not available' };
+  }
+
   let totalFiles = 0;
   let passed = 0;
   let failed = 0;
