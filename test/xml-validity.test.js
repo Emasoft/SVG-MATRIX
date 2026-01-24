@@ -18,7 +18,7 @@ import {
   removeXlink,
   validateXML,
   cleanupIds,
-  preset_default,
+  presetDefault,
 } from '../src/svg-toolbox.js';
 import { parseSVG, serializeSVG } from '../src/svg-parser.js';
 
@@ -189,7 +189,9 @@ console.log('\n╔════════════════════�
 console.log('║  SVGO Bug #1730: xlink Namespace Safety                        ║');
 console.log('╚════════════════════════════════════════════════════════════════╝\n');
 
-await test('converts xlink:href to href and removes xmlns:xlink', async () => {
+await test('preserves xlink:href for SVG 1.1 compatibility', async () => {
+  // removeXlink intentionally KEEPS xlink:href for SVG 1.1 compatibility
+  // SVG 2.0 supports plain href, but SVG 1.1 requires xlink:href
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -199,15 +201,18 @@ await test('converts xlink:href to href and removes xmlns:xlink', async () => {
 
   const result = await removeXlink(svg);
 
-  assert(result.includes('href="#mySymbol"'), 'Should convert xlink:href to href');
-  assert(!result.includes('xlink:href'), 'xlink:href should be removed');
-  assert(!result.includes('xmlns:xlink'), 'xmlns:xlink should be removed');
+  // xlink:href is preserved for SVG 1.1 compatibility
+  assert(result.includes('xlink:href'), 'xlink:href should be preserved for SVG 1.1 compatibility');
+  // xmlns:xlink must be kept when xlink:href is used
+  assert(result.includes('xmlns:xlink'), 'xmlns:xlink should be preserved when xlink:href exists');
 
   const parsed = parseSVG(result);
   assert(parsed, 'Result should be parseable');
 });
 
-await test('handles xlink:title conversion', async () => {
+await test('handles xlink:title conversion to title element', async () => {
+  // xlink:title is converted to a <title> child element (proper SVG tooltip)
+  // xlink:href is preserved for SVG 1.1 compatibility
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -217,16 +222,23 @@ await test('handles xlink:title conversion', async () => {
 
   const result = await removeXlink(svg);
 
-  assert(!result.includes('xlink:href'), 'xlink:href should be converted');
+  // xlink:href is preserved for SVG 1.1 compatibility
+  assert(result.includes('xlink:href'), 'xlink:href should be preserved for SVG 1.1');
+  // xlink:title is removed (converted to <title> element)
   assert(!result.includes('xlink:title'), 'xlink:title should be converted');
-  assert(result.includes('title="My Link Title"'), 'Should have title attribute');
-  assert(!result.includes('xmlns:xlink'), 'xmlns:xlink should be removed');
+  // xlink:title becomes a <title> child element, not a title attribute
+  assert(result.includes('<title>My Link Title</title>') || result.includes('>My Link Title<'), 'Should have title element');
+  // xmlns:xlink is preserved because xlink:href is still used
+  assert(result.includes('xmlns:xlink'), 'xmlns:xlink should be preserved when xlink:href exists');
 
   const parsed = parseSVG(result);
   assert(parsed, 'Result should be parseable');
 });
 
-await test('removes deprecated xlink attrs (show, actuate, type)', async () => {
+await test('removes deprecated xlink attrs (show, actuate) but keeps href', async () => {
+  // xlink:show and xlink:actuate are removed (deprecated)
+  // xlink:href is preserved for SVG 1.1 compatibility
+  // xlink:show → target attribute ("new" → "_blank")
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -238,7 +250,11 @@ await test('removes deprecated xlink attrs (show, actuate, type)', async () => {
 
   assert(!result.includes('xlink:show'), 'xlink:show should be removed');
   assert(!result.includes('xlink:actuate'), 'xlink:actuate should be removed');
-  assert(!result.includes('xmlns:xlink'), 'xmlns:xlink should be removed');
+  // xlink:href is preserved, so xmlns:xlink must also be preserved
+  assert(result.includes('xlink:href'), 'xlink:href should be preserved for SVG 1.1');
+  assert(result.includes('xmlns:xlink'), 'xmlns:xlink should be preserved when xlink:href exists');
+  // xlink:show="new" is converted to target="_blank"
+  assert(result.includes('target="_blank"'), 'xlink:show="new" should become target="_blank"');
 
   const parsed = parseSVG(result);
   assert(parsed, 'Result should be parseable');
@@ -341,7 +357,7 @@ await test('serializeSVG always produces well-formed XML', async () => {
   }
 });
 
-await test('preset_default produces valid SVG', async () => {
+await test('presetDefault produces valid SVG', async () => {
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
      xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -357,7 +373,7 @@ await test('preset_default produces valid SVG', async () => {
   <use xlink:href="#rect1" x="50"/>
 </svg>`;
 
-  const result = await preset_default(svg);
+  const result = await presetDefault(svg);
 
   // Should be parseable
   const parsed = parseSVG(result);
