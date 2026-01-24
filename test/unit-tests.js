@@ -283,11 +283,13 @@ const psNeg = Transforms2D.applyTransform(SNeg, 3, 4);
 assertClose(psNeg[0].toNumber(), -3, 1e-15, 'Transforms2D: negative scale x flipped');
 assertClose(psNeg[1].toNumber(), -4, 1e-15, 'Transforms2D: negative scale y flipped');
 
-// Scale with zero (degenerate)
-const S0 = Transforms2D.scale(0, 0);
-const ps0 = Transforms2D.applyTransform(S0, 3, 4);
-assertClose(ps0[0].toNumber(), 0, 1e-15, 'Transforms2D: zero scale x becomes zero');
-assertClose(ps0[1].toNumber(), 0, 1e-15, 'Transforms2D: zero scale y becomes zero');
+// Scale with zero (degenerate) - should throw since zero scale creates singular matrix
+try {
+  Transforms2D.scale(0, 0);
+  assert(false, 'Transforms2D: zero scale should throw an error');
+} catch (e) {
+  assert(e.message.includes('cannot be zero'), 'Transforms2D: zero scale throws correct error');
+}
 
 // rotateAroundPoint - point stays fixed
 const Rpt = Transforms2D.rotateAroundPoint(Math.PI / 4, 5, 5);
@@ -307,11 +309,13 @@ const pst1 = Transforms2D.applyTransform(St1, 3, 4);
 assertClose(pst1[0].toNumber(), 3, 1e-15, 'Transforms2D: stretchAlongAxis k=1 x unchanged');
 assertClose(pst1[1].toNumber(), 4, 1e-15, 'Transforms2D: stretchAlongAxis k=1 y unchanged');
 
-// stretchAlongAxis with k=0 (collapse)
-const St0 = Transforms2D.stretchAlongAxis(1, 0, 0);
-const pst0 = Transforms2D.applyTransform(St0, 3, 4);
-assertClose(pst0[0].toNumber(), 0, 1e-15, 'Transforms2D: stretchAlongAxis k=0 x collapsed');
-assertClose(pst0[1].toNumber(), 4, 1e-15, 'Transforms2D: stretchAlongAxis k=0 y unchanged');
+// stretchAlongAxis with k=0 - should throw since it creates singular matrix
+try {
+  Transforms2D.stretchAlongAxis(1, 0, 0);
+  assert(false, 'Transforms2D: stretchAlongAxis k=0 should throw');
+} catch (e) {
+  assert(e.message.includes('cannot be zero'), 'Transforms2D: stretchAlongAxis k=0 throws correct error');
+}
 
 // Reflections are self-inverse
 const Rx = Transforms2D.reflectX();
