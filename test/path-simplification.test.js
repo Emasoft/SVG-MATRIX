@@ -509,12 +509,17 @@ describe('PathSimplification', () => {
   // fitCircleToPoints() - Circle Fitting
   // ============================================================================
   describe('fitCircleToPoints()', () => {
-    it('should return null for less than 3 points', () => {
+    it('should return null for less than 3 points (non-empty)', () => {
       const p1 = PathSimplification.point(0, 0);
       const p2 = PathSimplification.point(1, 1);
       assert.strictEqual(PathSimplification.fitCircleToPoints([p1, p2]), null, '2 points');
       assert.strictEqual(PathSimplification.fitCircleToPoints([p1]), null, '1 point');
-      assert.strictEqual(PathSimplification.fitCircleToPoints([]), null, '0 points');
+    });
+
+    it('should throw for empty points array', () => {
+      assert.throws(() => {
+        PathSimplification.fitCircleToPoints([]);
+      }, /points array cannot be empty/i, 'should throw for empty array');
     });
 
     it('should fit circle to 3 points on a known circle', () => {

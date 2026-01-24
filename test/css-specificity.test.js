@@ -212,7 +212,7 @@ describe('CSSSpecificity', () => {
     it('should throw on unclosed attribute selector', () => {
       assert.throws(() => {
         CSSSpec.parseSelector('[type="text"');
-      }, /Unclosed attribute/, 'should throw for unclosed bracket');
+      }, /Unclosed brackets/i, 'should throw for unclosed bracket');
     });
 
     it('should throw on invalid ID selector', () => {
