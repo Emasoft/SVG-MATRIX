@@ -169,14 +169,21 @@ describe('SVG Toolbox - Input Type Detection', () => {
     assert.strictEqual(result, SVGToolbox.InputType.DOM_ELEMENT, 'SVGElement instance should be detected as DOM_ELEMENT');
   });
 
-  it('detectInputType should handle edge cases (whitespace, null)', () => {
+  it('detectInputType should handle edge cases (whitespace)', () => {
     // Test SVG string with leading whitespace
     const withWhitespace = SVGToolbox.detectInputType('   <svg></svg>');
     assert.strictEqual(withWhitespace, SVGToolbox.InputType.SVG_STRING, 'SVG with whitespace should be detected');
+  });
 
-    // Test non-standard input defaults to SVG_STRING
-    const nullInput = SVGToolbox.detectInputType(null);
-    assert.strictEqual(nullInput, SVGToolbox.InputType.SVG_STRING, 'Null should default to SVG_STRING');
+  it('detectInputType should throw for null or undefined', () => {
+    // Null and undefined should throw an error
+    assert.throws(() => {
+      SVGToolbox.detectInputType(null);
+    }, /Input cannot be null or undefined/, 'Null should throw an error');
+
+    assert.throws(() => {
+      SVGToolbox.detectInputType(undefined);
+    }, /Input cannot be null or undefined/, 'Undefined should throw an error');
   });
 
 });
