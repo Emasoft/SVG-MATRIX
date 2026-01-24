@@ -384,6 +384,12 @@ export function optimizeAnimationValues(values, precision = 3) {
     );
   }
 
+  // Preserve data URIs exactly (they contain semicolons that shouldn't be split)
+  // Data URIs have format: data:[<mediatype>][;base64],<data>
+  if (values.startsWith("data:")) {
+    return values;
+  }
+
   // Split by semicolon
   const parts = values.split(";");
 
@@ -395,6 +401,29 @@ export function optimizeAnimationValues(values, precision = 3) {
 
     // Preserve ID references exactly
     if (trimmed.startsWith("#") || trimmed.includes("url(")) {
+      return trimmed;
+    }
+
+    // Preserve data URIs exactly (e.g., data:image/jpeg;base64,...)
+    if (trimmed.startsWith("data:")) {
+      return trimmed;
+    }
+
+    // Preserve color functions (rgb, rgba, hsl, hsla, etc.) exactly
+    // These contain parentheses and commas that should not be modified
+    if (/^(rgb|rgba|hsl|hsla|hwb|lab|lch|oklch|oklab|color)\s*\(/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Preserve SVG path data (starts with path command M, m, L, l, etc.)
+    // Path data format: "M 26.5,32.5 L 33.5,32.5 C 40,50 60,70 80,90 Z"
+    if (/^[MmZzLlHhVvCcSsQqTtAa][\s\d.,+-]+/.test(trimmed)) {
+      return trimmed;
+    }
+
+    // Preserve font-family values (comma-separated font names with possible quotes)
+    // Pattern: word or quoted string, followed by comma and more words/quotes
+    if (/^(['"]?[\w\s-]+['"]?,\s*)+['"]?[\w\s-]+['"]?$/.test(trimmed)) {
       return trimmed;
     }
 

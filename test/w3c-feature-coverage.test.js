@@ -190,28 +190,62 @@ function compareAnimationInfo(before, after, filename) {
     // Check for removed values
     for (const val of beforeValues) {
       if (!afterValues.has(val)) {
-        differences.push({
-          type: 'attribute-removed',
-          attribute: attr,
-          value: val,
-          severity: 'HIGH'
+        // Check if a normalized equivalent exists in afterValues (whitespace normalization)
+        const normalizedBefore = normalizeValue(val);
+        const hasNormalizedEquivalent = Array.from(afterValues).some(afterVal => {
+          return normalizeValue(afterVal) === normalizedBefore;
         });
+
+        // Check if this is an ID reference that was remapped by cleanupIds
+        // E.g., "#mpathRef" -> "#a0" or "fadein.begin" -> "a0.begin"
+        let isIdRemapping = false;
+        if (isIdReference(val)) {
+          const pattern = getIdReferencePattern(val);
+          if (pattern) {
+            // Look for a value in afterValues with the same pattern
+            isIdRemapping = Array.from(afterValues).some(afterVal => {
+              return getIdReferencePattern(afterVal) === pattern;
+            });
+          }
+        }
+
+        // Only report as "removed" if no normalized equivalent and not ID remapping
+        if (!hasNormalizedEquivalent && !isIdRemapping) {
+          differences.push({
+            type: 'attribute-removed',
+            attribute: attr,
+            value: val,
+            severity: 'HIGH'
+          });
+        }
+        // Otherwise it's just normalization or ID remapping, which will be caught in the "added" check below
       }
     }
 
-    // Check for added values (could be normalization)
+    // Check for added values (could be normalization or ID remapping)
     for (const val of afterValues) {
       if (!beforeValues.has(val)) {
-        // Check if this is just normalization (e.g., "0.5" -> ".5")
+        // Check if this is just normalization (e.g., "0.5" -> ".5" or "0;1" -> "0; 1")
         const isNormalization = Array.from(beforeValues).some(beforeVal => {
           return normalizeValue(beforeVal) === normalizeValue(val);
         });
+
+        // Check if this is an ID reference that was remapped
+        let isIdRemapping = false;
+        if (isIdReference(val)) {
+          const pattern = getIdReferencePattern(val);
+          if (pattern) {
+            isIdRemapping = Array.from(beforeValues).some(beforeVal => {
+              return getIdReferencePattern(beforeVal) === pattern;
+            });
+          }
+        }
 
         differences.push({
           type: 'attribute-modified',
           attribute: attr,
           value: val,
-          severity: isNormalization ? 'LOW' : 'MEDIUM'
+          severity: (isNormalization || isIdRemapping) ? 'LOW' : 'MEDIUM'
         });
       }
     }
@@ -238,6 +272,33 @@ function normalizeValue(val) {
   }
 
   return val.trim();
+}
+
+/**
+ * Check if a value looks like an ID reference that would be remapped by cleanupIds
+ * Patterns: #someId, someId.begin, someId.end, someId.click, etc.
+ * Also handles complex timing expressions with offsets like "someId.begin + 2s"
+ */
+function isIdReference(val) {
+  if (typeof val !== 'string') return false;
+  // Direct ID reference: #someId
+  if (val.startsWith('#')) return true;
+  // Event reference (possibly with offset): someId.begin, someId.end + 2s, someId.click + 0s, someId.repeat(3), etc.
+  // Pattern: id.event possibly followed by offset
+  if (/^[a-zA-Z_][a-zA-Z0-9_-]*\.(begin|end|click|mouseover|mouseout|mousedown|mouseup|focusin|focusout|activate|repeat)/.test(val)) return true;
+  return false;
+}
+
+/**
+ * Extract the pattern from an ID reference for comparison
+ * E.g., "fadeIn.begin" -> ".begin", "#myId" -> "#", "id.begin + 2s" -> ".begin + 2s"
+ * The pattern includes the event type and any offset, but not the ID itself
+ */
+function getIdReferencePattern(val) {
+  if (val.startsWith('#')) return '#';
+  // Match event type and optional offset (e.g., ".begin", ".click + 2s", ".repeat(3) + 2s")
+  const match = val.match(/\.(?:begin|end|click|mouseover|mouseout|mousedown|mouseup|focusin|focusout|activate|repeat)(?:\(\d+\))?(?:\s*[+-]\s*\d+(?:\.\d+)?s?)?$/);
+  return match ? match[0] : null;
 }
 
 /**
