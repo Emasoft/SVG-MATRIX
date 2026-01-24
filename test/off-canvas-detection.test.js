@@ -211,7 +211,7 @@ describe('OffCanvasDetection', () => {
           { type: 'M', x: 0, y: 0 },
           { type: 'X', x: 10, y: 10 }
         ]);
-      }, /Unknown path command/, 'should throw for unknown command');
+      }, /unknown path command/i, 'should throw for unknown command');
     });
   });
 

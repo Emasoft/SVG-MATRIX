@@ -480,10 +480,10 @@ describe('GJKCollision Support Functions', () => {
       assertClose(result.y, 2);
     });
 
-    it('handles empty polygon gracefully', () => {
-      const result = GJKCollision.supportPoint([], GJKCollision.point(1, 0));
-      assertClose(result.x, 0);
-      assertClose(result.y, 0);
+    it('throws for empty polygon', () => {
+      assert.throws(() => {
+        GJKCollision.supportPoint([], GJKCollision.point(1, 0));
+      }, /polygon cannot be empty/i, 'should throw for empty polygon');
     });
 
     it('handles single point polygon', () => {
@@ -810,10 +810,10 @@ describe('GJKCollision Verification Functions', () => {
       assertClose(result.y, 1);
     });
 
-    it('handles empty polygon', () => {
-      const result = GJKCollision.centroid([]);
-      assertClose(result.x, 0);
-      assertClose(result.y, 0);
+    it('throws for empty polygon', () => {
+      assert.throws(() => {
+        GJKCollision.centroid([]);
+      }, /polygon cannot be empty/i, 'should throw for empty polygon');
     });
 
     it('handles single point', () => {
