@@ -26,6 +26,10 @@ const TEST_SUITE_PATH = 'SVG 1.1 W3C Test Suit/svg';
 
 // Get all animation-related SVG files
 function getAnimationTestFiles() {
+  // Check if W3C test suite is available
+  if (!fs.existsSync(TEST_SUITE_PATH)) {
+    return null; // Signal that test suite is missing
+  }
   const files = fs.readdirSync(TEST_SUITE_PATH);
   return files.filter(f => f.includes('anim') && f.endsWith('.svg'));
 }
@@ -127,6 +131,15 @@ async function runAllTests() {
   console.log('\n=== W3C SVG 1.1 Animation Test Suite Compliance ===\n');
 
   const testFiles = getAnimationTestFiles();
+
+  // Check if W3C test suite is available
+  if (testFiles === null) {
+    console.log('⚠ SKIPPED: W3C SVG 1.1 Test Suite not found at:', TEST_SUITE_PATH);
+    console.log('  Download from: https://www.w3.org/Graphics/SVG/Test/20110816/');
+    console.log('  Extract to project root as "SVG 1.1 W3C Test Suit/svg/"');
+    return;
+  }
+
   console.log(`Found ${testFiles.length} animation test files\n`);
 
   let passed = 0;

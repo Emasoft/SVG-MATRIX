@@ -44,10 +44,11 @@ const MOTION_PATH_ELEMENTS = ['mpath'];
 
 /**
  * Find all animation SVG files in test suite
+ * Returns null if test suite is not available
  */
 function findAnimationFiles() {
   if (!fs.existsSync(TEST_SUITE_PATH)) {
-    throw new Error(`Test suite path not found: ${TEST_SUITE_PATH}`);
+    return null; // Signal that test suite is missing
   }
 
   const files = fs.readdirSync(TEST_SUITE_PATH)
@@ -298,6 +299,15 @@ async function runTests() {
   console.log('═'.repeat(80));
 
   const files = findAnimationFiles();
+
+  // Check if W3C test suite is available
+  if (files === null) {
+    console.log('\n⚠ SKIPPED: W3C SVG 1.1 Test Suite not found at:', TEST_SUITE_PATH);
+    console.log('  Download from: https://www.w3.org/Graphics/SVG/Test/20110816/');
+    console.log('  Extract to project root as "SVG 1.1 W3C Test Suit/svg/"');
+    return;
+  }
+
   console.log(`\nFound ${files.length} animation test files\n`);
 
   const results = {

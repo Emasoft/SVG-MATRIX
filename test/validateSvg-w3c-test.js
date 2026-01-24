@@ -1,5 +1,6 @@
-import { validateSvg, ValidationSeverity } from '../src/svg-toolbox.js';
+import { validateSVG, ValidationSeverity } from '../src/svg-toolbox.js';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 
 const W3C_TEST_SUITE_PATH = 'SVG 1.1 W3C Test Suit/svg';
@@ -12,6 +13,14 @@ async function testW3CFalsePositives() {
   console.log('Any unknown element/attribute warnings are FALSE POSITIVES.');
   console.log('='.repeat(70));
   console.log();
+
+  // Check if W3C test suite is available
+  if (!fsSync.existsSync(W3C_TEST_SUITE_PATH)) {
+    console.log('⚠ SKIPPED: W3C SVG 1.1 Test Suite not found at:', W3C_TEST_SUITE_PATH);
+    console.log('  Download from: https://www.w3.org/Graphics/SVG/Test/20110816/');
+    console.log('  Extract to project root as "SVG 1.1 W3C Test Suit/svg/"');
+    return;
+  }
 
   // Get all SVG files from W3C test suite
   const entries = await fs.readdir(W3C_TEST_SUITE_PATH);
@@ -40,7 +49,7 @@ async function testW3CFalsePositives() {
   for (const file of svgFiles) {
     const filepath = path.join(W3C_TEST_SUITE_PATH, file);
     try {
-      const result = await validateSvg(filepath);
+      const result = await validateSVG(filepath);
       results.total++;
 
       // Check for false positives (unknown/mistyped element/attribute warnings)
