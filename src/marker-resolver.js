@@ -378,6 +378,12 @@ export function getMarkerTransform(
   }
 
   // Step 4: Apply viewBox transformation if present
+  // BUG FIX: When viewBox has non-zero origin, the refX/refY are in viewBox coordinates.
+  // We must convert them to viewport coordinates before applying the ref translation.
+  // Transform chain: T_position * R * T(-ref_viewport) * S * T(-viewBox.origin)
+  let hasViewBox = false;
+  let viewBoxScaleFactor = 1;
+
   if (viewBox) {
     // Calculate scale factors to fit viewBox into marker viewport
     const vbWidth = viewBox.width;
@@ -397,30 +403,47 @@ export function getMarkerTransform(
       // Validate scale factors are finite
       if (isFinite(scaleFactorX) && isFinite(scaleFactorY)) {
         // For now, use uniform scaling (can be enhanced with full preserveAspectRatio parsing)
-        const scaleFactor = Math.min(scaleFactorX, scaleFactorY);
+        viewBoxScaleFactor = Math.min(scaleFactorX, scaleFactorY);
+        hasViewBox = true;
 
-        scaleX *= scaleFactor;
-        scaleY *= scaleFactor;
-
-        // Translate to account for viewBox origin
-        const viewBoxTranslate = Transforms2D.translation(
-          -viewBox.x,
-          -viewBox.y,
-        );
-        transform = transform.mul(viewBoxTranslate);
+        scaleX *= viewBoxScaleFactor;
+        scaleY *= viewBoxScaleFactor;
       }
     }
   }
 
-  // Apply combined scaling
-  if (scaleX !== 1 || scaleY !== 1) {
-    const scale = Transforms2D.scale(scaleX, scaleY);
-    transform = transform.mul(scale);
-  }
+  if (hasViewBox) {
+    // When viewBox is present, refX/refY are in viewBox coordinates.
+    // Convert to viewport (marker) coordinates by:
+    // 1. Subtract viewBox origin to get position relative to viewBox
+    // 2. Scale by viewBox scale factor to get position in marker viewport
+    const refViewportX = (refX - viewBox.x) * viewBoxScaleFactor;
+    const refViewportY = (refY - viewBox.y) * viewBoxScaleFactor;
 
-  // Step 5: Translate by -refX, -refY
-  const refTranslate = Transforms2D.translation(-refX, -refY);
-  transform = transform.mul(refTranslate);
+    // Apply ref translation in viewport coordinates (BEFORE scaling in the chain)
+    const refTranslate = Transforms2D.translation(-refViewportX, -refViewportY);
+    transform = transform.mul(refTranslate);
+
+    // Apply combined scaling
+    if (scaleX !== 1 || scaleY !== 1) {
+      const scale = Transforms2D.scale(scaleX, scaleY);
+      transform = transform.mul(scale);
+    }
+
+    // Apply viewBox origin translation (AFTER scaling, so it scales correctly)
+    const viewBoxTranslate = Transforms2D.translation(-viewBox.x, -viewBox.y);
+    transform = transform.mul(viewBoxTranslate);
+  } else {
+    // No viewBox: apply scaling then ref translation in original coordinates
+    if (scaleX !== 1 || scaleY !== 1) {
+      const scale = Transforms2D.scale(scaleX, scaleY);
+      transform = transform.mul(scale);
+    }
+
+    // Step 5: Translate by -refX, -refY
+    const refTranslate = Transforms2D.translation(-refX, -refY);
+    transform = transform.mul(refTranslate);
+  }
 
   return transform;
 }
