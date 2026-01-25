@@ -1,4 +1,4 @@
-import { validateSVG, ValidationSeverity } from '../src/svg-toolbox.js';
+import { validateSVGAsync, ValidationSeverity } from '../src/svg-toolbox.js';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
@@ -49,7 +49,7 @@ async function testW3CFalsePositives() {
   for (const file of svgFiles) {
     const filepath = path.join(W3C_TEST_SUITE_PATH, file);
     try {
-      const result = await validateSVG(filepath);
+      const result = await validateSVGAsync(filepath);
       results.total++;
 
       // Check for false positives (unknown/mistyped element/attribute warnings)

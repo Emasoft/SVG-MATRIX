@@ -151,6 +151,7 @@ export const SVG11_ATTRIBUTES = new Set([
   "filter",
   "filterres",
   "filterunits",
+  "filterprimitiveunits",
   "flood-color",
   "flood-opacity",
   "font-family",

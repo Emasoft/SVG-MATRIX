@@ -266,6 +266,7 @@ const SVG11_ATTRIBUTES = new Set([
   "filter",
   "filterRes",
   "filterUnits",
+  "filterPrimitiveUnits",
   "flood-color",
   "flood-opacity",
   "font-family",
@@ -14171,6 +14172,7 @@ export const fixInvalidSVG = createOperation((doc, options = {}) => {
     maskUnits: ["userSpaceOnUse", "objectBoundingBox"],
     maskContentUnits: ["userSpaceOnUse", "objectBoundingBox"],
     filterUnits: ["userSpaceOnUse", "objectBoundingBox"],
+    filterPrimitiveUnits: ["userSpaceOnUse", "objectBoundingBox"],
     primitiveUnits: ["userSpaceOnUse", "objectBoundingBox"],
     markerUnits: ["strokeWidth", "userSpaceOnUse"],
     // Other
@@ -16143,11 +16145,20 @@ export async function validateSVGAsync(input, options = {}) {
     // - title/desc (text content for accessibility - not SVG structure)
     // - metadata (can contain arbitrary XML metadata like Dublin Core, RDF)
     // - Namespaced elements (e.g., d:testDescription, rdf:RDF)
+    // - Elements in non-SVG namespaces (e.g., <foo xmlns="http://example.org/foo">)
     const isNamespacedElement = tagName.includes(":");
+    const isNonSvgNamespace =
+      el.namespaceURI && el.namespaceURI !== "http://www.w3.org/2000/svg";
+    // Check for explicit xmlns attribute declaring a non-SVG namespace
+    const xmlns = el.getAttribute ? el.getAttribute("xmlns") : null;
+    const hasNonSvgXmlns =
+      xmlns && xmlns !== "http://www.w3.org/2000/svg";
     const inNonSvgContext =
       insideNonSvgContext ||
       NON_SVG_CONTEXT_ELEMENTS.has(tagLower) ||
-      isNamespacedElement;
+      isNamespacedElement ||
+      isNonSvgNamespace ||
+      hasNonSvgXmlns;
 
     // Skip validation entirely if we're in non-SVG context
     if (!inNonSvgContext) {
@@ -16206,11 +16217,20 @@ export async function validateSVGAsync(input, options = {}) {
     // - title/desc (text content elements)
     // - metadata (arbitrary XML metadata content)
     // - Namespaced elements (e.g., d:testDescription, rdf:RDF)
+    // - Elements in non-SVG namespaces (e.g., <foo xmlns="http://example.org/foo">)
     const isNamespacedElement = el.tagName.includes(":");
+    const isNonSvgNamespace =
+      el.namespaceURI && el.namespaceURI !== "http://www.w3.org/2000/svg";
+    // Check for explicit xmlns attribute declaring a non-SVG namespace
+    const xmlns = el.getAttribute ? el.getAttribute("xmlns") : null;
+    const hasNonSvgXmlns =
+      xmlns && xmlns !== "http://www.w3.org/2000/svg";
     const inNonSvgContext =
       insideNonSvgContext ||
       NON_SVG_CONTEXT_ELEMENTS.has(tagName) ||
-      isNamespacedElement;
+      isNamespacedElement ||
+      isNonSvgNamespace ||
+      hasNonSvgXmlns;
 
     // Skip attribute validation entirely if we're in non-SVG context
     if (!inNonSvgContext) {
@@ -16446,6 +16466,7 @@ export async function validateSVGAsync(input, options = {}) {
     maskUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
     maskContentUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
     filterUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
+    filterPrimitiveUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
     primitiveUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
     patternUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
     patternContentUnits: new Set(["userSpaceOnUse", "objectBoundingBox"]),
