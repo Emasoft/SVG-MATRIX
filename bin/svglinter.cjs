@@ -594,14 +594,14 @@ const RULES = {
   },
   I002: {
     type: "inkscape-unknown_inkscape_element",
-    severity: "warning",
-    description: "Unknown inkscape: element (not in schema)",
+    severity: "error",
+    description: "Unknown inkscape: element (not in namespace schema)",
     fixable: false,
   },
   I003: {
     type: "inkscape-unknown_sodipodi_element",
-    severity: "warning",
-    description: "Unknown sodipodi: element (not in schema)",
+    severity: "error",
+    description: "Unknown sodipodi: element (not in namespace schema)",
     fixable: false,
   },
 
@@ -620,14 +620,14 @@ const RULES = {
   },
   I103: {
     type: "inkscape-unknown_inkscape_attribute",
-    severity: "warning",
-    description: "Unknown inkscape: attribute (not in schema)",
+    severity: "error",
+    description: "Unknown inkscape: attribute (not in namespace schema)",
     fixable: false,
   },
   I104: {
     type: "inkscape-unknown_sodipodi_attribute",
-    severity: "warning",
-    description: "Unknown sodipodi: attribute (not in schema)",
+    severity: "error",
+    description: "Unknown sodipodi: attribute (not in namespace schema)",
     fixable: false,
   },
 
@@ -1821,11 +1821,9 @@ function parseArgs(argv) {
       args.verbose = true;
     } else if (arg === "--stdin" || arg === "-") {
       args.stdin = true;
-    } else if (arg === "--validate-inkscape" || arg === "--inkscape") {
+    } else if (arg === "--validate-inkscape" || arg === "--inkscape" || arg === "--inkscape-strict") {
+      // All Inkscape validation is now strict by default (spec compliance)
       args.validateInkscape = true;
-    } else if (arg === "--inkscape-strict") {
-      args.validateInkscape = true;
-      args.inkscapeStrict = true;
     } else if (!arg.startsWith("-")) {
       args.files.push(arg);
     } else {
@@ -1910,9 +1908,10 @@ ${c("bold", "FORMATS")}
     github          GitHub Actions annotations (::error, ::warning)
 
 ${c("bold", "INKSCAPE SUPPORT")}
-  ${c("cyan", "--validate-inkscape")}      Enable Inkscape namespace validation
+  ${c("cyan", "--validate-inkscape")}      Enable Inkscape namespace validation (strict mode)
   ${c("cyan", "--inkscape")}               Alias for --validate-inkscape
-  ${c("cyan", "--inkscape-strict")}        Strict mode: unknown inkscape/sodipodi attributes are errors
+                          ${c("dim", "All unknown elements/attributes are errors (spec compliance)")}
+                          ${c("dim", "Polyfill requirements (flowText, mesh, hatch) are warnings")}
 
 ${c("bold", "CONFIGURATION")}
   ${c("cyan", "-c, --config")} <file>      Path to config file

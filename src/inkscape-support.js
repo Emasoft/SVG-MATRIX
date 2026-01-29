@@ -58,7 +58,12 @@ export const INKSCAPE_ATTRIBUTES = {
   deskcolor: { type: "color", description: "Desk (canvas background) color" },
   deskopacity: { type: "number", min: 0, max: 1, description: "Desk opacity" },
   pagecheckerboard: { type: "boolean", description: "Show checkerboard pattern for transparency" },
+  // Alternate hyphenated forms also accepted by Inkscape
+  "desk-color": { type: "color", description: "Desk (canvas background) color (alternate form)" },
+  "desk-opacity": { type: "number", min: 0, max: 1, description: "Desk opacity (alternate form)" },
+  "desk-checkerboard": { type: "boolean", description: "Show checkerboard pattern (alternate form)" },
   "clip-to-page": { type: "boolean", description: "Clip rendering to page bounds" },
+  "clip-to-page-rendering": { type: "boolean", description: "Clip rendering to page bounds (rendering mode)" },
   "antialias-rendering": { type: "boolean", description: "Enable antialiasing in rendering" },
 
   // Page dimensions
@@ -66,6 +71,8 @@ export const INKSCAPE_ATTRIBUTES = {
   bleed: { type: "string", description: "Page bleed area" },
   "page-size": { type: "string", description: "Named page size (A4, Letter, etc.)" },
   "svg-dpi": { type: "number", description: "DPI for SVG export" },
+  "origin-correction": { type: "string", description: "Origin correction for page positioning" },
+  "y-axis-down": { type: "boolean", description: "Y axis direction (true=down, false=up)" },
 
   // Guides
   lockguides: { type: "boolean", description: "Lock all guides from editing" },
@@ -95,9 +102,13 @@ export const INKSCAPE_ATTRIBUTES = {
   "connection-points": { type: "string", description: "Custom connection point definitions" },
   "connection-start": { type: "string", description: "Start connection point reference" },
   "connection-end": { type: "string", description: "End connection point reference" },
+  "connection-start-point": { type: "string", description: "Child-object reference for start connection" },
+  "connection-end-point": { type: "string", description: "Child-object reference for end connection" },
 
   // 3D Box and Perspective
   perspectiveID: { type: "string", description: "Reference to perspective element" },
+  "box3d-perspectiveID": { type: "string", description: "Reference to perspective element (3D box alternate)" },
+  "box3d-perspective-id": { type: "string", description: "Reference to perspective element (hyphenated form)" },
   corner0: { type: "string", description: "3D box corner 0 coordinates" },
   corner7: { type: "string", description: "3D box corner 7 coordinates" },
   box3dsidetype: { type: "string", description: "3D box side type" },
@@ -118,6 +129,7 @@ export const INKSCAPE_ATTRIBUTES = {
 
   // Font and text
   "font-specification": { type: "string", description: "Full font specification string (fontconfig format)" },
+  "font-spec": { type: "string", description: "Full font specification (alternate form)" },
 
   // Text flow (SVG 1.2 draft)
   srcNoMarkup: { type: "string", description: "Text source without markup" },
@@ -144,6 +156,8 @@ export const INKSCAPE_ATTRIBUTES = {
   "tile-cy": { type: "number", description: "Tile clone center Y" },
   "tile-w": { type: "number", description: "Tile clone width" },
   "tile-h": { type: "number", description: "Tile clone height" },
+  "tile-x0": { type: "number", description: "Tile origin X coordinate" },
+  "tile-y0": { type: "number", description: "Tile origin Y coordinate" },
 
   // Grid and guide display (from inkscape-draft.rnc)
   "grid-bbox": { type: "boolean", description: "Show grid bounding box" },
@@ -155,9 +169,12 @@ export const INKSCAPE_ATTRIBUTES = {
   "object-paths": { type: "boolean", description: "Show object paths" },
   "object-points": { type: "boolean", description: "Show object points" },
 
-  // Markers
+  // Markers and stock resources
   marker: { type: "string", description: "Marker reference" },
   stockid: { type: "string", description: "Stock marker/pattern ID" },
+  isstock: { type: "boolean", description: "Element is a stock resource (pattern, symbol, etc.)" },
+  menu: { type: "string", description: "Menu category for stock resources" },
+  "menu-tooltip": { type: "string", description: "Tooltip text for stock resource menu item" },
 
   // Data handling
   dataloss: { type: "boolean", description: "Indicates data loss on save" },
@@ -231,7 +248,14 @@ export const SODIPODI_ELEMENTS = ["namedview", "guide"];
 /**
  * Valid inkscape: namespace elements.
  */
-export const INKSCAPE_ELEMENTS = ["path-effect", "perspective"];
+export const INKSCAPE_ELEMENTS = [
+  "path-effect",   // Live Path Effects
+  "perspective",   // 3D perspective definitions
+  "page",          // Multi-page document support
+  "clipboard",     // Clipboard data container
+  "grid",          // Grid definitions
+  "box3dside",     // 3D box side element
+];
 
 /**
  * SVG 1.2 draft elements used by Inkscape for flowed text.
@@ -305,8 +329,16 @@ export function validateInkscapeAttribute(attrName, value) {
     }
   }
 
-  if (schema.type === "boolean" && !["true", "false", "0", "1"].includes(value)) {
-    return { valid: false, error: `inkscape:${attrName} must be a boolean (true/false/0/1)` };
+  if (schema.type === "boolean") {
+    // Inkscape accepts: "true", "false", or any integer (0=false, non-zero=true)
+    if (value === "true" || value === "false") {
+      return { valid: true };
+    }
+    // Check if it's a valid integer
+    const intVal = parseInt(value, 10);
+    if (isNaN(intVal) || String(intVal) !== value) {
+      return { valid: false, error: `inkscape:${attrName} must be a boolean (true/false) or integer` };
+    }
   }
 
   if (schema.pattern && !schema.pattern.test(value)) {
@@ -1257,11 +1289,11 @@ export function validateInkscapeDocument(doc, options = {}) {
       const elementName = tagName.substring(9);
       if (!SODIPODI_ELEMENTS.includes(elementName)) {
         addIssue(
-          strict ? InkscapeValidationSeverity.ERROR : InkscapeValidationSeverity.WARNING,
+          InkscapeValidationSeverity.ERROR,
           "unknown_sodipodi_element",
           tagName,
           null,
-          `Unknown sodipodi element: ${tagName}`
+          `Unknown sodipodi element: ${tagName} - not in Sodipodi namespace schema`
         );
       }
     }
@@ -1271,11 +1303,11 @@ export function validateInkscapeDocument(doc, options = {}) {
       const elementName = tagName.substring(9);
       if (!INKSCAPE_ELEMENTS.includes(elementName)) {
         addIssue(
-          strict ? InkscapeValidationSeverity.ERROR : InkscapeValidationSeverity.WARNING,
+          InkscapeValidationSeverity.ERROR,
           "unknown_inkscape_element",
           tagName,
           null,
-          `Unknown inkscape element: ${tagName}`
+          `Unknown inkscape element: ${tagName} - not in Inkscape namespace schema`
         );
       }
     }
@@ -1298,11 +1330,11 @@ export function validateInkscapeDocument(doc, options = {}) {
           );
         } else if (strict && !INKSCAPE_ATTRIBUTES[attrLocalName]) {
           addIssue(
-            InkscapeValidationSeverity.WARNING,
+            InkscapeValidationSeverity.ERROR,
             "unknown_inkscape_attribute",
             tagName,
             attrName,
-            `Unknown inkscape attribute: ${attrName} (may be from newer Inkscape version)`
+            `Unknown inkscape attribute: ${attrName} - not in Inkscape namespace schema`
           );
         }
       }
@@ -1321,11 +1353,11 @@ export function validateInkscapeDocument(doc, options = {}) {
           );
         } else if (strict && !SODIPODI_ATTRIBUTES[attrLocalName]) {
           addIssue(
-            InkscapeValidationSeverity.WARNING,
+            InkscapeValidationSeverity.ERROR,
             "unknown_sodipodi_attribute",
             tagName,
             attrName,
-            `Unknown sodipodi attribute: ${attrName}`
+            `Unknown sodipodi attribute: ${attrName} - not in Sodipodi namespace schema`
           );
         }
       }

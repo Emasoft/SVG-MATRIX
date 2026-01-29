@@ -13814,6 +13814,26 @@ export const fixInvalidSVG = createOperation((doc, options = {}) => {
               reason: `Element <${tagName}> is missing required attribute '${attr}' (or 'xlink:href')`,
             });
           }
+        } else if (tagName === "stop" && attr === "offset") {
+          // Mesh gradient stops (inside meshpatch/meshgradient) use 'path' instead of 'offset'
+          let parent = el.parentNode;
+          let isMeshStop = false;
+          while (parent && parent.tagName) {
+            const parentTag = parent.tagName.toLowerCase();
+            if (parentTag === "meshpatch" || parentTag === "meshgradient") {
+              isMeshStop = true;
+              break;
+            }
+            parent = parent.parentNode;
+          }
+          if (!isMeshStop && !el.hasAttribute(attr)) {
+            fixes.push({
+              type: "missing_required_attribute",
+              element: tagName,
+              attr: attr,
+              reason: `Element <${tagName}> is missing required attribute '${attr}'`,
+            });
+          }
         } else {
           if (!el.hasAttribute(attr)) {
             fixes.push({
@@ -16366,6 +16386,21 @@ export async function validateSVGAsync(input, options = {}) {
         }
       } else {
         for (const attr of required) {
+          // Mesh gradient stops (inside meshpatch/meshgradient) use 'path' instead of 'offset'
+          if (tagName === "stop" && attr === "offset") {
+            // Check if this stop is inside a mesh gradient structure by walking up the tree
+            let parent = el.parentNode;
+            let isMeshStop = false;
+            while (parent && parent.tagName) {
+              const parentTag = parent.tagName.toLowerCase();
+              if (parentTag === "meshpatch" || parentTag === "meshgradient") {
+                isMeshStop = true;
+                break;
+              }
+              parent = parent.parentNode;
+            }
+            if (isMeshStop) continue; // Skip offset requirement for mesh gradient stops
+          }
           if (!el.hasAttribute(attr)) {
             issues.push(
               createIssue(
@@ -17649,10 +17684,11 @@ export async function validateSVGAsync(input, options = {}) {
   detectAccessibilityIssues();
 
   // Inkscape namespace validation (if enabled)
+  // Always use strict mode - a file either conforms to the spec or it doesn't
   let inkscapeValidation = null;
   if (validateInkscape && doc) {
     inkscapeValidation = validateInkscapeDocument(doc, {
-      strict: inkscapeStrict,
+      strict: true, // Always strict - unknown attributes are errors
       warnFlowText: true,
       checkPolyfillNeeds: true,
     });
