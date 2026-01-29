@@ -1152,3 +1152,351 @@ export function analyzeLayerDependencies(doc) {
     totalDefs: defsMap.size,
   };
 }
+
+// ============================================================================
+// COMPREHENSIVE INKSCAPE DOCUMENT VALIDATION
+// ============================================================================
+
+/**
+ * Validation issue severity levels.
+ */
+export const InkscapeValidationSeverity = {
+  ERROR: "error",
+  WARNING: "warning",
+  INFO: "info",
+};
+
+/**
+ * Validate all Inkscape/Sodipodi attributes in a document.
+ * @param {Object} doc - Parsed SVG document
+ * @param {Object} [options] - Validation options
+ * @param {boolean} [options.strict=false] - Fail on unknown attributes
+ * @param {boolean} [options.warnFlowText=true] - Warn about SVG 1.2 flowText
+ * @param {boolean} [options.checkPolyfillNeeds=true] - Check for features needing polyfills
+ * @returns {{
+ *   isValid: boolean,
+ *   isInkscape: boolean,
+ *   version?: string,
+ *   issues: Array<{severity: string, type: string, element: string, attribute?: string, message: string, line?: number}>,
+ *   summary: {errors: number, warnings: number, info: number},
+ *   polyfillsNeeded: string[],
+ *   hasFlowText: boolean
+ * }}
+ */
+export function validateInkscapeDocument(doc, options = {}) {
+  const {
+    strict = false,
+    warnFlowText = true,
+    checkPolyfillNeeds = true,
+  } = options;
+
+  const issues = [];
+  const polyfillsNeeded = new Set();
+  let hasFlowText = false;
+  let hasMeshGradient = false;
+  let hasHatch = false;
+
+  // Detect if this is an Inkscape document
+  const detection = detectInkscapeDocument(doc);
+  hasFlowText = detection.hasFlowText;
+
+  // Helper to add issue
+  const addIssue = (severity, type, element, attribute, message) => {
+    issues.push({ severity, type, element, attribute, message });
+  };
+
+  // Check namespace declarations
+  const svg = doc.documentElement || doc;
+  if (svg && typeof svg.getAttribute === "function") {
+    const inkscapeNs = svg.getAttribute("xmlns:inkscape");
+    const sodipodiNs = svg.getAttribute("xmlns:sodipodi");
+
+    // Validate namespace URIs are correct
+    if (inkscapeNs && inkscapeNs !== INKSCAPE_NS) {
+      addIssue(
+        InkscapeValidationSeverity.ERROR,
+        "invalid_namespace_uri",
+        "svg",
+        "xmlns:inkscape",
+        `Invalid Inkscape namespace URI. Expected: ${INKSCAPE_NS}, got: ${inkscapeNs}`
+      );
+    }
+    if (sodipodiNs && sodipodiNs !== SODIPODI_NS) {
+      addIssue(
+        InkscapeValidationSeverity.ERROR,
+        "invalid_namespace_uri",
+        "svg",
+        "xmlns:sodipodi",
+        `Invalid Sodipodi namespace URI. Expected: ${SODIPODI_NS}, got: ${sodipodiNs}`
+      );
+    }
+  }
+
+  // Walk the document tree and validate attributes
+  const walkAndValidate = (el) => {
+    if (!el || typeof el.getAttributeNames !== "function") return;
+
+    const tagName = el.tagName || "unknown";
+
+    // Check for elements needing polyfills
+    if (checkPolyfillNeeds) {
+      const tagLower = tagName.toLowerCase();
+      if (tagLower === "meshgradient" || tagLower === "meshrow" || tagLower === "meshpatch") {
+        hasMeshGradient = true;
+      }
+      if (tagLower === "hatch" || tagLower === "hatchpath") {
+        hasHatch = true;
+      }
+      if (FLOW_TEXT_ELEMENTS.includes(tagName)) {
+        hasFlowText = true;
+      }
+    }
+
+    // Check for sodipodi: elements
+    if (tagName.startsWith("sodipodi:")) {
+      const elementName = tagName.substring(9);
+      if (!SODIPODI_ELEMENTS.includes(elementName)) {
+        addIssue(
+          strict ? InkscapeValidationSeverity.ERROR : InkscapeValidationSeverity.WARNING,
+          "unknown_sodipodi_element",
+          tagName,
+          null,
+          `Unknown sodipodi element: ${tagName}`
+        );
+      }
+    }
+
+    // Check for inkscape: elements
+    if (tagName.startsWith("inkscape:")) {
+      const elementName = tagName.substring(9);
+      if (!INKSCAPE_ELEMENTS.includes(elementName)) {
+        addIssue(
+          strict ? InkscapeValidationSeverity.ERROR : InkscapeValidationSeverity.WARNING,
+          "unknown_inkscape_element",
+          tagName,
+          null,
+          `Unknown inkscape element: ${tagName}`
+        );
+      }
+    }
+
+    // Validate attributes
+    for (const attrName of el.getAttributeNames()) {
+      const value = el.getAttribute(attrName);
+
+      // Validate inkscape: attributes
+      if (attrName.startsWith("inkscape:")) {
+        const attrLocalName = attrName.substring(9);
+        const validation = validateInkscapeAttribute(attrLocalName, value);
+        if (!validation.valid) {
+          addIssue(
+            InkscapeValidationSeverity.ERROR,
+            "invalid_inkscape_attribute",
+            tagName,
+            attrName,
+            validation.error
+          );
+        } else if (strict && !INKSCAPE_ATTRIBUTES[attrLocalName]) {
+          addIssue(
+            InkscapeValidationSeverity.WARNING,
+            "unknown_inkscape_attribute",
+            tagName,
+            attrName,
+            `Unknown inkscape attribute: ${attrName} (may be from newer Inkscape version)`
+          );
+        }
+      }
+
+      // Validate sodipodi: attributes
+      if (attrName.startsWith("sodipodi:")) {
+        const attrLocalName = attrName.substring(9);
+        const validation = validateSodipodiAttribute(attrLocalName, value);
+        if (!validation.valid) {
+          addIssue(
+            InkscapeValidationSeverity.ERROR,
+            "invalid_sodipodi_attribute",
+            tagName,
+            attrName,
+            validation.error
+          );
+        } else if (strict && !SODIPODI_ATTRIBUTES[attrLocalName]) {
+          addIssue(
+            InkscapeValidationSeverity.WARNING,
+            "unknown_sodipodi_attribute",
+            tagName,
+            attrName,
+            `Unknown sodipodi attribute: ${attrName}`
+          );
+        }
+      }
+
+      // Check for -inkscape-stroke CSS property in style
+      if (attrName === "style" && value.includes("-inkscape-stroke")) {
+        polyfillsNeeded.add("hairlineStroke");
+      }
+    }
+
+    // Recurse into children
+    if (el.children && Array.isArray(el.children)) {
+      for (const child of el.children) {
+        walkAndValidate(child);
+      }
+    } else if (el.childNodes) {
+      for (const child of el.childNodes) {
+        if (child.nodeType === 1) { // Element node
+          walkAndValidate(child);
+        }
+      }
+    }
+  };
+
+  walkAndValidate(svg);
+
+  // Add polyfill needs
+  if (hasMeshGradient) polyfillsNeeded.add("meshGradient");
+  if (hasHatch) polyfillsNeeded.add("hatchPaint");
+  if (hasFlowText && warnFlowText) {
+    addIssue(
+      InkscapeValidationSeverity.WARNING,
+      "flowtext_compatibility",
+      "flowRoot",
+      null,
+      "SVG contains flowRoot elements (SVG 1.2 draft). These are not supported by browsers and should be converted to regular text."
+    );
+  }
+
+  // Count issues by severity
+  const summary = {
+    errors: issues.filter(i => i.severity === InkscapeValidationSeverity.ERROR).length,
+    warnings: issues.filter(i => i.severity === InkscapeValidationSeverity.WARNING).length,
+    info: issues.filter(i => i.severity === InkscapeValidationSeverity.INFO).length,
+  };
+
+  return {
+    isValid: summary.errors === 0,
+    isInkscape: detection.isInkscape,
+    version: detection.version,
+    issues,
+    summary,
+    polyfillsNeeded: [...polyfillsNeeded],
+    hasFlowText,
+  };
+}
+
+/**
+ * Get the list of polyfills needed for browser rendering.
+ * @param {Object} doc - Parsed SVG document
+ * @returns {{
+ *   meshGradient: boolean,
+ *   hatchPaint: boolean,
+ *   hairlineStroke: boolean,
+ *   flowText: boolean,
+ *   polyfillScripts: string[]
+ * }}
+ */
+export function getPolyfillRequirements(doc) {
+  const result = {
+    meshGradient: false,
+    hatchPaint: false,
+    hairlineStroke: false,
+    flowText: false,
+    polyfillScripts: [],
+  };
+
+  const svg = doc.documentElement || doc;
+  if (!svg) return result;
+
+  const walk = (el) => {
+    if (!el) return;
+
+    const tagName = (el.tagName || "").toLowerCase();
+
+    // Check for mesh gradient elements
+    if (tagName === "meshgradient" || tagName === "meshrow" || tagName === "meshpatch") {
+      result.meshGradient = true;
+    }
+
+    // Check for hatch elements
+    if (tagName === "hatch" || tagName === "hatchpath") {
+      result.hatchPaint = true;
+    }
+
+    // Check for flowText elements
+    if (FLOW_TEXT_ELEMENTS.includes(el.tagName)) {
+      result.flowText = true;
+    }
+
+    // Check for hairline stroke in style
+    if (typeof el.getAttribute === "function") {
+      const style = el.getAttribute("style");
+      if (style && style.includes("-inkscape-stroke")) {
+        result.hairlineStroke = true;
+      }
+    }
+
+    // Recurse
+    if (el.children && Array.isArray(el.children)) {
+      for (const child of el.children) {
+        walk(child);
+      }
+    } else if (el.childNodes) {
+      for (const child of el.childNodes) {
+        if (child.nodeType === 1) walk(child);
+      }
+    }
+  };
+
+  walk(svg);
+
+  // Build polyfill script list
+  if (result.meshGradient) {
+    result.polyfillScripts.push("inkscape-mesh-polyfill.min.js");
+  }
+  if (result.hatchPaint) {
+    result.polyfillScripts.push("inkscape-hatch-polyfill.min.js");
+  }
+
+  return result;
+}
+
+/**
+ * Inject polyfill scripts into an SVG document for browser rendering.
+ * @param {Object} doc - Parsed SVG document
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.minified=true] - Use minified polyfills
+ * @param {string} [options.polyfillPath=""] - Base path for polyfill scripts
+ * @returns {Object} Modified document with polyfills injected
+ */
+export function injectInkscapePolyfills(doc, options = {}) {
+  const { minified = true, polyfillPath = "" } = options;
+
+  const requirements = getPolyfillRequirements(doc);
+  const svg = doc.documentElement || doc;
+
+  if (!svg || typeof svg.appendChild !== "function") {
+    return doc;
+  }
+
+  // Add polyfill scripts
+  for (const script of requirements.polyfillScripts) {
+    const scriptName = minified ? script : script.replace(".min.js", ".js");
+    const scriptPath = polyfillPath ? `${polyfillPath}/${scriptName}` : scriptName;
+
+    // Create script element - using the SVGElement class if available
+    if (typeof SVGElement !== "undefined" && SVGElement.prototype) {
+      const scriptEl = new SVGElement("script", {
+        type: "text/javascript",
+        href: scriptPath,
+      }, [], "");
+
+      // Insert at the beginning of SVG
+      if (svg.children && svg.children.length > 0) {
+        svg.children.unshift(scriptEl);
+      } else if (svg.insertBefore) {
+        svg.insertBefore(scriptEl, svg.firstChild);
+      }
+    }
+  }
+
+  return doc;
+}

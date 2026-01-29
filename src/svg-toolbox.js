@@ -57,6 +57,14 @@ import {
 } from "./svg-parser.js";
 import { flattenSVG } from "./flatten-pipeline.js";
 import {
+  validateInkscapeDocument,
+  detectInkscapeDocument,
+  getPolyfillRequirements,
+  InkscapeValidationSeverity,
+  INKSCAPE_ATTRIBUTES,
+  SODIPODI_ATTRIBUTES,
+} from "./inkscape-support.js";
+import {
   referencesProps as _referencesProps,
   inheritableAttrs,
   allowedChildrenPerElement,
@@ -15394,6 +15402,8 @@ export async function validateSVGAsync(input, options = {}) {
   const outputFile = options.outputFile || null;
   const outputFormat = (options.outputFormat || "json").toLowerCase();
   const includeSource = options.includeSource === true;
+  const validateInkscape = options.validateInkscape === true;
+  const inkscapeStrict = options.inkscapeStrict === true;
 
   // Validate outputFormat
   const validFormats = ["text", "json", "xml", "yaml"];
@@ -17638,6 +17648,36 @@ export async function validateSVGAsync(input, options = {}) {
   detectEventHandlers(doc);
   detectAccessibilityIssues();
 
+  // Inkscape namespace validation (if enabled)
+  let inkscapeValidation = null;
+  if (validateInkscape && doc) {
+    inkscapeValidation = validateInkscapeDocument(doc, {
+      strict: inkscapeStrict,
+      warnFlowText: true,
+      checkPolyfillNeeds: true,
+    });
+    // Add Inkscape validation issues to the main issues array
+    for (const inkIssue of inkscapeValidation.issues) {
+      // Map Inkscape severity to ValidationSeverity
+      let severity = ValidationSeverity.INFO;
+      if (inkIssue.severity === InkscapeValidationSeverity.ERROR) {
+        severity = ValidationSeverity.ERROR;
+      } else if (inkIssue.severity === InkscapeValidationSeverity.WARNING) {
+        severity = ValidationSeverity.WARNING;
+      }
+      issues.push({
+        type: `inkscape-${inkIssue.type}`,
+        reason: inkIssue.message,
+        severity,
+        line: inkIssue.line || 1,
+        column: inkIssue.column || 1,
+        element: inkIssue.element || null,
+        attribute: inkIssue.attribute || null,
+        context: inkIssue.context || null,
+      });
+    }
+  }
+
   // Sort issues by line, then by column (for consistent, predictable output)
   issues.sort((a, b) => {
     if (a.line !== b.line) return a.line - b.line;
@@ -17677,6 +17717,19 @@ export async function validateSVGAsync(input, options = {}) {
     issueCount: filteredIssues.length,
     summary,
   };
+
+  // Add Inkscape-specific info if validation was performed
+  if (inkscapeValidation) {
+    result.inkscape = {
+      isInkscapeDocument: inkscapeValidation.isInkscape,
+      inkscapeVersion: inkscapeValidation.version || null,
+      polyfillsNeeded: inkscapeValidation.polyfillsNeeded || [],
+      hasFlowText: inkscapeValidation.hasFlowText || false,
+      inkscapeIssueCount: inkscapeValidation.issues.length,
+      inkscapeErrorCount: inkscapeValidation.summary.errors,
+      inkscapeWarningCount: inkscapeValidation.summary.warnings,
+    };
+  }
 
   // Export to file if requested
   if (outputFile) {

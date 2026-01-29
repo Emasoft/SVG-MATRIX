@@ -583,6 +583,73 @@ const RULES = {
     description: "Missing lang/xml:lang attribute on SVG with text content",
     fixable: false,
   },
+
+  // === INKSCAPE RULES (I###) ===
+  // Namespace errors (I001-I099)
+  I001: {
+    type: "inkscape-invalid_namespace_uri",
+    severity: "error",
+    description: "Invalid Inkscape or Sodipodi namespace URI",
+    fixable: false,
+  },
+  I002: {
+    type: "inkscape-unknown_inkscape_element",
+    severity: "warning",
+    description: "Unknown inkscape: element (not in schema)",
+    fixable: false,
+  },
+  I003: {
+    type: "inkscape-unknown_sodipodi_element",
+    severity: "warning",
+    description: "Unknown sodipodi: element (not in schema)",
+    fixable: false,
+  },
+
+  // Attribute errors (I100-I199)
+  I101: {
+    type: "inkscape-invalid_inkscape_attribute",
+    severity: "error",
+    description: "Invalid value for inkscape: attribute",
+    fixable: false,
+  },
+  I102: {
+    type: "inkscape-invalid_sodipodi_attribute",
+    severity: "error",
+    description: "Invalid value for sodipodi: attribute",
+    fixable: false,
+  },
+  I103: {
+    type: "inkscape-unknown_inkscape_attribute",
+    severity: "warning",
+    description: "Unknown inkscape: attribute (not in schema)",
+    fixable: false,
+  },
+  I104: {
+    type: "inkscape-unknown_sodipodi_attribute",
+    severity: "warning",
+    description: "Unknown sodipodi: attribute (not in schema)",
+    fixable: false,
+  },
+
+  // Compatibility warnings (I200-I299)
+  I201: {
+    type: "inkscape-flowtext_compatibility",
+    severity: "warning",
+    description: "flowRoot/flowPara elements require polyfill for browser rendering",
+    fixable: false,
+  },
+  I202: {
+    type: "inkscape-mesh_gradient",
+    severity: "warning",
+    description: "Mesh gradient requires polyfill for browser rendering",
+    fixable: false,
+  },
+  I203: {
+    type: "inkscape-hatch_paint",
+    severity: "warning",
+    description: "Hatch paint server requires polyfill for browser rendering",
+    fixable: false,
+  },
 };
 
 // Create reverse lookup: type -> code
@@ -1330,6 +1397,8 @@ function parseArgs(argv) {
     verbose: false, // Enable verbose debug output
     stdin: false, // Read from stdin instead of files
     severityOverrides: {}, // Map of rule code -> 'error'|'warning' for severity customization
+    validateInkscape: false, // Enable Inkscape namespace validation
+    inkscapeStrict: false, // Strict Inkscape validation (unknown attributes are errors)
   };
 
   let i = 2;
@@ -1752,6 +1821,11 @@ function parseArgs(argv) {
       args.verbose = true;
     } else if (arg === "--stdin" || arg === "-") {
       args.stdin = true;
+    } else if (arg === "--validate-inkscape" || arg === "--inkscape") {
+      args.validateInkscape = true;
+    } else if (arg === "--inkscape-strict") {
+      args.validateInkscape = true;
+      args.inkscapeStrict = true;
     } else if (!arg.startsWith("-")) {
       args.files.push(arg);
     } else {
@@ -1834,6 +1908,11 @@ ${c("bold", "FORMATS")}
     junit           JUnit XML format for CI systems
     sarif           SARIF 2.1.0 for security tools (CodeQL, Snyk, etc.)
     github          GitHub Actions annotations (::error, ::warning)
+
+${c("bold", "INKSCAPE SUPPORT")}
+  ${c("cyan", "--validate-inkscape")}      Enable Inkscape namespace validation
+  ${c("cyan", "--inkscape")}               Alias for --validate-inkscape
+  ${c("cyan", "--inkscape-strict")}        Strict mode: unknown inkscape/sodipodi attributes are errors
 
 ${c("bold", "CONFIGURATION")}
   ${c("cyan", "-c, --config")} <file>      Path to config file
@@ -4269,6 +4348,8 @@ async function main() {
       const result = await validateSVGAsync(content, {
         errorsOnly: args.errorsOnly,
         includeSource: true,
+        validateInkscape: args.validateInkscape,
+        inkscapeStrict: args.inkscapeStrict,
       });
 
       // Add invalid character issues
@@ -4426,6 +4507,8 @@ async function main() {
       const result = await validateSVGAsync(file, {
         errorsOnly: args.errorsOnly,
         includeSource: true,
+        validateInkscape: args.validateInkscape,
+        inkscapeStrict: args.inkscapeStrict,
       });
 
       // Add invalid character issues
@@ -4836,6 +4919,8 @@ async function lintFile(filePath, options = {}) {
   const result = await validateSVGAsync(filePath, {
     errorsOnly: options.errorsOnly || false,
     includeSource: options.includeSource !== false,
+    validateInkscape: options.validateInkscape || false,
+    inkscapeStrict: options.inkscapeStrict || false,
   });
 
   // Add invalid character issues
