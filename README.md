@@ -333,6 +333,46 @@ svgm --export --export-prefix myapp_ input.svg -o output.svg --export-dir ./asse
 | `--export-dry-run` | Preview extraction without writing files |
 | `--export-ids <ids>` | Only export from specific element IDs |
 
+### Inkscape Conversion
+
+Convert Inkscape SVG files to plain/standard SVG by removing editor-specific metadata while preserving SVG 2 features:
+
+```bash
+# Using svgm
+svgm --to-plain-svg inkscape-drawing.svg -o plain.svg
+
+# Keep SVG 1.2 flowText elements (normally removed)
+svgm --to-plain-svg --keep-flow-text inkscape-drawing.svg -o plain.svg
+
+# Using svg-matrix CLI
+svg-matrix to-plain inkscape-drawing.svg -o plain.svg
+```
+
+**What gets removed:**
+- `sodipodi:*` elements and attributes (guide lines, named views)
+- `inkscape:*` elements and attributes (layers, path effects, version)
+- SVG 1.2 flowText elements (not browser-supported)
+- Namespace declarations (xmlns:inkscape, xmlns:sodipodi)
+
+**What gets preserved:**
+- Mesh gradients and hatches (SVG 2 features)
+- All standard SVG elements and attributes
+- Document structure and styling
+
+### Run Without Installing
+
+Use `bunx` or `npx` to run the CLI tools without installing the package:
+
+```bash
+# Using bunx (faster)
+bunx @emasoft/svg-matrix svgm input.svg -o output.svg
+bunx @emasoft/svg-matrix svg-matrix flatten input.svg -o output.svg
+
+# Using npx
+npx @emasoft/svg-matrix svgm input.svg -o output.svg
+npx @emasoft/svg-matrix svg-matrix to-plain inkscape.svg -o plain.svg
+```
+
 ### YAML Configuration
 
 Instead of CLI flags, you can use a YAML configuration file:
@@ -598,6 +638,22 @@ const layers = InkscapeSupport.findLayers(doc);
 
 // Get document settings from sodipodi:namedview
 const settings = InkscapeSupport.getNamedViewSettings(doc);
+```
+
+### Plain SVG Conversion
+
+```javascript
+import { convertToPlainSVG } from '@emasoft/svg-matrix';
+
+// Convert Inkscape SVG to plain/standard SVG
+const plainSVG = await convertToPlainSVG(inkscapeSVG);
+
+// With options
+const plainSVG = await convertToPlainSVG(inkscapeSVG, {
+  removeFlowText: true,      // Remove SVG 1.2 flowText (default: true)
+  removeEmptyDefs: true,     // Clean up empty defs (default: true)
+  removeEmptyGroups: false,  // Keep empty groups with IDs (default: false)
+});
 ```
 
 ### SVG 2.0 Polyfills Module

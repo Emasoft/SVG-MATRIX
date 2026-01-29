@@ -20635,7 +20635,7 @@ export default {
   removeEmptyText,
   removeEmptyContainers,
 
-  // Category 2: Removal (12)
+  // Category 2: Removal (13)
   removeDoctype,
   removeXMLProcInst,
   removeComments,
@@ -20648,6 +20648,7 @@ export default {
   removeXMLNS,
   removeRasterImages,
   removeScriptElement,
+  convertToPlainSVG,  // Converts Inkscape SVG to plain/standard SVG
 
   // Category 3: Conversion (10)
   convertShapesToPath,
