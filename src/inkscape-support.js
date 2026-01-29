@@ -16,6 +16,306 @@ export const SODIPODI_NS = "http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd";
 // Inkscape-specific element and attribute prefixes
 export const INKSCAPE_PREFIXES = ["inkscape", "sodipodi"];
 
+// ============================================================================
+// COMPLETE INKSCAPE NAMESPACE SCHEMA
+// Source: https://gitlab.com/inkscape/inkscape/-/blob/master/src/attributes.cpp
+// ============================================================================
+
+/**
+ * Complete list of valid inkscape: namespace attributes.
+ * Organized by category for documentation and validation.
+ */
+export const INKSCAPE_ATTRIBUTES = {
+  // Layer and grouping
+  groupmode: { type: "string", values: ["layer"], description: "Identifies a group as a layer" },
+  label: { type: "string", description: "Human-readable label for objects/layers" },
+  expanded: { type: "boolean", description: "UI state - whether group is expanded in layers panel" },
+
+  // Document and version info
+  version: { type: "string", description: "Inkscape version that created/edited the file" },
+  "document-units": { type: "string", values: ["px", "pt", "pc", "mm", "cm", "in"], description: "Default document units" },
+
+  // View state (stored in sodipodi:namedview)
+  zoom: { type: "number", description: "Current zoom level" },
+  rotation: { type: "number", description: "Current view rotation in degrees" },
+  cx: { type: "number", description: "View center X coordinate" },
+  cy: { type: "number", description: "View center Y coordinate" },
+  "window-width": { type: "number", description: "Window width in pixels" },
+  "window-height": { type: "number", description: "Window height in pixels" },
+  "window-x": { type: "number", description: "Window X position" },
+  "window-y": { type: "number", description: "Window Y position" },
+  "window-maximized": { type: "boolean", description: "Whether window is maximized" },
+  "current-layer": { type: "string", description: "ID of the currently active layer" },
+
+  // Page and desk appearance
+  pageopacity: { type: "number", min: 0, max: 1, description: "Page opacity" },
+  pageshadow: { type: "number", description: "Page shadow intensity" },
+  showpageshadow: { type: "boolean", description: "Whether to show page shadow" },
+  deskcolor: { type: "color", description: "Desk (canvas background) color" },
+  deskopacity: { type: "number", min: 0, max: 1, description: "Desk opacity" },
+  pagecheckerboard: { type: "boolean", description: "Show checkerboard pattern for transparency" },
+  "clip-to-page": { type: "boolean", description: "Clip rendering to page bounds" },
+  "antialias-rendering": { type: "boolean", description: "Enable antialiasing in rendering" },
+
+  // Page dimensions
+  margin: { type: "string", description: "Page margin (CSS-like format)" },
+  bleed: { type: "string", description: "Page bleed area" },
+  "page-size": { type: "string", description: "Named page size (A4, Letter, etc.)" },
+  "svg-dpi": { type: "number", description: "DPI for SVG export" },
+
+  // Guides
+  lockguides: { type: "boolean", description: "Lock all guides from editing" },
+  color: { type: "color", description: "Guide color" },
+
+  // Object state
+  locked: { type: "boolean", description: "Object is locked from editing" },
+  pinned: { type: "boolean", description: "Object is pinned in place" },
+  collect: { type: "string", values: ["always", "never"], description: "Garbage collection behavior for defs" },
+  "highlight-color": { type: "color", description: "Highlight color for object selection" },
+  swatch: { type: "boolean", description: "Gradient is a color swatch" },
+
+  // Transform
+  "transform-center-x": { type: "number", description: "Custom rotation center X offset" },
+  "transform-center-y": { type: "number", description: "Custom rotation center Y offset" },
+
+  // Live Path Effects (LPE)
+  "path-effect": { type: "string", description: "Reference to inkscape:path-effect element (#id or #id;#id2)" },
+  "original-d": { type: "string", description: "Original path data before LPE application" },
+  original: { type: "string", description: "Original element reference" },
+
+  // Connectors
+  "connector-type": { type: "string", values: ["polyline", "orthogonal"], description: "Connector line type" },
+  "connector-curvature": { type: "number", description: "Connector curve amount" },
+  "connector-spacing": { type: "number", description: "Spacing around connectors" },
+  "connector-avoid": { type: "boolean", description: "Other connectors avoid this object" },
+  "connection-points": { type: "string", description: "Custom connection point definitions" },
+  "connection-start": { type: "string", description: "Start connection point reference" },
+  "connection-end": { type: "string", description: "End connection point reference" },
+
+  // 3D Box and Perspective
+  perspectiveID: { type: "string", description: "Reference to perspective element" },
+  corner0: { type: "string", description: "3D box corner 0 coordinates" },
+  corner7: { type: "string", description: "3D box corner 7 coordinates" },
+  box3dsidetype: { type: "string", description: "3D box side type" },
+  persp3d: { type: "string", description: "3D perspective definition" },
+  vp_x: { type: "string", description: "X vanishing point" },
+  vp_y: { type: "string", description: "Y vanishing point" },
+  vp_z: { type: "string", description: "Z vanishing point" },
+  "persp3d-origin": { type: "string", description: "Perspective origin point" },
+
+  // Star/Polygon shapes
+  flatsided: { type: "boolean", description: "Polygon has flat sides (not star)" },
+  rounded: { type: "number", description: "Corner rounding amount" },
+  randomized: { type: "number", description: "Random vertex displacement" },
+  radius: { type: "number", description: "Shape radius" },
+
+  // References
+  href: { type: "string", description: "Inkscape-specific href reference" },
+
+  // Font and text
+  "font-specification": { type: "string", description: "Full font specification string (fontconfig format)" },
+
+  // Text flow (SVG 1.2 draft)
+  srcNoMarkup: { type: "string", description: "Text source without markup" },
+  srcPango: { type: "string", description: "Text source in Pango markup" },
+  dstShape: { type: "string", description: "Text flow destination shape" },
+  dstPath: { type: "string", description: "Text flow destination path" },
+  dstBox: { type: "string", description: "Text flow destination box" },
+  dstColumn: { type: "string", description: "Text flow column settings" },
+  excludeShape: { type: "string", description: "Shapes to exclude from text flow" },
+  layoutOptions: { type: "string", description: "Text layout options" },
+  "auto-region": { type: "boolean", description: "Auto-create text flow region" },
+
+  // Export
+  "export-filename": { type: "string", description: "Default export filename" },
+  "export-xdpi": { type: "number", description: "Export X DPI" },
+  "export-ydpi": { type: "number", description: "Export Y DPI" },
+
+  // Spray tool
+  "spray-origin": { type: "string", description: "Spray tool origin reference" },
+
+  // Tiled clones
+  "tiled-clone-of": { type: "string", description: "Source element for tiled clone" },
+};
+
+/**
+ * Complete list of valid sodipodi: namespace attributes.
+ */
+export const SODIPODI_ATTRIBUTES = {
+  // Document info
+  docname: { type: "string", description: "Document filename" },
+
+  // Shape type
+  type: { type: "string", values: ["arc", "star", "spiral", "inkscape:offset"], description: "Sodipodi shape type" },
+  insensitive: { type: "boolean", description: "Object cannot be selected with mouse" },
+
+  // Arc/Ellipse parameters
+  cx: { type: "number", description: "Arc center X" },
+  cy: { type: "number", description: "Arc center Y" },
+  rx: { type: "number", description: "Arc radius X" },
+  ry: { type: "number", description: "Arc radius Y" },
+  start: { type: "number", description: "Arc start angle (radians)" },
+  end: { type: "number", description: "Arc end angle (radians)" },
+  open: { type: "boolean", description: "Arc is open (not closed)" },
+  "arc-type": { type: "string", values: ["arc", "slice", "chord"], description: "Arc rendering type" },
+
+  // Star/Polygon parameters
+  sides: { type: "number", min: 3, description: "Number of polygon sides" },
+  r1: { type: "number", description: "Star outer radius" },
+  r2: { type: "number", description: "Star inner radius" },
+  arg1: { type: "number", description: "Star angle argument 1" },
+  arg2: { type: "number", description: "Star angle argument 2" },
+
+  // Spiral parameters
+  expansion: { type: "number", description: "Spiral expansion rate" },
+  revolution: { type: "number", description: "Number of spiral revolutions" },
+  radius: { type: "number", description: "Spiral radius" },
+  argument: { type: "number", description: "Spiral argument" },
+  t0: { type: "number", min: 0, max: 1, description: "Spiral start parameter" },
+
+  // Path and reference
+  original: { type: "string", description: "Original path or element reference" },
+  nodetypes: { type: "string", pattern: /^[csza]+$/, description: "Path node types (c=corner, s=smooth, z=symmetric, a=auto)" },
+
+  // Text
+  role: { type: "string", values: ["line"], description: "Text span role (line = separate line)" },
+  linespacing: { type: "string", description: "Line spacing (percentage or absolute)" },
+};
+
+/**
+ * Valid sodipodi: namespace elements.
+ */
+export const SODIPODI_ELEMENTS = ["namedview", "guide"];
+
+/**
+ * Valid inkscape: namespace elements.
+ */
+export const INKSCAPE_ELEMENTS = ["path-effect", "perspective"];
+
+/**
+ * SVG 1.2 draft elements used by Inkscape for flowed text.
+ * These are in the SVG namespace but are Inkscape-specific features.
+ */
+export const FLOW_TEXT_ELEMENTS = ["flowRoot", "flowPara", "flowRegion", "flowSpan", "flowDiv", "flowLine"];
+
+/**
+ * Validate an inkscape: attribute value.
+ * @param {string} attrName - Attribute name without prefix
+ * @param {string} value - Attribute value
+ * @returns {{valid: boolean, error?: string}} Validation result
+ */
+export function validateInkscapeAttribute(attrName, value) {
+  const schema = INKSCAPE_ATTRIBUTES[attrName];
+  if (!schema) {
+    return { valid: true }; // Unknown attributes are allowed (future compatibility)
+  }
+
+  if (schema.values && !schema.values.includes(value)) {
+    return { valid: false, error: `Invalid value "${value}" for inkscape:${attrName}. Expected: ${schema.values.join(", ")}` };
+  }
+
+  if (schema.type === "number") {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      return { valid: false, error: `inkscape:${attrName} must be a number` };
+    }
+    if (schema.min !== undefined && num < schema.min) {
+      return { valid: false, error: `inkscape:${attrName} must be >= ${schema.min}` };
+    }
+    if (schema.max !== undefined && num > schema.max) {
+      return { valid: false, error: `inkscape:${attrName} must be <= ${schema.max}` };
+    }
+  }
+
+  if (schema.type === "boolean" && !["true", "false", "0", "1"].includes(value)) {
+    return { valid: false, error: `inkscape:${attrName} must be a boolean (true/false/0/1)` };
+  }
+
+  if (schema.pattern && !schema.pattern.test(value)) {
+    return { valid: false, error: `inkscape:${attrName} has invalid format` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate a sodipodi: attribute value.
+ * @param {string} attrName - Attribute name without prefix
+ * @param {string} value - Attribute value
+ * @returns {{valid: boolean, error?: string}} Validation result
+ */
+export function validateSodipodiAttribute(attrName, value) {
+  const schema = SODIPODI_ATTRIBUTES[attrName];
+  if (!schema) {
+    return { valid: true }; // Unknown attributes are allowed (future compatibility)
+  }
+
+  if (schema.values && !schema.values.includes(value)) {
+    return { valid: false, error: `Invalid value "${value}" for sodipodi:${attrName}. Expected: ${schema.values.join(", ")}` };
+  }
+
+  if (schema.type === "number") {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      return { valid: false, error: `sodipodi:${attrName} must be a number` };
+    }
+    if (schema.min !== undefined && num < schema.min) {
+      return { valid: false, error: `sodipodi:${attrName} must be >= ${schema.min}` };
+    }
+    if (schema.max !== undefined && num > schema.max) {
+      return { valid: false, error: `sodipodi:${attrName} must be <= ${schema.max}` };
+    }
+  }
+
+  if (schema.pattern && !schema.pattern.test(value)) {
+    return { valid: false, error: `sodipodi:${attrName} has invalid format` };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Check if a document is an Inkscape SVG file.
+ * Checks for Inkscape namespaces and version attribute.
+ * @param {Object} doc - Parsed SVG document
+ * @returns {{isInkscape: boolean, version?: string, hasFlowText: boolean}}
+ */
+export function detectInkscapeDocument(doc) {
+  if (!doc) return { isInkscape: false, hasFlowText: false };
+
+  const svg = doc.documentElement || doc;
+  if (!svg || typeof svg.getAttribute !== "function") {
+    return { isInkscape: false, hasFlowText: false };
+  }
+
+  const hasInkscapeNs = svg.getAttribute("xmlns:inkscape") === INKSCAPE_NS;
+  const hasSodipodiNs = svg.getAttribute("xmlns:sodipodi") === SODIPODI_NS;
+  const inkscapeVersion = svg.getAttribute("inkscape:version");
+
+  // Check for flowRoot elements (Inkscape flowed text)
+  let hasFlowText = false;
+  const checkFlowText = (el) => {
+    if (!el) return;
+    if (FLOW_TEXT_ELEMENTS.includes(el.tagName)) {
+      hasFlowText = true;
+      return;
+    }
+    if (el.children && Array.isArray(el.children)) {
+      for (const child of el.children) {
+        checkFlowText(child);
+        if (hasFlowText) return;
+      }
+    }
+  };
+  checkFlowText(svg);
+
+  return {
+    isInkscape: hasInkscapeNs || hasSodipodiNs || !!inkscapeVersion,
+    version: inkscapeVersion || undefined,
+    hasFlowText,
+  };
+}
+
 /**
  * Check if an element is an Inkscape layer.
  * Inkscape uses `<g inkscape:groupmode="layer">` for layers.
