@@ -5,7 +5,7 @@
  * Provides 69+ operations for cleaning, optimizing, and transforming SVG files.
  *
  * @module svg-toolbox-lib
- * @version 1.3.5
+ * @version 1.3.6
  * @license MIT
  *
  * @example Browser usage:
@@ -34,7 +34,7 @@ import * as SVGToolboxModule from "./svg-toolbox.js";
 /**
  * Library version
  */
-export const VERSION = "1.3.5";
+export const VERSION = "1.3.6";
 
 /**
  * Default export for browser global (window.SVGToolbox)
