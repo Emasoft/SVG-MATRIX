@@ -2855,6 +2855,175 @@ export const removeEmptyAttrs = createOperation((doc, _options = {}) => {
 });
 
 /**
+ * Convert Inkscape SVG to plain/standard SVG.
+ *
+ * This function removes all Inkscape-specific and Sodipodi-specific content
+ * from an SVG file, producing a clean SVG that conforms to SVG 1.1 or 2.0 specs.
+ *
+ * What gets removed:
+ * - All sodipodi:* elements (namedview, guide)
+ * - All inkscape:* elements (path-effect, perspective, page, grid, clipboard, box3dside)
+ * - All sodipodi:* attributes (nodetypes, type, cx, cy, rx, ry, start, end, etc.)
+ * - All inkscape:* attributes (groupmode, label, version, collect, etc.)
+ * - Inkscape/Sodipodi namespace declarations (xmlns:inkscape, xmlns:sodipodi)
+ * - SVG 1.2 flowText elements (flowRoot, flowPara, flowRegion, etc.) - Inkscape-specific
+ *
+ * What is preserved:
+ * - All standard SVG elements and attributes
+ * - Visual appearance (the SVG renders identically)
+ * - IDs, classes, and CSS styles
+ * - Standard namespaces (svg, xlink, xml)
+ *
+ * @param {Object} options - Conversion options
+ * @param {boolean} [options.removeFlowText=true] - Remove SVG 1.2 flowText elements (not browser-supported)
+ * @param {boolean} [options.removeEmptyDefs=true] - Remove empty <defs> elements after cleanup
+ * @param {boolean} [options.removeEmptyGroups=false] - Remove groups that become empty after stripping
+ * @returns {Object} The cleaned SVG document
+ *
+ * @example
+ * // Convert Inkscape SVG to plain SVG
+ * const plainSVG = convertToPlainSVG(doc);
+ *
+ * @example
+ * // Keep flowText elements (for manual conversion later)
+ * const plainSVG = convertToPlainSVG(doc, { removeFlowText: false });
+ */
+export const convertToPlainSVG = createOperation((doc, options = {}) => {
+  const {
+    removeFlowText = true,
+    removeEmptyDefs = true,
+    removeEmptyGroups = false,
+  } = options;
+
+  // Inkscape/Sodipodi namespace prefixes to remove
+  const inkscapePrefixes = ["inkscape", "sodipodi"];
+
+  // SVG 1.2 flowText elements (Inkscape-specific, not browser-supported)
+  const flowTextElements = [
+    "flowRoot",
+    "flowPara",
+    "flowRegion",
+    "flowSpan",
+    "flowDiv",
+    "flowLine",
+  ];
+
+  // STEP 1: Remove all Inkscape/Sodipodi namespaced elements
+  // Why: These elements are Inkscape UI data and not part of standard SVG
+  // Use [...el.children] to create a copy of the array before iterating (avoids live collection issues)
+  const removeInkscapeElements = (el) => {
+    for (const child of [...el.children]) {
+      if (isElement(child)) {
+        const tagColonIdx = child.tagName.indexOf(":");
+        if (tagColonIdx > 0) {
+          const prefix = child.tagName.substring(0, tagColonIdx);
+          if (inkscapePrefixes.includes(prefix)) {
+            el.removeChild(child);
+            continue;
+          }
+        }
+        // Recurse into non-inkscape children
+        removeInkscapeElements(child);
+      }
+    }
+  };
+  removeInkscapeElements(doc);
+
+  // STEP 2: Remove SVG 1.2 flowText elements if requested
+  // Why: flowText is from SVG 1.2 draft, only Inkscape supports it, no browsers do
+  if (removeFlowText) {
+    const removeFlowTextElements = (el) => {
+      for (const child of [...el.children]) {
+        if (isElement(child)) {
+          if (flowTextElements.includes(child.tagName)) {
+            el.removeChild(child);
+            continue;
+          }
+          removeFlowTextElements(child);
+        }
+      }
+    };
+    removeFlowTextElements(doc);
+  }
+
+  // STEP 3: Remove all Inkscape/Sodipodi namespaced attributes
+  // Why: These attributes store Inkscape editor state, not visual data
+  const removeInkscapeAttributes = (el) => {
+    for (const attrName of [...el.getAttributeNames()]) {
+      // Skip namespace declarations (handled in step 4)
+      if (attrName.startsWith("xmlns:")) continue;
+
+      const colonIdx = attrName.indexOf(":");
+      if (colonIdx > 0) {
+        const prefix = attrName.substring(0, colonIdx);
+        if (inkscapePrefixes.includes(prefix)) {
+          el.removeAttribute(attrName);
+        }
+      }
+    }
+
+    // Recurse into children
+    for (const child of el.children) {
+      if (isElement(child)) removeInkscapeAttributes(child);
+    }
+  };
+  removeInkscapeAttributes(doc);
+
+  // STEP 4: Remove Inkscape/Sodipodi namespace declarations from root SVG
+  // Why: After removing all prefixed elements/attributes, declarations are orphaned
+  for (const prefix of inkscapePrefixes) {
+    doc.removeAttribute(`xmlns:${prefix}`);
+  }
+
+  // STEP 5: Remove empty <defs> elements if requested
+  // Why: Inkscape often puts items in defs that are now removed
+  if (removeEmptyDefs) {
+    const removeEmptyDefsElements = (el) => {
+      for (const child of [...el.children]) {
+        if (isElement(child)) {
+          if (child.tagName === "defs" && child.children.length === 0) {
+            el.removeChild(child);
+          } else {
+            removeEmptyDefsElements(child);
+          }
+        }
+      }
+    };
+    removeEmptyDefsElements(doc);
+  }
+
+  // STEP 6: Remove empty groups if requested
+  // Why: Groups that only contained Inkscape elements may now be empty
+  if (removeEmptyGroups) {
+    const removeEmptyGroupElements = (el) => {
+      let changed = true;
+      // Iterate until no more changes (handles nested empty groups)
+      while (changed) {
+        changed = false;
+        for (const child of [...el.children]) {
+          if (isElement(child)) {
+            if (child.tagName === "g" && child.children.length === 0) {
+              // Only remove if no attributes that might matter (like id for references)
+              const hasId = child.hasAttribute("id");
+              const hasClass = child.hasAttribute("class");
+              if (!hasId && !hasClass) {
+                el.removeChild(child);
+                changed = true;
+              }
+            } else {
+              removeEmptyGroupElements(child);
+            }
+          }
+        }
+      }
+    };
+    removeEmptyGroupElements(doc);
+  }
+
+  return doc;
+});
+
+/**
  * Remove viewBox if matches dimensions
  */
 export const removeViewBox = createOperation((doc, _options = {}) => {

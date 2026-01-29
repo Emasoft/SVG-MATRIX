@@ -881,6 +881,9 @@ ${boxLine(`              ${colors.dim}Ideal for animation and path morphing${col
 ${boxLine("", W)}
 ${boxLine(`  ${colors.green}info${colors.reset}        Show SVG file information and element counts`, W)}
 ${boxLine("", W)}
+${boxLine(`  ${colors.green}to-plain${colors.reset}    Convert Inkscape SVG to plain/standard SVG`, W)}
+${boxLine(`              ${colors.dim}Removes all sodipodi:* and inkscape:* data${colors.reset}`, W)}
+${boxLine("", W)}
 ${boxLine(`  ${colors.green}test-toolbox${colors.reset} Test all svg-toolbox functions on an SVG file`, W)}
 ${boxLine(`              ${colors.dim}Creates timestamped folder with all processed versions${colors.reset}`, W)}
 ${boxLine("", W)}
@@ -921,6 +924,14 @@ ${boxLine(`  ${colors.dim}--no-minify-polyfills${colors.reset}   Use full (non-m
 ${boxLine("", W)}
 ${boxDivider(W)}
 ${boxLine("", W)}
+${boxHeader("TO-PLAIN OPTIONS", W)}
+${boxLine("", W)}
+${boxLine(`  ${colors.yellow}${B.dot} Converts Inkscape SVG to plain/standard SVG${colors.reset}`, W)}
+${boxLine(`  ${colors.yellow}${B.dot} Removes: sodipodi:*, inkscape:*, SVG 1.2 flowText${colors.reset}`, W)}
+${boxLine(`  ${colors.yellow}${B.dot} Preserves: mesh gradients, hatches, standard SVG 2${colors.reset}`, W)}
+${boxLine("", W)}
+${boxDivider(W)}
+${boxLine("", W)}
 ${boxHeader("PRECISION OPTIONS", W)}
 ${boxLine("", W)}
 ${boxLine(`  ${colors.dim}--clip-segments <n>${colors.reset}     Polygon samples for clipping (default: 64)`, W)}
@@ -945,6 +956,7 @@ ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} ./svgs/ -o ./out/ 
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} --list files.txt -o ./out/ --no-patterns`, W)}
 ${boxLine(`  ${colors.green}svg-matrix flatten${colors.reset} input.svg -o out.svg --preserve-ns inkscape,sodipodi`, W)}
 ${boxLine(`  ${colors.green}svg-matrix convert${colors.reset} input.svg -o output.svg -p 10`, W)}
+${boxLine(`  ${colors.green}svg-matrix to-plain${colors.reset} inkscape.svg -o plain.svg`, W)}
 ${boxLine(`  ${colors.green}svg-matrix info${colors.reset} input.svg`, W)}
 ${boxLine("", W)}
 ${boxDivider(W)}
@@ -1645,6 +1657,52 @@ function processNormalize(inputPath, outputPath) {
 }
 
 /**
+ * Convert Inkscape SVG to plain/standard SVG.
+ * Removes all Inkscape-specific and Sodipodi-specific content while preserving
+ * standard SVG elements like mesh gradients, hatches, and other SVG 2 features.
+ *
+ * @param {string} inputPath - Input file path
+ * @param {string} outputPath - Output file path
+ * @returns {Promise<boolean>} True if successful
+ */
+async function processToPlain(inputPath, outputPath) {
+  // Why: Validate parameters to prevent crashes
+  if (!inputPath || typeof inputPath !== "string") {
+    logError("Invalid input path: must be a non-empty string");
+    return false;
+  }
+  if (!outputPath || typeof outputPath !== "string") {
+    logError("Invalid output path: must be a non-empty string");
+    return false;
+  }
+
+  try {
+    logDebug(`Converting to plain SVG: ${inputPath}`);
+    const content = readFileSync(inputPath, "utf8");
+
+    // Apply convertToPlainSVG function
+    // Why: This removes inkscape:* and sodipodi:* elements/attributes
+    // but preserves mesh gradients, hatches, and other standard SVG features
+    // Note: createOperation wrapper makes this async and handles parsing internally
+    const result = await SVGToolbox.convertToPlainSVG(content, {
+      removeFlowText: true,        // SVG 1.2 flowText is Inkscape-only
+      removeEmptyDefs: true,       // Clean up defs after removing Inkscape content
+      removeEmptyGroups: false,    // Keep groups even if empty (may have id refs)
+    });
+
+    if (!config.dryRun) {
+      ensureDir(dirname(outputPath));
+      writeFileSync(outputPath, result, "utf8");
+    }
+    logSuccess(`${basename(inputPath)} -> ${basename(outputPath)}`);
+    return true;
+  } catch (error) {
+    logError(`Failed: ${inputPath}: ${error.message}`);
+    return false;
+  }
+}
+
+/**
  * Display information about SVG file.
  * @param {string} inputPath - Input file path
  * @returns {boolean} True if successful
@@ -2250,6 +2308,7 @@ function parseArgs(args) {
             "convert",
             "normalize",
             "info",
+            "to-plain",
             "test-toolbox",
             "help",
             "version",
@@ -2373,7 +2432,8 @@ async function main() {
       }
       case "flatten":
       case "convert":
-      case "normalize": {
+      case "normalize":
+      case "to-plain": {
         const files = gatherInputFiles();
         if (files.length === 0) {
           logError("No input files");
@@ -2407,9 +2467,13 @@ async function main() {
                 ? processFlatten
                 : config.command === "convert"
                   ? processConvert
-                  : processNormalize;
+                  : config.command === "to-plain"
+                    ? processToPlain
+                    : processNormalize;
 
-            if (fn(f, out)) {
+            // Why: processToPlain is async, so we need to await it
+            const fnResult = await fn(f, out);
+            if (fnResult) {
               // Verify write if not dry run
               if (!config.dryRun) {
                 // Why: Simple empty check instead of full verifyWriteSuccess because:

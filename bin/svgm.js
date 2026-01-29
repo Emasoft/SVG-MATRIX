@@ -109,6 +109,9 @@ const DEFAULT_CONFIG = {
   embedMaxRecursionDepth: 10,
   embedTimeout: 30000,
   embedOnMissingResource: "warn",
+  // Plain SVG conversion
+  toPlainSVG: false,
+  removeFlowText: true,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -529,6 +532,20 @@ async function optimizeSvg(content, options = {}) {
     }
   }
 
+  // Convert to plain SVG if requested (remove all Inkscape/Sodipodi content)
+  // Why: This must run AFTER the optimization pipeline but BEFORE polyfills
+  if (options.toPlainSVG) {
+    try {
+      SVGToolbox.convertToPlainSVG(doc, {
+        removeFlowText: options.removeFlowText !== false,
+        removeEmptyDefs: true,
+        removeEmptyGroups: false,
+      });
+    } catch (err) {
+      logWarn(`convertToPlainSVG failed: ${err.message}`);
+    }
+  }
+
   // Inject SVG 2 polyfills if requested (using pre-detected features)
   if (options.svg2Polyfills && svg2Features) {
     if (
@@ -843,6 +860,12 @@ Embed Options:
   --embed-timeout <ms>       Timeout for external resources (default: 30000)
   --embed-on-missing <mode>  Handle missing resources: 'warn', 'fail', 'skip'
 
+Inkscape Conversion:
+  --to-plain-svg             Convert Inkscape SVG to plain/standard SVG
+                             (removes sodipodi:*, inkscape:* elements and attributes)
+  --keep-flow-text           Keep SVG 1.2 flowText elements when using --to-plain-svg
+                             (by default they are removed as browsers don't support them)
+
 Examples:
   svgm input.svg -o output.svg
   svgm -f ./icons/ -o ./optimized/
@@ -850,6 +873,7 @@ Examples:
   svgm -p 2 --multipass input.svg
   svgm input.svg --embed-all -o output.svg
   svgm input.svg --config svgm.yml -o output.svg
+  svgm inkscape.svg --to-plain-svg -o plain.svg
 
 Docs: https://github.com/Emasoft/SVG-MATRIX#readme`);
 }
@@ -1320,6 +1344,16 @@ function parseArgs(args) {
         i++;
         break;
 
+      case "--to-plain-svg":
+        // Why: Enable conversion from Inkscape SVG to plain/standard SVG
+        cfg.toPlainSVG = true;
+        break;
+
+      case "--keep-flow-text":
+        // Why: When using --to-plain-svg, keep SVG 1.2 flowText elements
+        cfg.removeFlowText = false;
+        break;
+
       default:
         if (arg.startsWith("-")) {
           logError(`Unknown option: ${arg}`);
@@ -1471,6 +1505,9 @@ async function main() {
     embedMaxRecursionDepth: config.embedMaxRecursionDepth,
     embedTimeout: config.embedTimeout,
     embedOnMissingResource: config.embedOnMissingResource,
+    // Plain SVG conversion options
+    toPlainSVG: config.toPlainSVG,
+    removeFlowText: config.removeFlowText,
   };
 
   // Handle string input
