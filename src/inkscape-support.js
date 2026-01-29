@@ -18,7 +18,11 @@ export const INKSCAPE_PREFIXES = ["inkscape", "sodipodi"];
 
 // ============================================================================
 // COMPLETE INKSCAPE NAMESPACE SCHEMA
-// Source: https://gitlab.com/inkscape/inkscape/-/blob/master/src/attributes.cpp
+// Sources:
+//   - https://gitlab.com/inkscape/inkscape/-/blob/master/src/attributes.cpp
+//   - https://github.com/validator/validator/blob/main/schema/svg11/inkscape-draft.rnc
+//   - https://github.com/validator/validator/blob/main/schema/svg11/inkscape.rnc
+//   - https://wiki.inkscape.org/wiki/Inkscape-specific_XML_attributes
 // ============================================================================
 
 /**
@@ -136,18 +140,52 @@ export const INKSCAPE_ATTRIBUTES = {
 
   // Tiled clones
   "tiled-clone-of": { type: "string", description: "Source element for tiled clone" },
+  "tile-cx": { type: "number", description: "Tile clone center X" },
+  "tile-cy": { type: "number", description: "Tile clone center Y" },
+  "tile-w": { type: "number", description: "Tile clone width" },
+  "tile-h": { type: "number", description: "Tile clone height" },
+
+  // Grid and guide display (from inkscape-draft.rnc)
+  "grid-bbox": { type: "boolean", description: "Show grid bounding box" },
+  "grid-points": { type: "boolean", description: "Show grid points" },
+  "guide-bbox": { type: "boolean", description: "Show guide bounding box" },
+  "guide-points": { type: "boolean", description: "Show guide points" },
+  "object-bbox": { type: "boolean", description: "Show object bounding box" },
+  "object-nodes": { type: "boolean", description: "Show object nodes" },
+  "object-paths": { type: "boolean", description: "Show object paths" },
+  "object-points": { type: "boolean", description: "Show object points" },
+
+  // Markers
+  marker: { type: "string", description: "Marker reference" },
+  stockid: { type: "string", description: "Stock marker/pattern ID" },
+
+  // Data handling
+  dataloss: { type: "boolean", description: "Indicates data loss on save" },
+  "has_abs_tolerance": { type: "boolean", description: "Has absolute tolerance" },
+  "output_extension": { type: "string", description: "Output extension ID" },
+
+  // Offset path
+  offset: { type: "number", description: "Offset distance for offset paths" },
+
+  // Stroke extensions (CSS-like)
+  "-inkscape-stroke": { type: "string", values: ["hairline"], description: "Inkscape stroke rendering mode" },
 };
 
 /**
  * Complete list of valid sodipodi: namespace attributes.
+ * Source: https://github.com/validator/validator/blob/main/schema/svg11/inkscape-draft.rnc
  */
 export const SODIPODI_ATTRIBUTES = {
   // Document info
   docname: { type: "string", description: "Document filename" },
+  docbase: { type: "string", description: "Document base directory (absolute path)" },
+  version: { type: "string", description: "Sodipodi version that saved the document" },
+  modified: { type: "boolean", description: "Internal: document modified since last save" },
 
   // Shape type
   type: { type: "string", values: ["arc", "star", "spiral", "inkscape:offset"], description: "Sodipodi shape type" },
   insensitive: { type: "boolean", description: "Object cannot be selected with mouse" },
+  nonprintable: { type: "boolean", description: "Object should not be printed" },
 
   // Arc/Ellipse parameters
   cx: { type: "number", description: "Arc center X" },
@@ -160,26 +198,29 @@ export const SODIPODI_ATTRIBUTES = {
   "arc-type": { type: "string", values: ["arc", "slice", "chord"], description: "Arc rendering type" },
 
   // Star/Polygon parameters
-  sides: { type: "number", min: 3, description: "Number of polygon sides" },
+  star: { type: "boolean", description: "Shape is a star (vs polygon)" },
+  sides: { type: "number", min: 3, description: "Number of polygon/star sides" },
   r1: { type: "number", description: "Star outer radius" },
   r2: { type: "number", description: "Star inner radius" },
-  arg1: { type: "number", description: "Star angle argument 1" },
-  arg2: { type: "number", description: "Star angle argument 2" },
+  arg1: { type: "number", description: "Star angle argument 1 (radians)" },
+  arg2: { type: "number", description: "Star angle argument 2 (radians)" },
 
   // Spiral parameters
+  spiral: { type: "boolean", description: "Shape is a spiral" },
   expansion: { type: "number", description: "Spiral expansion rate" },
   revolution: { type: "number", description: "Number of spiral revolutions" },
   radius: { type: "number", description: "Spiral radius" },
-  argument: { type: "number", description: "Spiral argument" },
-  t0: { type: "number", min: 0, max: 1, description: "Spiral start parameter" },
+  argument: { type: "number", description: "Spiral argument (start angle in radians)" },
+  t0: { type: "number", min: 0, max: 1, description: "Spiral start parameter (0-1)" },
 
   // Path and reference
   original: { type: "string", description: "Original path or element reference" },
   nodetypes: { type: "string", pattern: /^[csza]+$/, description: "Path node types (c=corner, s=smooth, z=symmetric, a=auto)" },
+  absref: { type: "string", description: "Absolute native path to external resource" },
 
   // Text
   role: { type: "string", values: ["line"], description: "Text span role (line = separate line)" },
-  linespacing: { type: "string", description: "Line spacing (percentage or absolute)" },
+  linespacing: { type: "string", description: "Line spacing (percentage like '125%' or absolute)" },
 };
 
 /**
@@ -197,6 +238,43 @@ export const INKSCAPE_ELEMENTS = ["path-effect", "perspective"];
  * These are in the SVG namespace but are Inkscape-specific features.
  */
 export const FLOW_TEXT_ELEMENTS = ["flowRoot", "flowPara", "flowRegion", "flowSpan", "flowDiv", "flowLine"];
+
+/**
+ * SVG 2 features requiring browser polyfills.
+ * Source: https://gitlab.com/inkscape/inkscape/-/blob/master/src/extension/internal/polyfill/README.md
+ */
+export const POLYFILL_FEATURES = {
+  meshGradient: {
+    elements: ["meshgradient", "meshrow", "meshpatch"],
+    description: "Bicubic mesh gradients (SVG 2)",
+    polyfill: "inkscape-mesh-polyfill.js",
+    browserSupport: "None",
+  },
+  hatchPaint: {
+    elements: ["hatch", "hatchpath"],
+    description: "Hatch paint server for patterns",
+    polyfill: "hatch.js",
+    browserSupport: "None",
+    limitations: "Relative path support incomplete",
+  },
+  hairlineStroke: {
+    cssProperty: "-inkscape-stroke",
+    values: ["hairline"],
+    description: "1-device-unit stroke regardless of zoom",
+    browserSupport: "None",
+  },
+};
+
+/**
+ * Namespace URIs for validation and serialization.
+ */
+export const NAMESPACE_URIS = {
+  inkscape: INKSCAPE_NS,
+  sodipodi: SODIPODI_NS,
+  svg: "http://www.w3.org/2000/svg",
+  xlink: "http://www.w3.org/1999/xlink",
+  xml: "http://www.w3.org/XML/1998/namespace",
+};
 
 /**
  * Validate an inkscape: attribute value.
