@@ -266,13 +266,23 @@ export const FLOW_TEXT_ELEMENTS = ["flowRoot", "flowPara", "flowRegion", "flowSp
 /**
  * SVG 2 features requiring browser polyfills.
  * Source: https://gitlab.com/inkscape/inkscape/-/blob/master/src/extension/internal/polyfill/README.md
+ *
+ * Note on Mesh Gradients (SVG 2 CR 2016 §13.8):
+ * Stop elements inside meshpatch use 'path' attribute instead of 'offset'.
+ * Reference: https://www.w3.org/TR/2016/CR-SVG2-20160915/pservers.html
+ *   - "offset - does not apply to mesh gradients"
+ *   - "path - applies only to mesh gradients"
+ * The 'path' attribute contains a single c/C/l/L bezier command defining one
+ * edge of the Coons patch quadrilateral. Mesh gradients were later removed
+ * from the SVG 2 Recommendation but Inkscape still supports them.
  */
 export const POLYFILL_FEATURES = {
   meshGradient: {
     elements: ["meshgradient", "meshrow", "meshpatch"],
-    description: "Bicubic mesh gradients (SVG 2)",
+    description: "Bicubic mesh gradients (SVG 2 CR 2016, removed from final spec)",
     polyfill: "inkscape-mesh-polyfill.js",
     browserSupport: "None",
+    stopAttribute: "path", // NOT 'offset' - mesh stops define patch edges with bezier commands
   },
   hatchPaint: {
     elements: ["hatch", "hatchpath"],

@@ -13815,7 +13815,9 @@ export const fixInvalidSVG = createOperation((doc, options = {}) => {
             });
           }
         } else if (tagName === "stop" && attr === "offset") {
-          // Mesh gradient stops (inside meshpatch/meshgradient) use 'path' instead of 'offset'
+          // SVG 2 CR 2016 §13.8: Mesh gradient stops use 'path' attribute, NOT 'offset'
+          // Reference: https://www.w3.org/TR/2016/CR-SVG2-20160915/pservers.html
+          // Linear/radial gradient stops require 'offset', mesh stops use 'path' instead
           let parent = el.parentNode;
           let isMeshStop = false;
           while (parent && parent.tagName) {
@@ -16386,7 +16388,12 @@ export async function validateSVGAsync(input, options = {}) {
         }
       } else {
         for (const attr of required) {
-          // Mesh gradient stops (inside meshpatch/meshgradient) use 'path' instead of 'offset'
+          // SVG 2 CR 2016 §13.8: Mesh gradient stops use 'path' attribute, NOT 'offset'
+          // Reference: https://www.w3.org/TR/2016/CR-SVG2-20160915/pservers.html
+          // Quote: "offset - does not apply to mesh gradients"
+          //        "path - applies only to mesh gradients"
+          // The 'path' attribute contains a single c/C/l/L bezier command defining one edge
+          // of the Coons patch. Linear/radial gradient stops still require 'offset'.
           if (tagName === "stop" && attr === "offset") {
             // Check if this stop is inside a mesh gradient structure by walking up the tree
             let parent = el.parentNode;
@@ -16399,7 +16406,7 @@ export async function validateSVGAsync(input, options = {}) {
               }
               parent = parent.parentNode;
             }
-            if (isMeshStop) continue; // Skip offset requirement for mesh gradient stops
+            if (isMeshStop) continue; // Skip offset requirement - mesh stops use 'path' instead
           }
           if (!el.hasAttribute(attr)) {
             issues.push(
