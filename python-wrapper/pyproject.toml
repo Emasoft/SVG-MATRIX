@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "svg-matrix"
+version = "1.3.6"
+description = "Python wrapper for svg-matrix - arbitrary-precision SVG optimization, validation, and manipulation"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Emasoft", email = "713559+Emasoft@users.noreply.github.com" }]
+keywords = [
+    "svg",
+    "optimization",
+    "validation",
+    "matrix",
+    "transform",
+    "vector",
+    "graphics",
+    "inkscape",
+    "svgo",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.scripts]
+svgm-py = "svg_matrix.cli:svgm_main"
+svg-matrix-py = "svg_matrix.cli:svg_matrix_main"
+svgfonts-py = "svg_matrix.cli:svgfonts_main"
+svglinter-py = "svg_matrix.cli:svglinter_main"
+
+[project.urls]
+Homepage = "https://github.com/Emasoft/SVG-MATRIX"
+Repository = "https://github.com/Emasoft/SVG-MATRIX"
+Documentation = "https://github.com/Emasoft/SVG-MATRIX#readme"
+Issues = "https://github.com/Emasoft/SVG-MATRIX/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/svg_matrix"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
