@@ -235,12 +235,16 @@ async function build() {
         }),
         iife: iifeFiles.map((f) => {
           const filePath = join(distDir, f);
-          const content = existsSync(filePath) ? readFileSync(filePath) : Buffer.from("");
+          const fileExists = existsSync(filePath);
+          const content = fileExists ? readFileSync(filePath) : Buffer.from("");
+          const isSkipped = !fileExists || content.length === 0;
           return {
             name: f,
             size: content.length,
             gzipSize: content.length > 0 ? gzipSync(content).length : 0,
-            description: "IIFE bundle for browsers via <script> (includes decimal.js)",
+            description: isSkipped
+              ? "Not available (uses async imports incompatible with IIFE - use ESM instead)"
+              : "IIFE bundle for browsers via <script> (includes decimal.js)",
           };
         }),
       },
