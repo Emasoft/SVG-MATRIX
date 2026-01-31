@@ -80,7 +80,7 @@ console.log(path);
 ### Browser/CDN
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.global.min.js"></script>
 <script>
   const { Matrix, circleToPath, setPrecision } = SVGMatrix;
   setPrecision(50);
@@ -833,7 +833,7 @@ const path2 = circleToPath(100, 100, 50, 2);
 ### UMD Bundle
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.global.min.js"></script>
 <script>
   // All exports available on SVGMatrix global
   const { Matrix, Vector, Transforms2D, circleToPath, setPrecision } = SVGMatrix;
@@ -870,7 +870,7 @@ const path2 = circleToPath(100, 100, 50, 2);
 <body>
   <svg id="canvas" width="400" height="400"></svg>
 
-  <script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emasoft/svg-matrix/dist/svg-matrix.global.min.js"></script>
   <script>
     const { circleToPath, Transforms2D, transformPath, setPrecision } = SVGMatrix;
 
